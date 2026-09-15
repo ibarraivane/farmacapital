@@ -1,0 +1,525 @@
+PAQUETE PARA CLAUDE CODE — Métodos de pago (auditoría + veredicto + plan)
+FarmaCapital / Farmacia Ventura — repo farmacapital
+Fecha del veredicto: 15-sep-2026
+Estado: el negocio YA CONFIRMÓ este paquete. Implementar fase por fase.
+NO reabrir las decisiones de la sección B.
+
+Specs relacionadas en docs/:
+  docs/claude_encargo-medicamentos.md
+  docs/claude_envio-domicilio.md
+  (claude_fefo-vencimientos.md NO está en el repo; NO lo toques)
+  (claude_metodos-pago.md NUNCA llegó al repo; ESTE archivo es la fuente de verdad)
+
+Convenciones del repo:
+  - Backend no solo UI: validar en RPC/SQL, no solo en React.
+  - Commit + push + PR por fase.
+  - Tests/lint al cerrar cada fase.
+  - No tocar RH, corte de caja, FEFO.
+  - Envío a domicilio y encargo de medicamentos se CONSUMEN, no se reescriben,
+    salvo el gate de cobro por canal que este paquete define.
+  - No force-push a main.
+
+========================================================================
+A. QUÉ ESTÁS IMPLEMENTANDO (resumen de una página)
+========================================================================
+
+Hoy TODO el checkout online (pickup y domicilio) crea un pedido y redirige
+a Mercado Pago Checkout Pro (Link de pago / Preference). La cola POS
+«Pedidos online» SOLO muestra pedidos con payment_status=approved.
+
+Cambio pedido:
+
+1. PICKUP (tipo_entrega=recoger)
+   - El cliente ORDENA en la web sin pagar.
+   - El pedido entra a la cola POS como «confirmado, pendiente de cobro en tienda».
+   - Cuando llega a la farmacia, paga con la TERMINAL FÍSICA BBVA
+     (comisión negociada 0.7%).
+   - NO hay QR de Mercado Pago. NO hay Preference/Link de pago al ordenar pickup.
+   - Reutilizar el modal ya existente: src/components/BBVATerminalModal.jsx
+     (el cajero cobra en el dispositivo y confirma «aprobado» en la app).
+   - NO crear una venta POS nueva al cobrar: actualizar EL MISMO pedido online
+     (si creas otra venta, duplicas inventario).
+
+2. DOMICILIO / PREPAGO ONLINE (tipo_entrega=envio)
+   - Sigue cobrándose al ordenar con Mercado Pago (create-preference + webhook).
+   - Sigue el gate actual: cola solo con pago aprobado.
+   - Aplica MONTO MÍNIMO $150 (configurable).
+   - Aplica RECARGO 8% integrado al precio del catálogo (configurable).
+     El cliente NO ve una línea de «comisión» (ilegal en México, LFPC art. 7 Bis).
+
+3. ENCARGO DE MEDICAMENTOS
+   - Fuera de alcance. Precio manual del admin. No aplicar recargo ni mínimo
+     de este paquete.
+
+4. COSTO DE ENVÍO
+   - Fuera de alcance. Tiene su propia lógica (hoy Uber Direct en código;
+     el spec claude_envio-domicilio.md describe un plan B aún no implementado).
+     El recargo NO se aplica al fee de envío.
+
+========================================================================
+B. DECISIONES YA CERRADAS (no las reabras, no las evalúes)
+========================================================================
+
+1. CoDi queda DESCARTADO por completo (fricción de uso, no técnica).
+   No lo evalúes. No lo menciones en código, comentarios, UI ni PRs.
+
+2. Nada de cargo visible de «comisión» / «recargo de procesamiento» en el
+   checkout que el cliente vea como línea aparte. El recargo va INTEGRADO
+   al precio del catálogo online. Ilegal en México: LFPC art. 7 Bis
+   (reforma abril 2024).
+
+3. El recargo es idéntico sin importar el método DENTRO del checkout MP
+   (tarjeta, SPEI, etc.). Se fija por CANAL de cobro, nunca por método MP.
+
+4. Recargo y mínimo NO aplican a claude_encargo-medicamentos.md
+   (precio manual del admin) ni al costo de envío de claude_envio-domicilio.md.
+
+5. Valores de partida [CONFIGURABLE] en env, ajustables después:
+     MONTO_MINIMO_PEDIDO_ONLINE = 150
+     RECARGO_CATALOGO_ONLINE    = 0.08   (8%)
+   No hardcodear en mil sitios: un módulo config + env.
+
+6. No tocar RH, corte de caja, FEFO.
+
+7. NO integrar QR de Mercado Pago. El dueño lo descartó el 15-sep-2026.
+   Pickup = terminal BBVA en mostrador. Comisión BBVA 0.7% (dato de negocio;
+   no inventar un recargo BBVA en el catálogo).
+
+8. Recargo 8% SOLO cuando el cobro pasa por Mercado Pago
+   (domicilio / prepago online). Pickup NO lleva el 8%.
+   El catálogo público muestra:
+     - Si el cliente eligió / va a domicilio (o el precio es el de canal
+       prepago): precio con 8% integrado.
+     - Pickup: precio de lista/oferta LIMPIO (mismo que mostrador).
+   Confirmado por el dueño: opción (1) del veredicto.
+   Implicación de UI: el precio de las tarjetas PUEDE cambiar al cambiar
+   el canal de entrega, O el catálogo siempre muestra precio limpio y el
+   8% se aplica solo al pasar a checkout de domicilio. Ver §E.4 — usar
+   la opción que no viole LFPC y no confunda. Recomendado técnico:
+   catálogo siempre muestra precio LIMPIO (mostrador); al elegir envío
+   en carrito/checkout, el total de productos pasa a precio con recargo
+   integrado (cada línea, no una línea «comisión»). El cliente ve
+   «precios de envío a domicilio» distintos, no una comisión.
+
+9. pedido_items.precio_unitario NUNCA lleva el recargo. Snapshot = precio
+   base/oferta (el de inventario/mostrador). El recargo vive a nivel
+   PEDIDO (desglose), no a nivel ítem, para no contaminar métricas de
+   inventario/RH.
+
+10. Implementar por fases (a)(b)(c)(d) de este paquete. Tests/lint al
+    cerrar cada fase. PR por fase.
+
+========================================================================
+C. AUDITORÍA DEL CÓDIGO HOY (15-sep-2026) — sigue vigente
+========================================================================
+
+C.1 Flujo actual Pedidos en línea (NO cambió desde la auditoría de encargo,
+    salvo la subpestaña «Avisos de disponibilidad» en POS Online, que NO
+    afecta el gate de pago).
+
+  Checkout (src/Tienda.jsx, función Checkout):
+    - metodo siempre se setea a "mercadopago". No hay selector efectivo/BBVA.
+    - RPC supabase.rpc("cliente_crear_pedido_online", { p_cart, p_metodo_pago,
+      p_tipo_entrega: recoger|envio, ... })
+    - Si envío: attachUberDirectQuote actualiza pedidos.total + logistics_meta.
+    - Luego POST /api/payments/mp/create-preference con pedidoId + amount.
+    - Redirect a mpData.initPoint (Checkout Pro).
+
+  RPC cliente_crear_pedido_online
+    (firma vigente más reciente en sql, hay VARIAS copias; la de producción
+    hay que alinear al patch más reciente que ya se corrió):
+    sql/patch_pedido_online_permite_receta_20260915.sql
+    sql/patch_pedidos_whatsapp_recibo.sql  (añade p_whatsapp_recibo)
+    sql/patch_seguridad_accesos_20260820.sql
+    sql/refactor_fase6b_rpcs_tienda.sql
+    LEE productos.precio (lista). NO usa precio_oferta_publico().
+    Escribe pedido_items.precio_unitario = productos.precio.
+    pedidos.tipo='online', estado='pendiente', total = suma de lista.
+
+  create-preference: api/payments/mp/create-preference.js
+    - Exige pedidos.tipo=online, estado=pendiente.
+    - Exige amount === pedidos.total (±0.01).
+    - Crea Preference Checkout Pro.
+
+  Webhook: api/payments/mp/webhook.js
+    - Verifica firma, GET /v1/payments/{id},
+      PATCH payment_status / payment_id / paid_at.
+    - Si approved: service_acreditar_puntos_pedido + notificaciones.
+    - Compara transaction_amount vs pedidos.total (±0.5).
+
+  Cola POS: src/utils/pedidosTiendaWeb.js
+    pedidoOnlinePagoConfirmado + esPedidoTiendaWebPendiente
+    RPC empleado_listar_pedidos_tienda_web_pendientes
+    RPC empleado_contar_pedidos_tienda_web_pendientes
+    SQL: sql/patch_pedidos_online_requiere_pago_aprobado.sql
+    Función central: fn_pedido_online_pago_confirmado(metodo, status, tipo)
+      - tipo != online → true
+      - mercadopago|tarjeta → status==='approved'
+      - efectivo → true   ← ya existe un bypass, pensado para «pago en mostrador»
+      - si hay status → approved; si no → false
+
+  Surtir: marcar_pedido_listo (mismo SQL patch)
+    - BLOQUEA si tipo=online y fn_pedido_online_pago_confirmado es false.
+    - Consume stock FEFO. NO lo cambies más allá del gate de cobro.
+
+  UI POS: src/modules/sales/pos/POS.jsx tab==="online"
+    - Subpestañas: «Pedidos pagados» | «Avisos de disponibilidad»
+    - Copy: «aquí solo aparecen pedidos con pago aprobado»
+    - Tag verde «Pago aprobado» en todos.
+    - Botón «Surtir y marcar listo» llama marcar_pedido_listo.
+
+C.2 QR Mercado Pago de cobro: NO EXISTE (y NO se va a crear).
+    Lo que SÍ hay:
+      api/payments/mp/create-preference.js  → Checkout Pro / Link
+      api/payments/mp/point.js              → Point Smart 2 (Orders API)
+      api/payments/mp/webhook.js            → webhook pagos MP
+      qrcode.react + tickets/flyers         → QR de ticket, NO de cobro
+    POS ya tiene terminal BBVA para venta mostrador y consultas:
+      src/components/BBVATerminalModal.jsx
+      POS.jsx pay==="bbva_terminal" → modal → onSuccess → ejecutarCobrar
+    Las terminales BBVA NO tienen API pública. Flujo: cajero cobra en el
+    dispositivo físico y confirma aprobado/rechazado en la app.
+    chk_metodo_pago actual (sql/patch_pago_mixto_pos.sql):
+      efectivo | tarjeta | mercadopago | mercadopago_point | spei | mixto
+    En POS, bbva_terminal se MAPEA a metodo_pago='tarjeta' al registrar venta.
+
+C.3 Precio catálogo público
+    Tienda carga supabase.from("productos").select("*")
+    ProductCard / DetalleProducto / carrito usan:
+      ofertaDeProducto(prod, promos) → PrecioOferta / cobroDe()
+    src/lib/precioOferta.js — lista = productos.precio; oferta = menor entre
+    descuento_pct y campañas vigentes.
+    NO hay columna precio_online / precio_catalogo / precio_web.
+    Existe SQL precio_oferta_publico(id) en
+      sql/patch_precio_oferta_publico_20260830.sql
+    pero el RPC de checkout AÚN NO LA USA (deuda documentada en el propio patch).
+    El recargo NO puede ser solo UI: create-preference compara amount vs total.
+
+C.4 Columnas relevantes pedidos (no hay desglose de recargo hoy)
+    tipo, tipo_entrega (recoger|envio), metodo_pago, payment_status,
+    payment_provider, payment_id, paid_at, payment_payload,
+    total, logistics_meta, whatsapp_recibo, guest_*,
+    monto_efectivo, monto_tarjeta (mixto POS).
+    pedido_items.precio_unitario = snapshot de venta.
+
+C.5 Puntos de lealtad
+    cliente_crear_pedido_online acredita floor(total/10) AL CREAR el pedido,
+    ANTES del pago MP. Para pickup sin prepago esto acreditaría puntos sin cobro.
+    Hay que mover la acreditación de pickup al momento del cobro BBVA
+    (o no acreditar en el RPC si canal pickup, y acreditar en el RPC de cobro).
+
+C.6 Stock
+    El pedido pendiente NO descuenta stock al crear.
+    marcar_pedido_listo SÍ consume lotes FEFO.
+    Pickup en cola sin cobro = se puede surtir (reservar) antes de cobrar.
+    Si no-show: admin_cancelar_pedido debe seguir liberando.
+    NO reescribas FEFO; solo el gate de «¿puede marcarse listo sin MP approved?».
+
+========================================================================
+D. VEREDICTO (ya aceptado por el dueño)
+========================================================================
+
+D.1 Pickup sin cobro al ordenar vs gate ped_online
+    VIABLE, no es cosmético. El gate existe en 3 capas
+    (JS pedidoOnlinePagoConfirmado, RPCs listar/contar, marcar_pedido_listo).
+    Ya hay un camino efectivo→true pensado para pago en mostrador, pero
+    NO uses «efectivo» como semántica permanente si el cobro real es BBVA
+    tarjeta. Extiende el gate de forma EXPLÍCITA:
+
+    Propuesta de estados (ajusta nombres si el constraint lo exige; documenta):
+      Al crear pickup:
+        tipo='online'
+        tipo_entrega='recoger'
+        metodo_pago='pendiente_tienda'   -- puede requerir ampliar chk_metodo_pago
+          ALTERNATIVA si no quieres tocar el check aún:
+          metodo_pago='efectivo' + payment_status='pending_store'
+          y el gate mira (tipo_entrega=recoger AND payment_status=pending_store)
+        payment_status='pending_store'
+        payment_provider=null
+      Tras cobro BBVA en POS:
+        metodo_pago='tarjeta'
+        payment_provider='bbva'
+        payment_status='approved'
+        paid_at=now()
+        payment_payload jsonb con { terminal:'bbva', folio, confirmed_by }
+
+    fn_pedido_online_pago_confirmado debe devolver TRUE para
+      pickup pending_store (para que APAREZCA en cola y se PUEDA surtir),
+      además del camino MP approved actual.
+
+    UI POS: no etiquetar pickup pendiente como «Pago aprobado».
+    Tags: «Pendiente cobro en tienda» vs «Pagado · BBVA» vs «Pagado · Mercado Pago».
+    Subpestaña puede seguir llamándose Pedidos online, pero el copy
+    «solo aparecen con pago aprobado» hay que actualizarlo.
+    Botón nuevo en la tarjeta del pedido pickup: «Cobrar con terminal BBVA»
+    reutilizando BBVATerminalModal (total = pedidos.total SIN recargo 8%).
+
+    NO romper domicilio: envío sigue exigiendo MP approved para cola y surtir.
+
+D.2 Recargo «al vuelo, nunca almacenado» en catálogo
+    VIABLE como RESULTADO. Técnica recomendada (el spec pedía el resultado,
+    no la técnica):
+
+    - NO crear columna productos.precio_online.
+    - Función SQL + helper JS con LA MISMA fórmula.
+      precio_base = precio_oferta_publico(id)
+      precio_cobro_mp = redondear_mxn(precio_base * (1 + RECARGO_CATALOGO_ONLINE))
+    - En el PEDIDO sí persistir desglose (snapshot), no en catálogo:
+        subtotal_productos              -- suma de precio_base * qty
+        recargo_procesamiento_pago      -- diferencia cobrada, interno
+        monto_cobrado_mercadopago       -- lo que se manda a MP
+      Pueden ser columnas numeric en pedidos O un jsonb payment_meta.
+      Columnas son más fáciles de reportar. Preferir columnas.
+    - pedido_items.precio_unitario = precio_base (oferta/lista), SIN recargo.
+    - El cliente NUNCA ve el desglose del recargo. Ve precios de línea ya
+      integrados cuando el canal es MP.
+    - En reportes internos/admin SÍ puedes mostrar el desglose.
+    - Cerrar de paso la deuda: RPC debe usar precio_oferta_publico, no
+      productos.precio crudo. Hoy tienda muestra oferta y RPC cobra lista:
+      mismatch real. Arreglarlo en la misma fase (d).
+
+D.3 Otras fricciones
+    - Checkout hoy no bifurca cobro por canal: hay que bifurcar.
+    - Mínimo $150: UI + RPC. Solo domicilio/prepago. Pickup NO tiene este mínimo
+      (el dueño dijo «bloquear domicilio/prepago si el carrito no lo alcanza»).
+    - claude_envio-domicilio.md describe preauth/hold; PRODUCCIÓN sigue Uber Direct
+      (attachUberDirectQuote). NO reescribas envío. El recargo se aplica a
+      productos, luego se SUMA el fee Uber al total MP (fee sin recargo 8%).
+    - Encargo: no aplicar.
+    - Puntos: no acreditar pickup hasta cobro BBVA.
+
+========================================================================
+E. PLAN POR FASES (implementar en este orden)
+========================================================================
+
+Orden: (b) → (a) → (c) → (d)
+Razón: primero que pickup entre a cola sin MP; luego el botón de cobro BBVA;
+luego el mínimo (domicilio); luego recargo (catálogo + RPC + MP).
+(c) y (d) no dependen de (a)/(b) y podrían ir en paralelo DESPUÉS de (b),
+pero no mezcles recargo con el cambio de gate en el mismo PR.
+
+Cada fase: SQL patch idempotente si toca BD + JS + tests + lint.
+No dejes «solo UI».
+Mensajes de commit en español, descriptivos.
+Branch prefix: cursor/… según el flujo del agente.
+
+------------------------------------------------------------------------
+FASE (b) — Pickup sin Preference al ordenar
+------------------------------------------------------------------------
+Objetivo: el cliente pickup confirma pedido en web, recibe folio, NO va
+a Mercado Pago. El pedido aparece en POS Online como pendiente de cobro.
+
+Backend:
+  - cliente_crear_pedido_online:
+      si p_tipo_entrega='recoger': NO exigir/crear flujo MP.
+      setear metodo/status pending_store (ver D.1).
+      NO acreditar puntos aún.
+      NO redirigir (eso es front, pero el RPC no debe asumir MP).
+      Total = suma precio_oferta_publico (cierra deuda de oferta si tocas
+      el RPC; si prefieres no mezclar oferta en (b), déjalo como está y
+      ciérralo en (d) — PERO entonces documenta el mismatch. Preferible
+      usar precio_oferta_publico ya en (b) si tocas el RPC de todos modos).
+  - Ampliar chk_metodo_pago si introduces valor nuevo.
+  - fn_pedido_online_pago_confirmado: true para pickup pending_store.
+  - empleado_listar / contar: el filtro usa esa función; debería colar
+    pickup pendiente. Verifica que no filtre payment_status=approved extra.
+  - marcar_pedido_listo: permitir surtir pickup pending_store
+    (preparar pedido antes de que llegue el cliente). Domicilio sigue
+    exigiendo approved.
+  - create-preference: rechazar si el pedido es pickup pending_store
+    (no generar Link por error).
+
+Frontend tienda:
+  - Checkout pickup: tras RPC OK, pantalla de confirmación con folio.
+    Copy: «Pagas al recoger en farmacia con tarjeta (terminal BBVA).
+    Te avisamos por WhatsApp cuando esté listo.»
+  - NO llamar /api/payments/mp/create-preference en pickup.
+  - Domicilio: flujo MP actual intacto.
+
+Frontend POS:
+  - Copy de la cola actualizado.
+  - Tag «Pendiente cobro en tienda» vs «Pago aprobado».
+  - Mis pedidos (cliente): estado «Pedido confirmado · pagas al recoger».
+
+Tests:
+  - Unit JS: pedidoOnlinePagoConfirmado para pending_store pickup,
+    y false para envío sin approved.
+  - Si hay tests SQL/node del RPC, cubrir pickup vs envio.
+
+NO en esta fase: botón BBVA (eso es fase a), mínimo, recargo.
+
+------------------------------------------------------------------------
+FASE (a) — Cobro pickup con terminal BBVA
+------------------------------------------------------------------------
+Objetivo: en la tarjeta del pedido pickup pendiente, el cajero cobra
+con BBVATerminalModal y el pedido queda payment_status=approved.
+
+  - Reutilizar src/components/BBVATerminalModal.jsx. No reinventar UI.
+  - Nuevo RPC empleado_cobrar_pedido_online_bbva (nombre a tu criterio):
+      p_session_token, p_pedido_id
+      Valida: empleado, pedido tipo=online, tipo_entrega=recoger,
+      payment_status=pending_store, estado in (pendiente, listo).
+      Update: metodo_pago='tarjeta', payment_provider='bbva',
+      payment_status='approved', paid_at=now(), payload.
+      Acredita puntos AQUÍ (equivalente a service_acreditar_puntos_pedido).
+      Idempotente si ya está approved con provider bbva.
+  - POS: botón «Cobrar con terminal BBVA» visible solo en pickup
+    pending_store. onSuccess → RPC. Toast OK/error.
+  - Si el pedido aún está pendiente (no surtido), el cobro NO tiene
+    que surtir solo: el cajero sigue usando «Surtir y marcar listo».
+    Orden típico de mostrador: surtir cuando entra a cola → WhatsApp
+    listo → cliente llega → cobro BBVA → entregar (completado).
+    Si el negocio prefiere cobrar ANTES de entregar el producto físico,
+    el botón de cobro debe estar disponible en pendiente Y en listo.
+    NO completes/entregues en automático al cobrar.
+  - NO crear fila extra en pedidos tipo venta mostrador.
+  - NO tocar Point MP ni create-preference.
+
+Tests: RPC idempotencia + POS no llama create-preference.
+
+------------------------------------------------------------------------
+FASE (c) — MONTO_MINIMO_PEDIDO_ONLINE = 150
+------------------------------------------------------------------------
+  - src/config (nuevo o existente) lee env:
+      REACT_APP_MONTO_MINIMO_PEDIDO_ONLINE / MONTO_MINIMO_PEDIDO_ONLINE
+      default 150.
+  - Aplica al SUBTOTAL de productos del canal prepago (domicilio),
+    ANTES de sumar envío. Pickup NO se bloquea por mínimo.
+  - UI checkout domicilio: botón pagar disabled + mensaje (redactar
+    claro, sin palabrería legal). Sugerencia:
+      «El pedido a domicilio tiene un mínimo de $150 en productos
+      (antes de envío). Agrega algo más al carrito o recógelo en
+      farmacia sin mínimo.»
+    Si el spec original traía texto exacto en §2 y aparece, úsalo;
+    si no, este texto.
+  - RPC cliente_crear_pedido_online: si p_tipo_entrega='envio' y
+    subtotal productos < mínimo → raise exception. Backend no solo UI.
+  - Tests del helper de mínimo (bordes: 149.99, 150, 150.00, pickup 20).
+
+------------------------------------------------------------------------
+FASE (d) — RECARGO_CATALOGO_ONLINE = 8% (solo canal MP)
+------------------------------------------------------------------------
+  - Config env RECARGO_CATALOGO_ONLINE default 0.08.
+  - Helper JS src/lib/precioCatalogoOnline.js (nombre libre) + tests:
+      precioBase = ofertaDeProducto(...)
+      precioMp   = round2(precioBase * (1+r))
+      Nunca mostrar «comisión» al público.
+  - SQL: precio_cobro_online(id) = round(precio_oferta_publico(id)*(1+r))
+    El % no puede vivir solo en env del front: el RPC debe tener el
+    mismo valor. Opciones:
+      a) GUC / tabla config / constante SQL alineada al env (documentar
+         que hay que cambiar ambos al ajustar).
+      b) El front manda el % y el RPC lo IGNORA y usa el suyo
+         (nunca confiar en el cliente).
+    Usa (b) en espíritu: el servidor es la fuente. Constante SQL o
+    current_setting con default 0.08, documentada en el patch.
+  - Checkout domicilio:
+      líneas visibles = precio con recargo integrado
+      pedidos.total = suma(precio_mp * qty) + fee_envio
+      pedido_items.precio_unitario = precio_base (SIN recargo)
+      columnas desglose en pedidos.
+  - create-preference amount = pedidos.total (ya incluye recargo+envío).
+  - Pickup: precio_base, recargo_procesamiento_pago=0,
+    monto_cobrado_mercadopago=0.
+  - Carrito/fichas: ver decisión B.8. Implementar:
+      catálogo (ProductCard/Detalle) = precio LIMPIO (base/oferta)
+      al elegir envío, las líneas del carrito/checkout muestran el
+      precio integrado. No línea «comisión».
+  - No aplicar a encargo. No aplicar al fee Uber.
+  - No tocar RH / corte / FEFO / inventario métricas de ítem.
+
+Tests de redondeo MXN (2 decimales, casos 99.99, 150, oferta 2x).
+Test: suma(items.precio_unitario*qty) + recargo = monto_cobrado_mp
+      (salvo envío, que se suma aparte).
+
+========================================================================
+F. ARCHIVOS CLAVE (mapa)
+========================================================================
+
+Checkout / tienda
+  src/Tienda.jsx                          Checkout, ProductCard, DetalleProducto
+  src/components/PrecioOferta.jsx
+  src/lib/precioOferta.js
+  src/utils/orderChannels.js              mapUiEntregaToRpc pickup|envio
+
+Pagos MP
+  api/payments/mp/create-preference.js
+  api/payments/mp/webhook.js
+  api/payments/mp/point.js                NO usar para pickup
+
+POS / BBVA
+  src/modules/sales/pos/POS.jsx           tab online, surtirOnline, BBVA modal
+  src/components/BBVATerminalModal.jsx    reutilizar
+  src/utils/pedidosTiendaWeb.js           GATE JS — extender
+  src/utils/pedidosTiendaWeb.test.js      crear si no existe
+
+SQL
+  sql/patch_pedidos_online_requiere_pago_aprobado.sql   GATE
+  sql/patch_pedido_online_permite_receta_20260915.sql   RPC checkout
+  sql/patch_pedidos_whatsapp_recibo.sql                 firma RPC con WA
+  sql/patch_precio_oferta_publico_20260830.sql          oferta server
+  sql/patch_pago_mixto_pos.sql                          chk_metodo_pago
+  sql/fix_pedidos_payment_tracking.sql                  payment_* columns
+
+Docs de contexto (consumir, no reescribir)
+  docs/claude_encargo-medicamentos.md
+  docs/claude_envio-domicilio.md
+  docs/PRICING_DIAGNOSTICO.md
+  docs/PAQUETE_CLAUDE_ENCARGO_MEDICAMENTOS.txt
+
+========================================================================
+G. QUÉ NO HACER
+========================================================================
+
+- No integrar QR MP, Instore QR, ni CoDi.
+- No mostrar «comisión Mercado Pago» / «recargo de procesamiento» al cliente.
+- No guardar recargo en productos ni en pedido_items.precio_unitario.
+- No aplicar 8% a pickup, ni a envío, ni a encargo.
+- No exigir Preference/Link al ordenar pickup.
+- No dejar pickup fuera de la cola por el gate de approved.
+- No crear una segunda venta POS al cobrar pickup (doble stock).
+- No tocar Point Smart 2 más que no romperlo.
+- No reescribir Uber Direct / spec de envío / FEFO / RH / corte.
+- No acreditar puntos de pickup antes del cobro.
+- No usar lazy() en módulos Recibir/POS que ya son estáticos.
+- No «simplificar» bandas de tienda 220px (regla del repo, irrelevante
+  aquí pero no las toques si pasas por Tienda.jsx).
+
+========================================================================
+H. CRITERIOS DE ACEPTACIÓN GLOBALES
+========================================================================
+
+Pickup:
+  [ ] Ordenar en web sin redirect a MP.
+  [ ] Folio visible. Pedido en cola POS con tag pendiente cobro.
+  [ ] Surtir permitido sin payment_status=approved de MP.
+  [ ] Cobro BBVA en POS actualiza EL MISMO pedido a approved/bbva.
+  [ ] Domicilio no cambia: sigue Preference + webhook + cola solo approved.
+  [ ] Cancelar pickup no-show sigue funcionando.
+
+Mínimo:
+  [ ] Domicilio < $150 productos bloqueado en UI y RPC.
+  [ ] Pickup de $20 se puede ordenar.
+
+Recargo:
+  [ ] Catálogo/mostrador pickup: precio limpio.
+  [ ] Checkout domicilio: precios de línea con 8% integrado, sin renglón comisión.
+  [ ] pedidos.total MP = productos con recargo + fee envío (fee sin 8%).
+  [ ] pedido_items.precio_unitario sin recargo.
+  [ ] Reportes internos pueden leer el desglose del pedido.
+
+========================================================================
+I. MENSAJE DE ARRANQUE SUGERIDO PARA CLAUDE CODE
+========================================================================
+
+Lee docs/PAQUETE_CLAUDE_METODOS_PAGO.txt entero. Es la fuente de verdad.
+Implementa SOLO la fase (b) primero: pickup sin Preference, gate de cola
+extendido, SQL patch + tests. No mezcles BBVA, mínimo ni recargo en ese PR.
+Cuando (b) esté verde, sigue (a) → (c) → (d) en PRs separados.
+Decisiones de la sección B están cerradas.
+)
+</tool_call>
+
+<tool_call>
+
+Read
