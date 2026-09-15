@@ -82,7 +82,8 @@ begin
       raise exception 'Cantidad inválida para producto %', v_pid;
     end if;
 
-    select id, precio, activo, stock, nombre, controlado, grupo_controlado, visible_tienda
+    -- Sin visible_tienda: esa columna no existe en producción.
+    select id, precio, activo, stock, nombre, controlado
     into v_prod from public.productos where id = v_pid;
 
     if v_prod.id is null then
@@ -91,11 +92,7 @@ begin
     if not coalesce(v_prod.activo, false) then
       raise exception 'Producto "%" no está disponible', v_prod.nombre;
     end if;
-    if v_prod.visible_tienda is false then
-      raise exception 'Producto "%" no está disponible en tienda en línea', v_prod.nombre;
-    end if;
-    if coalesce(v_prod.controlado, false)
-       or nullif(btrim(coalesce(v_prod.grupo_controlado, '')), '') is not null then
+    if coalesce(v_prod.controlado, false) then
       raise exception 'El producto "%" es controlado y solo se vende en mostrador',
                       v_prod.nombre;
     end if;
