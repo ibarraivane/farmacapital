@@ -1,0 +1,4 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,444555,2026-09-15,Equilibrio,7502009741524,NAT0220 COLAGENO 60 TAB 71.42/1.42/700 MG,2,38.03,76.06,,,FC-9741524,477.49,ya
+2,444555,2026-09-15,Equilibrio,7501075723137,NOV138 NOVAKOSID 20 TAB 8.6 MG,10,13.65,136.50,,,FC-75723137,477.49,ya
+3,444555,2026-09-15,Equilibrio,7502266031116,BMI092 COLAGENER-3 SOB 150 G,2,108.95,217.90,,,FC-66031116,477.49,alta
