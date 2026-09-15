@@ -1,9 +1,7 @@
--- FarmaCapital — Pedido online: permitir medicamentos con receta (firma whatsapp del front)
+-- FarmaCapital — HOTFIX urgente checkout Rx (Exkruthera / receta)
 -- Verificado en prod: fn_digits_mx OK; RPC con whatsapp_recibo aún bloquea Rx.
 -- Quita el IF de receta en la firma que usa el front + elimina overload de 9 args.
 -- Supabase → SQL Editor → Run TODO el archivo.
-
-begin;
 
 create or replace function public.fn_digits_mx(p_text text)
 returns text

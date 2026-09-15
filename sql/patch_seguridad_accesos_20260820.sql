@@ -297,7 +297,7 @@ begin
       raise exception 'Cantidad inválida para producto %', v_pid;
     end if;
 
-    select id, precio, activo, stock, nombre, requiere_receta
+    select id, precio, activo, stock, nombre
       into v_prod
       from public.productos
      where id = v_pid
@@ -326,10 +326,7 @@ begin
       raise exception 'Stock insuficiente para "%": disponible=%, solicitado=%',
                       v_prod.nombre, v_stock_eff, v_qty;
     end if;
-    if coalesce(v_prod.requiere_receta, false) then
-      raise exception 'El producto "%" requiere receta médica y no puede venderse online',
-                      v_prod.nombre;
-    end if;
+    -- requiere_receta: permitido online (se solicita al entregar / recoger).
 
     v_total := v_total + (v_prod.precio * v_qty);
     v_n_items := v_n_items + 1;
