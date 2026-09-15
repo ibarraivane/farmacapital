@@ -239,4 +239,11 @@ test("descripcionPublicaTienda oculta notas de ticket", () => {
       descripcion: "Aspirina Bayer 500 mg 80 tabletas — EAN 7501008499818",
     }),
   ).toMatch(/Bayer/);
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Exkruthera Fruquintinib 1 mg",
+      descripcion:
+        "Alta mostrador · ficha SFE / Takeda · registro 295M2025 SSA IV · costo y PVP 0.01 por definir · 4 pzas sin lote",
+    }),
+  ).toBe("");
 });

@@ -1,4 +1,9 @@
-import { canalIngresoPedido, mapUiEntregaToRpc, FULFILLMENT_TYPE } from "./orderChannels";
+import {
+  canalIngresoPedido,
+  mapUiEntregaToRpc,
+  productoPermitidoEnTiendaWeb,
+  FULFILLMENT_TYPE,
+} from "./orderChannels";
 
 describe("canalIngresoPedido", () => {
   test("Rappi y tienda web son online", () => {
@@ -28,5 +33,37 @@ describe("mapUiEntregaToRpc", () => {
   });
   test("pick-up sigue en tienda", () => {
     expect(mapUiEntregaToRpc("pickup").tipo_entrega).toBe("recoger");
+  });
+});
+
+describe("productoPermitidoEnTiendaWeb", () => {
+  test("con receta (no controlado) sí entra al carrito", () => {
+    expect(
+      productoPermitidoEnTiendaWeb({
+        activo: true,
+        requiere_receta: true,
+        controlado: false,
+        nombre: "Exkruthera",
+      }),
+    ).toBe(true);
+  });
+  test("controlado no se vende online", () => {
+    expect(
+      productoPermitidoEnTiendaWeb({
+        activo: true,
+        requiere_receta: true,
+        controlado: true,
+      }),
+    ).toBe(false);
+    expect(
+      productoPermitidoEnTiendaWeb({
+        activo: true,
+        grupo_controlado: "II",
+      }),
+    ).toBe(false);
+  });
+  test("inactivo u oculto no se vende", () => {
+    expect(productoPermitidoEnTiendaWeb({ activo: false })).toBe(false);
+    expect(productoPermitidoEnTiendaWeb({ activo: true, visible_tienda: false })).toBe(false);
   });
 });

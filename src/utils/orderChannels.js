@@ -89,12 +89,15 @@ export function mapUiEntregaToRpc(entregaUi, opts = {}) {
   };
 }
 
-/** Producto apto para mostrarse y venderse en checkout web (alineado a validación RPC). */
+/**
+ * Producto apto para carrito / checkout web (alineado a validación RPC).
+ * Con receta sí se vende en línea (se pide al entregar). Controlados: solo mostrador.
+ */
 export function productoPermitidoEnTiendaWeb(p) {
   if (!p || !p.activo) return false;
   if (p.visible_tienda === false) return false;
-  if (p.requiere_receta) return false;
-  if (p.controlado) return false;
+  if (p.controlado === true) return false;
+  if (String(p.grupo_controlado || "").trim()) return false;
   return true;
 }
 
@@ -120,7 +123,7 @@ export function validarCarritoParaEntrega(cart, entregaUi, productRowById, optio
   const razonNoTienda =
     typeof options.razonNoPermitidoTienda === "function"
       ? options.razonNoPermitidoTienda
-      : () => "No disponible en tienda en línea (receta, controlado u oculto).";
+      : () => "No disponible en tienda en línea (controlado u oculto).";
   const bloqueados = [];
   const normId = (id) => {
     const n = typeof id === "number" && Number.isFinite(id) ? id : parseInt(String(id), 10);

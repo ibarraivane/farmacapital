@@ -83,8 +83,10 @@ export function descripcionPublicaTienda(p) {
     .replace(/[\u0300-\u036f]/g, "");
   if (/^ticket\b/.test(low)) return "";
   if (/^factura\b/.test(low)) return "";
+  if (/^alta mostrador\b/.test(low)) return "";
   if (low.includes("falta codigo de barras")) return "";
   if (low.includes("codigo de proveedor") || low.includes("clave de proveedor")) return "";
+  if (low.includes("por definir") && /costo|pvp|precio/.test(low)) return "";
   const nombre = String(p?.nombre || "")
     .trim()
     .toLowerCase()
