@@ -4,6 +4,12 @@
  */
 
 import { pesoPublico, cobroLinea } from "../utils/pesoPublico";
+import {
+  DIAS_CADUCIDAD_ALERTA,
+  DIAS_CADUCIDAD_CRITICO,
+  diasRestantesCaducidad,
+  etiquetaCaducidadIso,
+} from "./caducidad";
 
 export function ymd(value) {
   if (!value) return null;
@@ -130,5 +136,80 @@ export function precioLineaCajaPos(producto, qty, propuestasByLote, hoy) {
     precio: pesoPublico(producto?.precio),
     descuento_pct: Number(producto?.descuento_pct) || 0,
     fuentePrecio: "catalogo",
+  };
+}
+
+function qtyLote(lote) {
+  const n = Number(lote?.cantidad_actual ?? lote?.cantidad_disponible ?? 0);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * Qué lote FEFO tomará el POS al escanear (solo lectura; no elige el vendedor).
+ * Misma orden que cobro: sin fecha primero, luego la más próxima a caducar.
+ */
+export function resumenFefoMostrador(producto, propuestasByLote, hoy) {
+  const dia = ymd(hoy);
+  const ordered = ordenarLotesFefo(producto?.lotes || [], dia);
+  if (!ordered.length) {
+    return {
+      ok: false,
+      sinVendible: true,
+      titulo: null,
+      secundaria: null,
+      especial: null,
+      nivel: null,
+      dias: null,
+      etiquetaCad: null,
+      cantidad: 0,
+      totalLotes: 0,
+    };
+  }
+
+  const head = ordered[0];
+  const cantidad = qtyLote(head);
+  const cad = ymd(head.fecha_caducidad);
+  const etiquetaCad = cad ? etiquetaCaducidadIso(cad) : null;
+  const dias = cad ? diasRestantesCaducidad(cad, dia) : null;
+  const prop = (propuestasByLote || {})[head.id] || (propuestasByLote || {})[String(head.id)];
+  const especial = propuestaVigente(prop, dia)
+    ? pesoPublico(prop.precio_propuesto)
+    : null;
+
+  let nivel = null;
+  if (cad == null) nivel = "sin_fecha";
+  else if (typeof dias === "number" && dias <= DIAS_CADUCIDAD_CRITICO) nivel = "critico";
+  else if (typeof dias === "number" && dias <= DIAS_CADUCIDAD_ALERTA) nivel = "alerta";
+
+  const cajasTxt = cantidad === 1 ? "1 caja" : `${cantidad} cajas`;
+  const titulo = cad
+    ? `Se vende primero: cad. ${etiquetaCad} · ${cajasTxt}`
+    : `Se vende primero: sin MMAA · ${cajasTxt}`;
+
+  let secundaria = null;
+  if (ordered.length > 1) {
+    const next = ordered[1];
+    const nextCad = ymd(next.fecha_caducidad);
+    const nextEt = nextCad ? etiquetaCaducidadIso(nextCad) : "sin MMAA";
+    const nextQty = qtyLote(next);
+    const extra = ordered.length - 2;
+    secundaria =
+      extra > 0
+        ? `También: ${nextEt} · ${nextQty}` + (extra === 1 ? " y 1 lote más" : ` y ${extra} lotes más`)
+        : `También: ${nextEt} · ${nextQty}`;
+  }
+
+  return {
+    ok: true,
+    sinVendible: false,
+    titulo,
+    secundaria,
+    especial,
+    nivel,
+    dias,
+    etiquetaCad,
+    cantidad,
+    totalLotes: ordered.length,
+    loteId: head.id,
   };
 }
