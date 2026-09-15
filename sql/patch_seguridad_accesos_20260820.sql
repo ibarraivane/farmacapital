@@ -1,8 +1,22 @@
 -- FarmaCapital — Endurecer accesos admin + tienda (20 ago 2026)
 -- Ejecutar en Supabase SQL Editor DESPUÉS de desplegar el front/API.
 -- Idempotente.
+-- Depende de: public.fn_digits_mx (también en patch_password_reset_self_service.sql
+-- y sql/hotfix_fn_digits_mx.sql). Se redefine aquí para no romper checkout.
 
 begin;
+
+-- ── 0) Helper teléfono MX (requerido por cliente_crear_pedido_online) ───────
+create or replace function public.fn_digits_mx(p_text text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when p_text is null then ''
+    else right(regexp_replace(p_text, '\D', '', 'g'), 10)
+  end;
+$$;
 
 -- ── 1) Rate limit de login (empleados y clientes) ───────────────────────────
 create table if not exists public.login_intentos (
