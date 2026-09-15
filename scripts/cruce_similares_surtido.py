@@ -3,6 +3,9 @@
 
 Produce qué genéricos de Similares ya tienes, cuáles faltan, y cuánto pedir
 para un stock tipo sucursal pequeña (no el almacén completo de la cadena).
+
+El Excel no se versiona. El cruce vigente (VTEX si no hay Excel, CSVs fechados)
+está en `scripts/cruce_similares_inventario.py`.
 """
 from __future__ import annotations
 

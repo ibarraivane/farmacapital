@@ -1,0 +1,23 @@
+accion,sku_pobre,nombre_pobre,stock_pobre,sku_bueno,nombre_bueno,ean,stock_bueno,pasar_stock,nota
+desactivar,FC-A0D320D1,Amoxicilina 500 mg 12 cápsulas,5,FC-49021570,Amoxicilina 500 mg Caja con 12 cápsulas AMSA,7501349021570,4,no,Misma caja AMSA. La ficha pobre es solo el genérico.
+desactivar,FC-022543CD,Valclan 500/125 mg 10 tabletas,3,FC-01007199,Valclan 500 mg / 125 mg Caja con 10 tabletas Wandel,7503001007199,3,no,Misma presentación 500/125. No confundir con Valclan 875.
+desactivar,FC-7D1D9857,Acetilsalicilico 100 mg 30 tabletas,5,FC-42803524,Ácido acetilsalicílico 100 mg Caja con 30 tabletas beadvance,7501342803524,5,no,"Es AAS 100 mg, no Aspirina 500. El EAN de Aspirina ya se le había quitado."
+desactivar,FC-95779436,Ácido acetilsalicílico efervescente 300 mg C/20,5,EQ-ALP0300,Acido Acetilsalicilico Ef 20 Tab 300 Mg,7501384504908,5,no,Misma caja Psicofarma 300 mg × 20.
+desactivar,FC-B25B4654,Cina (Ciprofloxacino) 750 mg 7 tabletas,2,FC-52200809,Cina 750 mg Caja con 7 tabletas Landsteiner,7502225092486,2,no,Cina es levofloxacino; la ficha pobre puso ciprofloxacino.
+desactivar,FC-6C2878CF,Budenova budesonida 0.125 mg/ml 5 amp × 2 ml,1,EQ-NOV165,Budenova Susp .125 Mg/Ml 5 Amp 2ml,7501075726251,1,no,Misma Budenova Novag.
+desactivar,FC-26EA40A4,Raamcinet cetirizina 10 mg C/10,6,FC-27872123,Raamcinet cetirizina 10 mg,7502227872123,4,no,Misma caja C/10. Stocks 6 y 4: probable doble conteo.
+desactivar,FC-44B6751A,LAÜR Adulto solución inyectable C/3,1,EQ-SON264,Laur Solución Inyectable,7502001166981,1,no,Adulto. El infantil (7502001167001) es otro SKU.
+desactivar,FC-1321B34F,Hidroxin hidroxizina 10 mg C/30,1,EQ-MAI099,Hidroxin,785120754681,1,no,Misma Hidroxin Mavi 10 mg C/30.
+desactivar,FC-AA7B0686,Drosequim Adulto jarabe 300/160 mg 200 ml,1,EQ-QUM070,Drosequim Ad 1 Jbe 300/160/200 Ml,7502223111400,1,no,Mismo jarabe adulto Quimpharma.
+desactivar,FC-926099D3,Merthiolate Rojo Kohn 20 ml,5,FC-46601138,Merthiolate Rojo Kohn 20 ml,7506346601138,5,no,Mismo nombre. Stocks 5 y 5: probable doble conteo.
+desactivar,EQ-MAV401,Dexpantenol 1 Cma 5% 30 G,2,FC-09749421,Dexpantenol crema 5% 30 g (Maver Tattoo),7502009749421,2,no,Misma crema Maver 5% 30 g. Pamedan es otra marca.
+desactivar,EQ-BRL072-1,Lo Bruquin 2 Tab 150/200 Mg,10,EQ-BRL072,"Lo Bruquin Quinfamida, Albendazol",7502208894915,10,no,SKU -1 sin EAN. Ambos con stock 10: el mismo lote contado dos veces.
+desactivar,FMX-501619,Eucalin-Miel Jarabe C/120 Ml,1,FC-08100013,Eucalín jarabe miel y propóleo 120 ml,714908100013,1,no,Carga Farma MX vs ficha completa.
+desactivar,FMX-502465,Colageno-Naturex Tabletas C/60,1,FC-9741524,Naturex colágeno hidrolizado tabletas C/60,7502009741524,1,no,Carga Farma MX vs ficha Naturex.
+desactivar,FMX-301136,Cintapore cinta microporosa piel 2.5 cm x 5 m,2,FC-84500546,Cintapore cinta microporosa piel 2.5 cm x 5m,7506484500546,0,si,El de EAN tiene stock 0: pasar las 2 piezas a ese SKU.
+desactivar,FMX-501000,Gelcavit-Colors Capsulas C/30,1,FC-30713547,Gelcavit Colors capsulas 0.62 g C/30,7501130713547,1,no,Misma variante Colors.
+desactivar,FMX-500998,Gelcavit-Platinum Capsulas C/30,1,FC-30713851,Gelcavit Platinum capsulas 1.39 g C/30,7501130713851,1,no,Misma variante Platinum.
+desactivar,FMX-501003,Gelcavit-Q-10 Capsulas C/30,1,FC-13071164,Gelcavit Q-10 coenzima Q10 jalea real C/30,7501130711642,1,no,Misma variante Q-10.
+desactivar,FMX-505937,Pleniform-40 Tabletas C/30,1,FC-1041884,Biomiral Pleniform 40 isoflavonas soya C/30,7503181041884,1,no,Mismo Pleniform 40.
+desactivar,FMX-302947,Citrato Magnesio/Lecitina Soya-Naturex Capsulas C/30,1,FC-9892403,Naturex citrato de magnesio y lecitina de soya C/30,7502259892403,2,no,Misma Naturex citrato + lecitina.
+desactivar,FMX-506935,Normogotero-Sensimedical Piezas C/1 S/Aguja,5,FC-22322395,Normogotero Sensi Medical,7506022322395,5,no,Mismo gotero. Stocks 5 y 5: probable doble conteo.
