@@ -423,27 +423,9 @@ async function handleCreate(req, body) {
 module.exports = async function handler(req, res) {
   applyRestrictiveCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method === 'GET') {
-    const cfg = getUberDirectConfig();
-    return res.status(200).json({
-      ok: true,
-      configured: cfg.configured,
-      pickup: pickupDebugSnapshot(),
-    });
-  }
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
-
-  const body = await safeJson(req);
-  const action = String(getQuery(req).action || body?.action || 'quote').toLowerCase();
-
-  try {
-    let result;
-    if (action === 'quote') result = await handleQuote(body);
-    else if (action === 'attach') result = await handleAttach(req, body);
-    else if (action === 'create' || action === 'dispatch') result = await handleCreate(req, body);
-    else result = { status: 400, json: { ok: false, error: 'unknown_action' } };
-    return res.status(result.status).json(result.json);
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: 'unexpected_error', message: e?.message || 'unknown' });
-  }
+  return res.status(410).json({
+    ok: false,
+    error: 'uber_direct_retired',
+    hint: 'Usar POST /api/logistics/envio (tarifa en checkout; DiDi solo para despacho).',
+  });
 };

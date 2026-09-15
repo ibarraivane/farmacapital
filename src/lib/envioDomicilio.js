@@ -1,0 +1,201 @@
+/**
+ * Tarifas, radio y distancia de envío a domicilio (Plan B).
+ * Números de arranque: env / REACT_APP_*, no hardcode de negocio en UI.
+ */
+
+export const DEFAULT_TARIFAS_ENVIO = [
+  { distancia_min_km: 0, distancia_max_km: 2, costo_base: 30, gratis_desde: 180 },
+  { distancia_min_km: 2, distancia_max_km: 4, costo_base: 45, gratis_desde: 230 },
+  { distancia_min_km: 4, distancia_max_km: 5, costo_base: 65, gratis_desde: 320 },
+];
+
+export const PROVEEDORES_ENVIO = ["didi", "uber", "propio"];
+
+export const DEFAULT_SUCURSAL_LAT = 19.3714047;
+export const DEFAULT_SUCURSAL_LNG = -99.0526916;
+
+function envRaw(key, fallback = "") {
+  const v = typeof process !== "undefined" ? process.env?.[key] : undefined;
+  if (v == null || String(v).trim() === "") return fallback;
+  return String(v).trim();
+}
+
+function envNum(key, fallback) {
+  const raw = envRaw(key, "");
+  if (!raw) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function parseTarifasJson(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.length) return null;
+    return parsed
+      .map((row) => ({
+        distancia_min_km: Number(row.distancia_min_km),
+        distancia_max_km: Number(row.distancia_max_km),
+        costo_base: Number(row.costo_base),
+        gratis_desde: Number(row.gratis_desde),
+      }))
+      .filter((row) => (
+        Number.isFinite(row.distancia_min_km)
+        && Number.isFinite(row.distancia_max_km)
+        && Number.isFinite(row.costo_base)
+        && Number.isFinite(row.gratis_desde)
+      ));
+  } catch {
+    return null;
+  }
+}
+
+export function foldColonia(s) {
+  return String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function parseColonias(raw) {
+  if (!raw) return [];
+  return String(raw).split(",").map((s) => foldColonia(s)).filter(Boolean);
+}
+
+export function getEnvioConfigCliente() {
+  const tarifas = parseTarifasJson(envRaw("REACT_APP_ENVIO_TARIFAS_JSON")) || DEFAULT_TARIFAS_ENVIO;
+  const proveedor = envRaw("REACT_APP_ENVIO_PROVEEDOR_DEFAULT", "didi").toLowerCase();
+  return {
+    radioMaximoKm: envNum("REACT_APP_RADIO_MAXIMO_KM", 5),
+    tiempoMaximoCotizacionMin: envNum("REACT_APP_TIEMPO_MAXIMO_COTIZACION_MIN", 15),
+    proveedorDefault: PROVEEDORES_ENVIO.includes(proveedor) ? proveedor : "didi",
+    factorColchonPreautorizacion: envNum("REACT_APP_FACTOR_COLCHON_PREAUTORIZACION", 1.4),
+    sucursalLat: envNum("REACT_APP_SUCURSAL_LAT", DEFAULT_SUCURSAL_LAT),
+    sucursalLng: envNum("REACT_APP_SUCURSAL_LNG", DEFAULT_SUCURSAL_LNG),
+    coloniasPropio: parseColonias(envRaw("REACT_APP_ENVIO_COLONIAS_PROPIO")),
+    tarifas,
+  };
+}
+
+export function haversineKm(lat1, lng1, lat2, lng2) {
+  const a1 = Number(lat1);
+  const o1 = Number(lng1);
+  const a2 = Number(lat2);
+  const o2 = Number(lng2);
+  if (![a1, o1, a2, o2].every((n) => Number.isFinite(n))) return null;
+  const R = 6371;
+  const dLat = ((a2 - a1) * Math.PI) / 180;
+  const dLng = ((o2 - o1) * Math.PI) / 180;
+  const s1 = Math.sin(dLat / 2);
+  const s2 = Math.sin(dLng / 2);
+  const h = s1 * s1 + Math.cos((a1 * Math.PI) / 180) * Math.cos((a2 * Math.PI) / 180) * s2 * s2;
+  return Math.round(2 * R * Math.asin(Math.min(1, Math.sqrt(h))) * 1000) / 1000;
+}
+
+export function lookupTarifa(distanciaKm, tarifas = DEFAULT_TARIFAS_ENVIO) {
+  const d = Number(distanciaKm);
+  if (!Number.isFinite(d) || d < 0) return null;
+  const rows = Array.isArray(tarifas) && tarifas.length ? tarifas : DEFAULT_TARIFAS_ENVIO;
+  for (const row of rows) {
+    if (d >= Number(row.distancia_min_km) && d <= Number(row.distancia_max_km)) return row;
+  }
+  return null;
+}
+
+export function calcularCostoEnvio({
+  distanciaKm,
+  subtotal = 0,
+  tarifas,
+  radioMaximoKm = 5,
+} = {}) {
+  const d = Number(distanciaKm);
+  const radio = Number(radioMaximoKm);
+  if (!Number.isFinite(d) || d < 0) return { ok: false, error: "distancia_invalida" };
+  if (Number.isFinite(radio) && d > radio) {
+    return { ok: false, error: "fuera_radio", distancia_km: d, radio_maximo_km: radio };
+  }
+  const row = lookupTarifa(d, tarifas);
+  if (!row) return { ok: false, error: "fuera_radio", distancia_km: d, radio_maximo_km: radio };
+  const sub = Number(subtotal) || 0;
+  const gratis = sub >= Number(row.gratis_desde);
+  return {
+    ok: true,
+    distancia_km: d,
+    costo: gratis ? 0 : Number(row.costo_base),
+    costo_tabla: Number(row.costo_base),
+    gratis,
+    gratis_desde: Number(row.gratis_desde),
+    tramo: { min: Number(row.distancia_min_km), max: Number(row.distancia_max_km) },
+  };
+}
+
+export function estimarEnvioDesdeCoords({ lat, lng, subtotal = 0, config } = {}) {
+  const cfg = config || getEnvioConfigCliente();
+  const distancia = haversineKm(cfg.sucursalLat, cfg.sucursalLng, lat, lng);
+  if (distancia == null) return { ok: false, error: "coords_invalidas" };
+  const calc = calcularCostoEnvio({
+    distanciaKm: distancia,
+    subtotal,
+    tarifas: cfg.tarifas,
+    radioMaximoKm: cfg.radioMaximoKm,
+  });
+  return { ...calc, distancia_km: distancia, radio_maximo_km: cfg.radioMaximoKm };
+}
+
+export function coloniaEsPropia(colonia, coloniasPropio = []) {
+  const folded = foldColonia(colonia);
+  if (!folded) return false;
+  return (coloniasPropio || []).some((c) => c && (folded === c || folded.includes(c) || c.includes(folded)));
+}
+
+export function proveedorSugerido(colonia, config) {
+  const cfg = config || getEnvioConfigCliente();
+  if (coloniaEsPropia(colonia, cfg.coloniasPropio)) return "propio";
+  return cfg.proveedorDefault;
+}
+
+export function formatEnvioMoney(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "$0.00";
+  return `$${v.toFixed(2)}`;
+}
+
+export function checkoutPuedePedirEnvio({ entrega, direccionOk, estimacion } = {}) {
+  if (entrega === "pickup") return true;
+  if (!direccionOk) return false;
+  if (!estimacion) return false;
+  if (estimacion.error === "fuera_radio" || estimacion.error === "coords_invalidas") return false;
+  return estimacion.ok === true && Number(estimacion.costo) >= 0;
+}
+
+export function minutosRestantesCotizacion(cotizarAntesDe, now = new Date()) {
+  if (!cotizarAntesDe) return null;
+  const t = new Date(cotizarAntesDe).getTime();
+  if (!Number.isFinite(t)) return null;
+  return Math.max(0, Math.round((t - now.getTime()) / 60000));
+}
+
+export function leerMetaEnvio(pedido) {
+  const meta = pedido?.logistics_meta;
+  if (!meta || typeof meta !== "object") return {};
+  if (meta.envio && typeof meta.envio === "object") return meta.envio;
+  return {};
+}
+
+/** Etiqueta de cuenta/cliente: el envío va en el total, no hay segundo link. */
+export function etiquetaEstadoEnvioCliente(envio = {}, paymentStatus) {
+  const es = String(envio?.estado || "").toLowerCase();
+  const paid = String(paymentStatus || "").toLowerCase() === "approved";
+  if (es === "en_ruta") return "En ruta";
+  if (es === "fuera_radio") return "Fuera de zona";
+  if (es === "vencido") return "Cotización vencida";
+  if (es === "pagado") return "Envío pagado";
+  if (envio.cobrado_en_checkout && (es === "cotizado" || es === "pendiente_cotizacion" || !es)) {
+    return paid ? "Envío pagado" : "Envío en el total";
+  }
+  if (es === "cotizado" || es === "link_enviado") return "Envío por pagar";
+  if (es === "pendiente_cotizacion") return "Preparando envío";
+  return "";
+}

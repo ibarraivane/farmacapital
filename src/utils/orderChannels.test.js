@@ -21,13 +21,13 @@ describe("canalIngresoPedido", () => {
 });
 
 describe("mapUiEntregaToRpc", () => {
-  test("CDMX usa Uber Direct", () => {
+  test("domicilio usa mensajería (no un proveedor de marca)", () => {
     const m = mapUiEntregaToRpc("cdmx");
     expect(m.tipo_entrega).toBe("envio");
-    expect(m.fulfillment_type).toBe(FULFILLMENT_TYPE.UBER_DIRECT);
+    expect(m.fulfillment_type).toBe(FULFILLMENT_TYPE.COURIER);
   });
-  test("si Uber no cotiza, el envío lo coordina la farmacia", () => {
-    const m = mapUiEntregaToRpc("cdmx", { uberQuoted: false });
+  test("repartidor propio solo si se indica", () => {
+    const m = mapUiEntregaToRpc("cdmx", { proveedor: "propio" });
     expect(m.tipo_entrega).toBe("envio");
     expect(m.fulfillment_type).toBe(FULFILLMENT_TYPE.OWN_DELIVERY);
   });

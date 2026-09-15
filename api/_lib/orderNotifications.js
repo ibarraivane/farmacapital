@@ -76,7 +76,7 @@ function buildReceiptMessage({ event, pedido, items }) {
   const pickupNote =
     pedido?.tipo_entrega === 'recoger'
       ? `\n\nMuestra tu folio ${folio} o menciona tu teléfono al llegar.\n📍 ${FARMACIA_MAPS_URL}`
-      : '\n\nEnvío Uber Direct (pagado en checkout). Te mandamos el seguimiento cuando salga el motorizado.';
+      : '\n\nEntrega a domicilio: el envío ya va incluido en tu pago. Te avisamos cuando salga el mensajero.';
 
   return (
     `🏥 FarmaCapital\n${FARMACIA_DIRECCION}\n\n` +

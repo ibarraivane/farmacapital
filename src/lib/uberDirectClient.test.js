@@ -41,7 +41,7 @@ describe("uberDirectClient display", () => {
     expect(msg).not.toMatch(/pick-up|recoger/i);
   });
 
-  test("cobertura Uber no bloquea el pago si el destino está listo", () => {
+  test("con dirección lista se puede pedir (Plan B, sin cotizar Uber)", () => {
     expect(isUberCoverageError("undeliverable_area", "The specified location is not in a deliverable area.")).toBe(
       true
     );
@@ -49,18 +49,12 @@ describe("uberDirectClient display", () => {
       checkoutPuedePagarEnvio({
         entrega: "cdmx",
         direccionOk: true,
-        uberQuoteStatus: "error",
-        uberQuote: { error: "undeliverable_area", detail: "not in a deliverable area" },
-        envioFee: 0,
       })
     ).toBe(true);
     expect(
       checkoutPuedePagarEnvio({
         entrega: "cdmx",
-        direccionOk: true,
-        uberQuoteStatus: "error",
-        uberQuote: { error: "not_configured" },
-        envioFee: 0,
+        direccionOk: false,
       })
     ).toBe(false);
   });

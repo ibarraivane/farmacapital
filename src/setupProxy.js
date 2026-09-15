@@ -1,10 +1,10 @@
 /**
  * En `npm start` CRA no ejecuta las funciones de /api.
- * Este proxy monta Uber Direct, el buscador de destino y colonias por CP.
+ * Este proxy monta envío a domicilio (Plan B), el buscador de destino y colonias por CP.
  */
 "use strict";
 
-const uberDirectHandler = require("../api/_lib/uberDirectHttp");
+const envioDomicilioHandler = require("../api/_lib/envioDomicilioHttp");
 const addressSuggestHandler = require("../api/_lib/addressSuggestHttp");
 const addressColoniasHandler = require("../api/_lib/addressColoniasHttp");
 const logisticsWebhook = require("../api/logistics/webhook");
@@ -46,7 +46,8 @@ module.exports = function setupProxy(app) {
   mount(app, "/api/address/suggest", addressSuggestHandler);
   mount(app, "/api/address/colonias", addressColoniasHandler);
   mount(app, "/api/logistics/webhook", logisticsWebhook);
-  mount(app, "/api/logistics/uber-direct", uberDirectHandler);
+  mount(app, "/api/logistics/envio", envioDomicilioHandler);
+  mount(app, "/api/logistics/uber-direct", envioDomicilioHandler);
   mount(app, "/api/auth/oauth-bridge", (req, res) => {
     req.query = { ...(req.query || {}), type: "oauth-bridge" };
     return authRouter(req, res);

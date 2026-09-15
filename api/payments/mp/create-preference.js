@@ -67,7 +67,7 @@ module.exports = async function handler(req, res) {
       if (!validTokResp.ok || !clienteId) return res.status(401).json({ ok: false, error: 'invalid_cliente_token' });
     }
 
-    const selectFull = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,logistics_meta,delivery_provider';
+    const selectFull = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,logistics_meta,delivery_provider,costo_envio';
     const selectMin = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,delivery_provider';
     let pedidoResp = await fetch(
       `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=${selectFull}`,
@@ -111,21 +111,26 @@ module.exports = async function handler(req, res) {
     if (!Number.isFinite(totalDb) || totalDb <= 0) return res.status(400).json({ ok: false, error: 'invalid_db_total' });
     if (Math.abs(totalDb - amount) > 0.01) return res.status(409).json({ ok: false, error: 'amount_mismatch' });
 
-    const uberSecret = String(process.env.UBER_DIRECT_CLIENT_SECRET || '').trim();
-    if (pedido.tipo_entrega === 'envio' && uberSecret) {
-      const meta = pedido.logistics_meta && typeof pedido.logistics_meta === 'object' ? pedido.logistics_meta : {};
-      const fee = Number(meta?.uber_direct?.fee_mxn);
-      const provider = String(pedido.delivery_provider || meta.logistics_provider || '').toLowerCase();
-      const hasMetaFee = Number.isFinite(fee) && fee >= 0 && provider === 'uber_direct';
-      const hasProviderOnly = pedido.logistics_meta == null && provider === 'uber_direct';
-      if (!hasMetaFee && !hasProviderOnly) {
-        return res.status(409).json({ ok: false, error: 'uber_quote_required' });
+    let envioFee = 0;
+    if (pedido.tipo_entrega === 'envio') {
+      const metaFee = Number(pedido.logistics_meta?.envio?.costo_cotizado);
+      const fee = Number.isFinite(Number(pedido.costo_envio)) ? Number(pedido.costo_envio) : metaFee;
+      if (!Number.isFinite(fee) || fee < 0) {
+        return res.status(409).json({ ok: false, error: 'envio_quote_required' });
       }
+      envioFee = Math.round(fee * 100) / 100;
     }
 
     const siteDefault = String(process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx').replace(/\/+$/, '');
     const safeBase = isAllowedReturnBase(baseUrl) ? String(baseUrl).replace(/\/+$/, '') : siteDefault;
     const externalReference = `FARMACAPITAL-PED-${pedidoId}`;
+    const productsTotal = Math.round((totalDb - envioFee) * 100) / 100;
+    const items = envioFee > 0 && productsTotal > 0 && Math.abs(productsTotal + envioFee - totalDb) <= 0.01
+      ? [
+        { title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: productsTotal },
+        { title: 'Envío a domicilio', quantity: 1, currency_id: 'MXN', unit_price: envioFee },
+      ]
+      : [{ title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: totalDb }];
     const mpPayload = {
       external_reference: externalReference,
       notification_url: `${safeBase}/api/payments/mp/webhook`,
@@ -140,10 +145,11 @@ module.exports = async function handler(req, res) {
         name: String(payer?.name || '').slice(0, 120) || undefined,
         email: String(payer?.email || '').slice(0, 120) || undefined,
       },
-      items: [{ title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: totalDb }],
+      items,
       metadata: {
         pedido_id: pedidoId,
         cliente_id: clienteId,
+        costo_envio: envioFee,
       },
     };
 

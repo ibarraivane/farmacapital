@@ -181,7 +181,7 @@ function generatePickupPassHTML({ pedido, ticketUrl, mode = 'pickup' }) {
     badgeText = 'Listo para envío';
     headline = 'Tu pedido está listo para salir';
     detail =
-      'Envío Uber Direct (pagado en el checkout). Te avisamos cuando el motorizado esté en camino.';
+      'Entrega a domicilio: el envío ya está pagado. Te avisamos cuando salga el mensajero.';
   }
 
   return `<!DOCTYPE html>

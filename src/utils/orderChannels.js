@@ -22,13 +22,16 @@ export const FULFILLMENT_TYPE = {
   MARKETPLACE_COURIER: "marketplace_courier",
   UBER_DIRECT: "uber_direct",
   OWN_DELIVERY: "own_delivery",
+  COURIER: "courier",
 };
 
-/** Proveedor logístico externo (tracking / API). */
+/** Proveedor logístico (interno / ops). El cliente no ve estas marcas. */
 export const LOGISTICS_PROVIDER = {
   RAPPI: "rappi",
   UBER_EATS: "uber_eats",
   UBER_DIRECT: "uber_direct",
+  DIDI: "didi",
+  PROPIO: "propio",
   SKYDROPX: "skydropx",
   OTHER: "other",
 };
@@ -80,11 +83,10 @@ export function mapUiEntregaToRpc(entregaUi, opts = {}) {
       fulfillment_type: FULFILLMENT_TYPE.PICKUP_STORE,
     };
   }
-  const uberQuoted = opts.uberQuoted !== false && opts.uberQuoted !== 0;
   return {
     tipo_entrega: "envio",
     order_channel: ORDER_CHANNEL.WEB_DELIVERY,
-    fulfillment_type: uberQuoted ? FULFILLMENT_TYPE.UBER_DIRECT : FULFILLMENT_TYPE.OWN_DELIVERY,
+    fulfillment_type: opts.proveedor === "propio" ? FULFILLMENT_TYPE.OWN_DELIVERY : FULFILLMENT_TYPE.COURIER,
     ui_entrega: u,
   };
 }

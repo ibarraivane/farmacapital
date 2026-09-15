@@ -118,8 +118,12 @@
       "destination": "/api/logistics/webhook?type=uber-direct"
     },
     {
+      "source": "/api/logistics/envio",
+      "destination": "/api/logistics/webhook?type=envio-api"
+    },
+    {
       "source": "/api/logistics/uber-direct",
-      "destination": "/api/logistics/webhook?type=uber-api"
+      "destination": "/api/logistics/webhook?type=envio-api"
     },
     {
       "source": "/api/address/suggest",
