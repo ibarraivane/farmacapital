@@ -3,12 +3,12 @@
 -- Archivo: sql/patch_carga_cityfarma_s322817.sql
 -- Pegar TODO abajo en Supabase → SQL Editor → Run.
 -- =============================================================================
--- Cityfarma Iztapalapa · orden S322817 · 2026-09-14 17:30
+-- Cityfarma Iztapalapa · orden S322817 · 2026-09-14
 -- Ticket térmico Central de Abastos. P.U. ya trae IVA (total impreso $3940.28).
 -- 23 renglones · 21 altas stock 0 · 2 ya en catálogo.
 -- Sin lote ni caducidad (MMAA de la caja). No inventar 0000.
--- Nombres de ficha (YZA/Fahorro/Kenvue), no del ticket.
--- Fotos en public/catalogo-propia/ (tras deploy). Pendientes: 7506494600311, 7501573925071, 7503003738671, 7503045798022, 7502009749469, 7501258208550.
+-- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
+-- Pendientes de foto: 7506494600311, 7501573925071, 7503003738671, 7503045798022, 7502009749469, 7501258208550.
 -- SIN bloques dollar-quote. Idempotente mientras el ticket siga en borrador.
 
 begin;
@@ -90,7 +90,6 @@ select
 from _fc_cf_s322817 t
 where public.fc_buscar_producto_escaneo(t.ean) is null;
 
--- Ya existían: costo solo si el ticket es más barato (o no había). PVP solo si está en 0.
 update public.productos p
 set
   costo = case
@@ -110,7 +109,6 @@ where p.id = public.fc_buscar_producto_escaneo(t.ean)
     or coalesce(p.precio, 0) <= 0
   );
 
--- Ficha / foto si faltan (no pisa lo que ya esté).
 update public.productos p
 set
   marca = coalesce(nullif(trim(p.marca), ''), t.marca),

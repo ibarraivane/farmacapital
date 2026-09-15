@@ -3,12 +3,12 @@
 -- Archivo: sql/patch_carga_cityfarma_s322819.sql
 -- Pegar TODO abajo en Supabase → SQL Editor → Run.
 -- =============================================================================
--- Cityfarma Iztapalapa · orden S322819 · 2026-09-14 17:30
--- Ticket térmico Central de Abastos. P.U. ya trae IVA.
--- Total $0.00 / Pendiente de pago $738.06 → se usa suma de renglones.
--- 2 ya en catálogo (Flanax FC-08499412, Lomotil FC-002663). Stock 0 hasta pistola.
--- Lotes del ticket (BT1ALD1, AX4250) NO se cargan: MMAA de la caja.
--- Nombres de ficha (Fahorro/Bayer/Janssen), no del ticket (FLANAXPRO…).
+-- Cityfarma Iztapalapa · orden S322819 · 2026-09-14
+-- Ticket térmico Central de Abastos. Total $0.00 / Pendiente $738.06 → suma de renglones. Lotes BT1ALD1/AX4250 no se cargan.
+-- 2 renglones · 0 altas stock 0 · 2 ya en catálogo.
+-- Sin lote ni caducidad (MMAA de la caja). No inventar 0000.
+-- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
+-- Pendientes de foto: ninguna.
 -- SIN bloques dollar-quote. Idempotente mientras el ticket siga en borrador.
 
 begin;
@@ -41,7 +41,7 @@ insert into _fc_cf_s322819 (
   concentracion, receta, imagen
 ) values
   (1, '7501008499412', 'FC-08499412', 'Flanax 660 mg liberación prolongada C/8 tabletas', 'FLANAXPRO 660MG C8 T', 2, 225.16, 361, 'marca', 'Analgésico', null, 'Tableta de liberación prolongada', 'Flanax', 'BAYER', 'Caja con 8 tabletas', 'Naproxeno sódico', '660 mg', false, 'https://www.farmacapital.mx/catalogo-propia/flanax-660mg-8tab-7501008499412.jpg'),
-  (2, '7501057002663', 'FC-002663', 'Lomotil loperamida 2 mg C/8 tabletas', 'LOMOTIL 2 MG C 8 TAB', 2, 143.87, 231, 'marca', 'Gastro', 'Antidiarreico', 'Tableta', 'Lomotil', 'JANSSEN', 'Caja con 8 tabletas', 'Loperamida', '2 mg', false, 'https://www.farmacapital.mx/catalogo-propia/lomotil-2mg-8tab-7501057002663.jpg');
+  (2, '7501057002663', 'FC-57002663', 'Lomotil loperamida 2 mg C/8 tabletas', 'LOMOTIL 2 MG C 8 TAB', 2, 143.87, 231, 'marca', 'Gastro', 'Antidiarreico', 'Tableta', 'Lomotil', 'JANSSEN', 'Caja con 8 tabletas', 'Loperamida', '2 mg', false, 'https://www.farmacapital.mx/catalogo-propia/lomotil-2mg-8tab-7501057002663.jpg');
 
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, tipo, descripcion,
