@@ -6,6 +6,9 @@ import {
   recepcionItemVerdeSinStock,
   recepcionItemsVerdeSinStock,
   pedidoEsperaEntrada,
+  extractGs1Gtin,
+  eanPistolaListo,
+  esSerialTerminalPoint,
 } from "./recepcionScan";
 
 const TEGADERM = {
@@ -210,5 +213,51 @@ describe("pedidoEsperaEntrada", () => {
       sin_caducidad_anaquel: 3,
       estado: "borrador",
     })).toBe(true);
+  });
+});
+
+
+describe("GS1 / DataMatrix en Recibir", () => {
+  test("extrae GTIN de beep GS1 con AI 01", () => {
+    expect(extractGs1Gtin("01075013490233691728031110U26J016")).toBe("7501349023369");
+    expect(extractGs1Gtin("(01)07501349023369(17)280311(10)U26J016")).toBe("7501349023369");
+  });
+
+  test("DataMatrix GS1 abre el renglón gris del ticket", () => {
+    const item = {
+      id: 40,
+      confirmado: false,
+      codigo_escaneado: "7501349023369",
+      sku: "EQ-AMS160",
+      origen: "pdf",
+    };
+    expect(itemMatchScan(item, "01075013490233691728031110U26J016", [])).toBe(true);
+    const r = resolverEscaneoRecepcion({
+      items: [item],
+      codigo: "01075013490233691728031110U26J016",
+      productos: [],
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("gris");
+    expect(r.codigo).toBe("7501349023369");
+  });
+
+  test("eanPistolaListo dispara con GS1 largo", () => {
+    expect(eanPistolaListo("01075013490233691728031110U26J016")).toBe(true);
+    expect(eanPistolaListo("7501349023369")).toBe(true);
+    expect(eanPistolaListo("NCCC05728001")).toBe(false);
+  });
+
+  test("serial Point Smart no es producto del ticket", () => {
+    expect(esSerialTerminalPoint("NCCC05728001")).toBe(true);
+    expect(esSerialTerminalPoint("N950NCCC05728001")).toBe(true);
+    const r = resolverEscaneoRecepcion({
+      items: [{ confirmado: false, codigo_escaneado: "7501349023369", origen: "pdf" }],
+      codigo: "NCCC05728001",
+      productos: [],
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("fuera");
+    expect(r.motivo).toBe("serial_point");
   });
 });
