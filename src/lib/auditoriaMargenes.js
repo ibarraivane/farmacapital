@@ -188,7 +188,10 @@ export function auditarMargenProducto(producto, opts = {}) {
   if (costo <= 0) {
     return { ...base, accion: "revisar_costo", motivo: "Sin costo de compra" };
   }
-  if (costo < 2) {
+  // Caja C/N abierta en mostrador (Mercurio óxido de zinc, jeringas…):
+  // el costo de UNA pieza suele ser < $2 y está bien.
+  const esPiezaDeCaja = /pieza\s*\(\s*caja\s*c\s*\/\s*\d+/i.test(producto?.presentacion || "");
+  if (costo < 2 && !esPiezaDeCaja) {
     return { ...base, accion: "revisar_costo", motivo: "Costo < $2 — revisar ticket / pieza vs caja" };
   }
   if (precio <= 0) {

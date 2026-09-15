@@ -78,6 +78,8 @@ Sí: en higiene de Bodega el CSV pone el **importe de 2** en `precio_unitario`. 
 | `FC-C4530823` | Mercurio óxido de zinc C/50 | **$9** (pomada C/25 pegada) | **$1.08** (caja $54 ÷ 50) |
 | `FC-0ACC5B6A` | Mercurio Oxido De Zinc | $1.08 | ya partido · no se toca |
 
+El primer SQL ya corrió: costo **$1.08**. El PVP seguía en **$54** (caja). Se vende por pieza → PVP **$14** (igual que `FC-0ACC5B6A`). SQL: `sql/patch_mercurio_oxido_pieza_pvp_20260915.sql`. Recibir trata `MERCURIO OXIDO DE ZINC C/50` como caja→pieza; la pomada C/25 no.
+
 ## 8. Regalos por caducar (costo $0)
 
 No se inventa caducidad.

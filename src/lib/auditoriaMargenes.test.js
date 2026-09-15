@@ -183,6 +183,17 @@ test("Mercurio C/50: el $54 es la caja; se vende por pieza a $1.08", () => {
   })).toBe(1.08);
 });
 
+test("Mercurio pieza de C/50 a $14 no alerta costo < $2", () => {
+  const a = auditarMargenProducto({
+    nombre: "Mercurio óxido de zinc C/50",
+    presentacion: "pieza (caja C/50)",
+    categoria: "Producto",
+    costo: 1.08,
+    precio: 14,
+  });
+  expect(a.accion).toBe("ok");
+});
+
 test("Exprezo: catálogo guardó el importe de N piezas como costo de una", () => {
   expect(catalogoGuardoImporteComoCosto(111.8, 18.63, 6)).toBe(true);
   expect(catalogoGuardoImporteComoCosto(32.04, 10.68, 3)).toBe(true);
