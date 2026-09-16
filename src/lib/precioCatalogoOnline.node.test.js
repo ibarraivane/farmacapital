@@ -15,8 +15,9 @@ describe("precioCatalogoOnline", async () => {
     assert.equal(precioConRecargoCatalogo(100, 0.08), 108);
   });
 
-  it("redondeo MXN", () => {
-    assert.equal(precioConRecargoCatalogo(99.99, 0.08), roundMxn(99.99 * 1.08));
+  it("redondeo MXN (base con pesoPublico enteros)", () => {
+    // 99.99 → 100 pesos públicos → 108 con 8%
+    assert.equal(precioConRecargoCatalogo(99.99, 0.08), 108);
     assert.equal(precioConRecargoCatalogo(150, 0.08), 162);
   });
 

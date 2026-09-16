@@ -29,6 +29,7 @@ import {
   montoMinimoPedidoOnline,
 } from "./config/metodosPago";
 import { precioConRecargoCatalogo } from "./lib/precioCatalogoOnline";
+import { recargoCatalogoOnline } from "./config/metodosPago";
 import {
   productoPermitidoEnTiendaFarmaciaWeb,
   razonBloqueoProductoTiendaFarmacia,
@@ -3597,7 +3598,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const unitTienda = (c) => {
     const base = ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
     // Catálogo limpio; en checkout domicilio el precio de línea lleva recargo integrado (sin línea comisión).
-    if (entrega !== "pickup") return precioConRecargoCatalogo(base);
+    if (entrega !== "pickup") return precioConRecargoCatalogo(base, recargoCatalogoOnline());
     return base;
   };
   const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);
