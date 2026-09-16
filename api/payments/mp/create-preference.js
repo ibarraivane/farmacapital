@@ -67,8 +67,8 @@ module.exports = async function handler(req, res) {
       if (!validTokResp.ok || !clienteId) return res.status(401).json({ ok: false, error: 'invalid_cliente_token' });
     }
 
-    const selectFull = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,logistics_meta,delivery_provider,costo_envio';
-    const selectMin = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,delivery_provider';
+    const selectFull = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,logistics_meta,delivery_provider,costo_envio,payment_status';
+    const selectMin = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,delivery_provider,payment_status';
     let pedidoResp = await fetch(
       `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=${selectFull}`,
       { headers: serviceHeaders }
@@ -87,6 +87,17 @@ module.exports = async function handler(req, res) {
     if (!clienteId) clienteId = Number(pedido.cliente_id);
     if (pedido.tipo !== 'online') return res.status(400).json({ ok: false, error: 'pedido_not_online' });
     if (pedido.estado !== 'pendiente') return res.status(409).json({ ok: false, error: 'pedido_not_pending' });
+
+    // Pickup cobro en tienda (BBVA): no generar Preference / Link de pago.
+    const metodoPago = String(pedido.metodo_pago || '').toLowerCase().trim();
+    const payStatus = String(pedido.payment_status || '').toLowerCase().trim();
+    if (
+      metodoPago === 'pendiente_tienda' ||
+      payStatus === 'pending_store' ||
+      (String(pedido.tipo_entrega || '').toLowerCase() === 'recoger' && metodoPago === 'pendiente_tienda')
+    ) {
+      return res.status(409).json({ ok: false, error: 'pickup_cobro_en_tienda' });
+    }
 
     if (isGuest) {
       const created = new Date(pedido.created_at).getTime();
