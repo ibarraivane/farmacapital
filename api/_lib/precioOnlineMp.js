@@ -20,22 +20,29 @@ function precioOnlineMp(precioLista) {
   return Math.ceil(Math.round(bruto * 100) / 100);
 }
 
-function cargoPlataformaOnline() {
+function esEntregaConServicio(entrega) {
+  const t = String(entrega || '').trim().toLowerCase();
+  return t === 'envio' || t === 'cdmx' || t === 'foraneo';
+}
+
+function cargoPlataformaOnline(entrega) {
+  if (entrega !== undefined && !esEntregaConServicio(entrega)) return 0;
+  if (entrega === undefined) return CARGO_SERVICIO_MXN;
   return CARGO_SERVICIO_MXN;
 }
 
-function cargoFijoMp() {
-  return cargoPlataformaOnline();
+function cargoFijoMp(entrega) {
+  return cargoPlataformaOnline(entrega);
 }
 
-function totalPedidoConPlataforma(subProductos) {
+function totalPedidoConPlataforma(subProductos, entrega) {
   const b = Number(subProductos);
   if (!Number.isFinite(b) || b <= 0) return null;
-  return Math.round(b + cargoPlataformaOnline());
+  return Math.round(b + cargoPlataformaOnline(entrega));
 }
 
-function totalConCargoMp(base) {
-  return totalPedidoConPlataforma(base);
+function totalConCargoMp(base, entrega) {
+  return totalPedidoConPlataforma(base, entrega);
 }
 
 module.exports = {
@@ -48,6 +55,7 @@ module.exports = {
   CONCEPTO_CARGO_PLATAFORMA,
   precioAnclaUsable,
   precioOnlineMp,
+  esEntregaConServicio,
   cargoPlataformaOnline,
   cargoFijoMp,
   totalPedidoConPlataforma,
