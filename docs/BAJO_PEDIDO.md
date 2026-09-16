@@ -21,8 +21,10 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 ## Precio web
 `precio web = ceil(round(ancla / (1 − 0.040484), 2))` (Checkout MX 3.49% + IVA).
 - JS: `src/lib/precioOnlineMp.js` · API: `api/_lib/precioOnlineMp.js` · SQL: `public.fc_precio_online_mp(numeric)`.
-- Solo líneas bajo pedido y **una vez**: la tienda lo aplica al cargar (`prepararListaTienda`) y el servidor al crear el pedido. Sin promociones ni `descuento_pct`.
-- POS y catálogo con stock: ancla sin cambio.
+- **Toda la tienda web** (catálogo, bandas, bajo pedido): el cliente ve y paga ese precio. Ej. Skittles ancla $10 → web $11; Aspirina $42 → $44; Anthelios $459 → $479.
+- Se aplica **una vez** al cargar (`prepararListaTienda`) y otra vez en el servidor al crear el pedido (misma fórmula; no se infla dos veces).
+- Bajo pedido: sin promociones ni `descuento_pct`.
+- POS / mostrador: ancla sin incremento.
 
 ## Tienda
 - `/conseguir`: vitrina por rubro (Todos · Dermatología · Vitaminas · Suplementos · Proteína) + formulario «Levantar pedido».
@@ -46,11 +48,9 @@ Dashboard y badge del sidebar: correr **también** `sql/patch_bajo_pedido_alerta
 ## CSV de propuesta (no es alta)
 `docs/catalogo_propuesta_vitaminas_electrolitos.csv` es **borrador**. Todas las filas van `listo_para_cargar=false`. No tiene EAN, nombre de mostrador, foto ni precio. Categoría canónica: `Vitaminas` o `Hidratación` (nunca «Hidratación / electrolitos»).
 
-## Runbook: `cliente_crear_pedido_online` (no lo toca este flujo)
-El encargo usa `cliente_crear_pedido_bajo_pedido`. La compra de anaquel usa `cliente_crear_pedido_online`.
-En el repo hay varias versiones. La que debe estar en Supabase es
-`sql/patch_pedido_online_permite_receta_20260915.sql` (Rx permitido; controlados no).
-`sql/refactor_fase6b_rpcs_tienda.sql` **rechaza** receta: no re-ejecutar ese bloque.
+## Runbook: `cliente_crear_pedido_online`
+El encargo usa `cliente_crear_pedido_bajo_pedido`. La compra de anaquel usa `cliente_crear_pedido_online` y ahora cobra `fc_precio_online_mp` (`sql/patch_pedido_online_precio_mp_20260916.sql`).
+Rx permitido; controlados no. `sql/refactor_fase6b_rpcs_tienda.sql` **rechaza** receta: no re-ejecutar ese bloque.
 Verificar: `sql/verificar_cliente_crear_pedido_online_receta.sql`.
 
 ## Compatibilidad con `cursor/encargo-medicamentos-fase-a-a675`
@@ -59,5 +59,6 @@ Se combina con un conflicto trivial de `import` en `Tienda.jsx`. «Avísame cuan
 ## SQL en Supabase (orden)
 1. `sql/patch_bajo_pedido_20260916.sql` — columna + RPC de encargo. **Antes** de cualquier alta `bajo_pedido = true`.
 2. `sql/patch_bajo_pedido_alertas_dashboard_20260916.sql` — dashboard / sidebar.
-3. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
-4. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.
+3. `sql/patch_pedido_online_precio_mp_20260916.sql` — el checkout de anaquel cobra el precio web (Skittles $10 → $11).
+4. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
+5. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.

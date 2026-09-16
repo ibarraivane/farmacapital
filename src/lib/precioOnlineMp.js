@@ -1,11 +1,10 @@
 /**
- * Precio web de productos BAJO PEDIDO con el costo de Mercado Pago incluido.
+ * Precio de la TIENDA WEB con el costo de Mercado Pago incluido.
  *
- * Regla fija (contrato bajo pedido):
  * - `productos.precio` guarda el ANCLA de mostrador (costo + margen de lista).
- * - En la tienda web, solo líneas `bajo_pedido`, el cliente ve y paga
+ * - En la web (catálogo, bandas, bajo pedido) el cliente ve y paga
  *   ceilPeso(ancla / (1 - tasa)). Se aplica UNA vez; el checkout no suma recargo.
- * - Productos con stock (catálogo normal) y POS: ancla sin incremento.
+ * - POS / mostrador: ancla sin incremento.
  *
  * Tasa: Checkout MX 3.49% + IVA 16% = 4.0484%.
  * Espejo exacto en SQL: public.fc_precio_online_mp(numeric) y api/_lib/precioOnlineMp.js.

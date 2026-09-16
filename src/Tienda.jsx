@@ -4040,12 +4040,19 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         if (eff < qtyReq) {
           cambios.push(`• ${c.nombre}: ${qtyReq} → ${eff}`);
         }
+        const precioWeb = precioOnlineMp(dbp.precio);
+        if (precioWeb == null) {
+          cambios.push(`• ${c.nombre}: ahora es por cotización`);
+          continue;
+        }
+        if (Number(c.precio) !== precioWeb) cambios.push(`• ${c.nombre}: precio actualizado a ${$(precioWeb)}`);
         reconciled.push({
           ...c,
           id,
           qty: Math.min(qtyReq, eff),
           stock: eff,
-          precio: Number(dbp.precio ?? c.precio ?? 0),
+          precio: precioWeb,
+          precio_ancla: Number(dbp.precio),
           descuento_pct: Number(dbp.descuento_pct ?? c.descuento_pct ?? 0),
           activo: dbp.activo,
         });

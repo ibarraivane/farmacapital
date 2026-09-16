@@ -8,7 +8,7 @@ test("tasa fija Checkout MX 3.49% + IVA", () => {
 });
 
 test("ceil a peso entero y a la farmacia le queda al menos el ancla", () => {
-  const casos = [[100, 105], [459, 479], [25, 27], [389, 406], [899, 937], [1, 2], [95.9516, 100]];
+  const casos = [[10, 11], [100, 105], [459, 479], [25, 27], [42, 44], [389, 406], [899, 937], [1, 2], [95.9516, 100]];
   for (const [ancla, web] of casos) {
     expect(precioOnlineMp(ancla)).toBe(web);
     expect(espejo.precioOnlineMp(ancla)).toBe(web);

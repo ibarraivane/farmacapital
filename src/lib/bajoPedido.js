@@ -61,21 +61,32 @@ export function rubroDeProducto(p) {
 }
 
 /**
- * Producto como lo ve la TIENDA WEB. Solo cambia filas bajo_pedido:
- * guarda el ancla en `precio_ancla`, pone `precio` = precio web con MP y
- * apaga descuentos (el servidor cobra fc_precio_online_mp sin promos).
+ * Producto como lo ve la TIENDA WEB: ancla → precio con MP.
  * Idempotente: si ya trae `precio_ancla`, no vuelve a inflar.
+ * Bajo pedido: sin descuentos (el servidor cobra fc_precio_online_mp sin promos).
  */
 export function prepararProductoTienda(p) {
-  if (!esBajoPedido(p)) return p;
+  if (!p) return p;
   const ancla = precioAncla(p);
   const web = precioOnlineMp(ancla);
+  if (web == null) {
+    if (!esBajoPedido(p)) return p;
+    return {
+      ...p,
+      precio_ancla: ancla,
+      precio: 0,
+      descuento_pct: 0,
+      precio_marca: null,
+    };
+  }
+  const marcaN = Number(p.precio_marca);
+  const marcaWeb = Number.isFinite(marcaN) && marcaN > 0.01 ? precioOnlineMp(marcaN) : p.precio_marca;
   return {
     ...p,
     precio_ancla: ancla,
-    precio: web ?? 0,
-    descuento_pct: 0,
-    precio_marca: null,
+    precio: web,
+    precio_marca: marcaWeb ?? p.precio_marca,
+    descuento_pct: esBajoPedido(p) ? 0 : (p.descuento_pct ?? 0),
   };
 }
 
