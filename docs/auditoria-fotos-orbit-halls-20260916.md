@@ -38,6 +38,19 @@ como si ya estuviera.
 (Fahorro / Scorpion / SuperDulces / Benavides). Pegarlo de nuevo. No espera
 deploy. Las copias en `public/catalogo-propia/` quedan para el merge.
 
+## Alka-Seltzer Boost: caja en Gastro, foto en la ficha
+
+La tarjeta de categoría usa solo `es_principal`. En Boost C/10 esa URL es
+`catalogo-propia/alka-seltzer-boost-c10.jpg`, que **no está en el CDN** (Vercel
+devuelve `index.html` → el `<img>` falla → icono de caja). Al entrar, la ficha
+carga toda `producto_imagenes` (Rappi `1.png`…`4.jpg`) y se ve el packshot.
+
+Mismo patrón en **54** productos (principal propia 404 + galería Rappi viva).
+
+- Código: la tarjeta prueba la galería si la principal no carga.
+- SQL: `sql/patch_fotos_tarjeta_galeria_20260916.sql` (pega en Supabase; no espera deploy).
+- Archivo: `public/catalogo-propia/alka-seltzer-boost-c10.jpg` para el merge.
+
 ## Catálogo revisado — lo que sigue sin packshot usable
 
 Vivo: 90 sin foto. De los 42 buscables, Fahorro/Benavides no tenían packshot de
