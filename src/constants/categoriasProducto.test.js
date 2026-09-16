@@ -22,6 +22,8 @@ describe("categoriasProducto", () => {
     expect(categoriaCanon("Bebés")).toBe("Higiene");
     expect(categoriaCanon("GENERAL")).toBe("Otro");
     expect(categoriaCanon("Antibiotico")).toBe("Antibiótico");
+    expect(categoriaCanon("Hidratación / electrolitos")).toBe("Hidratación");
+    expect(categoriaCanon("Electrolitos")).toBe("Hidratación");
   });
 
   test("filtro y POS no dependen del acento", () => {

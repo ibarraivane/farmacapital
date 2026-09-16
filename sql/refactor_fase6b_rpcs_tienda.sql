@@ -179,6 +179,10 @@ $$;
 
 -- ============================================================
 -- 4) cliente_crear_pedido_online
+-- SUPERSEDED en producción por sql/patch_pedido_online_permite_receta_20260915.sql
+-- (Rx permitido; controlados siguen bloqueados). NO re-ejecutar este bloque:
+-- tumba el checkout de medicamentos con receta. Verificar con
+-- sql/verificar_cliente_crear_pedido_online_receta.sql
 -- ============================================================
 -- Crea un pedido online tipo='online' estado='pendiente'.
 -- NO consume lotes todavía (eso lo hace el empleado al marcar

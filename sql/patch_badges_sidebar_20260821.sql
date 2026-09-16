@@ -75,6 +75,7 @@ begin
   select count(*)::int into v_n
   from public.productos p
   where coalesce(p.activo, false)
+    and not coalesce(p.bajo_pedido, false)
     and coalesce(p.stock, 0) <= coalesce(p.stock_minimo, 0);
   return coalesce(v_n, 0);
 end;

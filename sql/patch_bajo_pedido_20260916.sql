@@ -3,6 +3,9 @@
 --
 -- ORDEN: este patch va ANTES de cualquier alta/UPDATE de productos con
 -- bajo_pedido = true (dermatología, vitaminas, suplementos, proteína).
+-- Después: sql/patch_bajo_pedido_alertas_dashboard_20260916.sql
+-- (dashboard / badge sidebar). Verificar receta online:
+-- sql/verificar_cliente_crear_pedido_online_receta.sql
 --
 -- Reglas:
 --   * productos.precio = ANCLA de mostrador. Nunca se guarda inflado.

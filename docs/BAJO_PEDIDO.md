@@ -1,6 +1,6 @@
 # Bajo pedido — contrato único (tienda, altas, checkout, admin)
 
-Estado: implementado en `feat/bajo-pedido`. Este documento manda sobre briefs anteriores
+Estado: en `cursor/bajo-pedido-7b37` (PR). Este documento manda sobre briefs anteriores
 (el de Cursor y el plan de subcatálogos con anticipo 50%, que quedó descartado).
 
 ## Qué es
@@ -39,9 +39,25 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 - El webhook no degrada un pedido cobrado ni pisa una reserva viva.
 - Sin funciones Serverless nuevas (Vercel Hobby 12/12).
 
-## Reabasto
-`nivelStockUrgencia` devuelve `null` para bajo pedido: no salen en agotados, stock bajo ni «Pedir agotados». Inventario tiene el filtro «Bajo pedido (vitrina)».
-Pendiente menor: el bundle SQL del dashboard (`bajo_stock`, top 5 nombres) aún los cuenta.
+## Reabasto y alertas
+`nivelStockUrgencia` / `filasAlertaStockAnaquel` ignoran bajo pedido. Inventario tiene el filtro «Bajo pedido (vitrina)».
+Dashboard y badge del sidebar: correr **también** `sql/patch_bajo_pedido_alertas_dashboard_20260916.sql` (después de la columna). El JS del dashboard vuelve a filtrar por si el SQL viejo sigue vivo.
+
+## CSV de propuesta (no es alta)
+`docs/catalogo_propuesta_vitaminas_electrolitos.csv` es **borrador**. Todas las filas van `listo_para_cargar=false`. No tiene EAN, nombre de mostrador, foto ni precio. Categoría canónica: `Vitaminas` o `Hidratación` (nunca «Hidratación / electrolitos»).
+
+## Runbook: `cliente_crear_pedido_online` (no lo toca este flujo)
+El encargo usa `cliente_crear_pedido_bajo_pedido`. La compra de anaquel usa `cliente_crear_pedido_online`.
+En el repo hay varias versiones. La que debe estar en Supabase es
+`sql/patch_pedido_online_permite_receta_20260915.sql` (Rx permitido; controlados no).
+`sql/refactor_fase6b_rpcs_tienda.sql` **rechaza** receta: no re-ejecutar ese bloque.
+Verificar: `sql/verificar_cliente_crear_pedido_online_receta.sql`.
 
 ## Compatibilidad con `cursor/encargo-medicamentos-fase-a-a675`
 Se combina con un conflicto trivial de `import` en `Tienda.jsx`. «Avísame cuando esté disponible» no aparece en bajo pedido porque `productoAgotadoTienda` los excluye.
+
+## SQL en Supabase (orden)
+1. `sql/patch_bajo_pedido_20260916.sql` — columna + RPC de encargo. **Antes** de cualquier alta `bajo_pedido = true`.
+2. `sql/patch_bajo_pedido_alertas_dashboard_20260916.sql` — dashboard / sidebar.
+3. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
+4. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.

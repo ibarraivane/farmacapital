@@ -462,6 +462,7 @@ begin
       select jsonb_agg(jsonb_build_object('id', p.id,'nombre', p.nombre,'stock', p.stock,'stock_minimo', p.stock_minimo))
       from public.productos p
       where coalesce(p.activo,true) and coalesce(p.stock,0) <= 0
+        and not coalesce(p.bajo_pedido, false)
       order by p.nombre nulls last
       limit 5
     ), '[]'::jsonb),

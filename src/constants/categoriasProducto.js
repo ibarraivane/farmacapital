@@ -50,6 +50,8 @@ const CATEGORIA_ALIAS = {
   analgesicos: "Analgésico",
   hipertension: "Hipertensión",
   hidratacion: "Hidratación",
+  "hidratacion / electrolitos": "Hidratación",
+  electrolitos: "Hidratación",
   "dispositivo medico": "Dispositivo médico",
   dispositivo: "Dispositivo médico",
   "cuidado personal": "Cuidado personal",
