@@ -2096,7 +2096,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (rpcErr) throw rpcErr;
       if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
-      setPedOnHist((prev) => [{ ...pedido, estado: "listo" }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
+      // Pick-up: el RPC marca completado (metas) y deja ready_for_pickup para el cliente.
+      const estadoHist = resp?.estado || (pedido.tipo_entrega === "recoger" ? "completado" : "listo");
+      setPedOnHist((prev) => [{
+        ...pedido,
+        estado: estadoHist,
+        atendido_por: resp?.atendido_por ?? pedido.atendido_por,
+        delivery_provider: pedido.tipo_entrega === "recoger" ? "pickup" : pedido.delivery_provider,
+        delivery_status: pedido.tipo_entrega === "recoger" ? "ready_for_pickup" : pedido.delivery_status,
+      }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
       const envioHint = pedido.tipo_entrega === "envio" ? " · pide el mensajero (el cliente ya pagó el envío)" : "";
       const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
       if (telCli) {
@@ -3801,7 +3809,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                         <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{p.clientes?.nombre} · {new Date(p.created_at).toLocaleString("es-MX")}</div>
                       </div>
                       <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                        <Tag col={p.estado==="completado"?C.green:BRAND.accent} sm>{p.estado==="completado"?"Entregado":"Listo"}</Tag>
+                        <Tag
+                          col={p.delivery_status === "ready_for_pickup" || p.estado !== "completado" ? BRAND.accent : C.green}
+                          sm
+                        >
+                          {p.delivery_status === "ready_for_pickup"
+                            ? "Listo"
+                            : p.estado === "completado"
+                              ? "Entregado"
+                              : "Listo"}
+                        </Tag>
                         {(() => {
                           const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
                           return <Tag col={ep.col} sm>{ep.label}</Tag>;

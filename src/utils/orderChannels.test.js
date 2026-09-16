@@ -2,6 +2,7 @@ import {
   canalIngresoPedido,
   mapUiEntregaToRpc,
   productoPermitidoEnTiendaWeb,
+  pedidoCuentaEnVentas,
   FULFILLMENT_TYPE,
 } from "./orderChannels";
 
@@ -17,6 +18,19 @@ describe("canalIngresoPedido", () => {
   test("consulta y recarga no se mezclan con mostrador", () => {
     expect(canalIngresoPedido("consulta")).toBe("consulta");
     expect(canalIngresoPedido("recarga")).toBe("servicio");
+  });
+});
+
+describe("pedidoCuentaEnVentas", () => {
+  test("completado siempre cuenta", () => {
+    expect(pedidoCuentaEnVentas({ estado: "completado", tipo: "tienda_fisica" })).toBe(true);
+  });
+  test("online listo con vendedora cuenta (surtido)", () => {
+    expect(pedidoCuentaEnVentas({ estado: "listo", tipo: "online", atendido_por: 3 })).toBe(true);
+  });
+  test("online pendiente o listo sin vendedora no cuenta", () => {
+    expect(pedidoCuentaEnVentas({ estado: "pendiente", tipo: "online", payment_status: "approved" })).toBe(false);
+    expect(pedidoCuentaEnVentas({ estado: "listo", tipo: "online", atendido_por: null })).toBe(false);
   });
 });
 
