@@ -44,8 +44,10 @@ function listaDePromos(promos) {
 export function ofertaDeProducto(prod, promos, hoy = hoyISOMexico()) {
   const lista = pesoPublico(prod?.precio);
   const candidatos = [];
+  // Bajo pedido: el servidor cobra fc_precio_online_mp(ancla) sin promociones; no anunciar descuentos.
+  if (prod?.bajo_pedido === true) promos = null;
 
-  const pctProd = Number(prod?.descuento_pct) || 0;
+  const pctProd = prod?.bajo_pedido === true ? 0 : Number(prod?.descuento_pct) || 0;
   if (lista > 0 && pctProd > 0 && pctProd < 100) {
     const oferta = cobroLinea(lista, 1, pctProd);
     if (oferta > 0 && oferta < lista) {

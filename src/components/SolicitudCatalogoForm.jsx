@@ -4,7 +4,10 @@ import { Btn, showToast } from "../ui";
 import { BRAND } from "../constants";
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 import { flyerWhatsAppFarmaciaUrl } from "../lib/flyerFarmaCapital";
-import { SOLICITUD_API_PATH, validarSolicitudTienda } from "../lib/solicitudTienda";
+import { SOLICITUD_API_PATH, normalizarTelefonoPedido, validarSolicitudTienda } from "../lib/solicitudTienda";
+
+/** Otra pantalla pide abrir /conseguir directo en el formulario (p. ej. «Cotizar»). */
+export const CONSEGUIR_FORM_FLAG = "farmacapital_conseguir_form";
 
 const inp = {
   width: "100%",
@@ -78,7 +81,7 @@ export function CatalogoVacioConseguir({ busq, setPage }) {
   );
 }
 
-export default function SolicitudCatalogoForm({ setPage, textoInicial, user }) {
+export default function SolicitudCatalogoForm({ setPage, textoInicial, user, bajoVitrina = false }) {
   const [texto, setTexto] = useState(() => queryInicial(textoInicial));
   const [cantidad, setCantidad] = useState(1);
   const [urgencia, setUrgencia] = useState("sin_prisa");
@@ -94,6 +97,19 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user }) {
   useEffect(() => {
     if (!texto) setTexto(queryInicial(textoInicial));
   }, [textoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(CONSEGUIR_FORM_FLAG) === "1") {
+        sessionStorage.removeItem(CONSEGUIR_FORM_FLAG);
+        const t = setTimeout(() => {
+          document.getElementById("conseguir-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 150);
+        return () => clearTimeout(t);
+      }
+    } catch { /* noop */ }
+    return undefined;
+  }, []);
 
   const enviar = async () => {
     const parsed = validarSolicitudTienda({
@@ -156,7 +172,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user }) {
   }
 
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px" }}>
+    <div id="conseguir-form" style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px", scrollMarginTop: 90 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
         <div
           style={{
@@ -171,9 +187,15 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user }) {
         >
           <Truck size={20} />
         </div>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0f172a" }}>
-          ¿No lo encuentras? Te lo conseguimos
-        </h1>
+        {bajoVitrina ? (
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0f172a" }}>
+            ¿No lo encuentras? Te lo conseguimos
+          </h2>
+        ) : (
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0f172a" }}>
+            ¿No lo encuentras? Te lo conseguimos
+          </h1>
+        )}
       </div>
       <p style={{ margin: "0 0 20px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
         Anota el medicamento. Lo vemos en mayorista, te pasamos el costo por WhatsApp o correo y, si te late, pagas con la liga. El envío a domicilio tiene costo.
@@ -221,6 +243,11 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user }) {
         <input
           value={telefono}
           onChange={(e) => setTelefono(e.target.value)}
+          onBlur={() => {
+            // Si pegan +52 / 52 al inicio, dejar los 10 dígitos que pide la etiqueta.
+            const d = normalizarTelefonoPedido(telefono);
+            if (d.length === 10 && d !== telefono) setTelefono(d);
+          }}
           placeholder="55 1234 5678"
           inputMode="tel"
           style={inp}

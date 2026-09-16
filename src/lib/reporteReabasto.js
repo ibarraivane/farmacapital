@@ -37,6 +37,8 @@ export function stockMinimoEfectivo(p) {
 }
 
 export function nivelStockUrgencia(p) {
+  // Bajo pedido no es hueco de anaquel: nunca entra a agotados / stock bajo / pedir.
+  if (p?.bajo_pedido === true) return null;
   const min = stockMinimoEfectivo(p);
   const stock = stockDe(p);
   const pct = min > 0 ? stock / min : 0;

@@ -1,6 +1,7 @@
 'use strict';
 
 const { isAllowedReturnBase } = require('../../_lib/allowedOrigins');
+const { crearReserva } = require('../../_lib/reservaBajoPedido');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -32,6 +33,18 @@ module.exports = async function handler(req, res) {
   }
 
   const body = await safeJson(req);
+
+  // Encargo BAJO PEDIDO: reserva en tarjeta (capture manual), no preferencia de Checkout Pro.
+  if (body?.modo === 'reserva') {
+    const authHdr = req.headers.authorization || req.headers.Authorization || '';
+    const out = await crearReserva({
+      env: { accessToken: MP_ACCESS_TOKEN, supabaseUrl: SUPABASE_URL, serviceKey: SUPABASE_SERVICE_ROLE_KEY },
+      body,
+      clienteToken: authHdr.replace(/^Bearer\s+/i, '').trim(),
+    }).catch((e) => ({ status: 500, json: { ok: false, error: 'unexpected_error', message: e?.message || 'unknown' } }));
+    return res.status(out.status).json(out.json);
+  }
+
   const pedidoId = Number(body?.pedidoId);
   const amount = Number(body?.amount || 0);
   const payer = body?.payer && typeof body.payer === 'object' ? body.payer : {};
@@ -87,6 +100,10 @@ module.exports = async function handler(req, res) {
     if (!clienteId) clienteId = Number(pedido.cliente_id);
     if (pedido.tipo !== 'online') return res.status(400).json({ ok: false, error: 'pedido_not_online' });
     if (pedido.estado !== 'pendiente') return res.status(409).json({ ok: false, error: 'pedido_not_pending' });
+    if (pedido.logistics_meta && pedido.logistics_meta.bajo_pedido === true) {
+      // Los encargos se pagan con reserva (se cobra al conseguirlo), nunca con liga directa.
+      return res.status(409).json({ ok: false, error: 'pedido_bajo_pedido_usa_reserva' });
+    }
 
     // Pickup cobro en tienda (BBVA): no generar Preference / Link de pago.
     const metodoPago = String(pedido.metodo_pago || '').toLowerCase().trim();
