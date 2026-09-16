@@ -24,6 +24,11 @@ import {
   METODO_PENDIENTE_TIENDA,
 } from "./utils/pedidosTiendaWeb";
 import {
+  cumpleMontoMinimoEnvio,
+  mensajeMontoMinimoPedidoOnline,
+  montoMinimoPedidoOnline,
+} from "./config/metodosPago";
+import {
   productoPermitidoEnTiendaFarmaciaWeb,
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
@@ -3787,6 +3792,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const envioFueraRadio = entrega === "cdmx" && envioEstimacionActiva?.error === "fuera_radio";
   const envioFee = entrega !== "pickup" && envioEstimacionActiva?.ok ? Number(envioEstimacionActiva.costo) || 0 : 0;
   const totalPagar = Math.round((sub + envioFee) * 100) / 100;
+  const minOnline = montoMinimoPedidoOnline();
+  const alcanzaMinimoEnvio = entrega === "pickup" || cumpleMontoMinimoEnvio(sub, minOnline);
+  const msgMinimoEnvio = mensajeMontoMinimoPedidoOnline(minOnline);
 
   useEffect(() => {
     if (entrega === "pickup" || !direccionOk) {
@@ -3919,6 +3927,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             : "Completa la dirección de entrega para continuar.",
           "warning"
         );
+        setG(false);
+        return;
+      }
+      if (tipo_entrega === "envio" && !cumpleMontoMinimoEnvio(sub, montoMinimoPedidoOnline())) {
+        notifyCheckout(mensajeMontoMinimoPedidoOnline(), "warning");
         setG(false);
         return;
       }
@@ -4416,10 +4429,19 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     Para continuar completa: <strong>{faltantesCheckout.join(", ")}</strong>
                   </div>
                 )}
+                {!alcanzaMinimoEnvio && (
+                  <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
+                    {msgMinimoEnvio}
+                  </div>
+                )}
                 <Btn
                   onClick={()=>{
                     if (!cart.length) {
                       setPage("carrito");
+                      return;
+                    }
+                    if (!alcanzaMinimoEnvio) {
+                      notifyCheckout(msgMinimoEnvio, "warning");
                       return;
                     }
                     setMetodo(entrega === "pickup" ? METODO_PENDIENTE_TIENDA : "mercadopago");
@@ -4427,7 +4449,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   }}
                   col={BRAND.primary}
                   style={{marginTop:20,width:stack?"100%":undefined}}
-                  disabled={!cart.length || !datosCheckoutCompletos || !envioListoParaPagar}
+                  disabled={!cart.length || !datosCheckoutCompletos || !envioListoParaPagar || !alcanzaMinimoEnvio}
                 >
                   {entrega==="pickup" ? "Revisar pedido →" : "Revisar y pagar →"}
                 </Btn>
@@ -4477,9 +4499,14 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <span style={{color:C.dark,fontWeight:800}}>Total</span>
                 <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$(totalPagar)}</span>
               </div>
+              {!alcanzaMinimoEnvio && (
+                <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
+                  {msgMinimoEnvio}
+                </div>
+              )}
               <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
                 <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
-                <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar} style={{flex:stack?1:undefined,minWidth:0}}>
+                <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar||!alcanzaMinimoEnvio} style={{flex:stack?1:undefined,minWidth:0}}>
                   {guardando
                     ? "Procesando…"
                     : entrega==="pickup"
