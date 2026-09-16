@@ -63,6 +63,26 @@ if (/flex:\s*["']1 1 140px["']/.test(rec)) {
 if (!/auto-fill/.test(rec)) {
   fail("Recibir: la lista de tickets vivos debe ser grid auto-fill para que todas midan igual.");
 }
+if (/Dalos de alta en[\s\S]{0,80}Inventario → Catálogo →/.test(rec)) {
+  fail("Recibir: el recuadro rojo no debe mandar a Inventario → Catálogo. El alta se arma desde Recibir.");
+}
+if (!/No vayas a Inventario → Catálogo/.test(rec)) {
+  fail("RecepcionModule: el recuadro de sin registrar debe decir que no vayan a Catálogo.");
+}
+const sqlFl127790 = read("sql/patch_alta_farmalive_127790_y_match_ean_20260916.sql");
+if (/Enlaza grises de cualquier ticket vivo/.test(sqlFl127790)) {
+  fail("Farmalive 127790: no enlazar pendiente_alta en todos los tickets (reabre lo ya recibido).");
+}
+if (!/r\.folio = '127790'/.test(sqlFl127790)) {
+  fail("Farmalive 127790: el enlazar tiene que ir acotado al folio.");
+}
+const sqlFl6 = read("sql/patch_recibir_farmalive_127790_faltantes_y_reabiertos_20260916.sql");
+if (!/7501008499245/.test(sqlFl6) || !/7501008849949/.test(sqlFl6)) {
+  fail("El SQL de los 6 faltantes tiene que dar de alta Aspirina GO y el 3-pack.");
+}
+if (!/estado = 'pendiente_alta'/.test(sqlFl6) || !/confirmada/.test(sqlFl6)) {
+  fail("El SQL correctivo tiene que cerrar tickets reabiertos (pendiente_alta → confirmada).");
+}
 
 async function assertScanLogic() {
   const scanUrl = pathToFileURL(path.join(root, "src/lib/recepcionScan.js")).href;

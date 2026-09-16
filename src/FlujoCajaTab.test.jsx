@@ -50,3 +50,16 @@ test("en Gastos la nómina se describe como semanal de viernes", async () => {
   expect(screen.getByPlaceholderText(/Nómina viernes/i)).toBeInTheDocument();
   expect(screen.getByText(/nómina: cada viernes/i)).toBeInTheDocument();
 });
+
+test("un gasto a mano se puede corregir: categoría, concepto y monto", async () => {
+  render(<FlujoCajaTab usuario={{ nombre: "Ivan Ibarra" }} demoBundle={FLUJO_DEMO_BUNDLE} />);
+  await userEvent.click(screen.getByRole("tab", { name: "Gastos" }));
+  await userEvent.click(screen.getByRole("button", { name: "Editar Erika" }));
+  expect(screen.getByText("Corregir gasto")).toBeInTheDocument();
+  expect(screen.getByDisplayValue("Erika")).toBeInTheDocument();
+  expect(screen.getByDisplayValue("1133.32")).toBeInTheDocument();
+  await userEvent.selectOptions(screen.getByDisplayValue("Renta"), "nomina");
+  await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+  expect(screen.queryByText("Corregir gasto")).not.toBeInTheDocument();
+  expect(screen.getByRole("cell", { name: "Nómina" })).toBeInTheDocument();
+});

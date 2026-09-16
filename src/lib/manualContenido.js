@@ -65,6 +65,7 @@ export const TEMAS = [
       "Al entrar con perfil vendedor aterrizas en Mi Día. En el menú también ves Recibir, Inventario y Manual.",
       "El recuadro Tickets se toca: abre folio, hora y artículos de TU turno. Sin montos ni edición.",
       "Las [[recarga]]s y pagos de servicio (CFE, Sky…) que anotas en Servicios también suman a tu % de meta (turno y mes) y aparecen en la lista.",
+      "Los pedidos online que surtes (pick-up o envío) también cuentan en tu meta, no solo las ventas de mostrador.",
       "Para vender: Punto de Venta. Para meter cajas: Recibir. Inventario solo consulta existencias.",
       "Si te pide abrir caja, cuenta el [[fondo]] antes de cobrar.",
     ],
@@ -343,7 +344,9 @@ export const TEMAS = [
     resumen: "Pedidos de la tienda web. Se atienden como pestaña del POS.",
     pasos: [
       "Pedidos online o POS → pedidos web.",
-      "Confirma, surte y cobra según el flujo. El stock sale igual que una venta de mostrador.",
+      "Confirma pago y surte. El stock sale igual que una venta de mostrador.",
+      "Pick-up: al marcar listo la venta queda completada y cuenta en la meta de quien tiene la caja abierta (Mi Día).",
+      "Envío: al surtir se asigna a la vendedora; al entregar el mensajero se cierra del todo.",
     ],
   },
   {

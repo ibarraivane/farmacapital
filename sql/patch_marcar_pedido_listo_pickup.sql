@@ -1,5 +1,8 @@
 -- Al marcar listo un pedido pick-up, actualiza delivery_status sin UPDATE directo desde el cliente.
 -- Ejecutar en Supabase SQL Editor una vez.
+--
+-- SUPERSEDED 2026-09-16: usar sql/patch_online_pickup_meta_vendedora_20260916.sql
+-- (pick-up → completado para metas + atendido_por por caja abierta).
 
 begin;
 

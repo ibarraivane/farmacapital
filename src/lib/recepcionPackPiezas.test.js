@@ -54,6 +54,12 @@ describe("piezasPorEmpaqueDesdeNombre", () => {
     expect(piezasPorEmpaqueDesdeNombre("Cotonetes Quirmex Tarro C/100")).toBeNull();
   });
 
+  test("Mercurio óxido de zinc C/50 se vende por pieza; la pomada C/25 no", () => {
+    expect(piezasPorEmpaqueDesdeNombre("MERCURIO OXIDO DE ZINC C/50 1620824")).toBe(50);
+    expect(piezasPorEmpaqueDesdeNombre("Mercurio óxido de zinc C/50")).toBe(50);
+    expect(piezasPorEmpaqueDesdeNombre("MERCURIO POMADA OXIDO DE ZINC C/25 2590223")).toBeNull();
+  });
+
   test("aguja C/1 del ticket no se expande (qty ya viene en piezas)", () => {
     expect(
       piezasPorEmpaqueDesdeNombre("AGUJA-HIPODERMICA-SENSIMEDICAL 22 G X 32 MM C/1 NEGRO"),

@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,27163,2026-09-15,Bodega F-42,7500435234313,CREST COMPLETE 4EN1,12,18.16,217.92,,,FC-35234313,266.39,alta
+2,27163,2026-09-15,Bodega F-42,7500435258166,ORAL-B 66ML CRA DENT FRESC DURADERA C36,2,24.25,48.50,,,FC-35258166,266.39,alta

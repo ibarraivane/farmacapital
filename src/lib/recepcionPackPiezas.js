@@ -84,9 +84,19 @@ export function expandirPackAPiezas(row) {
 
 /** Caja C/N que en piso se abre y se cobra por pieza. */
 export function esCajaDispositivoVentaPieza(nombre) {
-  const n = String(nombre || "");
+  const n = String(nombre || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
   if (/\b(hisopos?|cotonetes?|torundas?)\b/i.test(n)) return false;
-  return /\b(jeringas?|agujas?|guantes?|cubre(?:bocas?)?|mascarillas?|tegaderm)\b/i.test(n);
+  if (/\b(jeringas?|agujas?|guantes?|cubre(?:bocas?)?|mascarillas?|tegaderm)\b/i.test(n)) {
+    return true;
+  }
+  // Mercurio óxido de zinc C/50: se compra la caja y se vende por pieza.
+  // No la pomada C/25 (ese es el tarro).
+  if (/\bmercurio\b/i.test(n) && /oxido\s+de\s+zinc/i.test(n) && !/\bpomada\b/i.test(n)) {
+    return true;
+  }
+  return false;
 }
 
 function norm(s) {

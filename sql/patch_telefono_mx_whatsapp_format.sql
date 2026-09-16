@@ -1,7 +1,19 @@
 -- FarmaCapital — Teléfono MX alineado con Meta Developer (52 + 10 dígitos)
 -- Ejecutar en Supabase SQL Editor.
+-- Requiere public.fn_digits_mx (se redefine abajo por si faltó el hotfix).
 
 begin;
+
+create or replace function public.fn_digits_mx(p_text text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when p_text is null then ''
+    else right(regexp_replace(p_text, '\D', '', 'g'), 10)
+  end;
+$$;
 
 -- Formato interno: 52XXXXXXXXXX (como la lista de prueba de Meta Getting Started).
 create or replace function public.fn_telefono_mx_whatsapp(p_text text)

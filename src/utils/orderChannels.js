@@ -53,13 +53,17 @@ export const ORDER_WORKFLOW_STATE = {
   CANCELLED: "cancelled",
 };
 
-/** Mapeo sugerido workflow → valor actual en columna `pedidos.estado`. */
+/**
+ * Mapeo sugerido workflow → valor actual en columna `pedidos.estado`.
+ * Nota: pick-up online al surtir pasa a `completado` (metas / ventas) y deja
+ * `delivery_status = ready_for_pickup` para la UI del cliente.
+ */
 export const WORKFLOW_TO_DB_ESTADO = {
   created: "pendiente",
   paid_pending_validation: "pendiente",
   accepted: "pendiente",
   preparing: "pendiente",
-  ready_for_pickup: "listo",
+  ready_for_pickup: "completado",
   courier_requested: "listo",
   courier_assigned: "listo",
   picked_up: "listo",
@@ -165,6 +169,15 @@ export function pedidoEsTipoFisica(tipo) {
 
 export function pedidoEsTipoOnline(tipo) {
   return String(tipo || "").toLowerCase().trim() === "online";
+}
+
+/** Pedido que debe sumar en dashboard / metas (alineado a fn_pedido_cuenta_en_ventas). */
+export function pedidoCuentaEnVentas(p) {
+  if (!p) return false;
+  const estado = String(p.estado || "").toLowerCase().trim();
+  if (estado === "completado") return true;
+  if (estado === "listo" && pedidoEsTipoOnline(p.tipo) && p.atendido_por != null) return true;
+  return false;
 }
 
 export function pedidoEsTipoConsulta(tipo) {
