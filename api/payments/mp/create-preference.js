@@ -2,7 +2,7 @@
 
 const { isAllowedReturnBase } = require('../../_lib/allowedOrigins');
 const { crearReserva } = require('../../_lib/reservaBajoPedido');
-const { totalConCargoMp } = require('../../_lib/precioOnlineMp');
+const { CONCEPTO_CARGO_PLATAFORMA } = require('../../_lib/precioOnlineMp');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -141,8 +141,8 @@ module.exports = async function handler(req, res) {
 
     const totalDb = Number(pedido.total || 0);
     if (!Number.isFinite(totalDb) || totalDb <= 0) return res.status(400).json({ ok: false, error: 'invalid_db_total' });
-    const expected = totalConCargoMp(totalDb);
-    if (expected == null || Math.abs(expected - amount) > 0.01) {
+    const expected = Math.round(totalDb * 100) / 100;
+    if (Math.abs(expected - amount) > 0.01) {
       return res.status(409).json({ ok: false, error: 'amount_mismatch', expected });
     }
 
@@ -163,10 +163,15 @@ module.exports = async function handler(req, res) {
     const siteDefault = String(process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx').replace(/\/+$/, '');
     const safeBase = isAllowedReturnBase(baseUrl) ? String(baseUrl).replace(/\/+$/, '') : siteDefault;
     const externalReference = `FARMACAPITAL-PED-${pedidoId}`;
-    const productsTotal = Math.round((totalDb - envioFee) * 100) / 100;
+    const cargoMeta = Number(pedido.logistics_meta?.cargo_plataforma_mxn);
+    const cargo = Number.isFinite(cargoMeta) && cargoMeta > 0 ? Math.round(cargoMeta * 100) / 100 : 0;
+    const productsTotal = Math.round((totalDb - envioFee - cargo) * 100) / 100;
     const items = [
       { title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: productsTotal },
     ];
+    if (cargo > 0) {
+      items.push({ title: CONCEPTO_CARGO_PLATAFORMA, quantity: 1, currency_id: 'MXN', unit_price: cargo });
+    }
     if (envioFee > 0) {
       items.push({ title: 'Envío a domicilio', quantity: 1, currency_id: 'MXN', unit_price: envioFee });
     }
