@@ -1,6 +1,7 @@
 const {
   esNombreTicketProveedor,
   tituloDesdeMeta,
+  marcaDesdeTexto,
   fichaCatalogoDesdeNadro,
   fichaListaParaAlta,
 } = require("./fichaProveedor");
@@ -50,6 +51,10 @@ describe("ficha desde la página del proveedor", () => {
     expect(ficha.imagen_url).toContain("3337875917810");
     expect(ficha.nombre_ticket).toBe("BLOQ ANTHE UVAIR 50+ FLU INV 40ML");
     expect(fichaListaParaAlta(ficha)).toBe(true);
+  });
+
+  test("SVR se reconoce como marca real, no casa Nadro", () => {
+    expect(marcaDesdeTexto("SVR Sebiaclear Gel Moussant 400 ml")).toBe("SVR");
   });
 
   test("FRABEL + CeraVe no se etiqueta como La Roche", () => {

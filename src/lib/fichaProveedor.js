@@ -26,6 +26,7 @@ const MARCAS_TITULO = [
   ["nivea", "Nivea"],
   ["vichy", "Vichy"],
   ["isdin", "Isdin"],
+  ["svr", "SVR"],
   ["avene", "Avène"],
   ["avène", "Avène"],
 ];
