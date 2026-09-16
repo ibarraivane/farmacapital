@@ -19,6 +19,11 @@ describe("queryCatalogoDesdeInputPos", () => {
     expect(queryCatalogoDesdeInputPos("7501234567890")).toBe("7501234567890");
     expect(queryCatalogoDesdeInputPos("750 1234 567890")).toBe("7501234567890");
   });
+
+  test("quita el prefijo AIM de la pistola", () => {
+    expect(normalizeBarcodeRaw("]C17501234567890")).toBe("7501234567890");
+    expect(normalizeBarcodeRaw("]d27501234567890")).toBe("7501234567890");
+  });
 });
 
 describe("Dibar rojo 500 ml: bote vs ticket OCR", () => {

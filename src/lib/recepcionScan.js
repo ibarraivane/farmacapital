@@ -9,9 +9,14 @@
 
 import { EAN_PARES_CONOCIDOS } from "./eanParesConocidos.js";
 
+/** Prefijo AIM de pistola: ]C1 Code 128, ]d2 DataMatrix, ]e0 GS1 DataBar, ]Q1 QR. */
+function stripAimSymbology(t) {
+  return String(t || "").replace(/^\][A-Za-z][0-9]/, "");
+}
+
 export function normalizeBarcodeRaw(raw) {
   let t = String(raw ?? "").trim();
-  t = t.replace(/^[\]C1\][\x00-\x1f]*/i, "");
+  t = stripAimSymbology(t);
   // FNC1 / Group Separator en DataMatrix GS1 (lote/cad tras el GTIN).
   t = t.replace(/\x1d/g, "");
   t = t.replace(/\s/g, "");
@@ -20,7 +25,7 @@ export function normalizeBarcodeRaw(raw) {
 
 /**
  * GTIN/EAN embebido en DataMatrix GS1 (cajas de medicamento).
- * Formatos: (01)GTIN, 01+GTIN-14, o EAN-13 MX (750…) dentro de un beep largo.
+ * Formatos: (01)GTIN, 01+GTIN-14, o EAN embebido en un beep largo.
  */
 export function extractGs1Gtin(raw) {
   const t = normalizeBarcodeRaw(raw);
@@ -47,10 +52,18 @@ export function extractGs1Gtin(raw) {
     return g.startsWith("0") ? g.slice(1) : g;
   }
 
-  // México: EAN-13 suele empezar en 750
-  const mx = digits.match(/750\d{10}/);
-  if (mx) return mx[0];
+  const embebido = digits.match(/750\d{10}|650240\d{6,7}|360\d{10}|361\d{10}|400\d{10}|333\d{10}|366\d{10}|020\d{9}/);
+  return embebido ? embebido[0] : null;
+}
 
+/** Lote de fábrica (AI 10) en DataMatrix GS1. */
+export function extractGs1Lot(raw) {
+  const t = normalizeBarcodeRaw(raw);
+  if (!t) return null;
+  const paren = t.match(/\(10\)([^\(\x1d]{2,20})/);
+  if (paren) return paren[1].replace(/\s/g, "");
+  const after17 = t.match(/17\d{6}10([A-Za-z0-9\-]{2,20})/);
+  if (after17) return after17[1];
   return null;
 }
 
@@ -84,6 +97,9 @@ export function barcodeDigitsMatch(scanRaw, storedRaw) {
     if (scan.length === 13 && stored.length === 12 && scan.slice(1) === stored) return true;
     if (stored.length === 13 && scan.length === 12 && stored.slice(1) === scan) return true;
   }
+  // Dígito verificador al final: ticket 650240013850 ↔ catálogo 6502400138504
+  if (scan.length >= 8 && stored.length === scan.length + 1 && stored.startsWith(scan)) return true;
+  if (stored.length >= 8 && scan.length === stored.length + 1 && scan.startsWith(stored)) return true;
   return false;
 }
 
@@ -149,9 +165,19 @@ function itemMatchScanOne(it, codigo, productos = []) {
   return false;
 }
 
+function loteTicketMatch(it, raw) {
+  const stored = String(it?.numero_lote || "").trim();
+  if (!stored || stored.length < 4) return false;
+  const lot = extractGs1Lot(raw);
+  if (lot && lot.toUpperCase() === stored.toUpperCase()) return true;
+  const code = normalizeBarcodeRaw(raw);
+  return !!(code && code.toUpperCase() === stored.toUpperCase());
+}
+
 export function itemMatchScan(it, codigo, productos = []) {
   if (!it || !codigo) return false;
-  return scanCodigoCandidates(codigo).some((c) => itemMatchScanOne(it, c, productos));
+  if (scanCodigoCandidates(codigo).some((c) => itemMatchScanOne(it, c, productos))) return true;
+  return loteTicketMatch(it, codigo);
 }
 
 /**

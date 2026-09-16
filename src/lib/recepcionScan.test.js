@@ -7,8 +7,11 @@ import {
   recepcionItemsVerdeSinStock,
   pedidoEsperaEntrada,
   extractGs1Gtin,
+  extractGs1Lot,
   eanPistolaListo,
   esSerialTerminalPoint,
+  barcodeDigitsMatch,
+  normalizeBarcodeRaw,
 } from "./recepcionScan";
 
 const TEGADERM = {
@@ -277,6 +280,7 @@ describe("GS1 / DataMatrix en Recibir", () => {
       confirmado: false,
       codigo_escaneado: g.ean,
       sku: g.sku,
+      numero_lote: g.lote,
       origen: "pdf",
     }));
     for (const g of grises) {
@@ -292,5 +296,66 @@ describe("GS1 / DataMatrix en Recibir", () => {
       expect(r.codigo).toBe(g.ean);
       expect(r.item.sku).toBe(g.sku);
     }
+  });
+
+  test("pistola AIM ]C1 / ]d2 no deja el EAN irreconocible", () => {
+    expect(normalizeBarcodeRaw("]C17501349023369")).toBe("7501349023369");
+    expect(extractGs1Gtin("]d201075013490233691728031110U26J016")).toBe("7501349023369");
+    expect(eanPistolaListo("]C17501349023369")).toBe(true);
+    const item = {
+      confirmado: false,
+      codigo_escaneado: "7501349023369",
+      sku: "EQ-AMS160",
+      origen: "pdf",
+    };
+    expect(itemMatchScan(item, "]C17501349023369", [])).toBe(true);
+    const r = resolverEscaneoRecepcion({
+      items: [item],
+      codigo: "]d201075013490233691728031110U26J016",
+      productos: [],
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("gris");
+  });
+
+  test("dígito verificador: ticket 12 vs catálogo 13 (Teatrical / Farmalive)", () => {
+    expect(barcodeDigitsMatch("650240013850", "6502400138504")).toBe(true);
+    expect(barcodeDigitsMatch("6502400138504", "650240013850")).toBe(true);
+    const item = {
+      confirmado: false,
+      codigo_escaneado: "650240013850",
+      origen: "csv",
+    };
+    expect(itemMatchScan(item, "6502400138504", [])).toBe(true);
+    expect(itemMatchScan(item, "01065024001385041728031110AB12", [])).toBe(true);
+  });
+
+  test("GS1 Genomma 650240 abre el renglón (Gargax Farmalive)", () => {
+    expect(extractGs1Gtin("01065024002833541728031110GX01")).toBe("6502400283354");
+    const item = {
+      confirmado: false,
+      codigo_escaneado: "650240028335",
+      origen: "csv",
+    };
+    expect(itemMatchScan(item, "01065024002833541728031110GX01", [])).toBe(true);
+  });
+
+  test("lote GS1 abre el gris Equilibrio si el EAN de caja no está en el ticket", () => {
+    expect(extractGs1Lot("01075000000000001728031110U26J016")).toBe("U26J016");
+    const item = {
+      confirmado: false,
+      codigo_escaneado: "7501349023369",
+      sku: "EQ-AMS160",
+      numero_lote: "U26J016",
+      origen: "pdf",
+    };
+    const r = resolverEscaneoRecepcion({
+      items: [item],
+      codigo: "01099999999999991728031110U26J016",
+      productos: [],
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("gris");
+    expect(r.item.sku).toBe("EQ-AMS160");
   });
 });

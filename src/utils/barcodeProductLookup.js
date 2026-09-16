@@ -6,7 +6,8 @@ export { EAN_PARES_CONOCIDOS };
 /** Texto crudo del escáner (sin normalizar). */
 export function normalizeBarcodeRaw(raw) {
   let t = String(raw ?? "").trim();
-  t = t.replace(/^[\]C1\][\x00-\x1f]*/i, "");
+  t = t.replace(/^\][A-Za-z][0-9]/, "");
+  t = t.replace(/\x1d/g, "");
   t = t.replace(/\s/g, "");
   return t;
 }
