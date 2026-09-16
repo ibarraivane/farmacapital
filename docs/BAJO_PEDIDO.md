@@ -20,9 +20,9 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 
 ## Precio web
 Tarjeta: solo 3.49% + IVA. Skittles $10 → **$11**.
-Cargo de plataforma **una vez** por pedido: $4 + IVA = **$4.64** («Pedido en línea FarmaCapital»). No es un SKU.
-- 1 Skittles = $11 + $4.64 = **$15.64**. 5 Skittles = $55 + $4.64 = **$59.64**.
-- SQL: `sql/patch_cargo_plataforma_pedido_20260916.sql`.
+**Servicio $5** una vez por pedido (peso entero). No es un SKU.
+- 1 Skittles = $11 + $5 = **$16**. 5 Skittles = $55 + $5 = **$60**.
+- SQL: `sql/patch_servicio_5_pedido_20260916.sql`.
 
 ## Tienda
 - `/conseguir`: vitrina por rubro (Todos · Dermatología · Vitaminas · Suplementos · Proteína) + formulario «Levantar pedido».
@@ -58,7 +58,7 @@ Se combina con un conflicto trivial de `import` en `Tienda.jsx`. «Avísame cuan
 1. `sql/patch_bajo_pedido_20260916.sql` — columna + RPC de encargo. **Antes** de cualquier alta `bajo_pedido = true`.
 2. `sql/patch_bajo_pedido_alertas_dashboard_20260916.sql` — dashboard / sidebar.
 3. `sql/patch_pedido_online_precio_mp_20260916.sql` — el checkout de anaquel cobra el precio web.
-4. `sql/patch_cargo_plataforma_pedido_20260916.sql` — % en tarjeta + $4.64 una vez por pedido.
+4. `sql/patch_servicio_5_pedido_20260916.sql` — % en tarjeta + Servicio $5 una vez.
 5. `sql/patch_envio_cotiza_vendedor_20260916.sql` — POS ve pedidos de envío para cotizar; misma función de precio.
 6. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
 7. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.

@@ -5,8 +5,9 @@ const TASA_MP_ONLINE = 0.040484;
 const FIJO_MP_MXN = 4;
 const IVA_MP = 1.16;
 const FIJO_MP_CON_IVA = FIJO_MP_MXN * IVA_MP;
+const CARGO_SERVICIO_MXN = 5;
 const PRECIO_PLACEHOLDER_MAX = 0.01;
-const CONCEPTO_CARGO_PLATAFORMA = 'Pedido en línea FarmaCapital';
+const CONCEPTO_CARGO_PLATAFORMA = 'Servicio';
 
 function precioAnclaUsable(precio) {
   const n = Number(precio);
@@ -20,7 +21,7 @@ function precioOnlineMp(precioLista) {
 }
 
 function cargoPlataformaOnline() {
-  return Math.round(FIJO_MP_CON_IVA * 100) / 100;
+  return CARGO_SERVICIO_MXN;
 }
 
 function cargoFijoMp() {
@@ -30,7 +31,7 @@ function cargoFijoMp() {
 function totalPedidoConPlataforma(subProductos) {
   const b = Number(subProductos);
   if (!Number.isFinite(b) || b <= 0) return null;
-  return Math.round((b + cargoPlataformaOnline()) * 100) / 100;
+  return Math.round(b + cargoPlataformaOnline());
 }
 
 function totalConCargoMp(base) {
@@ -42,6 +43,7 @@ module.exports = {
   FIJO_MP_MXN,
   IVA_MP,
   FIJO_MP_CON_IVA,
+  CARGO_SERVICIO_MXN,
   PRECIO_PLACEHOLDER_MAX,
   CONCEPTO_CARGO_PLATAFORMA,
   precioAnclaUsable,
