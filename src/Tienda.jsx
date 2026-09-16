@@ -28,6 +28,7 @@ import {
   mensajeMontoMinimoPedidoOnline,
   montoMinimoPedidoOnline,
 } from "./config/metodosPago";
+import { precioConRecargoCatalogo } from "./lib/precioCatalogoOnline";
 import {
   productoPermitidoEnTiendaFarmaciaWeb,
   razonBloqueoProductoTiendaFarmacia,
@@ -3593,7 +3594,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
-  const cobroDe=(c)=>ofertaDeProducto(c, mapaPromos.get(c.id)).oferta * (Number(c.qty)||0);
+  const unitTienda = (c) => {
+    const base = ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
+    // Catálogo limpio; en checkout domicilio el precio de línea lleva recargo integrado (sin línea comisión).
+    if (entrega !== "pickup") return precioConRecargoCatalogo(base);
+    return base;
+  };
+  const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);
   useEffect(() => {
     setBloqueaReloadApp(true, "tienda-checkout");
     return () => setBloqueaReloadApp(false, "tienda-checkout");
@@ -4049,7 +4056,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           productos: subSnap,
           envioFee: 0,
           ptsG: ptsPickup,
-          lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
+          lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: unitTienda(c) })),
           entregaUi: entrega,
           tipo_entrega,
           order_channel,
@@ -4095,7 +4102,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             items: reconciled.map((c) => ({
               title: c.nombre || "Producto",
               quantity: Number(c.qty) || 1,
-              unit_price: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta || 0,
+              unit_price: unitTienda(c) || 0,
             })),
           }),
         });
@@ -4110,7 +4117,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             productos: subSnap,
             envioFee: envioSnap,
             ptsG,
-            lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
+            lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: unitTienda(c) })),
             entregaUi: entrega,
             tipo_entrega,
             order_channel,
@@ -4138,7 +4145,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         productos: subSnap,
         envioFee: envioSnap,
         ptsG: Math.floor(subSnap/10),
-        lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
+        lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: unitTienda(c) })),
         entregaUi: entrega,
         tipo_entrega,
         order_channel,
