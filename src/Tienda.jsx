@@ -28,8 +28,6 @@ import {
   mensajeMontoMinimoPedidoOnline,
   montoMinimoPedidoOnline,
 } from "./config/metodosPago";
-import { precioConRecargoCatalogo } from "./lib/precioCatalogoOnline";
-import { recargoCatalogoOnline } from "./config/metodosPago";
 import {
   productoPermitidoEnTiendaFarmaciaWeb,
   razonBloqueoProductoTiendaFarmacia,
@@ -3716,10 +3714,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
   const unitTienda = (c) => {
-    const base = ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
-    // Catálogo limpio; en checkout domicilio el precio de línea lleva recargo integrado (sin línea comisión).
-    if (entrega !== "pickup") return precioConRecargoCatalogo(base, recargoCatalogoOnline());
-    return base;
+    // Precio ya viene con MP (prepararListaTienda). No volver a sumar el 8% de domicilio.
+    return ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
   };
   const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);
   useEffect(() => {
