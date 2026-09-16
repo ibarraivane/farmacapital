@@ -2,7 +2,7 @@
 
 const { isAllowedReturnBase } = require('../../_lib/allowedOrigins');
 const { crearReserva } = require('../../_lib/reservaBajoPedido');
-const { cargoFijoMp, totalConCargoMp } = require('../../_lib/precioOnlineMp');
+const { totalConCargoMp } = require('../../_lib/precioOnlineMp');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -141,7 +141,6 @@ module.exports = async function handler(req, res) {
 
     const totalDb = Number(pedido.total || 0);
     if (!Number.isFinite(totalDb) || totalDb <= 0) return res.status(400).json({ ok: false, error: 'invalid_db_total' });
-    const cargo = cargoFijoMp();
     const expected = totalConCargoMp(totalDb);
     if (expected == null || Math.abs(expected - amount) > 0.01) {
       return res.status(409).json({ ok: false, error: 'amount_mismatch', expected });
@@ -171,7 +170,6 @@ module.exports = async function handler(req, res) {
     if (envioFee > 0) {
       items.push({ title: 'Envío a domicilio', quantity: 1, currency_id: 'MXN', unit_price: envioFee });
     }
-    items.push({ title: 'Pago con tarjeta (una vez)', quantity: 1, currency_id: 'MXN', unit_price: cargo });
     const mpPayload = {
       external_reference: externalReference,
       notification_url: `${safeBase}/api/payments/mp/webhook`,
@@ -191,7 +189,6 @@ module.exports = async function handler(req, res) {
         pedido_id: pedidoId,
         cliente_id: clienteId,
         costo_envio: envioFee,
-        cargo_mp: cargo,
       },
     };
 

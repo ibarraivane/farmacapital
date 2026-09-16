@@ -14,7 +14,7 @@ function precioAnclaUsable(precio) {
 
 function precioOnlineMp(precioLista) {
   if (!precioAnclaUsable(precioLista)) return null;
-  const bruto = Number(precioLista) / (1 - TASA_MP_ONLINE);
+  const bruto = (Number(precioLista) + FIJO_MP_CON_IVA) / (1 - TASA_MP_ONLINE);
   return Math.ceil(Math.round(bruto * 100) / 100);
 }
 
@@ -25,7 +25,7 @@ function cargoFijoMp() {
 function totalConCargoMp(base) {
   const b = Number(base);
   if (!Number.isFinite(b) || b <= 0) return null;
-  return Math.round((b + cargoFijoMp()) * 100) / 100;
+  return Math.round(b * 100) / 100;
 }
 
 module.exports = {
