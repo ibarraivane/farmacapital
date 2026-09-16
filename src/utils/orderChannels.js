@@ -53,13 +53,17 @@ export const ORDER_WORKFLOW_STATE = {
   CANCELLED: "cancelled",
 };
 
-/** Mapeo sugerido workflow → valor actual en columna `pedidos.estado`. */
+/**
+ * Mapeo sugerido workflow → valor actual en columna `pedidos.estado`.
+ * Nota: pick-up online al surtir pasa a `completado` (metas / ventas) y deja
+ * `delivery_status = ready_for_pickup` para la UI del cliente.
+ */
 export const WORKFLOW_TO_DB_ESTADO = {
   created: "pendiente",
   paid_pending_validation: "pendiente",
   accepted: "pendiente",
   preparing: "pendiente",
-  ready_for_pickup: "listo",
+  ready_for_pickup: "completado",
   courier_requested: "listo",
   courier_assigned: "listo",
   picked_up: "listo",
