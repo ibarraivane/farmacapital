@@ -377,5 +377,5 @@ grant execute on function public.cliente_crear_pedido_online(
 
 commit;
 
--- select public.fc_precio_online_mp(10);  -- 11  (Skittles)
--- select public.fc_precio_online_mp(42);  -- 44  (Aspirina efervescente)
+-- select public.fc_precio_online_mp(10);  -- 16  (Skittles: ancla + 3.49% + $4 + IVA)
+-- select public.fc_precio_online_mp(42);  -- 49  (Aspirina efervescente)

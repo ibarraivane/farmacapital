@@ -3714,7 +3714,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
   const unitTienda = (c) => {
-    // Precio ya viene con MP (prepararListaTienda). No volver a sumar el 8% de domicilio.
+    // Precio final de tarjeta (MP ya incluido). Checkout solo suma líneas; sin +$4 ni 8%.
     return ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
   };
   const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);

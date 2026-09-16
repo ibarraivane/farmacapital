@@ -19,9 +19,12 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 | Anaquel | Si hay stock real de góndola, **no** se marca (el RPC de Inventario lo rechaza) |
 
 ## Precio web
-`precio web = ceil(round(ancla / (1 − 0.040484), 2))` (Checkout MX 3.49% + IVA).
+`precio web = ceil(round((ancla + 4 × 1.16) / (1 − 0.040484), 2))`
+(Checkout MX 3.49% + $4 MXN + IVA 16% sobre toda la comisión).
 - JS: `src/lib/precioOnlineMp.js` · API: `api/_lib/precioOnlineMp.js` · SQL: `public.fc_precio_online_mp(numeric)`.
-- **Toda la tienda web** (catálogo, bandas, bajo pedido): el cliente ve y paga ese precio. Ej. Skittles ancla $10 → web $11; Aspirina $42 → $44; Anthelios $459 → $479.
+- **Toda la tienda web** (catálogo, bandas, bajo pedido): el cliente ve el **precio final** en la tarjeta. El checkout **solo suma** esas líneas (más envío si es domicilio). No hay renglón de comisión ni +$4.
+- Ej. Skittles ancla $10 → web $16; Aspirina $42 → $49; Anthelios $459 → $484; Paracetamol $25 → $31.
+- El $4 es por cobro; se mete en cada tarjeta para que un artículo barato no deje pérdida. En carritos de varios productos se cubre de más.
 - Se aplica **una vez** al cargar (`prepararListaTienda`) y otra vez en el servidor al crear el pedido (misma fórmula; no se infla dos veces).
 - Bajo pedido: sin promociones ni `descuento_pct`.
 - POS / mostrador: ancla sin incremento.
@@ -59,6 +62,7 @@ Se combina con un conflicto trivial de `import` en `Tienda.jsx`. «Avísame cuan
 ## SQL en Supabase (orden)
 1. `sql/patch_bajo_pedido_20260916.sql` — columna + RPC de encargo. **Antes** de cualquier alta `bajo_pedido = true`.
 2. `sql/patch_bajo_pedido_alertas_dashboard_20260916.sql` — dashboard / sidebar.
-3. `sql/patch_pedido_online_precio_mp_20260916.sql` — el checkout de anaquel cobra el precio web (Skittles $10 → $11).
-4. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
-5. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.
+3. `sql/patch_pedido_online_precio_mp_20260916.sql` — el checkout de anaquel cobra el precio web.
+4. `sql/patch_precio_online_mp_fijo_20260916.sql` — actualiza `fc_precio_online_mp` para incluir el $4 + IVA (Skittles $10 → $16). **Correr si ya habías ejecutado el patch 3.**
+5. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
+6. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.

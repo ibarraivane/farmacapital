@@ -9,7 +9,8 @@
 --
 -- Reglas:
 --   * productos.precio = ANCLA de mostrador. Nunca se guarda inflado.
---   * Web (solo bajo_pedido) cobra fc_precio_online_mp(precio): ancla / (1 − 4.0484%), ceil a peso.
+--   * Web cobra fc_precio_online_mp(precio): (ancla + $4×1.16) / (1 − 3.49%×1.16), ceil a peso.
+--     El cliente ve ese precio en la tarjeta; el checkout solo suma líneas (sin +$4 extra).
 --   * El pedido de encargo se crea con cliente_crear_pedido_bajo_pedido (NO toca
 --     cliente_crear_pedido_online) y queda logistics_meta.bajo_pedido = true.
 --   * Pago: reserva en tarjeta (Mercado Pago, capture manual). payment_status:
@@ -56,7 +57,7 @@ set search_path = public, pg_temp
 as $$
   select case
     when p_precio is null or p_precio <= 0.01 then null
-    else ceil(round(p_precio / (1 - 0.040484), 2))
+    else ceil(round((p_precio + 4 * 1.16) / (1 - 0.040484), 2))
   end;
 $$;
 
@@ -346,6 +347,7 @@ grant execute on function public.empleado_listar_encargos_bajo_pedido(uuid, int)
 commit;
 
 -- ── Verificación rápida ──
--- select public.fc_precio_online_mp(100);   -- 105
--- select public.fc_precio_online_mp(459);   -- 479
+-- select public.fc_precio_online_mp(10);    -- 16   (Skittles)
+-- select public.fc_precio_online_mp(100);   -- 110
+-- select public.fc_precio_online_mp(459);   -- 484  (Anthelios)
 -- select public.fc_precio_online_mp(0.01);  -- null
