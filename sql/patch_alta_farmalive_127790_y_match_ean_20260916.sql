@@ -324,12 +324,19 @@ where i.producto_id = p.id
   and i.url = t.foto
   and not coalesce(i.es_principal, false);
 
--- Enlaza grises de cualquier ticket vivo (Farmalive 127790 + Teatrical/Ensure).
+-- Solo Farmalive 127790 y Equilibrio 20260914. Un UPDATE global
+-- convertía altas viejas en gris y reabría tickets ya recibidos.
 update public.recepcion_items i
 set
   producto_id = public.fc_buscar_producto_escaneo(i.codigo_escaneado),
   pendiente_alta = false
-where coalesce(i.pendiente_alta, false)
+from public.recepciones r
+where i.recepcion_id = r.id
+  and (
+    (r.folio = '127790' and coalesce(r.proveedor, '') ilike '%farmalive%')
+    or r.folio = '20260914'
+  )
+  and coalesce(i.pendiente_alta, false)
   and (i.producto_id is null)
   and nullif(btrim(i.codigo_escaneado), '') is not null
   and public.fc_buscar_producto_escaneo(i.codigo_escaneado) is not null;
