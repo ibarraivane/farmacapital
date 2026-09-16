@@ -48,7 +48,7 @@ import {
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
-import { esPedidoTiendaWebPendiente, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
+import { esPedidoTiendaWebPendiente, esPedidoEnvioPorCotizar, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { parseRpcJsonArray } from "../../../utils/rpcJson";
 import {
   telefonoClientePedido,
@@ -941,7 +941,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (pedsRes?.error) {
         console.warn("[POS] Pedidos online:", pedsRes.error.message);
       } else {
-        setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
+        setPedOn((pedsRes?.data || []).filter((p) => esPedidoTiendaWebPendiente(p) || esPedidoEnvioPorCotizar(p)));
       }
       if (histRes?.error) {
         console.warn("[POS] Historial online:", histRes.error.message);
@@ -1094,7 +1094,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
         const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
         setProds(enrichPosProductosConLotes(prodsRaw, lotesMap));
-        setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
+        setPedOn((pedsRes?.data || []).filter((p) => esPedidoTiendaWebPendiente(p) || esPedidoEnvioPorCotizar(p)));
         setPedOnHist(parseRpcJsonArray(histRes?.data));
 
       } catch (e) {

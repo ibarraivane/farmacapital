@@ -123,5 +123,19 @@ describe("pedidosTiendaWeb gate pickup", async () => {
       payment_status: "approved",
     });
     assert.equal(mp.kind, "approved_mp");
+
+    const quote = etiquetaPagoPedidoOnline({
+      tipo_entrega: "envio",
+      metodo_pago: "mercadopago",
+      logistics_meta: { envio: { estado: "pendiente_cotizacion" } },
+    });
+    assert.equal(quote.kind, "pending_quote");
+
+    const ready = etiquetaPagoPedidoOnline({
+      tipo_entrega: "envio",
+      metodo_pago: "mercadopago",
+      logistics_meta: { envio: { estado: "cotizado" } },
+    });
+    assert.equal(ready.kind, "ready_to_pay");
   });
 });

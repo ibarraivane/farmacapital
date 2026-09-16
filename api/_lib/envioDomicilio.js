@@ -77,7 +77,7 @@ function getEnvioConfig(env = process.env) {
   const tarifas = parseTarifasJson(envRaw(env, 'ENVIO_TARIFAS_JSON')) || DEFAULT_TARIFAS;
   const proveedor = envRaw(env, 'ENVIO_PROVEEDOR_DEFAULT', 'didi').toLowerCase();
   return {
-    radioMaximoKm: envNum(env, 'RADIO_MAXIMO_KM', 5),
+    radioMaximoKm: envNum(env, 'RADIO_MAXIMO_KM', 0),
     tiempoMaximoCotizacionMin: envNum(env, 'TIEMPO_MAXIMO_COTIZACION_MIN', 15),
     proveedorDefault: PROVEEDORES_ENVIO.includes(proveedor) ? proveedor : 'didi',
     factorColchonPreautorizacion: envNum(env, 'FACTOR_COLCHON_PREAUTORIZACION', 1.4),
@@ -119,14 +119,14 @@ function calcularCostoEnvio({
   distanciaKm,
   subtotal = 0,
   tarifas,
-  radioMaximoKm = 5,
+  radioMaximoKm = 0,
 } = {}) {
   const d = Number(distanciaKm);
   const radio = Number(radioMaximoKm);
   if (!Number.isFinite(d) || d < 0) {
     return { ok: false, error: 'distancia_invalida' };
   }
-  if (Number.isFinite(radio) && d > radio) {
+  if (Number.isFinite(radio) && radio > 0 && d > radio) {
     return {
       ok: false,
       error: 'fuera_radio',
@@ -135,8 +135,11 @@ function calcularCostoEnvio({
     };
   }
   const row = lookupTarifa(d, tarifas);
-  if (!row) {
+  if (!row && Number.isFinite(radio) && radio > 0) {
     return { ok: false, error: 'fuera_radio', distancia_km: d, radio_maximo_km: radio };
+  }
+  if (!row) {
+    return { ok: true, distancia_km: d, costo: 0, costo_tabla: 0, gratis: false, pendiente_vendedor: true };
   }
   const sub = Number(subtotal) || 0;
   const gratis = sub >= Number(row.gratis_desde);

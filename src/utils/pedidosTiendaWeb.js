@@ -61,11 +61,33 @@ export function etiquetaPagoPedidoOnline(p, colors = {}) {
     }
     return { label: "Pagado · Mercado Pago", col: accent, kind: "approved_mp" };
   }
+  if (String(p?.tipo_entrega || "").toLowerCase() === "envio" && status !== "approved") {
+    const es = String(p?.logistics_meta?.envio?.estado || "").toLowerCase();
+    if (es === "cotizado" || es === "link_enviado") {
+      return { label: "Listo para pagar", col: blue, kind: "ready_to_pay" };
+    }
+    return { label: "Esperando cotización de envío", col: amber, kind: "pending_quote" };
+  }
   if (metodo === "mercadopago" || ["pending", "in_process", "initiated"].includes(status)) {
     return { label: "Pago por confirmar", col: amber, kind: "pending_mp" };
   }
   if (status) return { label: `Pago ${status}`, col: muted, kind: "other" };
   return { label: "Sin pago online", col: muted, kind: "other" };
+}
+
+/** Pedido a domicilio aún sin pagar: el vendedor debe verlo para cotizar. */
+export function esPedidoEnvioPorCotizar(p) {
+  if (!p) return false;
+  if (String(p.estado || "").toLowerCase() === "cancelado") return false;
+  if (String(p.tipo_entrega || "").toLowerCase() !== "envio") return false;
+  if (String(p.payment_status || "").toLowerCase() === "approved") return false;
+  return String(p.estado || "").toLowerCase() === "pendiente";
+}
+
+export function envioListoParaLiquidar(p) {
+  if (!esPedidoEnvioPorCotizar(p)) return false;
+  const es = String(p?.logistics_meta?.envio?.estado || "").toLowerCase();
+  return es === "cotizado" || es === "link_enviado";
 }
 
 export function esPedidoTiendaWebPendiente(p) {

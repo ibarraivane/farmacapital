@@ -14,6 +14,7 @@
  */
 
 const crypto = require('crypto');
+const { totalConCargoMp } = require('./precioOnlineMp');
 
 const MP_API = 'https://api.mercadopago.com';
 const DIAS_RESERVA_MP = 5;
@@ -185,9 +186,12 @@ async function crearReserva({ env, body, clienteToken }) {
 
   const totalDb = round2(pedido.total);
   if (!(totalDb > 0)) return { status: 400, json: { ok: false, error: 'invalid_db_total' } };
-  if (Math.abs(totalDb - amount) > 0.01) return { status: 409, json: { ok: false, error: 'amount_mismatch', expected: totalDb } };
+  const expected = totalConCargoMp(totalDb);
+  if (expected == null || Math.abs(expected - amount) > 0.01) {
+    return { status: 409, json: { ok: false, error: 'amount_mismatch', expected } };
+  }
 
-  const monto = totalDb.toFixed(2);
+  const monto = Number(expected).toFixed(2);
   const idem = `fc-reserva-${pedidoId}-${crypto.createHash('sha256').update(cardToken).digest('hex').slice(0, 16)}`;
   const { resp, data } = await mpPost(accessToken, '/v1/orders', {
     type: 'online',
@@ -231,7 +235,7 @@ async function crearReserva({ env, body, clienteToken }) {
       order_id: data.id,
       transaction_id: e.paymentId,
       status_detail: e.payDetail || e.orderDetail,
-      monto: totalDb,
+      monto: expected,
       reserva_creada_at: ahora.toISOString(),
       reserva_expira_at: expira.toISOString(),
       last_event_at: ahora.toISOString(),
@@ -246,7 +250,7 @@ async function crearReserva({ env, body, clienteToken }) {
 
   return {
     status: 200,
-    json: { ok: true, pedidoId, reservado: totalDb, expira_at: expira.toISOString() },
+    json: { ok: true, pedidoId, reservado: expected, expira_at: expira.toISOString() },
   };
 }
 

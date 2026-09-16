@@ -8,7 +8,6 @@ const {
 const {
   getEnvioConfig,
   estimarEnvioDesdeCoords,
-  calcularCostoEnvio,
   normalizarProveedor,
   proveedorSugerido,
   deadlineCotizacionIso,
@@ -16,6 +15,7 @@ const {
   puedeDespacharEnvio,
   PROVEEDORES_ENVIO,
 } = require('./envioDomicilio');
+const { sendWhatsAppSmart } = require('./whatsappCloud');
 
 function getQuery(req) {
   try {
@@ -80,6 +80,41 @@ function mergeEnvioMeta(pedido, patch) {
       ...patch,
     },
   };
+}
+
+async function resolvePedidoTelefono(supabaseUrl, serviceKey, pedido) {
+  let tel = String(pedido?.guest_telefono || '').replace(/\D/g, '');
+  if (tel.length >= 10) return tel.slice(-10);
+  const clienteId = Number(pedido?.cliente_id);
+  if (!Number.isFinite(clienteId) || clienteId <= 0) return '';
+  const resp = await fetch(
+    `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=telefono&limit=1`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+  );
+  const rows = await resp.json().catch(() => []);
+  tel = String(Array.isArray(rows) ? rows[0]?.telefono || '' : '').replace(/\D/g, '');
+  return tel.slice(-10);
+}
+
+async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal }) {
+  try {
+    const tel = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
+    if (!tel || tel.length < 10) return { sent: false, reason: 'missing_phone' };
+    const folio = `#FC-${String(pedido.id).padStart(4, '0')}`;
+    const envioTxt = Number(costo).toFixed(2);
+    const prodTxt = Number(itemsTotal).toFixed(2);
+    const totalTxt = Number(pedido.total).toFixed(2);
+    const text =
+      `🏥 FarmaCapital\n\n` +
+      `Tu pedido ${folio} ya tiene costo de envío.\n` +
+      `Te confirmamos: el transporte es $${envioTxt}.\n` +
+      `Productos $${prodTxt} + envío $${envioTxt} = $${totalTxt}.\n\n` +
+      `Entra a farmacapital.mx → Mi cuenta y toca «Pagar ahora». ` +
+      `Ahí liquidas productos + envío (el cargo de la tarjeta se suma una sola vez).`;
+    return await sendWhatsAppSmart({ to: tel, text, allowTextFallback: true });
+  } catch (e) {
+    return { sent: false, reason: e?.message || 'whatsapp_failed' };
+  }
 }
 
 async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
@@ -218,80 +253,37 @@ async function handleAttach(req, body) {
   if (!own.ok) return { status: own.status, json: { ok: false, error: own.error } };
 
   const coords = coordsFromBody(body);
-  if (!coords) {
-    return { status: 400, json: { ok: false, error: 'coords_required' } };
-  }
-
   const prevFee = Number(pedido.costo_envio);
   let itemsTotal = Number(pedido.total || 0);
   if (Number.isFinite(prevFee) && prevFee >= 0) {
     itemsTotal = Math.round((itemsTotal - prevFee) * 100) / 100;
   }
 
-  const est = estimarEnvioDesdeCoords({
-    lat: coords.lat,
-    lng: coords.lng,
-    subtotal: itemsTotal,
-    config: cfg,
-  });
-  if (est.error === 'fuera_radio') {
-    const logistics_meta = mergeEnvioMeta(pedido, {
-      estado: 'fuera_radio',
-      distancia_km: est.distancia_km,
-      radio_maximo_km: cfg.radioMaximoKm,
-      dropoff_lat: coords.lat,
-      dropoff_lng: coords.lng,
-      calle: body.calle || body.street || null,
-      colonia: body.colonia || null,
-      cp: body.cp || body.zip || null,
-      referencia: body.referencia || null,
-      proveedor: proveedorSugerido(body.colonia, cfg),
+  let distanciaKm = null;
+  if (coords) {
+    const est = estimarEnvioDesdeCoords({
+      lat: coords.lat,
+      lng: coords.lng,
+      subtotal: itemsTotal,
+      config: cfg,
     });
-    await patchPedido(supabaseUrl, serviceKey, pedidoId, {
-      logistics_meta,
-      delivery_provider: logistics_meta.logistics_provider,
-      delivery_status: 'cancelled',
-    });
-    return {
-      status: 422,
-      json: {
-        ok: false,
-        error: 'fuera_radio',
-        distancia_km: est.distancia_km,
-        radio_maximo_km: cfg.radioMaximoKm,
-      },
-    };
-  }
-  if (!est.ok) {
-    return { status: 400, json: { ok: false, error: est.error || 'estimate_failed' } };
-  }
-
-  const displayed = body.displayed_fee_mxn != null ? Number(body.displayed_fee_mxn) : null;
-  if (displayed != null && Number.isFinite(displayed) && Math.abs(displayed - est.costo) > 0.5) {
-    return {
-      status: 409,
-      json: { ok: false, error: 'quote_changed', costo: est.costo, distancia_km: est.distancia_km },
-    };
+    distanciaKm = est.distancia_km ?? null;
   }
 
   const colonia = String(body.colonia || '').trim();
   const proveedor = proveedorSugerido(colonia, cfg);
   const deadline = deadlineCotizacionIso(new Date(), cfg.tiempoMaximoCotizacionMin);
-  const newTotal = Math.round((itemsTotal + est.costo) * 100) / 100;
   const envioPatch = {
-    estado: 'cotizado',
-    cobrado_en_checkout: true,
-    distancia_km: est.distancia_km,
-    costo_tabla: est.costo_tabla,
-    costo_cotizado: est.costo,
-    costo_estimado: est.costo,
-    gratis: Boolean(est.gratis),
+    estado: 'pendiente_cotizacion',
+    cobrado_en_checkout: false,
+    distancia_km: distanciaKm,
+    costo_cotizado: null,
+    costo_estimado: null,
     proveedor,
     fulfillment_type: proveedor === 'propio' ? 'own_delivery' : 'courier',
     cotizar_antes_de: deadline,
-    radio_maximo_km: cfg.radioMaximoKm,
-    dropoff_lat: coords.lat,
-    dropoff_lng: coords.lng,
+    dropoff_lat: coords?.lat ?? null,
+    dropoff_lng: coords?.lng ?? null,
     calle: String(body.calle || body.street || '').trim() || null,
     colonia: colonia || null,
     cp: String(body.cp || body.zip || '').trim() || null,
@@ -300,11 +292,11 @@ async function handleAttach(req, body) {
   };
   const logistics_meta = mergeEnvioMeta(pedido, envioPatch);
   const patched = await patchPedido(supabaseUrl, serviceKey, pedidoId, {
-    total: newTotal,
+    total: itemsTotal,
     logistics_meta,
     delivery_provider: proveedor,
-    delivery_status: 'quoted',
-    costo_envio: est.costo,
+    delivery_status: 'pending_quote',
+    costo_envio: null,
   });
   if (!patched.ok) {
     return { status: 502, json: { ok: false, error: 'pedido_update_failed', detail: patched.data } };
@@ -313,10 +305,8 @@ async function handleAttach(req, body) {
   await upsertEnvioRow(supabaseUrl, serviceKey, {
     pedido_id: pedidoId,
     metodo: proveedor,
-    estado: 'cotizado',
-    distancia_km: est.distancia_km,
-    costo_tabla: est.costo_tabla,
-    costo_cotizado: est.costo,
+    estado: 'pendiente_cotizacion',
+    distancia_km: distanciaKm,
     proveedor,
     cotizar_antes_de: deadline,
   });
@@ -326,9 +316,9 @@ async function handleAttach(req, body) {
     json: {
       ok: true,
       pedidoId,
-      total: newTotal,
+      total: itemsTotal,
       items_total: itemsTotal,
-      costo_envio: est.costo,
+      costo_envio: 0,
       envio: envioPatch,
     },
   };
@@ -365,8 +355,8 @@ async function handleQuote(req, body) {
 
   const { envio } = readEnvioMeta(pedido);
   const current = expireIfNeeded(envio);
-  if (current.estado === 'fuera_radio') {
-    return { status: 409, json: { ok: false, error: 'fuera_radio' } };
+  if (String(pedido.payment_status || '').toLowerCase() === 'approved') {
+    return { status: 409, json: { ok: false, error: 'pedido_ya_pagado' } };
   }
 
   const costo = Number(body?.costo ?? body?.costo_cotizado);
@@ -388,26 +378,20 @@ async function handleQuote(req, body) {
     });
     distanciaKm = est.distancia_km;
   }
-  if (Number.isFinite(distanciaKm) && distanciaKm > cfg.radioMaximoKm) {
-    return { status: 422, json: { ok: false, error: 'fuera_radio', distancia_km: distanciaKm } };
+
+  const prevFee = Number(pedido.costo_envio);
+  let itemsTotal = Number(pedido.total || 0);
+  if (Number.isFinite(prevFee) && prevFee >= 0) {
+    itemsTotal = Math.round((itemsTotal - prevFee) * 100) / 100;
   }
+  const newTotal = Math.round((itemsTotal + costo) * 100) / 100;
 
-  const tabla = Number.isFinite(distanciaKm)
-    ? calcularCostoEnvio({
-      distanciaKm,
-      subtotal: Number(pedido.total || 0),
-      tarifas: cfg.tarifas,
-      radioMaximoKm: cfg.radioMaximoKm,
-    })
-    : null;
-
-  const cobradoCheckout = Boolean(current.cobrado_en_checkout);
   const envioPatch = {
     ...current,
-    estado: cobradoCheckout ? current.estado : (costo === 0 ? 'pagado' : 'cotizado'),
+    estado: costo === 0 ? 'cotizado' : 'cotizado',
+    cobrado_en_checkout: false,
     costo_real_mensajeria: costo,
-    costo_cotizado: cobradoCheckout ? current.costo_cotizado : costo,
-    costo_tabla: tabla?.ok ? tabla.costo_tabla : current.costo_tabla ?? null,
+    costo_cotizado: costo,
     distancia_km: Number.isFinite(distanciaKm) ? distanciaKm : current.distancia_km ?? null,
     proveedor,
     fulfillment_type: proveedor === 'propio' ? 'own_delivery' : 'courier',
@@ -416,10 +400,11 @@ async function handleQuote(req, body) {
   };
   const logistics_meta = mergeEnvioMeta(pedido, envioPatch);
   const patched = await patchPedido(supabaseUrl, serviceKey, pedidoId, {
+    total: newTotal,
     logistics_meta,
     delivery_provider: proveedor,
-    delivery_status: current.delivery_status || 'quoted',
-    ...(cobradoCheckout ? {} : { costo_envio: costo }),
+    delivery_status: 'quoted',
+    costo_envio: costo,
   });
   if (!patched.ok) {
     return { status: 502, json: { ok: false, error: 'pedido_update_failed', detail: patched.data } };
@@ -429,11 +414,18 @@ async function handleQuote(req, body) {
     metodo: proveedor,
     estado: envioPatch.estado,
     distancia_km: envioPatch.distancia_km,
-    costo_cotizado: cobradoCheckout ? current.costo_cotizado : costo,
-    costo_tabla: envioPatch.costo_tabla,
+    costo_cotizado: costo,
     proveedor,
   });
-  return { status: 200, json: { ok: true, pedidoId, envio: envioPatch } };
+
+  const wa = await avisarClienteEnvioCotizado({
+    supabaseUrl,
+    serviceKey,
+    pedido: { ...pedido, total: newTotal, costo_envio: costo },
+    costo,
+    itemsTotal,
+  });
+  return { status: 200, json: { ok: true, pedidoId, total: newTotal, envio: envioPatch, whatsapp: wa } };
 }
 
 async function handlePaymentLink() {

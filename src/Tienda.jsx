@@ -61,7 +61,7 @@ import {
   prepararListaTienda,
   tipoCarrito,
 } from "./lib/bajoPedido";
-import { precioOnlineMp } from "./lib/precioOnlineMp";
+import { precioOnlineMp, totalConCargoMp } from "./lib/precioOnlineMp";
 import { canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
@@ -362,7 +362,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"Entrega a domicilio en zona cercana (hasta 5 km de la farmacia). El costo del envío se suma al total y lo pagas en el checkout. Te avisamos por WhatsApp cuando salga. Rappi es otra app, no un mensajero de farmacapital.mx." },
+  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber, te escribe por WhatsApp el costo y en Mi cuenta confirmas y pagas productos + envío. Rappi es otra app." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
@@ -2288,7 +2288,7 @@ function ContenidoCDMX({ color }){
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Recibe tu pedido en domicilio si estás cerca de la farmacia (hasta 5 km). El costo del envío se ve en el checkout y lo pagas junto con los productos. Rappi no entrega pedidos de esta tienda: si pides en Rappi, es en su propia app.
+        Pides, el vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, confirmas y pagas productos + transporte. Rappi no entrega pedidos de esta tienda.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
@@ -2299,11 +2299,11 @@ function ContenidoCDMX({ color }){
       </ol>
       <h4 style={sH4(color)}>Cobertura</h4>
       <p style={{margin:"0 0 12px"}}>
-        Zona cercana a FarmaCapital (hasta 5 km). Fuera de ese radio te ofrecemos pick-up en tienda.
+        El vendedor confirma si se puede enviar a tu dirección (DiDi o Uber). Sin tope de km: si no se puede, te lo dice.
       </p>
       <h4 style={sH4(color)}>Costo</h4>
       <p style={{margin:"0 0 12px"}}>
-        Según tu dirección (hasta 5 km). Se suma al total y lo pagas ahora, con los productos. No es Rappi.
+        El vendedor lo cotiza en DiDi o Uber y te escribe. Pagas productos + envío cuando esté listo en Mi cuenta.
       </p>
       <h4 style={sH4(color)}>Horario de servicio</h4>
       <p style={{margin:"0 0 12px"}}>
@@ -3667,7 +3667,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Entrega en zona cercana (hasta 5 km). El envío se suma al total y lo pagas ahora. Un servicio de mensajería recoge en FarmaCapital.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber, te escribe por WhatsApp y pagas productos + transporte en Mi cuenta.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -3930,11 +3930,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const envioListoParaPagar = checkoutPuedePedirEnvio({
     entrega,
     direccionOk,
-    estimacion: envioEstimacionActiva,
   });
-  const envioFueraRadio = entrega === "cdmx" && envioEstimacionActiva?.error === "fuera_radio";
-  const envioFee = entrega !== "pickup" && envioEstimacionActiva?.ok ? Number(envioEstimacionActiva.costo) || 0 : 0;
-  const totalPagar = Math.round((sub + envioFee) * 100) / 100;
+  const envioFueraRadio = false;
+  const envioFee = 0;
+  const totalPagar = Math.round(sub * 100) / 100;
   const minOnline = montoMinimoPedidoOnline();
   const alcanzaMinimoEnvio = entrega === "pickup" || cumpleMontoMinimoEnvio(sub, minOnline);
   const msgMinimoEnvio = mensajeMontoMinimoPedidoOnline(minOnline);
@@ -4087,12 +4086,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         return;
       }
       if (tipo_entrega === "envio" && !envioListoParaPagar) {
-        notifyCheckout(
-          envioFueraRadio
-            ? "Esa dirección está fuera de la zona de entrega (hasta 5 km). Elige pick-up en tienda o escríbenos por WhatsApp."
-            : "Completa la dirección de entrega para continuar.",
-          "warning"
-        );
+        notifyCheckout("Completa la dirección de entrega para continuar.", "warning");
         setG(false);
         return;
       }
@@ -4199,39 +4193,20 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           lng: datos.lng,
           displayedFeeMxn: envioFee,
         });
-        if (!attached.ok && attached.error === "quote_changed") {
-          setEnvioEstimacion((prev) => ({ ...(prev || {}), ok: true, costo: Number(attached.costo) }));
-          notifyCheckout(
-            `El envío quedó en ${formatEnvioMoney(attached.costo)}. Revisa el total y confirma de nuevo.`,
-            "warning"
-          );
-          setG(false);
-          return;
-        }
-        if (!attached.ok && attached.error === "fuera_radio") {
-          notifyCheckout("Esa dirección está fuera de la zona de entrega (hasta 5 km). Elige pick-up en tienda.", "warning");
-          setG(false);
-          return;
-        }
         if (!attached.ok) {
-          notifyCheckout(
-            attached.error === "coords_required"
-              ? "Ubica la dirección en el mapa para calcular el envío y pagarlo en este checkout."
-              : "No se pudo calcular el envío. Revisa la dirección o elige pick-up.",
-            "error"
-          );
+          notifyCheckout("No se pudo registrar la dirección. Revisa los datos o elige pick-up.", "error");
           setG(false);
           return;
         }
-        totalSnap = Number(attached.total);
-        envioSnap = Number(attached.costo_envio || 0);
+        totalSnap = Number(attached.total || subSnap);
+        envioSnap = 0;
       }
 
       if (encargo) {
         const totalServidor = Number(resp.total || 0) + envioSnap;
         setReservaPendiente({
           pedidoId: resp.pedido_id,
-          monto: Math.round((tipo_entrega === "envio" ? totalSnap : totalServidor) * 100) / 100,
+          monto: totalConCargoMp(tipo_entrega === "envio" ? totalSnap : totalServidor) || Math.round((tipo_entrega === "envio" ? totalSnap : totalServidor) * 100) / 100,
           email: String(datos.email || "").trim(),
           guest: esInvitado,
           guestPhone: esInvitado ? soloDigitosTel(datos.tel) : undefined,
@@ -4256,6 +4231,38 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         });
         setStep(3);
         setG(false);
+        return;
+      }
+
+      // Domicilio anaquel: la orden entra a Pedidos en línea; el vendedor cotiza y el cliente paga después.
+      if (!encargo && tipo_entrega === "envio") {
+        setLastOrder({
+          sub: totalSnap,
+          productos: subSnap,
+          envioFee: 0,
+          envioPendienteCotizacion: true,
+          ptsG: Math.floor(subSnap / 10),
+          lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: unitTienda(c) })),
+          entregaUi: entrega,
+          tipo_entrega,
+          order_channel,
+          fulfillment_type,
+          ui_entrega: ui_entrega || null,
+          datosTel: datos.tel,
+          pedidoId: resp.pedido_id,
+          metodoPago: "mercadopago",
+          whatsappRecibo: enviarReciboWhatsApp,
+        });
+        if (enviarReciboWhatsApp) {
+          notifyOnlineOrderReceipt({
+            pedidoId: resp.pedido_id,
+            sessionToken: tokCli || null,
+            phoneVerify: tokCli ? null : soloDigitosTel(datos.tel),
+          }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
+        }
+        setG(false);
+        setConf(true);
+        setCart([]);
         return;
       }
 
@@ -4401,9 +4408,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     };
     const instruccionEntrega = esPickup
       ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
-      : lastOrder.envioFee
-        ? `Ya pagaste el envío (${formatEnvioMoney(lastOrder.envioFee)}) junto con los productos. Te avisamos cuando salga el mensajero.`
-        : "Envío incluido en tu pago. Te avisamos cuando salga el mensajero.";
+      : lastOrder.envioPendienteCotizacion
+        ? "El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp el costo. Entras a Mi cuenta, confirmas y pagas productos + transporte."
+        : lastOrder.envioFee
+          ? `Envío ${formatEnvioMoney(lastOrder.envioFee)} en tu pago. Te avisamos cuando salga el mensajero.`
+          : "Te avisamos cuando salga el mensajero.";
     const IconoEntrega = esPickup ? Store : Bike;
     return(
       <div style={{maxWidth:560,margin:"clamp(32px,10vw,72px) auto",padding:"0 16px",textAlign:"center"}}>
@@ -4586,31 +4595,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                               : "Escribe tu calle, el CP y elige la colonia."}
                           </div>
                         )}
-                        {envioFueraRadio && (
-                          <div style={{fontSize:12,color:"#991b1b",lineHeight:1.45}}>
-                            Está fuera de la zona (hasta {getEnvioConfigCliente().radioMaximoKm} km). Elige pick-up o escríbenos por WhatsApp.
-                            <div>
-                              <a
-                                href={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent("Hola, mi dirección quedó fuera de la zona de entrega. ¿Me pueden ayudar?")}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ display:"inline-block", marginTop:10, color:"#166534", fontWeight:700, fontSize:12, textDecoration:"none" }}
-                              >
-                                Escribir por WhatsApp →
-                              </a>
-                            </div>
-                          </div>
-                        )}
-                        {envioEstimacionActiva?.ok && (
+                        {direccionOk && (
                           <div style={{fontSize:13,color:"#166534",lineHeight:1.45}}>
-                            Envío {formatEnvioMoney(envioEstimacionActiva.costo)}
-                            {envioEstimacionActiva.distancia_km != null ? ` · ${envioEstimacionActiva.distancia_km.toFixed(1)} km` : ""}
-                            <div style={{fontSize:11,marginTop:4,fontWeight:500}}>Se suma al total y lo pagas ahora, con los productos.</div>
-                          </div>
-                        )}
-                        {direccionOk && envioEstimacionActiva?.error === "coords_invalidas" && (
-                          <div style={{fontSize:12,color:"#92400e",lineHeight:1.45}}>
-                            Ubica la dirección en el mapa para ver el envío en el total.
+                            El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp. No se cobra ahora.
                           </div>
                         )}
                       </div>
@@ -4626,7 +4613,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div style={{marginTop:14,fontSize:12,color:C.mid}}>
                   {entrega==="pickup"
                     ? "Pick-up: confirmas el pedido ahora y pagas al recoger con tarjeta (terminal BBVA)."
-                    : "Pago con Mercado Pago (tarjeta, transferencia o efectivo)."}
+                    : "Domicilio: confirmas ahora. El vendedor cotiza y te avisa; pagas en Mi cuenta."}
                 </div>
                 <label
                   style={{
@@ -4678,7 +4665,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   style={{marginTop:20,width:stack?"100%":undefined}}
                   disabled={!cart.length || !datosCheckoutCompletos || !envioListoParaPagar || !alcanzaMinimoEnvio}
                 >
-                  {entrega==="pickup" ? "Revisar pedido →" : "Revisar y pagar →"}
+                  {entrega==="pickup" ? "Revisar pedido →" : "Revisar y confirmar →"}
                 </Btn>
               </div>
             );
@@ -4696,9 +4683,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 </div>
                 {entrega!=="pickup" && (
                   <div style={{marginTop:4,color:"#92400e",fontWeight:600}}>
-                    {envioEstimacionActiva?.ok
-                      ? `Envío ${formatEnvioMoney(envioEstimacionActiva.costo)} · se paga en este checkout`
-                      : "Ubica la dirección en el mapa para ver el envío"}
+                    {entrega!=="pickup"
+                      ? "El vendedor cotiza el envío y te avisa por WhatsApp. Pagas después en Mi cuenta."
+                      : null}
                   </div>
                 )}
                 <div style={{marginTop:4,color:C.mid}}>
@@ -4706,7 +4693,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
                     : entrega==="pickup"
                       ? "Pagas al recoger con tarjeta (terminal BBVA)"
-                      : "Pago con Mercado Pago"}
+                      : "Confirmas ahora; pagas productos + envío cuando el vendedor cotice"}
                 </div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>
@@ -4721,7 +4708,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               {entrega!=="pickup"&&(
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
                   <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
-                  <span style={{color:C.dark,fontWeight:700}}>{$(envioFee)}</span>
+                  <span style={{color:C.dark,fontWeight:700}}>Lo cotiza el vendedor</span>
                 </div>
               )}
               <div style={{display:"flex",justifyContent:"space-between",marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
@@ -4742,7 +4729,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                       ? "Continuar para apartar "+$(totalPagar)
                       : entrega==="pickup"
                         ? `Confirmar pedido · ${$(totalPagar)}`
-                        : "Pagar "+$(totalPagar)}
+                        : "Confirmar orden · "+$(totalPagar)}
                 </Btn>
               </div>
             </div>
@@ -4775,7 +4762,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           {entrega!=="pickup"&&(
             <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
               <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
-              <span style={{color:C.dark,fontSize:13,fontWeight:700}}>{$(envioFee)}</span>
+              <span style={{color:C.dark,fontSize:13,fontWeight:700}}>Lo cotiza el vendedor</span>
             </div>
           )}
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(totalPagar)}</span></div></div>
@@ -5267,7 +5254,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Entrega a domicilio: zona cercana (hasta 5 km). El costo se calcula en el checkout y se paga junto con los productos. Un servicio de mensajería recoge en la farmacia.\n• Rappi no es un envío de esta página: los pedidos Rappi se hacen en la app de Rappi."],
+        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Confirmas ahora y pagas al recoger con tarjeta (terminal BBVA).\n• Entrega a domicilio: confirmas la orden, el vendedor cotiza en DiDi o Uber, te escribe por WhatsApp y pagas productos + envío en Mi cuenta. Sin tope de km: el vendedor decide si se puede enviar.\n• Rappi no es un envío de esta página: los pedidos Rappi se hacen en la app de Rappi."],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
@@ -6013,8 +6000,8 @@ function etiquetaLogisticaPedido(p) {
   if (labelEnvio === "Cotización vencida") return { label: labelEnvio, col: danger };
   if (labelEnvio === "Envío pagado") return { label: labelEnvio, col: BRAND.accent };
   if (labelEnvio === "Envío en el total") return { label: labelEnvio, col: "#0ea5e9" };
-  if (labelEnvio === "Envío por pagar") return { label: labelEnvio, col: "#0ea5e9" };
-  if (es === "pendiente_cotizacion" || labelEnvio === "Preparando envío") {
+  if (labelEnvio === "Envío por pagar" || labelEnvio === "Listo para pagar envío") return { label: labelEnvio, col: "#0ea5e9" };
+  if (es === "pendiente_cotizacion" || labelEnvio === "Preparando envío" || labelEnvio === "Cotizando envío") {
     return { label: envio.cobrado_en_checkout ? "Envío en el total" : "Preparando envío", col: "#d97706" };
   }
   const ds = String(p?.delivery_status || "").toLowerCase();
@@ -6121,7 +6108,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
         },
         body: JSON.stringify({
           pedidoId: p.id,
-          amount: Number(p.total || 0),
+          amount: totalConCargoMp(Number(p.total || 0)) || Number(p.total || 0),
           baseUrl: window.location.origin,
           payer: {
             name: String(user?.nombre || "").trim() || null,
@@ -6308,7 +6295,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
               {apartarPedidoId === p.id ? (
                 <ReservaTarjetaMP
                   pedidoId={p.id}
-                  monto={Number(p.total || 0)}
+                  monto={totalConCargoMp(Number(p.total || 0)) || Number(p.total || 0)}
                   email={String(user?.email || "").trim()}
                   clienteToken={getClienteToken()}
                   onReservado={()=>{ setApartarPedidoId(null); refreshPedidos(); }}
@@ -6320,9 +6307,15 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           ) : null}
           {!pedidoEsBajoPedido(p) && String(p.metodo_pago || "").toLowerCase() === "mercadopago" && String(p.payment_status || "").toLowerCase() !== "approved" ? (
             <div style={{marginBottom:10}}>
-              <Btn onClick={()=>pagarPedidoMercadoPago(p)} col={BRAND.primary} sm disabled={busyPayPedidoId===p.id}>
-                {busyPayPedidoId===p.id ? "Abriendo pago..." : "Pagar ahora"}
-              </Btn>
+              {p.tipo_entrega === "envio" && !["cotizado", "link_enviado"].includes(String(p.logistics_meta?.envio?.estado || "").toLowerCase()) ? (
+                <div style={{fontSize:12,color:C.mid,lineHeight:1.45}}>Te escribimos por WhatsApp cuando el vendedor cotice el envío. Entonces podrás pagar aquí.</div>
+              ) : (
+                <Btn onClick={()=>pagarPedidoMercadoPago(p)} col={BRAND.primary} sm disabled={busyPayPedidoId===p.id}>
+                  {busyPayPedidoId===p.id
+                    ? "Abriendo pago..."
+                    : `Pagar ahora ${$(totalConCargoMp(Number(p.total || 0)) || p.total)}`}
+                </Btn>
+              )}
             </div>
           ) : null}
           <div style={{background:C.cardDark,borderRadius:10,padding:"10px 14px"}}>

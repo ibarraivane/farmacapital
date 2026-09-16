@@ -74,10 +74,14 @@ describe('envioDomicilio distancia', () => {
     assert.equal(cerca.ok, true);
     assert.ok(cerca.distancia_km < 5);
     const lejos = estimarEnvioDesdeCoords({
-      lat: 19.43, lng: -99.19, subtotal: 80, config: cfg,
+      lat: 19.43, lng: -99.19, subtotal: 80, config: { ...cfg, radioMaximoKm: 5 },
     });
     assert.equal(lejos.ok, false);
     assert.equal(lejos.error, 'fuera_radio');
+    const lejosSinTope = estimarEnvioDesdeCoords({
+      lat: 19.43, lng: -99.19, subtotal: 80, config: { ...cfg, radioMaximoKm: 0 },
+    });
+    assert.equal(lejosSinTope.ok, true);
   });
 });
 

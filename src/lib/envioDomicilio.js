@@ -68,7 +68,7 @@ export function getEnvioConfigCliente() {
   const tarifas = parseTarifasJson(envRaw("REACT_APP_ENVIO_TARIFAS_JSON")) || DEFAULT_TARIFAS_ENVIO;
   const proveedor = envRaw("REACT_APP_ENVIO_PROVEEDOR_DEFAULT", "didi").toLowerCase();
   return {
-    radioMaximoKm: envNum("REACT_APP_RADIO_MAXIMO_KM", 5),
+    radioMaximoKm: envNum("REACT_APP_RADIO_MAXIMO_KM", 0),
     tiempoMaximoCotizacionMin: envNum("REACT_APP_TIEMPO_MAXIMO_COTIZACION_MIN", 15),
     proveedorDefault: PROVEEDORES_ENVIO.includes(proveedor) ? proveedor : "didi",
     factorColchonPreautorizacion: envNum("REACT_APP_FACTOR_COLCHON_PREAUTORIZACION", 1.4),
@@ -113,11 +113,16 @@ export function calcularCostoEnvio({
   const d = Number(distanciaKm);
   const radio = Number(radioMaximoKm);
   if (!Number.isFinite(d) || d < 0) return { ok: false, error: "distancia_invalida" };
-  if (Number.isFinite(radio) && d > radio) {
+  if (Number.isFinite(radio) && radio > 0 && d > radio) {
     return { ok: false, error: "fuera_radio", distancia_km: d, radio_maximo_km: radio };
   }
   const row = lookupTarifa(d, tarifas);
-  if (!row) return { ok: false, error: "fuera_radio", distancia_km: d, radio_maximo_km: radio };
+  if (!row && Number.isFinite(radio) && radio > 0) {
+    return { ok: false, error: "fuera_radio", distancia_km: d, radio_maximo_km: radio };
+  }
+  if (!row) {
+    return { ok: true, distancia_km: d, costo: 0, costo_tabla: 0, gratis: false, pendiente_vendedor: true };
+  }
   const sub = Number(subtotal) || 0;
   const gratis = sub >= Number(row.gratis_desde);
   return {
@@ -162,12 +167,9 @@ export function formatEnvioMoney(n) {
   return `$${v.toFixed(2)}`;
 }
 
-export function checkoutPuedePedirEnvio({ entrega, direccionOk, estimacion } = {}) {
+export function checkoutPuedePedirEnvio({ entrega, direccionOk } = {}) {
   if (entrega === "pickup") return true;
-  if (!direccionOk) return false;
-  if (!estimacion) return false;
-  if (estimacion.error === "fuera_radio" || estimacion.error === "coords_invalidas") return false;
-  return estimacion.ok === true && Number(estimacion.costo) >= 0;
+  return Boolean(direccionOk);
 }
 
 export function minutosRestantesCotizacion(cotizarAntesDe, now = new Date()) {
@@ -195,7 +197,7 @@ export function etiquetaEstadoEnvioCliente(envio = {}, paymentStatus) {
   if (envio.cobrado_en_checkout && (es === "cotizado" || es === "pendiente_cotizacion" || !es)) {
     return paid ? "Envío pagado" : "Envío en el total";
   }
-  if (es === "cotizado" || es === "link_enviado") return "Envío por pagar";
-  if (es === "pendiente_cotizacion") return "Preparando envío";
+  if (es === "cotizado" || es === "link_enviado") return "Listo para pagar envío";
+  if (es === "pendiente_cotizacion") return "Cotizando envío";
   return "";
 }
