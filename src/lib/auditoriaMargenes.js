@@ -93,6 +93,20 @@ export function ultimaPareceImporteDeVariasPiezas(costoCatalogo, ultimaCompra) {
 }
 
 /**
+ * El catálogo guardó el IMPORTE del renglón (qty × unitario) como si fuera
+ * el costo de una pieza. Dove 90 g: 6 × $18.63 = $111.80 en `productos.costo`.
+ * No es precio de paquete: es el total de N piezas del ticket.
+ */
+export function catalogoGuardoImporteComoCosto(costoCatalogo, unitarioTicket, cantidad) {
+  const c = num(costoCatalogo);
+  const u = num(unitarioTicket);
+  const q = num(cantidad);
+  if (c <= 0 || u <= 0 || q < 2) return false;
+  const importe = u * q;
+  return Math.abs(c - importe) <= 0.25 || Math.abs(c - importe) / c <= 0.03;
+}
+
+/**
  * Unitario real del renglón. Si el CSV puso el importe en "precio_unitario",
  * se parte entre las piezas. No se usa el subtotal inflado (importe × qty).
  */
@@ -174,7 +188,10 @@ export function auditarMargenProducto(producto, opts = {}) {
   if (costo <= 0) {
     return { ...base, accion: "revisar_costo", motivo: "Sin costo de compra" };
   }
-  if (costo < 2) {
+  // Caja C/N abierta en mostrador (Mercurio óxido de zinc, jeringas…):
+  // el costo de UNA pieza suele ser < $2 y está bien.
+  const esPiezaDeCaja = /pieza\s*\(\s*caja\s*c\s*\/\s*\d+/i.test(producto?.presentacion || "");
+  if (costo < 2 && !esPiezaDeCaja) {
     return { ...base, accion: "revisar_costo", motivo: "Costo < $2 — revisar ticket / pieza vs caja" };
   }
   if (precio <= 0) {
