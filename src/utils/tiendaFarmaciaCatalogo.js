@@ -1,7 +1,13 @@
 import { productoPermitidoEnTiendaWeb } from "./orderChannels";
 import { productoEsCajaAbiertaMostrador } from "./cajaAbiertaMostrador";
 
-export { descripcionPublicaTienda, productoEsCajaAbiertaMostrador } from "./cajaAbiertaMostrador";
+export {
+  descripcionPublicaTienda,
+  esNotaInternaCompra,
+  presentacionPublicaTienda,
+  productoEsCajaAbiertaMostrador,
+  subtituloPublicoTienda,
+} from "./cajaAbiertaMostrador";
 
 /**
  * Categorías cargadas como minisuper / abarrotes en inventario.

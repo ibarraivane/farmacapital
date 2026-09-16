@@ -1,7 +1,10 @@
 import {
   cuentaPiezasCajaMostrador,
   descripcionPublicaTienda,
+  esNotaInternaCompra,
+  presentacionPublicaTienda,
   productoEsCajaAbiertaMostrador,
+  subtituloPublicoTienda,
 } from "./cajaAbiertaMostrador";
 
 function caja(extra) {
@@ -244,6 +247,32 @@ test("descripcionPublicaTienda oculta notas de ticket", () => {
       nombre: "Exkruthera Fruquintinib 1 mg",
       descripcion:
         "Alta mostrador · ficha SFE / Takeda · registro 295M2025 SSA IV · costo y PVP 0.01 por definir · 4 pzas sin lote",
+    }),
+  ).toBe("");
+});
+
+test("descripcionPublicaTienda oculta dónde se compró (Dulcería / ticket / EAN pendiente)", () => {
+  const skittles = {
+    nombre: "Skittles Original bolsa",
+    descripcion:
+      "Alta Dulcería La Victoria T280033139 · 2026-09-05 · EAN pendiente de caja · ticket decía La Famosa",
+    presentacion: "Bolsa (caja mayoreo 24/10PZ)",
+  };
+  expect(esNotaInternaCompra(skittles.descripcion)).toBe(true);
+  expect(descripcionPublicaTienda(skittles)).toBe("");
+  expect(presentacionPublicaTienda(skittles)).toBe("Bolsa (caja mayoreo 24/10PZ)");
+  expect(subtituloPublicoTienda(skittles)).toBe("Bolsa (caja mayoreo 24/10PZ)");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Anthelios UV Air",
+      descripcion: "Alta Nadro 000004568 · 2026-09-13 · listo para pistola",
+    }),
+  ).toBe("");
+  expect(
+    subtituloPublicoTienda({
+      nombre: "Halls",
+      descripcion: "Alta Dulcería La Victoria T280034008 · ticket decía La Famosa",
+      presentacion: "Alta Dulcería La Victoria T280034008 · ticket decía La Famosa",
     }),
   ).toBe("");
 });

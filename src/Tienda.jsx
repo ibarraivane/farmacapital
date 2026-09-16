@@ -34,6 +34,7 @@ import {
   productoEsCategoriaMinisuperTienda,
   productoEsCajaAbiertaMostrador,
   descripcionPublicaTienda,
+  subtituloPublicoTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
 import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
@@ -1930,7 +1931,7 @@ function ProductCard({prod,addToCart,onClick}){
           {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
         </div>
         <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
-        <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{descripcionPublicaTienda(prod) || prod.presentacion || ""}</div>
+        <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
         <div style={{marginBottom:10}}>
           {cta==="cotizar"
             ? <div style={{color:C.mid,fontWeight:700,fontSize:14}}>Precio por cotizar</div>
