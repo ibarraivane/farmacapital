@@ -8,6 +8,12 @@ import { parseRpcJsonArray } from "./rpcJson";
  */
 export const METODOS_PAGO_TIENDA_WEB = ["tarjeta", "mercadopago"];
 
+/** Falta `pedidos.costo_envio` (SQL no corrido). No tumba el mostrador. */
+export function esErrorColumnaCostoEnvio(err) {
+  const m = String(err?.message || err || "");
+  return /costo_envio/i.test(m) && /does not exist|no existe/i.test(m);
+}
+
 /** Pickup web confirmado, pendiente de cobro en tienda (terminal BBVA). */
 export const METODO_PENDIENTE_TIENDA = "pendiente_tienda";
 export const PAYMENT_STATUS_PENDING_STORE = "pending_store";

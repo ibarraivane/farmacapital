@@ -48,7 +48,7 @@ import {
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
-import { esPedidoTiendaWebPendiente, esPedidoEnvioPorCotizar, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
+import { esPedidoTiendaWebPendiente, esPedidoEnvioPorCotizar, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged, esErrorColumnaCostoEnvio } from "../../../utils/pedidosTiendaWeb";
 import { parseRpcJsonArray } from "../../../utils/rpcJson";
 import {
   telefonoClientePedido,
@@ -1084,7 +1084,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
         const errs = [];
         if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
-        if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
+        if (pedsRes?.error && !esErrorColumnaCostoEnvio(pedsRes.error)) {
+          errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
+        } else if (pedsRes?.error) {
+          console.warn("[POS] Pedidos online: falta pedidos.costo_envio. Corre sql/patch_pedidos_costo_envio_col_20260916.sql");
+        }
         if (histRes?.error)  errs.push(`Historial online (${histRes.status||"?"}): ${histRes.error.message}`);
 
         if (errs.length) {
