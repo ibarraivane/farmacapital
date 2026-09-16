@@ -220,6 +220,46 @@ function Fold({ title, children }) {
   );
 }
 
+function formVacio() {
+  return {
+    fecha: hoyISOMexico(),
+    categoria: "renta",
+    concepto: "",
+    monto: "",
+    proveedor: "",
+    es_recurrente: false,
+  };
+}
+
+function formDesdeGasto(g) {
+  return {
+    fecha: String(g?.fecha || "").slice(0, 10) || hoyISOMexico(),
+    categoria: g?.categoria || "renta",
+    concepto: g?.concepto || "",
+    monto: g?.monto != null && g.monto !== "" ? String(g.monto) : "",
+    proveedor: g?.proveedor || "",
+    es_recurrente: Boolean(g?.es_recurrente),
+  };
+}
+
+function gastoEsEditable(g) {
+  return !g?.origen || g.origen === "manual";
+}
+
+function payloadGasto(form) {
+  const monto = parseFloat(String(form.monto).replace(",", "."));
+  return {
+    fecha: form.fecha || hoyISOMexico(),
+    categoria: form.categoria,
+    concepto: String(form.concepto || "").trim(),
+    monto,
+    proveedor: String(form.proveedor || "").trim() || null,
+    es_recurrente: Boolean(form.es_recurrente),
+    periodicidad: periodicidadGasto(form.categoria, form.es_recurrente),
+    afecta_pl: gastoAfectaPl(form.categoria, true),
+  };
+}
+
 function moneyCell(n, { color, weight } = {}) {
   const zero = esCero(n);
   return {
@@ -241,14 +281,8 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
   const [loading, setLoading] = useState(!demoBundle);
   const [errorCarga, setErrorCarga] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState(() => ({
-    fecha: hoyISOMexico(),
-    categoria: "renta",
-    concepto: "",
-    monto: "",
-    proveedor: "",
-    es_recurrente: false,
-  }));
+  const [form, setForm] = useState(() => formVacio());
+  const [editingId, setEditingId] = useState(null);
 
   const mesActual = mesActualMexico();
   const rango = useMemo(
@@ -308,53 +342,88 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
   const mesMarca = bundle?.completitud?.mes || anioMesDe(rango.hastaFecha);
   const fechaApertura = bundle?.fecha_inicio || bundle?.piso_aplicado || PISO_FONDO_FLUJO;
 
+  const cancelarEdicion = () => {
+    setEditingId(null);
+    setForm(formVacio());
+  };
+
+  const empezarEdicion = (g) => {
+    if (!gastoEsEditable(g)) {
+      showToast("Esa salida la armó el sistema. No se corrige a mano.", "warning");
+      return;
+    }
+    setEditingId(g.id);
+    setForm(formDesdeGasto(g));
+    setSub("gastos");
+    requestAnimationFrame(() => {
+      document.getElementById("flujo-alta-gasto")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const registrar = async () => {
+    const payload = payloadGasto(form);
+    if (!Number.isFinite(payload.monto) || payload.monto <= 0) {
+      showToast("El monto tiene que ser mayor a 0.", "warning");
+      return;
+    }
+    if (!payload.concepto) {
+      showToast("Escribe el concepto.", "warning");
+      return;
+    }
     if (esDemo) {
+      if (editingId) {
+        setBundle((b) => (b ? {
+          ...b,
+          gastos: (b.gastos || []).map((row) => (
+            String(row.id) === String(editingId)
+              ? { ...row, ...payload, id: row.id, origen: row.origen || "manual" }
+              : row
+          )),
+        } : b));
+        cancelarEdicion();
+        showToast("Esta es una vista de ejemplo: aquí no se guarda.", "info");
+        return;
+      }
       showToast("Esta es una vista de ejemplo: aquí no se guarda.", "info");
       return;
     }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión no iniciada", "error"); return; }
-    const monto = parseFloat(String(form.monto).replace(",", "."));
-    if (!Number.isFinite(monto) || monto <= 0) {
-      showToast("El monto tiene que ser mayor a 0.", "warning");
-      return;
-    }
-    if (!String(form.concepto || "").trim()) {
-      showToast("Escribe el concepto.", "warning");
-      return;
-    }
-    const fechaGasto = form.fecha || hoyISOMexico();
+    const fechaGasto = payload.fecha;
     setSaving(true);
-    const { data, error } = await supabase.rpc("admin_registrar_gasto", {
-      p_session_token: tok,
-      p_gasto: {
-        fecha: fechaGasto,
-        categoria: form.categoria,
-        concepto: String(form.concepto).trim(),
-        monto,
-        proveedor: String(form.proveedor || "").trim() || null,
-        es_recurrente: Boolean(form.es_recurrente),
-        periodicidad: periodicidadGasto(form.categoria, form.es_recurrente),
-        afecta_pl: gastoAfectaPl(form.categoria, true),
-      },
-    });
+    const { data, error } = editingId
+      ? await supabase.rpc("admin_actualizar_gasto", {
+          p_session_token: tok,
+          p_id: editingId,
+          p_gasto: payload,
+        })
+      : await supabase.rpc("admin_registrar_gasto", {
+          p_session_token: tok,
+          p_gasto: payload,
+        });
     setSaving(false);
     const out = parseRpcJsonObject(data);
     if (error || !out.success) {
-      showToast(out.error || error?.message || "No se guardó el gasto", "error");
+      const sqlPendiente = /could not find|does not exist|schema cache|pgrst202/i.test(error?.message || "");
+      showToast(
+        sqlPendiente && editingId
+          ? "Falta aplicar sql/patch_finanzas_editar_gasto_20260914.sql en Supabase."
+          : (out.error || error?.message || "No se guardó el gasto"),
+        "error",
+      );
       return;
     }
-    setForm((f) => ({ ...f, concepto: "", monto: "", proveedor: "" }));
+    const eraEdicion = Boolean(editingId);
+    cancelarEdicion();
     const fuera = fechaGasto < rango.desdeFecha || fechaGasto > rango.hastaFecha;
     if (fuera) {
       const ym = anioMesDe(fechaGasto);
       setPeriodo("mes");
       setMesVista(ym);
-      showToast(`Gasto guardado · mostrando ${etiquetaMesLargo(ym)}`, "success");
+      showToast(`Gasto ${eraEdicion ? "corregido" : "guardado"} · mostrando ${etiquetaMesLargo(ym)}`, "success");
       return;
     }
-    showToast("Gasto guardado", "success");
+    showToast(eraEdicion ? "Gasto corregido" : "Gasto guardado", "success");
     cargar();
   };
 
@@ -637,8 +706,10 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
             Nómina (viernes), renta, luz y pago a Nadro o Levic los escribes tú. El recibo de nómina no se copia solo.
           </p>
 
-          <Box style={{ padding: 16, marginBottom: 16 }}>
-            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 10 }}>Alta rápida — menos de 10 segundos</div>
+          <Box id="flujo-alta-gasto" style={{ padding: 16, marginBottom: 16, border: editingId ? `1px solid ${C.blue}55` : undefined }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 10 }}>
+              {editingId ? "Corregir gasto" : "Alta rápida — menos de 10 segundos"}
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,160px),1fr))", gap: 10, alignItems: "end" }}>
               <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, fontWeight: 700, color: C.textMid }}>
                 FECHA
@@ -696,9 +767,14 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
                   ? "Recurrente (nómina: cada viernes)"
                   : "Recurrente (entra a comprometido 30 días)"}
               </label>
-              <Btn col={BRAND.primary} onClick={registrar} dis={saving || !usuario}>
-                {saving ? "Guardando…" : "Guardar"}
-              </Btn>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Btn col={BRAND.primary} onClick={registrar} dis={saving || (!usuario && !esDemo)}>
+                  {saving ? "Guardando…" : (editingId ? "Guardar cambios" : "Guardar")}
+                </Btn>
+                {editingId ? (
+                  <Btn ol col={C.textMid} onClick={cancelarEdicion} dis={saving}>Cancelar</Btn>
+                ) : null}
+              </div>
             </div>
             {form.categoria === CATEGORIA_COMPRA_INVENTARIO ? (
               <p style={{ color: C.textMid, fontSize: 12, margin: "10px 0 0", lineHeight: 1.45 }}>
@@ -724,7 +800,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
                     </td>
                   </tr>
                 ) : (bundle.gastos || []).map((g, i) => (
-                  <tr key={g.id} style={{ background: i % 2 ? C.bg : "transparent" }}>
+                  <tr key={g.id} style={{ background: String(editingId) === String(g.id) ? C.blueDim : (i % 2 ? C.bg : "transparent") }}>
                     <td style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}` }}>{g.fecha}</td>
                     <td style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}` }}>{etiquetaCategoriaGasto(g.categoria)}</td>
                     <td style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, color: C.text, fontWeight: 600 }}>{g.concepto}</td>
@@ -736,22 +812,43 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
                     </td>
                     <td style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, textAlign: "right", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{$(g.monto)}</td>
                     <td style={{ padding: "10px 8px", borderBottom: `1px solid ${C.border}` }}>
-                      <button
-                        type="button"
-                        onClick={() => eliminar(g)}
-                        style={{
-                          padding: "4px 8px",
-                          borderRadius: 6,
-                          border: `1px solid ${C.red}40`,
-                          background: C.redDim,
-                          color: C.red,
-                          fontSize: 10,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Quitar
-                      </button>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        {gastoEsEditable(g) ? (
+                          <button
+                            type="button"
+                            onClick={() => empezarEdicion(g)}
+                            aria-label={`Editar ${g.concepto}`}
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: 6,
+                              border: `1px solid ${C.blue}40`,
+                              background: C.blueDim,
+                              color: C.blue,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Editar
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => eliminar(g)}
+                          style={{
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            border: `1px solid ${C.red}40`,
+                            background: C.redDim,
+                            color: C.red,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Quitar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
