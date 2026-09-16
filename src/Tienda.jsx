@@ -62,7 +62,7 @@ import {
   prepararListaTienda,
   tipoCarrito,
 } from "./lib/bajoPedido";
-import { precioOnlineMp, totalConCargoMp } from "./lib/precioOnlineMp";
+import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
 import { canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
@@ -3689,7 +3689,15 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             );
           })()}
           <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,marginTop:8,marginBottom:14}}>
-            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$(sub)}</span></div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{color:C.mid,fontSize:13}}>Productos</span>
+              <span style={{color:C.dark,fontWeight:700}}>{$(sub)}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+              <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
+              <span style={{color:C.dark,fontWeight:700}}>{$(cargoPlataformaOnline())}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$(totalPedidoConPlataforma(sub) || sub)}</span></div>
             <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>
               <IconLabel Icon={Star} color="#92400e" size={13}>+{labelPts(Math.floor(sub/10))}</IconLabel>
             </div>
@@ -3715,7 +3723,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
   const unitTienda = (c) => {
-    // Precio final de tarjeta (MP ya incluido). Checkout solo suma líneas; sin +$4 ni 8%.
+    // Precio de tarjeta (3.49%+IVA). El $4.64 es cargo de plataforma, una vez, no por SKU.
     return ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
   };
   const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);
@@ -3934,7 +3942,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   });
   const envioFueraRadio = false;
   const envioFee = 0;
-  const totalPagar = Math.round(sub * 100) / 100;
+  const cargoPlataforma = cart.length ? cargoPlataformaOnline() : 0;
+  const totalPagar = totalPedidoConPlataforma(sub) || Math.round(sub * 100) / 100;
   const minOnline = montoMinimoPedidoOnline();
   const alcanzaMinimoEnvio = entrega === "pickup" || cumpleMontoMinimoEnvio(sub, minOnline);
   const msgMinimoEnvio = mensajeMontoMinimoPedidoOnline(minOnline);
@@ -4207,7 +4216,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         const totalServidor = Number(resp.total || 0) + envioSnap;
         setReservaPendiente({
           pedidoId: resp.pedido_id,
-          monto: totalConCargoMp(tipo_entrega === "envio" ? totalSnap : totalServidor) || Math.round((tipo_entrega === "envio" ? totalSnap : totalServidor) * 100) / 100,
+          monto: Number(tipo_entrega === "envio" ? totalSnap : totalServidor) || totalPagar,
           email: String(datos.email || "").trim(),
           guest: esInvitado,
           guestPhone: esInvitado ? soloDigitosTel(datos.tel) : undefined,
@@ -4712,6 +4721,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   <span style={{color:C.dark,fontWeight:700}}>Lo cotiza el vendedor</span>
                 </div>
               )}
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+                <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
+                <span style={{color:C.dark,fontWeight:700}}>{$(cargoPlataforma)}</span>
+              </div>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
                 <span style={{color:C.dark,fontWeight:800}}>Total</span>
                 <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$(totalPagar)}</span>
@@ -6109,7 +6122,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
         },
         body: JSON.stringify({
           pedidoId: p.id,
-          amount: totalConCargoMp(Number(p.total || 0)) || Number(p.total || 0),
+          amount: Number(p.total || 0),
           baseUrl: window.location.origin,
           payer: {
             name: String(user?.nombre || "").trim() || null,
@@ -6296,7 +6309,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
               {apartarPedidoId === p.id ? (
                 <ReservaTarjetaMP
                   pedidoId={p.id}
-                  monto={totalConCargoMp(Number(p.total || 0)) || Number(p.total || 0)}
+                  monto={Number(p.total || 0)}
                   email={String(user?.email || "").trim()}
                   clienteToken={getClienteToken()}
                   onReservado={()=>{ setApartarPedidoId(null); refreshPedidos(); }}
@@ -6314,7 +6327,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
                 <Btn onClick={()=>pagarPedidoMercadoPago(p)} col={BRAND.primary} sm disabled={busyPayPedidoId===p.id}>
                   {busyPayPedidoId===p.id
                     ? "Abriendo pago..."
-                    : `Pagar ahora ${$(totalConCargoMp(Number(p.total || 0)) || p.total)}`}
+                    : `Pagar ahora ${$(p.total)}`}
                 </Btn>
               )}
             </div>

@@ -1,10 +1,10 @@
 import {
   precioOnlineMp,
   precioAnclaUsable,
-  cargoFijoMp,
-  totalConCargoMp,
+  cargoPlataformaOnline,
+  totalPedidoConPlataforma,
   TASA_MP_ONLINE,
-  FIJO_MP_CON_IVA,
+  CONCEPTO_CARGO_PLATAFORMA,
 } from "./precioOnlineMp";
 
 const espejo = require("../../api/_lib/precioOnlineMp");
@@ -13,46 +13,27 @@ function netoTrasMp(cobrado) {
   return cobrado - (cobrado * 0.0349 + 4) * 1.16;
 }
 
-test("tasa 3.49% + IVA y $4 + IVA van en la tarjeta", () => {
+test("tarjeta solo 3.49%+IVA; $4+IVA una vez por pedido", () => {
   expect(TASA_MP_ONLINE).toBeCloseTo(0.0349 * 1.16, 6);
-  expect(cargoFijoMp()).toBe(4.64);
-  expect(espejo.cargoFijoMp()).toBe(4.64);
-  expect(FIJO_MP_CON_IVA).toBeCloseTo(4.64, 6);
+  expect(cargoPlataformaOnline()).toBe(4.64);
+  expect(espejo.cargoPlataformaOnline()).toBe(4.64);
+  expect(CONCEPTO_CARGO_PLATAFORMA).toMatch(/Pedido en línea/);
 });
 
-test("ceil a peso: Skittles $10 → $16 (cubre % + $4 + IVA)", () => {
-  const casos = [
-    [10, 16],
-    [42, 49],
-    [25, 31],
-    [100, 110],
-    [459, 484],
-    [389, 411],
-    [899, 942],
-    [1, 6],
-  ];
-  for (const [ancla, web] of casos) {
-    expect(precioOnlineMp(ancla)).toBe(web);
-    expect(espejo.precioOnlineMp(ancla)).toBe(web);
-    expect(netoTrasMp(web)).toBeGreaterThanOrEqual(ancla - 0.02);
-  }
-});
-
-test("$11 no cubre el $4: una pieza a $16 sí deja el ancla", () => {
-  expect(netoTrasMp(11)).toBeLessThan(10);
-  expect(netoTrasMp(16)).toBeGreaterThanOrEqual(10);
-});
-
-test("checkout solo suma tarjetas: no se vuelve a cobrar el $4", () => {
-  const unit = precioOnlineMp(10);
-  expect(unit).toBe(16);
-  expect(totalConCargoMp(unit)).toBe(16);
-  expect(totalConCargoMp(unit * 5)).toBe(80);
-  expect(espejo.totalConCargoMp(unit * 5)).toBe(80);
+test("Skittles $10 → $11 en tarjeta; 1 pieza $15.64, 5 piezas $59.64", () => {
+  expect(precioOnlineMp(10)).toBe(11);
+  expect(precioOnlineMp(42)).toBe(44);
+  expect(precioOnlineMp(459)).toBe(479);
+  expect(precioOnlineMp(25)).toBe(27);
+  expect(espejo.precioOnlineMp(10)).toBe(11);
+  expect(totalPedidoConPlataforma(11)).toBe(15.64);
+  expect(totalPedidoConPlataforma(55)).toBe(59.64);
+  expect(espejo.totalPedidoConPlataforma(11)).toBe(15.64);
+  expect(netoTrasMp(15.64)).toBeGreaterThanOrEqual(10 - 0.05);
 });
 
 test("placeholder <= $0.01 no se paga en línea", () => {
   expect(precioAnclaUsable(0.01)).toBe(false);
   expect(precioOnlineMp(0.01)).toBeNull();
-  expect(totalConCargoMp(0)).toBeNull();
+  expect(totalPedidoConPlataforma(0)).toBeNull();
 });

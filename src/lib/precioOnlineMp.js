@@ -1,12 +1,10 @@
 /**
- * Precio de la TIENDA WEB: ancla de mostrador + comisión completa de Mercado Pago.
+ * Precio de la TIENDA WEB.
  *
- * MP al instante: 3.49% + $4 MXN + IVA 16% sobre esa comisión.
- * Para que el neto sea ≥ ancla en UNA pieza:
- *   web = ceil((ancla + 4×1.16) / (1 − 3.49%×1.16))
- *
- * `productos.precio` = ANCLA. El POS no se toca.
- * El checkout solo suma las tarjetas: no se vuelve a cobrar el $4.
+ * - Cada tarjeta: ancla + 3.49% + IVA (4.0484%). POS no se toca.
+ * - Una vez por PEDIDO (no por SKU): cargo de plataforma $4 + IVA = $4.64
+ *   («Pedido en línea FarmaCapital»). No es un producto. Va en carrito y
+ *   checkout para todo pedido web (MP o recoger con BBVA).
  *
  * Espejo: api/_lib/precioOnlineMp.js y public.fc_precio_online_mp(numeric).
  */
@@ -16,6 +14,8 @@ export const FIJO_MP_MXN = 4;
 export const IVA_MP = 1.16;
 export const FIJO_MP_CON_IVA = FIJO_MP_MXN * IVA_MP; // 4.64
 
+export const CONCEPTO_CARGO_PLATAFORMA = "Pedido en línea FarmaCapital";
+
 /** Precios <= $0.01 son placeholder de alta: no se pueden pagar en línea. */
 export const PRECIO_PLACEHOLDER_MAX = 0.01;
 
@@ -24,21 +24,31 @@ export function precioAnclaUsable(precio) {
   return Number.isFinite(n) && n > PRECIO_PLACEHOLDER_MAX;
 }
 
-/** Ancla → precio de tarjeta (peso entero hacia arriba). null si no hay ancla usable. */
+/** Ancla → precio de tarjeta (solo %). null si no hay ancla usable. */
 export function precioOnlineMp(precioLista) {
   if (!precioAnclaUsable(precioLista)) return null;
-  const bruto = (Number(precioLista) + FIJO_MP_CON_IVA) / (1 - TASA_MP_ONLINE);
+  const bruto = Number(precioLista) / (1 - TASA_MP_ONLINE);
   return Math.ceil(Math.round(bruto * 100) / 100);
 }
 
-/** $4 + IVA (ya va dentro de cada tarjeta; no sumar otra vez). */
-export function cargoFijoMp() {
+/** $4 + IVA, una vez por pedido en línea. */
+export function cargoPlataformaOnline() {
   return Math.round(FIJO_MP_CON_IVA * 100) / 100;
 }
 
-/** Total a cobrar: lo que ya suman las líneas (sin cargo extra). */
-export function totalConCargoMp(base) {
-  const b = Number(base);
+/** @deprecated usar cargoPlataformaOnline */
+export function cargoFijoMp() {
+  return cargoPlataformaOnline();
+}
+
+/** Subtotal de productos + cargo de plataforma (una vez). */
+export function totalPedidoConPlataforma(subProductos) {
+  const b = Number(subProductos);
   if (!Number.isFinite(b) || b <= 0) return null;
-  return Math.round(b * 100) / 100;
+  return Math.round((b + cargoPlataformaOnline()) * 100) / 100;
+}
+
+/** @deprecated usar totalPedidoConPlataforma */
+export function totalConCargoMp(base) {
+  return totalPedidoConPlataforma(base);
 }

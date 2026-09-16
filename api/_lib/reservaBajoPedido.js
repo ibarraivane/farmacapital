@@ -14,7 +14,6 @@
  */
 
 const crypto = require('crypto');
-const { totalConCargoMp } = require('./precioOnlineMp');
 
 const MP_API = 'https://api.mercadopago.com';
 const DIAS_RESERVA_MP = 5;
@@ -186,8 +185,8 @@ async function crearReserva({ env, body, clienteToken }) {
 
   const totalDb = round2(pedido.total);
   if (!(totalDb > 0)) return { status: 400, json: { ok: false, error: 'invalid_db_total' } };
-  const expected = totalConCargoMp(totalDb);
-  if (expected == null || Math.abs(expected - amount) > 0.01) {
+  const expected = totalDb;
+  if (Math.abs(expected - amount) > 0.01) {
     return { status: 409, json: { ok: false, error: 'amount_mismatch', expected } };
   }
 

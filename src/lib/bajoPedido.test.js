@@ -20,16 +20,16 @@ const paracetamol = { id: 5, nombre: "Paracetamol", precio: 25, stock: 20, activ
 
 test("precio web con MP en todo el catálogo, una vez; bajo pedido sin descuentos", () => {
   const web = prepararProductoTienda(anthelios);
-  expect(web.precio).toBe(484);
+  expect(web.precio).toBe(479);
   expect(web.precio_ancla).toBe(459);
   expect(web.descuento_pct).toBe(0);
-  expect(prepararProductoTienda(web).precio).toBe(484);
+  expect(prepararProductoTienda(web).precio).toBe(479);
   const anaquel = prepararProductoTienda(paracetamol);
-  expect(anaquel.precio).toBe(31);
+  expect(anaquel.precio).toBe(27);
   expect(anaquel.precio_ancla).toBe(25);
-  expect(prepararProductoTienda(anaquel).precio).toBe(31);
+  expect(prepararProductoTienda(anaquel).precio).toBe(27);
   const skittles = prepararProductoTienda({ id: 9, nombre: "Skittles", precio: 10, stock: 4, activo: true });
-  expect(skittles.precio).toBe(16);
+  expect(skittles.precio).toBe(11);
   expect(skittles.precio_ancla).toBe(10);
 });
 
