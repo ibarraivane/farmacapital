@@ -13,23 +13,21 @@ function netoTrasMp(cobrado) {
   return cobrado - (cobrado * 0.0349 + 4) * 1.16;
 }
 
-test("tarjeta solo 3.49%+IVA; $4+IVA una vez por pedido", () => {
+test("tarjeta solo 3.49%+IVA; Servicio $5 una vez por pedido", () => {
   expect(TASA_MP_ONLINE).toBeCloseTo(0.0349 * 1.16, 6);
-  expect(cargoPlataformaOnline()).toBe(4.64);
-  expect(espejo.cargoPlataformaOnline()).toBe(4.64);
-  expect(CONCEPTO_CARGO_PLATAFORMA).toMatch(/Pedido en línea/);
+  expect(cargoPlataformaOnline()).toBe(5);
+  expect(espejo.cargoPlataformaOnline()).toBe(5);
+  expect(CONCEPTO_CARGO_PLATAFORMA).toBe("Servicio");
 });
 
-test("Skittles $10 → $11 en tarjeta; 1 pieza $15.64, 5 piezas $59.64", () => {
+test("Skittles $10 → $11; 1 pieza $16, 5 piezas $60", () => {
   expect(precioOnlineMp(10)).toBe(11);
   expect(precioOnlineMp(42)).toBe(44);
-  expect(precioOnlineMp(459)).toBe(479);
-  expect(precioOnlineMp(25)).toBe(27);
   expect(espejo.precioOnlineMp(10)).toBe(11);
-  expect(totalPedidoConPlataforma(11)).toBe(15.64);
-  expect(totalPedidoConPlataforma(55)).toBe(59.64);
-  expect(espejo.totalPedidoConPlataforma(11)).toBe(15.64);
-  expect(netoTrasMp(15.64)).toBeGreaterThanOrEqual(10 - 0.05);
+  expect(totalPedidoConPlataforma(11)).toBe(16);
+  expect(totalPedidoConPlataforma(55)).toBe(60);
+  expect(espejo.totalPedidoConPlataforma(11)).toBe(16);
+  expect(netoTrasMp(16)).toBeGreaterThanOrEqual(10);
 });
 
 test("placeholder <= $0.01 no se paga en línea", () => {

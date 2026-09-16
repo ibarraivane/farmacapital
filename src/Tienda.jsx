@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, createContext, useContext, useRef } from 
 import { supabase, isSupabaseProductionMisconfigured, isSupabaseLocalMisconfigured } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery, useNarrowForBannerImage } from "./hooks/useMediaQuery";
-import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar, getClienteToken } from "./utils";
+import { saludoUsuario, primerNombre, $, $peso, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar, getClienteToken } from "./utils";
 import {
   setClienteSession,
   clearClienteSession,
@@ -3691,13 +3691,13 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
           <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,marginTop:8,marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
               <span style={{color:C.mid,fontSize:13}}>Productos</span>
-              <span style={{color:C.dark,fontWeight:700}}>{$(sub)}</span>
+              <span style={{color:C.dark,fontWeight:700}}>{$peso(sub)}</span>
             </div>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
               <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
-              <span style={{color:C.dark,fontWeight:700}}>{$(cargoPlataformaOnline())}</span>
+              <span style={{color:C.dark,fontWeight:700}}>{$peso(cargoPlataformaOnline())}</span>
             </div>
-            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$(totalPedidoConPlataforma(sub) || sub)}</span></div>
+            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$peso(totalPedidoConPlataforma(sub) || sub)}</span></div>
             <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>
               <IconLabel Icon={Star} color="#92400e" size={13}>+{labelPts(Math.floor(sub/10))}</IconLabel>
             </div>
@@ -3723,7 +3723,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
   const unitTienda = (c) => {
-    // Precio de tarjeta (3.49%+IVA). El $4.64 es cargo de plataforma, una vez, no por SKU.
+    // Precio de tarjeta (3.49%+IVA). Servicio $5 una vez por pedido, no por SKU.
     return ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
   };
   const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);
@@ -4712,7 +4712,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               {cart.map(item=>(
                 <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
                   <span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span>
-                  <span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(cobroDe(item))}</span>
+                  <span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$peso(cobroDe(item))}</span>
                 </div>
               ))}
               {entrega!=="pickup"&&(
@@ -4723,11 +4723,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               )}
               <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
                 <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
-                <span style={{color:C.dark,fontWeight:700}}>{$(cargoPlataforma)}</span>
+                <span style={{color:C.dark,fontWeight:700}}>{$peso(cargoPlataforma)}</span>
               </div>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
                 <span style={{color:C.dark,fontWeight:800}}>Total</span>
-                <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$(totalPagar)}</span>
+                <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$peso(totalPagar)}</span>
               </div>
               {!alcanzaMinimoEnvio && (
                 <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
@@ -4740,10 +4740,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   {guardando
                     ? "Procesando…"
                     : esEncargo
-                      ? "Continuar para apartar "+$(totalPagar)
+                      ? "Continuar para apartar "+$peso(totalPagar)
                       : entrega==="pickup"
-                        ? `Confirmar pedido · ${$(totalPagar)}`
-                        : "Confirmar orden · "+$(totalPagar)}
+                        ? `Confirmar pedido · ${$peso(totalPagar)}`
+                        : "Confirmar orden · "+$peso(totalPagar)}
                 </Btn>
               </div>
             </div>
@@ -4779,7 +4779,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               <span style={{color:C.dark,fontSize:13,fontWeight:700}}>Lo cotiza el vendedor</span>
             </div>
           )}
-          <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(totalPagar)}</span></div></div>
+          <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$peso(totalPagar)}</span></div></div>
         </div>
       </div>
     </div>
