@@ -3649,7 +3649,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · lo pagas en el checkout",Icon:Bike}].map(({id,label,sub,Icon})=>(
+          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Apartas ahora · Pagas al recoger",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · Servicio $5",Icon:Bike}].map(({id,label,sub,Icon})=>(
             <button
               key={id}
               type="button"
@@ -3668,7 +3668,8 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber, te escribe por WhatsApp y pagas productos + transporte en Mi cuenta.</div></div>)}
+          {entrega==="pickup"&&(<div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:BRAND.primary,fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Store size={14} strokeWidth={1.75} color={BRAND.primary} aria-hidden style={{marginTop:2,flexShrink:0}}/>Apartamos el producto. Lo pagas en la terminal BBVA al recogerlo. No se cobra Servicio.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber, te escribe por WhatsApp y pagas productos + Servicio + transporte en Mi cuenta.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -3693,11 +3694,13 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
               <span style={{color:C.mid,fontSize:13}}>Productos</span>
               <span style={{color:C.dark,fontWeight:700}}>{$peso(sub)}</span>
             </div>
+            {cargoPlataformaOnline(entrega) > 0 && (
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
               <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
-              <span style={{color:C.dark,fontWeight:700}}>{$peso(cargoPlataformaOnline())}</span>
+              <span style={{color:C.dark,fontWeight:700}}>{$peso(cargoPlataformaOnline(entrega))}</span>
             </div>
-            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$peso(totalPedidoConPlataforma(sub) || sub)}</span></div>
+            )}
+            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$peso(totalPedidoConPlataforma(sub, entrega) || sub)}</span></div>
             <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>
               <IconLabel Icon={Star} color="#92400e" size={13}>+{labelPts(Math.floor(sub/10))}</IconLabel>
             </div>
@@ -3707,7 +3710,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
               <strong>Encargo bajo pedido.</strong> Apartas el total con tarjeta de crédito y se cobra cuando lo conseguimos (24-48 hrs). Si no lo conseguimos, cancelamos sin cargo.
             </div>
           )}
-          <Btn onClick={()=>setPage("checkout")} col={BRAND.primary} full>{carritoEncargo?"Continuar para apartar →":"Proceder al pago →"}</Btn>
+          <Btn onClick={()=>setPage("checkout")} col={BRAND.primary} full>{carritoEncargo||entrega==="pickup"?"Continuar para apartar →":"Proceder al pago →"}</Btn>
           <div style={{color:C.dim,fontSize:11,textAlign:"center",marginTop:10}}>
             <IconLabel Icon={Lock} color={C.dim} size={12}>Pago 100% seguro · SSL</IconLabel>
           </div>
@@ -3723,7 +3726,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
   const unitTienda = (c) => {
-    // Precio de tarjeta (3.49%+IVA). Servicio $5 una vez por pedido, no por SKU.
+    // Precio de tarjeta (3.49%+IVA). Servicio $5 solo en domicilio, no por SKU.
     return ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
   };
   const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);
@@ -3942,8 +3945,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   });
   const envioFueraRadio = false;
   const envioFee = 0;
-  const cargoPlataforma = cart.length ? cargoPlataformaOnline() : 0;
-  const totalPagar = totalPedidoConPlataforma(sub) || Math.round(sub * 100) / 100;
+  const cargoPlataforma = cart.length ? cargoPlataformaOnline(entrega) : 0;
+  const totalPagar = totalPedidoConPlataforma(sub, entrega) || Math.round(sub * 100) / 100;
   const minOnline = montoMinimoPedidoOnline();
   const alcanzaMinimoEnvio = entrega === "pickup" || cumpleMontoMinimoEnvio(sub, minOnline);
   const msgMinimoEnvio = mensajeMontoMinimoPedidoOnline(minOnline);
@@ -4721,10 +4724,12 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   <span style={{color:C.dark,fontWeight:700}}>Lo cotiza el vendedor</span>
                 </div>
               )}
+              {cargoPlataforma > 0 && (
               <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
                 <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
                 <span style={{color:C.dark,fontWeight:700}}>{$peso(cargoPlataforma)}</span>
               </div>
+              )}
               <div style={{display:"flex",justifyContent:"space-between",marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
                 <span style={{color:C.dark,fontWeight:800}}>Total</span>
                 <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$peso(totalPagar)}</span>
@@ -4777,6 +4782,12 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
               <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
               <span style={{color:C.dark,fontSize:13,fontWeight:700}}>Lo cotiza el vendedor</span>
+            </div>
+          )}
+          {cargoPlataforma > 0 && (
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+              <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
+              <span style={{color:C.dark,fontSize:13,fontWeight:700}}>{$peso(cargoPlataforma)}</span>
             </div>
           )}
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$peso(totalPagar)}</span></div></div>
