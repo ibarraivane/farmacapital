@@ -1938,10 +1938,10 @@ function ProductCard({prod,addToCart,onClick}){
             : <PrecioOferta prod={prod} promos={promosProd} size="sm" />}
           {!oferta.hayOferta && prod.precio_marca ? (
             <div style={{display:"flex",alignItems:"baseline",gap:8,marginTop:4}}>
-              <span style={{color:C.dim,fontSize:11,textDecoration:"line-through"}}>{$(prod.precio_marca)} marca</span>
+              <span style={{color:C.dim,fontSize:11,textDecoration:"line-through"}}>{$peso(prod.precio_marca)} marca</span>
             </div>
           ) : null}
-          {!oferta.hayOferta && prod.tipo==="generico"&&prod.precio_marca&&<div style={{color:BRAND.accent,fontSize:11,fontWeight:600}}>Ahorras {$(prod.precio_marca-prod.precio)} vs marca</div>}
+          {!oferta.hayOferta && prod.tipo==="generico"&&prod.precio_marca&&<div style={{color:BRAND.accent,fontSize:11,fontWeight:600}}>Ahorras {$peso(prod.precio_marca-prod.precio)} vs marca</div>}
         </div>
         <div style={{color:C.dim,fontSize:10,marginBottom:10}}>{cta==="cotizar" ? "\u00a0" : `+${labelPts(ptsGana(oferta.oferta))}`}</div>
         <div style={{display:"flex",gap:8}}>
@@ -2076,11 +2076,11 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               ? <div style={{color:C.mid,fontWeight:800,fontSize:20}}>Precio por cotizar</div>
               : <PrecioOferta prod={prod} promos={promosProd} size="lg" />}
             {!oferta.hayOferta && prod.precio_marca ? (
-              <div style={{color:C.dim,fontSize:16,textDecoration:"line-through",marginTop:6}}>{$(prod.precio_marca)} marca</div>
+              <div style={{color:C.dim,fontSize:16,textDecoration:"line-through",marginTop:6}}>{$peso(prod.precio_marca)} marca</div>
             ) : null}
             {!oferta.hayOferta && prod.tipo==="generico"&&prod.precio_marca&&(
               <div style={{background:BRAND.accent+"18",border:`1px solid ${BRAND.accent}30`,borderRadius:8,padding:"8px 12px",marginTop:8,display:"inline-block"}}>
-                <span style={{color:BRAND.accent,fontWeight:700}}>Ahorras {$(prod.precio_marca-(prod.precio||prod.precio||0))} vs marca</span>
+                <span style={{color:BRAND.accent,fontWeight:700}}>Ahorras {$peso(prod.precio_marca-(prod.precio||prod.precio||0))} vs marca</span>
               </div>
             )}
           </div>

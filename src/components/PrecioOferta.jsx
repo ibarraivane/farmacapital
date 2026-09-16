@@ -1,4 +1,4 @@
-import { $ } from "../utils";
+import { $peso } from "../utils";
 import { TOKENS as T } from "../theme/tokens";
 import { ofertaDeProducto } from "../lib/precioOferta";
 
@@ -82,7 +82,7 @@ export default function PrecioOferta({
               textUnderlineOffset: 2,
             }}
           >
-            {$(o.lista)}
+            {$peso(o.lista)}
           </span>
         )}
         <span
@@ -93,7 +93,7 @@ export default function PrecioOferta({
             lineHeight: 1.1,
           }}
         >
-          {$(ahora)}
+          {$peso(ahora)}
         </span>
       </div>
       {o.hayOferta && showAhorro && o.ahorro > 0 && (
@@ -105,7 +105,7 @@ export default function PrecioOferta({
             marginTop: 4,
           }}
         >
-          Ahorras {$(o.ahorro)}
+          Ahorras {$peso(o.ahorro)}
         </div>
       )}
     </div>
