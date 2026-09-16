@@ -918,8 +918,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (noRegistrados.length > 0) {
       const detalle = noRegistrados.map((i) => `  · ${i.codigo_escaneado} × ${i.cantidad}`).join("\n");
       const seguir = window.confirm(
-        `OJO: ${noRegistrados.length} producto(s) no están en catálogo y NO van a entrar a stock:\n\n${detalle}\n\n` +
-        "Lo correcto es darlos de alta en Inventario → Catálogo → Nuevo producto y volver a escanear esas cajas.\n\n" +
+        `OJO: ${noRegistrados.length} producto(s) aún no están en catálogo y NO van a entrar a stock:\n\n${detalle}\n\n` +
+        "No los des de alta en Inventario → Catálogo. Quédate en Recibir: escanea cada caja y teclea caducidad MMAA.\n\n" +
         "¿Cerrar de todos modos y dejar esas piezas fuera del inventario?",
       );
       if (!seguir) return;
@@ -1507,7 +1507,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                   <AlertTriangle size={16} />
                   {sinRegistrar.length} producto{sinRegistrar.length === 1 ? "" : "s"} sin registrar en catálogo
                 </div>
-                Dalos de alta en <strong>Inventario → Catálogo → ➕ Nuevo producto</strong> y vuelve a escanear esas cajas.
+                No vayas a Inventario → Catálogo. Quédate aquí: escanea cada caja y teclea la caducidad (MMAA).
                 Si cierras así, esas piezas <u>no entran a stock</u>:
                 <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, marginTop: 8, color: C.textMid }}>
                   {sinRegistrar.map((i) => `${i.codigo_escaneado} × ${i.cantidad}`).join("  ·  ")}
