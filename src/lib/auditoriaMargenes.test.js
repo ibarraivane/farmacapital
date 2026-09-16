@@ -1,5 +1,6 @@
 import {
   auditarMargenProducto,
+  catalogoGuardoImporteComoCosto,
   costoUnitarioDeRenglonTicket,
   csvGuardoImporteComoUnitario,
   familiaMargen,
@@ -157,6 +158,61 @@ test("última compra = importe de 2 pzas no tapa el margen alto", () => {
   );
   expect(a.accion).toBe("bajar");
   expect(a.sugerido).toBe(10);
+});
+
+test("Bodega: Pert kera $14.80 es el importe de 2 del oliva; unitario $7.40", () => {
+  expect(catalogoGuardoImporteComoCosto(14.8, 7.4, 2)).toBe(true);
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 2,
+    precioEtiquetado: 14.8,
+    subtotal: 29.6,
+    costoCatalogo: 7.4,
+  })).toBe(7.4);
+});
+
+test("Bodega: Speed Stick $29.91 es el de 2; unitario $14.95", () => {
+  expect(catalogoGuardoImporteComoCosto(29.905, 14.95, 2)).toBe(true);
+});
+
+test("Mercurio C/50: el $54 es la caja; se vende por pieza a $1.08", () => {
+  expect(catalogoGuardoImporteComoCosto(54, 1.08, 50)).toBe(true);
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 50,
+    precioEtiquetado: 54,
+    subtotal: 54,
+  })).toBe(1.08);
+});
+
+test("Mercurio pieza de C/50 a $14 no alerta costo < $2", () => {
+  const a = auditarMargenProducto({
+    nombre: "Mercurio óxido de zinc C/50",
+    presentacion: "pieza (caja C/50)",
+    categoria: "Producto",
+    costo: 1.08,
+    precio: 14,
+  });
+  expect(a.accion).toBe("ok");
+});
+
+test("Exprezo: catálogo guardó el importe de N piezas como costo de una", () => {
+  expect(catalogoGuardoImporteComoCosto(111.8, 18.63, 6)).toBe(true);
+  expect(catalogoGuardoImporteComoCosto(32.04, 10.68, 3)).toBe(true);
+  expect(catalogoGuardoImporteComoCosto(42.72, 10.68, 4)).toBe(true);
+  expect(catalogoGuardoImporteComoCosto(38.38, 12.79, 3)).toBe(true);
+  expect(catalogoGuardoImporteComoCosto(18.63, 18.63, 6)).toBe(false);
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 6,
+    precioEtiquetado: 18.63,
+    subtotal: 111.8,
+  })).toBe(18.63);
+});
+
+test("Kleenex Sellapack: Farmalive cobró el C/8; el EAN es de una", () => {
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 8,
+    precioEtiquetado: 32.83,
+    subtotal: 32.83,
+  })).toBe(4.1);
 });
 
 test("última compra mucho más cara que el costo catálogo → revisar, no bajar", () => {

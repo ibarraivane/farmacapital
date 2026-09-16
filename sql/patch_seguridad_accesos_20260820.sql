@@ -1,8 +1,22 @@
 -- FarmaCapital — Endurecer accesos admin + tienda (20 ago 2026)
 -- Ejecutar en Supabase SQL Editor DESPUÉS de desplegar el front/API.
 -- Idempotente.
+-- Depende de: public.fn_digits_mx (también en patch_password_reset_self_service.sql
+-- y sql/hotfix_fn_digits_mx.sql). Se redefine aquí para no romper checkout.
 
 begin;
+
+-- ── 0) Helper teléfono MX (requerido por cliente_crear_pedido_online) ───────
+create or replace function public.fn_digits_mx(p_text text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when p_text is null then ''
+    else right(regexp_replace(p_text, '\D', '', 'g'), 10)
+  end;
+$$;
 
 -- ── 1) Rate limit de login (empleados y clientes) ───────────────────────────
 create table if not exists public.login_intentos (
@@ -283,7 +297,7 @@ begin
       raise exception 'Cantidad inválida para producto %', v_pid;
     end if;
 
-    select id, precio, activo, stock, nombre, requiere_receta
+    select id, precio, activo, stock, nombre
       into v_prod
       from public.productos
      where id = v_pid
@@ -312,10 +326,7 @@ begin
       raise exception 'Stock insuficiente para "%": disponible=%, solicitado=%',
                       v_prod.nombre, v_stock_eff, v_qty;
     end if;
-    if coalesce(v_prod.requiere_receta, false) then
-      raise exception 'El producto "%" requiere receta médica y no puede venderse online',
-                      v_prod.nombre;
-    end if;
+    -- requiere_receta: permitido online (se solicita al entregar / recoger).
 
     v_total := v_total + (v_prod.precio * v_qty);
     v_n_items := v_n_items + 1;

@@ -48,7 +48,7 @@ import {
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
-import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
+import { esPedidoTiendaWebPendiente, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { desgloseMixto, mensajeErrorMixto } from "../../../utils/pagoMixto";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
@@ -764,6 +764,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const mpServicioRef = useRef(null);
   const [serviciosRefresh, setServiciosRefresh] = useState(0);
   const bbvaCitaRef = useRef(null);
+  /** Pedido online pickup pendiente de cobro BBVA (no venta de carrito). */
+  const bbvaOnlinePedidoRef = useRef(null);
   const [ventasDia,setVentasDia] = useState({total:0,count:0});
   const [folioActual,setFolioActual] = useState("VTA-00000000");
   const [fichaProd, setFichaProd] = useState(null);
@@ -3020,20 +3022,62 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       <BBVATerminalModal
         open={bbvaModal}
         total={
-          bbvaCitaRef.current
+          bbvaOnlinePedidoRef.current
+            ? Number(bbvaOnlinePedidoRef.current.total) || 0
+            : bbvaCitaRef.current
             ? totalCobroConsulta(bbvaCitaRef.current)
             : (pay === "mixto" && mixtoMontosRef.current?.tarjeta > 0
               ? mixtoMontosRef.current.tarjeta
               : (creditoNum > 0 ? aCobrar : total))
         }
-        folio={bbvaCitaRef.current ? `CONS-${bbvaCitaRef.current.id}` : bbvaFolio}
+        folio={
+          bbvaOnlinePedidoRef.current
+            ? formatFolioOnline(bbvaOnlinePedidoRef.current.id)
+            : bbvaCitaRef.current
+              ? `CONS-${bbvaCitaRef.current.id}`
+              : bbvaFolio
+        }
         hint={
-          pay === "mixto"
+          bbvaOnlinePedidoRef.current
+            ? "Pick-up online: ingresa el total del pedido en la terminal BBVA, procesa la tarjeta y confirma el voucher aquí. No se crea una venta nueva."
+            : pay === "mixto"
             ? `Pago mixto: ingresa solo ${mixtoMontosRef.current?.tarjeta > 0 ? $(mixtoMontosRef.current.tarjeta) : "la parte en tarjeta"} en la terminal BBVA.`
             : "Ingresa el monto en la terminal física BBVA, procesa la tarjeta del cliente y confirma aquí el resultado del voucher."
         }
         onSuccess={async () => {
           setBbvaModal(false);
+          const pedidoOnlineBbva = bbvaOnlinePedidoRef.current;
+          bbvaOnlinePedidoRef.current = null;
+          if (pedidoOnlineBbva) {
+            const tok = sessionStorage.getItem("farmacapital_session_token");
+            if (!tok) {
+              showToast("Sesión expirada.", "error");
+              return;
+            }
+            setGuard(true);
+            try {
+              const { data: resp, error } = await supabase.rpc("empleado_cobrar_pedido_online_bbva", {
+                p_session_token: tok,
+                p_pedido_id: pedidoOnlineBbva.id,
+              });
+              if (error) throw error;
+              if (!resp?.success) throw new Error(resp?.error || "No se pudo registrar el cobro");
+              const patch = {
+                ...pedidoOnlineBbva,
+                metodo_pago: "tarjeta",
+                payment_provider: "bbva",
+                payment_status: "approved",
+              };
+              setPedOn((prev) => prev.map((x) => (x.id === pedidoOnlineBbva.id ? { ...x, ...patch } : x)));
+              setPedOnHist((prev) => prev.map((x) => (x.id === pedidoOnlineBbva.id ? { ...x, ...patch } : x)));
+              showToast(resp.already ? "Cobro BBVA ya estaba registrado" : "Cobro BBVA confirmado", "success");
+            } catch (e) {
+              showToast(e?.message || "Error al cobrar con BBVA", "error");
+            } finally {
+              setGuard(false);
+            }
+            return;
+          }
           const citaBbva = bbvaCitaRef.current;
           bbvaCitaRef.current = null;
           if (citaBbva) {
@@ -3051,6 +3095,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         onCancel={() => {
           setBbvaModal(false);
           bbvaCitaRef.current = null;
+          bbvaOnlinePedidoRef.current = null;
           recetaOrigenPendienteRef.current = "no_aplica";
         }}
       />
@@ -3638,7 +3683,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {tab==="online"&&(
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
-            <strong>Operación:</strong> aquí solo aparecen pedidos con <strong>pago aprobado</strong> en Mercado Pago. Surtir cuando esté preparado. En domicilio el cliente ya pagó el envío en checkout: abre DiDi (o propio) y marca en ruta.
+            <strong>Operación:</strong> aparecen pedidos listos para surtir: domicilio con <strong>pago Mercado Pago aprobado</strong>, y pick-up <strong>confirmado (cobro en tienda con BBVA)</strong>. En domicilio el cliente ya pagó el envío en checkout: abre DiDi (o propio) y marca en ruta.
           </div>
           {loading ? <SkeletonTable rows={3} cols={4}/> : (
             <>
@@ -3702,7 +3747,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{color:C.blue,fontWeight:900,fontSize:18}}>{$(p.total)}</div>
-                  <Tag col={C.green} sm>Pago aprobado</Tag>
+                  {(() => {
+                    const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
+                    return <Tag col={ep.col} sm>{ep.label}</Tag>;
+                  })()}
                 </div>
               </div>
               <div style={{background:C.bg,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
@@ -3722,6 +3770,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <Btn onClick={()=>surtirOnline(p)} col={C.green} dis={guardando}>✓ Surtir y marcar listo</Btn>
+                {esPedidoPickupPendienteCobro(p) && (
+                  <Btn
+                    col="#1a237e"
+                    dis={guardando}
+                    onClick={()=>{
+                      bbvaOnlinePedidoRef.current = p;
+                      setBbvaFolio(formatFolioOnline(p.id));
+                      setBbvaModal(true);
+                    }}
+                  >
+                    🏦 Cobrar con terminal BBVA
+                  </Btn>
+                )}
                 <button onClick={enviarWhatsApp} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                   💬 WhatsApp cliente
                 </button>
@@ -3758,7 +3819,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                               ? "Entregado"
                               : "Listo"}
                         </Tag>
+                        {(() => {
+                          const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
+                          return <Tag col={ep.col} sm>{ep.label}</Tag>;
+                        })()}
                         <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{$(p.total)}</span>
+                        {esPedidoPickupPendienteCobro(p) && p.estado === "listo" && (
+                          <Btn sm col="#1a237e" dis={guardando} onClick={()=>{
+                            bbvaOnlinePedidoRef.current = p;
+                            setBbvaFolio(formatFolioOnline(p.id));
+                            setBbvaModal(true);
+                          }}>🏦 Cobrar BBVA</Btn>
+                        )}
                         {p.tipo_entrega==="envio" && !p.delivery_tracking_url && (
                           <Btn sm col={C.teal} dis={guardando} onClick={async()=>{
                             const tokU = sessionStorage.getItem("farmacapital_session_token");
