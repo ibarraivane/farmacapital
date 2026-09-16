@@ -49,6 +49,13 @@ import {
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
+import { parseRpcJsonArray } from "../../../utils/rpcJson";
+import {
+  telefonoClientePedido,
+  payloadMarcarPedidoListo,
+  mensajeErrorSurtirPedido,
+  toastsTrasSurtirOk,
+} from "../../../lib/surtirPedidoOnline";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { desgloseMixto, mensajeErrorMixto } from "../../../utils/pagoMixto";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
@@ -67,7 +74,6 @@ import {
   buildOnlineOrderReceiptMessage,
   formatFolioOnline,
   notifyOrderReady,
-  formatWhatsAppSendError,
   openWhatsAppToCustomer,
 } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
@@ -719,6 +725,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [rx,setRx]           = useState({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   const [pedOnline,setPedOn] = useState([]);
   const [pedOnlineHist,setPedOnHist] = useState([]);
+  const surtirLockRef = useRef(false);
   /** Todas las citas en ventana (para resumen de estado de pago). */
   const [citasVentana, setCitasVentana] = useState([]);
   /** Citas con consulta o consumibles pendientes de cobro en caja (agendadas en línea o en Agenda de consultas). */
@@ -939,7 +946,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (histRes?.error) {
         console.warn("[POS] Historial online:", histRes.error.message);
       } else {
-        setPedOnHist(Array.isArray(histRes?.data) ? histRes.data : []);
+        setPedOnHist(parseRpcJsonArray(histRes?.data));
       }
     } catch (e) {
       console.warn("[POS] recargarPedidosOnline:", e);
@@ -1088,7 +1095,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
         setProds(enrichPosProductosConLotes(prodsRaw, lotesMap));
         setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
-        setPedOnHist(Array.isArray(histRes?.data) ? histRes.data : []);
+        setPedOnHist(parseRpcJsonArray(histRes?.data));
 
       } catch (e) {
         console.error("[POS] Excepción cargando datos:", e);
@@ -2085,15 +2092,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   };
 
   const surtirOnline = async (pedido) => {
+    if (surtirLockRef.current) return;
+    surtirLockRef.current = true;
     setGuard(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      if (!tok) { showToast("Sesión expirada.", "error"); setGuard(false); return; }
+      if (!tok) { showToast("Sesión expirada.", "error"); return; }
       // F6b: marcar_pedido_listo ya descuenta stock FEFO internamente
-      const { data: resp, error: rpcErr } = await supabase.rpc("marcar_pedido_listo", {
+      const { data: respRaw, error: rpcErr } = await supabase.rpc("marcar_pedido_listo", {
         p_session_token: tok, p_pedido_id: pedido.id,
       });
       if (rpcErr) throw rpcErr;
+      const resp = payloadMarcarPedidoListo(respRaw);
       if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       // Pick-up: el RPC marca completado (metas) y deja ready_for_pickup para el cliente.
@@ -2105,28 +2115,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         delivery_provider: pedido.tipo_entrega === "recoger" ? "pickup" : pedido.delivery_provider,
         delivery_status: pedido.tipo_entrega === "recoger" ? "ready_for_pickup" : pedido.delivery_status,
       }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
-      const envioHint = pedido.tipo_entrega === "envio" ? " · pide el mensajero (el cliente ya pagó el envío)" : "";
-      const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
+      const telCli = telefonoClientePedido(pedido);
+      let wa = null;
       if (telCli) {
-        const wa = await notifyOrderReady({ pedidoId: pedido.id, telefono: telCli });
-        if (wa?.sent) {
-          showToast(
-            (pedido.tipo_entrega === "envio" ? "Pedido listo" : "Pedido listo · pase de recogida enviado por WhatsApp") + envioHint,
-            "success"
-          );
-        } else {
-          const hint = formatWhatsAppSendError({
-            reason: wa?.reason,
-            detail: wa?.detail,
-            telefono: telCli,
-          });
-          showToast((hint || "Pedido listo (WhatsApp no enviado)") + envioHint, "warning");
-        }
-      } else {
-        showToast("Pedido marcado como listo" + envioHint, "success");
+        wa = await notifyOrderReady({ pedidoId: pedido.id, telefono: telCli });
       }
-    } catch(e) { console.error(e); }
-    setGuard(false);
+      for (const t of toastsTrasSurtirOk({
+        tipoEntrega: pedido.tipo_entrega,
+        telefono: telCli,
+        wa,
+      })) {
+        showToast(t.msg, t.tipo);
+      }
+      recargarPedidosOnline();
+    } catch (e) {
+      console.error("[POS] surtirOnline:", e);
+      showToast(mensajeErrorSurtirPedido(e), "error");
+    } finally {
+      surtirLockRef.current = false;
+      setGuard(false);
+    }
   };
 
   const reabrirCitaCobro = async (cita) => {

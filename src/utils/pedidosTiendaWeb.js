@@ -1,3 +1,5 @@
+import { parseRpcJsonArray } from "./rpcJson";
+
 /**
  * Pedidos creados desde la tienda en línea (checkout) que siguen pendientes de surtir.
  * Histórico: algunas filas no tenían `tipo`; se infiere por método de pago web.
@@ -108,7 +110,7 @@ export async function fetchPedidosTiendaPendientesMerged(supabase, _selectSpecUn
     p_limit: maxRows,
   });
   if (error) return { data: [], error };
-  let rows = Array.isArray(data) ? data : [];
+  let rows = parseRpcJsonArray(data);
   rows = rows.filter(esPedidoTiendaWebPendiente);
   rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   return { data: rows, error: null };
