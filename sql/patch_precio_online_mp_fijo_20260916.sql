@@ -1,9 +1,6 @@
--- FarmaCapital — el precio web ya incluye 3.49% + $4 MXN + IVA.
--- El cliente ve el precio final en la tarjeta; el checkout solo suma líneas.
---
--- Correr DESPUÉS de patch_bajo_pedido_20260916.sql (si ya lo corriste
--- con la fórmula vieja que solo tenía el 4.0484%). Idempotente.
--- POS / mostrador no cambia: productos.precio sigue siendo el ancla.
+-- OBSOLETO — no correr. El $4 es por transacción, no por SKU.
+-- Usa sql/patch_precio_online_mp_pct_20260916.sql
+-- o sql/patch_envio_cotiza_vendedor_20260916.sql.
 
 create or replace function public.fc_precio_online_mp(p_precio numeric)
 returns numeric
