@@ -171,6 +171,15 @@ export function pedidoEsTipoOnline(tipo) {
   return String(tipo || "").toLowerCase().trim() === "online";
 }
 
+/** Pedido que debe sumar en dashboard / metas (alineado a fn_pedido_cuenta_en_ventas). */
+export function pedidoCuentaEnVentas(p) {
+  if (!p) return false;
+  const estado = String(p.estado || "").toLowerCase().trim();
+  if (estado === "completado") return true;
+  if (estado === "listo" && pedidoEsTipoOnline(p.tipo) && p.atendido_por != null) return true;
+  return false;
+}
+
 export function pedidoEsTipoConsulta(tipo) {
   return String(tipo || "").toLowerCase().trim() === "consulta";
 }

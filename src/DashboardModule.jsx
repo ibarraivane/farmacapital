@@ -23,7 +23,7 @@ import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 import { rolEsAdmin } from "./utils/permissions";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
 import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
-import { canalIngresoPedido } from "./utils/orderChannels";
+import { canalIngresoPedido, pedidoCuentaEnVentas } from "./utils/orderChannels";
 import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import VentasVsMetaChart from "./VentasVsMetaChart";
@@ -62,7 +62,7 @@ function ventasRowsOrFallback(primaryBundle, primaryKey, fallbackBundle, fallbac
 }
 
 function pedidosCompletados(rows) {
-  return parseRpcJsonArray(rows).filter((p) => String(p.estado || "").toLowerCase() === "completado");
+  return parseRpcJsonArray(rows).filter((p) => pedidoCuentaEnVentas(p));
 }
 
 function loadDashboardInitialTab(fallback = "operacion") {
