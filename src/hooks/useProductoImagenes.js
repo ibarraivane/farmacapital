@@ -30,6 +30,58 @@ export function ordenarGaleriaProducto(imagenPrincipal, urlsGaleria) {
   return imagenes;
 }
 
+const URLS_VACIAS = [];
+const IMAGENES_PAGE = 1000;
+
+/**
+ * Orden de la tarjeta: la marcada es_principal va primero (packshot propio
+ * si ya está en el CDN). Si esa URL 404 / HTML del SPA, la tarjeta prueba
+ * el resto de la galería — las mismas fotos que la ficha.
+ */
+export function ordenarUrlsTarjeta(filas) {
+  const rows = (filas || [])
+    .map((r) => ({
+      url: normalizar(r?.url),
+      posicion: Number(r?.posicion) || 0,
+      principal: !!r?.es_principal,
+    }))
+    .filter((r) => r.url);
+  rows.sort((a, b) => {
+    if (a.principal !== b.principal) return a.principal ? -1 : 1;
+    return a.posicion - b.posicion;
+  });
+  const vistas = new Set();
+  const urls = [];
+  for (const r of rows) {
+    if (vistas.has(r.url)) continue;
+    vistas.add(r.url);
+    urls.push(r.url);
+  }
+  return urls;
+}
+
+export function mapaUrlsTarjetaPorProducto(filas) {
+  const porId = new Map();
+  for (const r of filas || []) {
+    const pid = Number(r?.producto_id);
+    if (!Number.isFinite(pid)) continue;
+    if (!porId.has(pid)) porId.set(pid, []);
+    porId.get(pid).push(r);
+  }
+  const mapa = new Map();
+  for (const [pid, rows] of porId) {
+    const urls = ordenarUrlsTarjeta(rows);
+    if (urls.length) mapa.set(pid, urls);
+  }
+  return mapa;
+}
+
+/** Siguiente índice de galería, o -1 si ya no hay otra URL que probar. */
+export function siguienteIndiceFotoTarjeta(urls, indiceActual) {
+  const i = Number(indiceActual) || 0;
+  return i + 1 < (urls || []).length ? i + 1 : -1;
+}
+
 async function traer(productoId) {
   if (cache.has(productoId)) return cache.get(productoId);
   if (enVuelo.has(productoId)) return enVuelo.get(productoId);
@@ -100,27 +152,36 @@ let cargaPrincipales = null;
 let version = 0;
 const suscriptores = new Set();
 
+async function traerImagenesCatalogo() {
+  const filas = [];
+  let desde = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("producto_imagenes")
+      .select("producto_id,url,posicion,es_principal")
+      .order("producto_id", { ascending: true })
+      .order("posicion", { ascending: true })
+      .range(desde, desde + IMAGENES_PAGE - 1);
+    if (error) throw error;
+    const lote = data || [];
+    filas.push(...lote);
+    if (lote.length < IMAGENES_PAGE) break;
+    desde += IMAGENES_PAGE;
+  }
+  return filas;
+}
+
 function cargarPrincipales() {
   if (principales) return Promise.resolve(principales);
   if (cargaPrincipales) return cargaPrincipales;
 
-  cargaPrincipales = supabase
-    .from("producto_imagenes")
-    .select("producto_id,url")
-    .eq("es_principal", true)
-    .then(({ data, error }) => {
-      const mapa = new Map();
-      if (!error) {
-        for (const r of data || []) {
-          const url = normalizar(r.url);
-          if (url && !mapa.has(r.producto_id)) mapa.set(r.producto_id, url);
-        }
-      }
-      principales = mapa;
+  cargaPrincipales = traerImagenesCatalogo()
+    .then((filas) => {
+      principales = mapaUrlsTarjetaPorProducto(filas);
       cargaPrincipales = null;
       version += 1;
       suscriptores.forEach((fn) => fn(version));
-      return mapa;
+      return principales;
     })
     .catch(() => {
       principales = new Map();
@@ -131,12 +192,7 @@ function cargarPrincipales() {
   return cargaPrincipales;
 }
 
-/**
- * Devuelve una función `(productoId) => url` con la foto principal del
- * catálogo (Rappi si existe). Las rejillas la prefieren sobre el packshot
- * viejo de `imagen_url`.
- */
-export function useImagenesPrincipales() {
+function useVersionImagenesCatalogo() {
   const [v, setV] = useState(version);
 
   useEffect(() => {
@@ -147,9 +203,39 @@ export function useImagenesPrincipales() {
     return () => { vivo = false; suscriptores.delete(avisar); };
   }, []);
 
+  return v;
+}
+
+/**
+ * Devuelve una función `(productoId) => url` con la foto principal del
+ * catálogo (Rappi si existe). Las rejillas la prefieren sobre el packshot
+ * viejo de `imagen_url`.
+ */
+export function useImagenesPrincipales() {
+  const v = useVersionImagenesCatalogo();
   return useCallback(
-    (productoId) => (productoId == null ? "" : principales?.get(Number(productoId)) || ""),
+    (productoId) => {
+      if (productoId == null) return "";
+      const urls = principales?.get(Number(productoId));
+      return (urls && urls[0]) || "";
+    },
     // v fuerza una nueva referencia cuando el mapa termina de cargar.
+    [v],
+  );
+}
+
+/**
+ * Todas las URLs de galería de un producto, principal primero.
+ * La tarjeta de categoría usa esto para no quedarse en la caja si la
+ * principal (catalogo-propia sin deploy) no carga.
+ */
+export function useUrlsImagenesProducto() {
+  const v = useVersionImagenesCatalogo();
+  return useCallback(
+    (productoId) => {
+      if (productoId == null) return URLS_VACIAS;
+      return principales?.get(Number(productoId)) || URLS_VACIAS;
+    },
     [v],
   );
 }

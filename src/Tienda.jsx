@@ -44,7 +44,7 @@ import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
 import { mapaPromosPorProducto, ofertaDeProducto } from "./lib/precioOferta";
 import { hoyISOMexico } from "./lib/fecha";
-import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
+import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, siguienteIndiceFotoTarjeta } from "./hooks/useProductoImagenes";
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
@@ -1811,13 +1811,17 @@ function ProductCard({prod,addToCart,onClick}){
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
   const [imgRota,setImgRota]=useState(false);
+  const [fotoIdx,setFotoIdx]=useState(0);
   const promosProd = usePromosProducto(prod?.id);
   const oferta = ofertaDeProducto(prod, promosProd);
   const agotado = productoAgotadoTienda(prod);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
-  const fotoCatalogoDe = useImagenesPrincipales();
-  const imgSrc = productImageUrl(prod, narrow, placeholderUrl, fotoCatalogoDe(prod?.id));
+  const urlsFotoDe = useUrlsImagenesProducto();
+  const urlsFoto = urlsFotoDe(prod?.id);
+  const fotoCatalogo = urlsFoto[fotoIdx] || urlsFoto[0] || "";
+  const imgSrc = productImageUrl(prod, narrow, placeholderUrl, fotoCatalogo);
+  useEffect(() => { setFotoIdx(0); setImgRota(false); }, [prod?.id, urlsFoto.length]);
   useEffect(() => { setImgRota(false); }, [imgSrc]);
   const handleDetailClick = () => { onClick?.(); };
   const handleAddClick = (e) => {
@@ -1872,7 +1876,14 @@ function ProductCard({prod,addToCart,onClick}){
             loading="lazy"
             decoding="async"
             draggable={false}
-            onError={() => setImgRota(true)}
+            onError={() => {
+              const siguiente = siguienteIndiceFotoTarjeta(urlsFoto, fotoIdx);
+              if (siguiente >= 0) {
+                setFotoIdx(siguiente);
+                return;
+              }
+              setImgRota(true);
+            }}
             style={{maxWidth:"100%",maxHeight:"100%",width:"auto",height:"auto",objectFit:"contain",display:"block"}}
           />
         ) : (
