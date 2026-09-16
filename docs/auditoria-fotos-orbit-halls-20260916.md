@@ -25,11 +25,18 @@ identificar.
 | `FC-58752796` | 7501058752796 | Lysol Crisp Linen 475 g | `lysol-crisp-linen-475g.jpg` |
 | `FC-67923654` | 7506267923654 | Honey Keeper gel manzanilla 200 ml | `honey-keeper-gel-manzanilla-200ml.jpg` |
 
-## Qué pegar en Supabase
+## Por qué se veían igual (16-sep tarde)
 
-1. Deploy de `public/catalogo-propia/` (los 4 JPG reemplazados + 4 nuevos).
-2. `sql/patch_fotos_orbit_halls_faltantes_20260916.sql` **después** del deploy
-   (`?v=2` en las gomas para que no quede el JPEG viejo en caché).
+El SQL se pegó **antes** del deploy. `?v=2` sigue sirviendo el JPG de celular
+(el archivo en Vercel no cambió). Extra Strong, Skittles y Nórdiko apuntaban a
+`catalogo-propia/…` que **aún no existe** en el CDN (el SPA devuelve HTML).
+
+La galería no rotó a principal: el `LIKE` del primer SQL trató la URL vieja
+como si ya estuviera.
+
+**Corrección:** el mismo archivo SQL ahora usa packshots que ya cargan
+(Fahorro / Scorpion / SuperDulces / Benavides). Pegarlo de nuevo. No espera
+deploy. Las copias en `public/catalogo-propia/` quedan para el merge.
 
 ## Catálogo revisado — lo que sigue sin packshot usable
 
