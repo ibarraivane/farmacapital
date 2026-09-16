@@ -1,11 +1,12 @@
 /**
- * Precio de la TIENDA WEB con la comisión % de Mercado Pago incluida.
+ * Precio de la TIENDA WEB: ancla de mostrador + comisión completa de Mercado Pago.
  *
- * - `productos.precio` = ANCLA de mostrador. POS no se toca.
- * - Cada tarjeta muestra ancla + 3.49% + IVA (4.0484%). Checkout suma esas líneas.
- * - El $4 MXN + IVA es POR TRANSACCIÓN (un cobro), no por producto: se agrega
- *   una sola vez al pagar con Mercado Pago (`cargoFijoMp` / `totalConCargoMp`).
- *   Pickup en tienda (BBVA) no lo lleva.
+ * MP al instante: 3.49% + $4 MXN + IVA 16% sobre esa comisión.
+ * Para que el neto sea ≥ ancla en UNA pieza:
+ *   web = ceil((ancla + 4×1.16) / (1 − 3.49%×1.16))
+ *
+ * `productos.precio` = ANCLA. El POS no se toca.
+ * El checkout solo suma las tarjetas: no se vuelve a cobrar el $4.
  *
  * Espejo: api/_lib/precioOnlineMp.js y public.fc_precio_online_mp(numeric).
  */
@@ -26,18 +27,18 @@ export function precioAnclaUsable(precio) {
 /** Ancla → precio de tarjeta (peso entero hacia arriba). null si no hay ancla usable. */
 export function precioOnlineMp(precioLista) {
   if (!precioAnclaUsable(precioLista)) return null;
-  const bruto = Number(precioLista) / (1 - TASA_MP_ONLINE);
+  const bruto = (Number(precioLista) + FIJO_MP_CON_IVA) / (1 - TASA_MP_ONLINE);
   return Math.ceil(Math.round(bruto * 100) / 100);
 }
 
-/** $4 + IVA, una vez por cobro MP. */
+/** $4 + IVA (ya va dentro de cada tarjeta; no sumar otra vez). */
 export function cargoFijoMp() {
   return Math.round(FIJO_MP_CON_IVA * 100) / 100;
 }
 
-/** Productos (+ envío si ya está cotizado) + cargo fijo de la transacción. */
+/** Total a cobrar: lo que ya suman las líneas (sin cargo extra). */
 export function totalConCargoMp(base) {
   const b = Number(base);
   if (!Number.isFinite(b) || b <= 0) return null;
-  return Math.round((b + cargoFijoMp()) * 100) / 100;
+  return Math.round(b * 100) / 100;
 }

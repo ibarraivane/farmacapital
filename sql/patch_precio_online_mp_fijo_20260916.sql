@@ -1,6 +1,5 @@
--- OBSOLETO — no correr. El $4 es por transacción, no por SKU.
--- Usa sql/patch_precio_online_mp_pct_20260916.sql
--- o sql/patch_envio_cotiza_vendedor_20260916.sql.
+-- Reemplazado por sql/patch_precio_online_mp_cubre_todo_20260916.sql
+-- (misma fórmula). Corre ese.
 
 create or replace function public.fc_precio_online_mp(p_precio numeric)
 returns numeric
