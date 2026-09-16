@@ -39,6 +39,9 @@ values
    true),
 
   -- faltantes (EAN exacto Fahorro)
+  ('FC-LV-HALLSX12', null,
+   'https://www.farmacapital.mx/catalogo-propia/halls-extra-strong.jpg',
+   true),
   ('FC-LV-SKITTLES24', '7502226816944',
    'https://www.farmacapital.mx/catalogo-propia/skittles-original-22g.jpg',
    true),

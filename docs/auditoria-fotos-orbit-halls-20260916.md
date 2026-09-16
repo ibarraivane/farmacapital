@@ -1,8 +1,10 @@
 # Fotos oficiales Orbit / Halls / Clorets + faltantes (16-sep-2026)
 
 Las cuatro gomas de Dulcería La Victoria tenían fotos de celular (Open Facts). Se
-cambiaron por packshot de la pieza de mostrador. En el mismo pase se cruzó el
-listado de 129 SKUs sin foto (`fotos_pendientes_tras_lote_20260914.csv`).
+cambiaron por packshot de la pieza de mostrador. Snapshot vivo (16-sep): **1550**
+activos, **90** sin `imagen_url` (88 con stock). Se cruzaron los 42 EANs/nombres
+buscables; se omitieron jeringas, cintas, Mercurio, EANs `200…` e ítems sin
+identificar.
 
 ## Qué se reemplazó (improvisada → oficial)
 
@@ -17,13 +19,11 @@ listado de 129 SKUs sin foto (`fotos_pendientes_tras_lote_20260914.csv`).
 
 | SKU | EAN | Producto | Archivo |
 |---|---|---|---|
-| `FC-LV-SKITTLES24` | 7502226816944 | Skittles Original bolsa 22 g | `skittles-original-22g.jpg` |
+| `FC-LV-HALLSX12` | (sin EAN) | Halls Extra Strong | `halls-extra-strong.jpg` · Benavides, pieza |
+| `FC-LV-SKITTLES24` | 7502226816944 | Skittles Original bolsa 22 g | `skittles-original-22g.jpg` (copia propia; en vivo ya apuntaba a Fahorro) |
 | `FC-40071775` | 650240071775 | Nórdiko Original 130 g | `nordiko-original-130g.jpg` |
 | `FC-58752796` | 7501058752796 | Lysol Crisp Linen 475 g | `lysol-crisp-linen-475g.jpg` |
 | `FC-67923654` | 7506267923654 | Honey Keeper gel manzanilla 200 ml | `honey-keeper-gel-manzanilla-200ml.jpg` |
-
-Skittles: el 10-sep se descartó porque Open Facts solo tenía el dorso. Fahorro sí
-tiene el frente de la bolsa.
 
 ## Qué pegar en Supabase
 
@@ -33,9 +33,9 @@ tiene el frente de la bolsa.
 
 ## Catálogo revisado — lo que sigue sin packshot usable
 
-Se probaron 54 EANs buscables (se omitieron jeringas, goteros, cintas, Mercurio,
-EANs `200…` e ítems sin identificar). Fahorro respondió en 4. Nadro i22 = 429.
-Open Facts no aportó frentes nuevos.
+Vivo: 90 sin foto. De los 42 buscables, Fahorro/Benavides no tenían packshot de
+ese EAN (genéricos Novag/Maver/Raam, Gerber 100 g, quitaesmalte SKN, alcohol
+Dibar 250 ml, etc.). Nadro i22 = 429. Open Facts no aportó frentes nuevos.
 
 No se inventó foto cuando el EAN de Fahorro era **otra presentación**:
 
