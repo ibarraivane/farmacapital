@@ -20,6 +20,13 @@ test("tarjeta solo 3.49%+IVA; Servicio $5 una vez por pedido", () => {
   expect(CONCEPTO_CARGO_PLATAFORMA).toBe("Servicio");
 });
 
+test("el % + IVA siempre cierra a peso entero (sin centavos)", () => {
+  for (const ancla of [1, 7.5, 10, 25, 42, 99.9, 100, 459]) {
+    const web = precioOnlineMp(ancla);
+    expect(Number.isInteger(web)).toBe(true);
+  }
+});
+
 test("Skittles $10 → $11; 1 pieza $16, 5 piezas $60", () => {
   expect(precioOnlineMp(10)).toBe(11);
   expect(precioOnlineMp(42)).toBe(44);
