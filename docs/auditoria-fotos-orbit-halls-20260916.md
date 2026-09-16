@@ -51,6 +51,26 @@ Mismo patrón en **54** productos (principal propia 404 + galería Rappi viva).
 - SQL: `sql/patch_fotos_tarjeta_galeria_20260916.sql` (pega en Supabase; no espera deploy).
 - Archivo: `public/catalogo-propia/alka-seltzer-boost-c10.jpg` para el merge.
 
+## Cajas vacías en categoría (16-sep noche)
+
+Capturas: Boost, Dinaglix-Duo, Metformina LP Ascend, Biofilen 50/100, Allegra D, Allegra suspensión.
+
+| SKU | Producto | Fuente viva |
+|---|---|---|
+| `FC-8497593` | Alka-Seltzer Boost C/10 | Fahorro EAN `7501008497593` |
+| `FC-45798022` | Dinaglix-Duo 50/500 C/28 | Maver / BuscaMed (caja 50+500, 28) |
+| `FC-46016507` | Metformina LP Ascend 750 C/30 | Ficha Ascend Laboratories |
+| `FC-25301721` | Biofilen atenolol 50 mg C/28 | Degort's / BS Pharma |
+| `FC-25301752` | Biofilen atenolol 100 mg C/28 | WeCare EAN `7501825301752` |
+| `FC-65006386` | Allegra D 60/25 C/10 | Fahorro |
+| `FC-65006171` | Allegra suspensión 150 ml | Fahorro |
+
+Más 42 tarjetas con `catalogo-propia` en HTML (Motrin, Dolac, Listerine, Rexona, etc.) → Fahorro.
+
+SQL: `sql/patch_fotos_cajas_vacias_20260916.sql`.
+
+No se inventó foto de cintas, jeringas, Mercurio, EANs `200…`, Gerber 100 g, quitaesmalte SKN, ni genéricos Novag/Raam/Maver sin packshot de ese EAN.
+
 ## Catálogo revisado — lo que sigue sin packshot usable
 
 Vivo: 90 sin foto. De los 42 buscables, Fahorro/Benavides no tenían packshot de
