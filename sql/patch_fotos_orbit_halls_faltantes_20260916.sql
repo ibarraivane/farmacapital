@@ -93,13 +93,29 @@ update public.producto_imagenes i
 set es_principal = false
 where i.producto_id in (select producto_id from tmp_foto_match)
   and i.es_principal
-  and i.url not in (select url from tmp_foto_match);
+  and i.url not in (
+    select m.url from tmp_foto_match m where m.producto_id = i.producto_id
+  );
+
+update public.producto_imagenes i
+set posicion = (
+  select coalesce(max(x.posicion), 0) + 1
+  from public.producto_imagenes x
+  where x.producto_id = i.producto_id
+)
+where i.producto_id in (select producto_id from tmp_foto_match)
+  and i.posicion = 0
+  and i.url not in (
+    select m.url from tmp_foto_match m where m.producto_id = i.producto_id
+  );
 
 update public.producto_imagenes i
 set es_principal = true,
     posicion = 0
 where i.producto_id in (select producto_id from tmp_foto_match)
-  and i.url in (select url from tmp_foto_match);
+  and i.url in (
+    select m.url from tmp_foto_match m where m.producto_id = i.producto_id
+  );
 
 select
   p.sku,
