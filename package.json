@@ -35,7 +35,8 @@
     "import:farmac-os": "node scripts/import-farmac-os-xlsx.js",
     "import:farmac-os:supabase": "node scripts/run-farmac-os-via-pg.js",
     "eject": "react-scripts eject",
-    "test:pedidos-mostrador": "node --test src/lib/pedidosMostrador.node.test.js && node scripts/check-pedidos-mostrador.js"
+    "test:pedidos-mostrador": "node --test src/lib/pedidosMostrador.node.test.js && node scripts/check-pedidos-mostrador.js",
+    "test:metodos-pago": "node --test src/utils/pedidosTiendaWeb.node.test.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",

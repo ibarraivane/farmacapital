@@ -48,7 +48,7 @@ import {
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
-import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
+import { esPedidoTiendaWebPendiente, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { desgloseMixto, mensajeErrorMixto } from "../../../utils/pagoMixto";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
@@ -3630,7 +3630,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {tab==="online"&&(
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
-            <strong>Operación:</strong> aquí solo aparecen pedidos con <strong>pago aprobado</strong> en Mercado Pago. Surtir cuando esté preparado. En domicilio el cliente ya pagó el envío en checkout: abre DiDi (o propio) y marca en ruta.
+            <strong>Operación:</strong> aparecen pedidos listos para surtir: domicilio con <strong>pago Mercado Pago aprobado</strong>, y pick-up <strong>confirmado (cobro en tienda con BBVA)</strong>. En domicilio el cliente ya pagó el envío en checkout: abre DiDi (o propio) y marca en ruta.
           </div>
           {loading ? <SkeletonTable rows={3} cols={4}/> : (
             <>
@@ -3694,7 +3694,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{color:C.blue,fontWeight:900,fontSize:18}}>{$(p.total)}</div>
-                  <Tag col={C.green} sm>Pago aprobado</Tag>
+                  {(() => {
+                    const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
+                    return <Tag col={ep.col} sm>{ep.label}</Tag>;
+                  })()}
                 </div>
               </div>
               <div style={{background:C.bg,borderRadius:8,padding:"10px 14px",marginBottom:12}}>

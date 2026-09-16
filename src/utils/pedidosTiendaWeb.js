@@ -6,6 +6,10 @@
  */
 export const METODOS_PAGO_TIENDA_WEB = ["tarjeta", "mercadopago"];
 
+/** Pickup web confirmado, pendiente de cobro en tienda (terminal BBVA). */
+export const METODO_PENDIENTE_TIENDA = "pendiente_tienda";
+export const PAYMENT_STATUS_PENDING_STORE = "pending_store";
+
 /** Pago confirmado para surtir en POS (alineado a fn_pedido_online_pago_confirmado en Supabase). */
 export function pedidoOnlinePagoConfirmado(p) {
   if (!p) return false;
@@ -13,10 +17,53 @@ export function pedidoOnlinePagoConfirmado(p) {
   const status = String(p.payment_status || "").toLowerCase().trim();
   const tipo = String(p.tipo || "").toLowerCase().trim();
   if (tipo && tipo !== "online") return true;
+  // Pickup: puede surtirse / aparecer en cola sin MP approved
+  if (metodo === METODO_PENDIENTE_TIENDA) return true;
   if (metodo === "mercadopago" || metodo === "tarjeta") return status === "approved";
   if (metodo === "efectivo") return true;
   if (status) return status === "approved";
   return false;
+}
+
+/** Pickup online aún no cobrado en mostrador. */
+export function esPedidoPickupPendienteCobro(p) {
+  if (!p) return false;
+  const metodo = String(p.metodo_pago || "").toLowerCase().trim();
+  const status = String(p.payment_status || "").toLowerCase().trim();
+  const entrega = String(p.tipo_entrega || "").toLowerCase().trim();
+  if (entrega && entrega !== "recoger") return false;
+  if (metodo === METODO_PENDIENTE_TIENDA) return true;
+  return status === PAYMENT_STATUS_PENDING_STORE;
+}
+
+/**
+ * Etiqueta de pago para POS / Mis pedidos.
+ * @returns {{ label: string, col: string, kind: 'pending_store'|'approved_bbva'|'approved_mp'|'pending_mp'|'other' }}
+ */
+export function etiquetaPagoPedidoOnline(p, colors = {}) {
+  const accent = colors.accent || "#16a34a";
+  const amber = colors.amber || "#d97706";
+  const blue = colors.blue || "#1E3ABA";
+  const muted = colors.muted || "#64748b";
+
+  if (esPedidoPickupPendienteCobro(p)) {
+    return { label: "Pendiente cobro en tienda", col: amber, kind: "pending_store" };
+  }
+  const status = String(p?.payment_status || "").toLowerCase().trim();
+  const provider = String(p?.payment_provider || "").toLowerCase().trim();
+  const metodo = String(p?.metodo_pago || "").toLowerCase().trim();
+
+  if (status === "approved") {
+    if (provider === "bbva" || metodo === "tarjeta") {
+      return { label: "Pagado · BBVA", col: accent, kind: "approved_bbva" };
+    }
+    return { label: "Pagado · Mercado Pago", col: accent, kind: "approved_mp" };
+  }
+  if (metodo === "mercadopago" || ["pending", "in_process", "initiated"].includes(status)) {
+    return { label: "Pago por confirmar", col: amber, kind: "pending_mp" };
+  }
+  if (status) return { label: `Pago ${status}`, col: muted, kind: "other" };
+  return { label: "Sin pago online", col: muted, kind: "other" };
 }
 
 export function esPedidoTiendaWebPendiente(p) {
@@ -25,7 +72,7 @@ export function esPedidoTiendaWebPendiente(p) {
   if (p.tipo === "online") return true;
   if (p.tipo != null && String(p.tipo).trim() !== "") return false;
   const m = String(p.metodo_pago || "");
-  return m === "tarjeta" || m === "mercadopago";
+  return m === "tarjeta" || m === "mercadopago" || m === METODO_PENDIENTE_TIENDA;
 }
 
 function sessionTokenEmpleado(explicit) {

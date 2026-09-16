@@ -20,6 +20,10 @@ import {
   validarCarritoParaEntrega,
 } from "./utils/orderChannels";
 import {
+  etiquetaPagoPedidoOnline,
+  METODO_PENDIENTE_TIENDA,
+} from "./utils/pedidosTiendaWeb";
+import {
   productoPermitidoEnTiendaFarmaciaWeb,
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
@@ -3955,10 +3959,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         cantidad:    Number(c.qty),
       }));
 
+      const esPickupCheckout = tipo_entrega === "recoger";
+      const metodoRpc = esPickupCheckout ? METODO_PENDIENTE_TIENDA : metodo;
+
       const { data: resp, error: rpcErr } = await supabase.rpc("cliente_crear_pedido_online", {
         p_session_token: esInvitado ? null : tokCli,
         p_cart,
-        p_metodo_pago: metodo,
+        p_metodo_pago: metodoRpc,
         p_tipo_entrega: tipo_entrega,
         p_direccion: tipo_entrega === "envio" ? direccionStr : null,
         p_guest_nombre: esInvitado ? String(datos.nombre || "").trim() || null : null,
@@ -4019,6 +4026,39 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         }
         totalSnap = Number(attached.total);
         envioSnap = Number(attached.costo_envio || 0);
+      }
+
+      // Pickup: confirmado sin Preference / Link MP; cobro en tienda (BBVA).
+      if (esPickupCheckout) {
+        const ptsPickup = Number(resp?.puntos_ganados) || 0;
+        setLastOrder({
+          sub: totalSnap,
+          productos: subSnap,
+          envioFee: 0,
+          ptsG: ptsPickup,
+          lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
+          entregaUi: entrega,
+          tipo_entrega,
+          order_channel,
+          fulfillment_type,
+          ui_entrega: ui_entrega || null,
+          datosTel: datos.tel,
+          pedidoId: resp.pedido_id,
+          metodoPago: METODO_PENDIENTE_TIENDA,
+          cobroEnTienda: true,
+          whatsappRecibo: enviarReciboWhatsApp,
+        });
+        if (enviarReciboWhatsApp) {
+          notifyOnlineOrderReceipt({
+            pedidoId: resp.pedido_id,
+            sessionToken: tokCli || null,
+            phoneVerify: tokCli ? null : soloDigitosTel(datos.tel),
+          }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
+        }
+        setG(false);
+        setConf(true);
+        setCart([]);
+        return;
       }
 
       if (metodo === "mercadopago") {
@@ -4129,7 +4169,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }));
     };
     const instruccionEntrega = esPickup
-      ? `Muestra este folio en farmacia o menciona tu teléfono. Prepararemos tu pedido y te avisamos cuando esté listo.`
+      ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioFee
         ? `Ya pagaste el envío (${formatEnvioMoney(lastOrder.envioFee)}) junto con los productos. Te avisamos cuando salga el mensajero.`
         : "Envío incluido en tu pago. Te avisamos cuando salga el mensajero.";
@@ -4172,7 +4212,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               </div>
             ))}
             <div style={{display:"flex",justifyContent:"space-between",paddingTop:8,marginTop:4,borderTop:`1px solid ${C.border}`}}>
-              <span style={{color:C.dark,fontWeight:800}}>Total pagado</span>
+              <span style={{color:C.dark,fontWeight:800}}>{lastOrder.cobroEnTienda ? "Total a pagar al recoger" : "Total pagado"}</span>
               <span style={{color:BRAND.primary,fontWeight:900}}>${Number(lastOrder.sub).toFixed(2)}</span>
             </div>
           </div>
@@ -4343,7 +4383,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{color:BRAND.primary,fontWeight:700}}>Ver mapa</a>
                   </div>
                 )}
-                <div style={{marginTop:14,fontSize:12,color:C.mid}}>Pago con Mercado Pago (tarjeta, transferencia o efectivo).</div>
+                <div style={{marginTop:14,fontSize:12,color:C.mid}}>
+                  {entrega==="pickup"
+                    ? "Pick-up: confirmas el pedido ahora y pagas al recoger con tarjeta (terminal BBVA)."
+                    : "Pago con Mercado Pago (tarjeta, transferencia o efectivo)."}
+                </div>
                 <label
                   style={{
                     display: "flex",
@@ -4378,14 +4422,14 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                       setPage("carrito");
                       return;
                     }
-                    setMetodo("mercadopago");
+                    setMetodo(entrega === "pickup" ? METODO_PENDIENTE_TIENDA : "mercadopago");
                     setStep(2);
                   }}
                   col={BRAND.primary}
                   style={{marginTop:20,width:stack?"100%":undefined}}
                   disabled={!cart.length || !datosCheckoutCompletos || !envioListoParaPagar}
                 >
-                  Revisar y pagar →
+                  {entrega==="pickup" ? "Revisar pedido →" : "Revisar y pagar →"}
                 </Btn>
               </div>
             );
@@ -4408,7 +4452,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                       : "Ubica la dirección en el mapa para ver el envío"}
                   </div>
                 )}
-                <div style={{marginTop:4,color:C.mid}}>Pago con Mercado Pago</div>
+                <div style={{marginTop:4,color:C.mid}}>
+                  {entrega==="pickup"
+                    ? "Pagas al recoger con tarjeta (terminal BBVA)"
+                    : "Pago con Mercado Pago"}
+                </div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>
                 )}
@@ -4432,7 +4480,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
                 <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
                 <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar} style={{flex:stack?1:undefined,minWidth:0}}>
-                  {guardando?"Procesando…":"Pagar "+$(totalPagar)}
+                  {guardando
+                    ? "Procesando…"
+                    : entrega==="pickup"
+                      ? `Confirmar pedido · ${$(totalPagar)}`
+                      : "Pagar "+$(totalPagar)}
                 </Btn>
               </div>
             </div>
@@ -5653,13 +5705,15 @@ function etiquetaEstadoCitaCliente(c) {
 }
 
 function etiquetaEstadoPagoPedido(p) {
-  const muted = "#64748b";
-  const s = String(p?.payment_status || "").toLowerCase();
-  if (s === "approved") return { label: "Pago aprobado", col: BRAND.accent };
-  if (["pending", "in_process", "initiated"].includes(s)) return { label: "Pago pendiente", col: "#d97706" };
-  if (s) return { label: `Pago ${s}`, col: muted };
-  if (String(p?.metodo_pago || "").toLowerCase() === "mercadopago") return { label: "Pago por confirmar", col: "#d97706" };
-  return { label: "Sin pago online", col: muted };
+  const e = etiquetaPagoPedidoOnline(p, {
+    accent: BRAND.accent,
+    amber: "#d97706",
+    muted: "#64748b",
+  });
+  if (e.kind === "pending_store") {
+    return { label: "Pedido confirmado · pagas al recoger", col: e.col };
+  }
+  return { label: e.label, col: e.col };
 }
 
 function etiquetaLogisticaPedido(p) {
