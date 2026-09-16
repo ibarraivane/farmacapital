@@ -1054,6 +1054,15 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           const { error: provErr } = await rpcGuardarProveedorProducto(tok, form.id, proveedorTxt);
           if (provErr) err = provErr;
         }
+        // Solo si tocaron la casilla: la lista puede no traer la columna y no hay que apagarla.
+        if (!err && form._bajoPedidoTocado) {
+          const { error: bpErr } = await supabase.rpc("admin_set_bajo_pedido_producto", {
+            p_session_token: tok,
+            p_producto_id: form.id,
+            p_bajo_pedido: Boolean(form.bajo_pedido),
+          });
+          if (bpErr) err = bpErr;
+        }
         if (!err) {
           const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
             p_session_token: tok,
@@ -1083,6 +1092,17 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           if (newId != null) {
             const { error: provErr } = await rpcGuardarProveedorProducto(tok, newId, proveedorTxt);
             if (provErr) err = provErr;
+          }
+        }
+        if (!err && form._bajoPedidoTocado && form.bajo_pedido) {
+          const newId = productoIdDesdeCreateRpc(created);
+          if (newId != null) {
+            const { error: bpErr } = await supabase.rpc("admin_set_bajo_pedido_producto", {
+              p_session_token: tok,
+              p_producto_id: newId,
+              p_bajo_pedido: true,
+            });
+            if (bpErr) err = bpErr;
           }
         }
       }
@@ -1353,6 +1373,20 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               <input type="checkbox" id="activo_chk" checked={form.activo}
                 onChange={e=>set("activo",e.target.checked)} style={{width:16,height:16,cursor:"pointer"}}/>
               <label htmlFor="activo_chk" style={{...labelStyle,margin:0,cursor:"pointer"}}>Producto activo</label>
+            </div>
+            <div style={{marginBottom:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <input type="checkbox" id="bajo_pedido_chk" checked={Boolean(form.bajo_pedido)}
+                  onChange={e=>setForm(f=>({...f,bajo_pedido:e.target.checked,_bajoPedidoTocado:true}))}
+                  style={{width:16,height:16,cursor:"pointer"}}/>
+                <label htmlFor="bajo_pedido_chk" style={{...labelStyle,margin:0,cursor:"pointer"}}>Bajo pedido (vitrina «Te lo conseguimos»)</label>
+              </div>
+              {form.bajo_pedido && (
+                <div style={{fontSize:11,color:C.textDim,marginTop:4,lineHeight:1.45}}>
+                  Stock 0, sin lote ni caducidad. Precio = ancla de mostrador (la web suma Mercado Pago). Sin precio (≤ $0.01) sale como «Cotizar».
+                  {(Number(form.stock)||0) > 0 ? <strong style={{color:C.red}}> Tiene existencia: si está en anaquel, no lo marques.</strong> : null}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3197,8 +3231,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"            ? true :
-      filtroAlerta === "agotados"         ? (p.activo && (Number(p.stock_peps ?? p.stock) || 0) === 0) :
-      filtroAlerta === "bajo_stock"       ? (p.stock <= (p.stock_minimo??0)) :
+      filtroAlerta === "agotados"         ? (p.activo && !p.bajo_pedido && (Number(p.stock_peps ?? p.stock) || 0) === 0) :
+      filtroAlerta === "bajo_stock"       ? (!p.bajo_pedido && p.stock <= (p.stock_minimo??0)) :
+      filtroAlerta === "bajo_pedido"      ? (p.bajo_pedido === true) :
       filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
@@ -3257,8 +3292,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   };
 
   const activos    = productos.filter(p => p.activo).length;
-  const agotadosInv = productos.filter(p => p.activo && (Number(p.stock_peps ?? p.stock) || 0) === 0).length;
-  const bajoStock  = productos.filter(p => p.activo && p.stock<=(p.stock_minimo??0)).length;
+  // Bajo pedido no cuenta como faltante de góndola.
+  const agotadosInv = productos.filter(p => p.activo && !p.bajo_pedido && (Number(p.stock_peps ?? p.stock) || 0) === 0).length;
+  const bajoStock  = productos.filter(p => p.activo && !p.bajo_pedido && p.stock<=(p.stock_minimo??0)).length;
   const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
@@ -4031,6 +4067,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           <option value="todos">Todas las alertas</option>
           <option value="agotados">🚨 Agotados</option>
           <option value="bajo_stock">⚠ Bajo stock</option>
+          <option value="bajo_pedido">📦 Bajo pedido (vitrina)</option>
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
           <option value="sin_foto">🖼 Sin foto</option>

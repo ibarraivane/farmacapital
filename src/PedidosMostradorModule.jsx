@@ -19,6 +19,7 @@ import {
   siguientesEstados,
 } from "./lib/pedidosMostrador";
 import { buildSolicitudWhatsAppCliente } from "./lib/solicitudTienda";
+import EncargosBajoPedidoPanel from "./components/EncargosBajoPedidoPanel";
 
 const C = C_LIGHT;
 
@@ -579,6 +580,7 @@ export default function PedidosMostradorModule({ usuario }) {
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
         {[
           { id: "lista", label: "Lista" },
+          { id: "encargos", label: "Encargos web (reserva)" },
           { id: "ranking", label: "Más pedidos (30 días)" },
         ].map((t) => (
           <button
@@ -756,6 +758,8 @@ export default function PedidosMostradorModule({ usuario }) {
           </div>
         </>
       )}
+
+      {tab === "encargos" && <EncargosBajoPedidoPanel />}
 
       {tab === "ranking" && (
         <section

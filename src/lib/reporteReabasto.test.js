@@ -7,6 +7,7 @@ import {
   filasReporte,
   idFuenteSurtidor,
   itemsParaPedir,
+  filasAlertaStockAnaquel,
   nivelStockUrgencia,
   opcionesPedidoProducto,
 } from "./reporteReabasto";
@@ -28,6 +29,14 @@ describe("urgencia de stock", () => {
     expect(nivelStockUrgencia(prod({ stock: 8, stock_minimo: 10 }))).toBe("BAJO");
     expect(nivelStockUrgencia(prod({ stock: 12, stock_minimo: 10 }))).toBe("PRONTO");
     expect(nivelStockUrgencia(prod({ stock: 40, stock_minimo: 10 }))).toBe(null);
+    // Bajo pedido: vitrina, no hueco de anaquel.
+    expect(nivelStockUrgencia(prod({ stock: 0, stock_minimo: 10, bajo_pedido: true }))).toBe(null);
+    expect(clasificarAlertas([prod({ bajo_pedido: true }), prod({ id: 2 })]).agotados.map((p) => p.id)).toEqual([2]);
+    expect(filasReporte([prod({ bajo_pedido: true })])).toEqual([]);
+    expect(filasAlertaStockAnaquel([
+      prod({ id: 1, bajo_pedido: true }),
+      prod({ id: 2 }),
+    ]).map((p) => p.id)).toEqual([2]);
   });
 
   test("sin mínimo usa 5", () => {

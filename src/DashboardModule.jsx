@@ -26,6 +26,7 @@ import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
 import { canalIngresoPedido, pedidoCuentaEnVentas } from "./utils/orderChannels";
 import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
+import { filasAlertaStockAnaquel } from "./lib/reporteReabasto";
 import VentasVsMetaChart from "./VentasVsMetaChart";
 import { agruparVentasPorDia, parseYmdLocal, ymdMexico } from "./lib/ventasVsMeta";
 import { addDaysISO, hoyISOMexico } from "./lib/fecha";
@@ -610,7 +611,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     }
 
     const pedItems = rpcBundleRows(B, "ped_items_top");
-    const bajoStock = rpcBundleRows(B, "bajo_stock");
+    const bajoStock = filasAlertaStockAnaquel(rpcBundleRows(B, "bajo_stock"));
     const caducarJs = parseRpcJsonObject(caducarRes?.data);
     if (caducarRes?.error) console.warn("[Dashboard] por caducar 90d:", caducarRes.error.message);
     const porCaducar = caducarRes?.error

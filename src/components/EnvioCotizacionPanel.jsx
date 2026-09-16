@@ -10,16 +10,13 @@ import {
 } from "../lib/envioDomicilio";
 
 const DIDI_STAFF_URL = "https://www.didi-food.com/es-MX/mobile-delivery/home";
+const UBER_STAFF_URL = "https://m.uber.com/";
 
 export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
   const meta = leerMetaEnvio(pedido);
   const pedidoPaid = String(pedido?.payment_status || "").toLowerCase() === "approved";
-  const cobradoCheckout = Boolean(meta.cobrado_en_checkout) || pedidoPaid;
-  const pagado = meta.estado === "pagado" || (cobradoCheckout && pedidoPaid);
-  const [costoReal, setCostoReal] = useState(
-    meta.costo_real_mensajeria != null
-      ? String(meta.costo_real_mensajeria)
-      : (meta.costo_tabla != null ? String(meta.costo_tabla) : "")
+  const [costo, setCosto] = useState(
+    meta.costo_cotizado != null ? String(meta.costo_cotizado) : ""
   );
   const [proveedor, setProveedor] = useState(meta.proveedor || proveedorSugerido(meta.colonia || ""));
   const [busy, setBusy] = useState(false);
@@ -28,13 +25,12 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
     return [meta.calle || pedido?.direccion, meta.colonia, meta.cp].filter(Boolean).join(", ");
   }, [meta.calle, meta.colonia, meta.cp, pedido?.direccion]);
 
-  const cobradoCliente = Number(meta.costo_cotizado ?? pedido?.costo_envio);
   const token = () => sessionStorage.getItem("farmacapital_session_token");
 
-  const guardarCostoReal = async () => {
-    const n = Number(costoReal);
+  const enviarCotizacion = async () => {
+    const n = Number(costo);
     if (!Number.isFinite(n) || n < 0) {
-      showToast("Escribe el costo real de la mensajería (0 si va propio/gratis).", "warning");
+      showToast("Escribe el costo que te dio DiDi o Uber.", "warning");
       return;
     }
     setBusy(true);
@@ -47,10 +43,15 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
     });
     setBusy(false);
     if (!r.ok) {
-      showToast(r.error === "fuera_radio" ? "Fuera de radio (máx. 5 km)." : `No se guardó: ${r.error}`, "warning");
+      showToast(r.error === "pedido_ya_pagado" ? "Este pedido ya está pagado." : `No se guardó: ${r.error}`, "warning");
       return;
     }
-    showToast("Costo real guardado (interno; el cliente ya pagó la tarifa de checkout)", "success");
+    showToast(
+      r.whatsapp?.sent
+        ? "Costo guardado y WhatsApp enviado al cliente."
+        : "Costo guardado. Si no salió el WhatsApp, avísale tú desde el botón verde.",
+      r.whatsapp?.sent ? "success" : "warning"
+    );
     onUpdated?.(r.envio);
   };
 
@@ -60,7 +61,7 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
     setBusy(false);
     if (!r.ok) {
       const msg = r.error === "envio_no_pagado"
-        ? "El pedido aún no tiene pago aprobado."
+        ? "El cliente aún no liquida en la tienda."
         : `No se marcó en ruta: ${r.error}`;
       showToast(msg, "warning");
       return;
@@ -74,8 +75,8 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
       marginTop: 10,
       padding: "10px 12px",
       borderRadius: 8,
-      border: `1px solid ${meta.estado === "fuera_radio" ? "#fca5a5" : "#99f6e4"}`,
-      background: meta.estado === "fuera_radio" ? "#fef2f2" : "#f0fdfa",
+      border: "1px solid #99f6e4",
+      background: "#f0fdfa",
       fontSize: 12,
       color: "#134e4a",
     }}>
@@ -83,28 +84,22 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
       <div style={{ lineHeight: 1.4, marginBottom: 8 }}>
         {direccion || "Sin dirección"}
         {meta.distancia_km != null ? ` · ${Number(meta.distancia_km).toFixed(2)} km` : ""}
-        {Number.isFinite(cobradoCliente)
-          ? ` · cobrado en checkout ${formatEnvioMoney(cobradoCliente)}`
-          : ""}
+        {Number.isFinite(Number(meta.costo_cotizado))
+          ? ` · cotizado ${formatEnvioMoney(meta.costo_cotizado)}`
+          : " · falta cotizar"}
       </div>
-      <div style={{ marginBottom: 8, fontWeight: 700, color: meta.estado === "fuera_radio" ? "#991b1b" : "#0f766e" }}>
+      <div style={{ marginBottom: 8, fontWeight: 700, color: "#0f766e" }}>
         {meta.estado === "en_ruta" && "En ruta"}
-        {meta.estado === "fuera_radio" && "Fuera de radio · no se envía"}
-        {meta.estado !== "en_ruta" && meta.estado !== "fuera_radio" && pagado && (
-          `Cliente ya pagó el envío en checkout${Number.isFinite(cobradoCliente) ? ` (${formatEnvioMoney(cobradoCliente)})` : ""}. No se manda link.`
-        )}
-        {meta.estado !== "en_ruta" && meta.estado !== "fuera_radio" && !pagado && (
-          "El envío se cobra en el checkout. Espera el pago aprobado para marcar en ruta."
-        )}
+        {pedidoPaid && meta.estado !== "en_ruta" && "Cliente ya pagó. Puedes pedir el mensajero."}
+        {!pedidoPaid && meta.estado === "cotizado" && "Cotización enviada. Esperando que el cliente pague en la tienda."}
+        {!pedidoPaid && meta.estado !== "cotizado" && meta.estado !== "en_ruta" && "Abre DiDi o Uber, cotiza y pon aquí el costo. Se le avisa por WhatsApp para que liquide."}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-        <a
-          href={DIDI_STAFF_URL}
-          target="_blank"
-          rel="noreferrer"
-          style={{ fontWeight: 800, color: "#0f766e" }}
-        >
-          Abrir DiDi (pedir mensajero)
+        <a href={DIDI_STAFF_URL} target="_blank" rel="noreferrer" style={{ fontWeight: 800, color: "#0f766e" }}>
+          Abrir DiDi
+        </a>
+        <a href={UBER_STAFF_URL} target="_blank" rel="noreferrer" style={{ fontWeight: 800, color: "#0f766e" }}>
+          Abrir Uber
         </a>
         <button
           type="button"
@@ -116,26 +111,28 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
           Copiar dirección
         </button>
       </div>
-      {meta.estado !== "fuera_radio" && meta.estado !== "en_ruta" && (
+      {meta.estado !== "en_ruta" && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <label>
-            Costo real mensajería{" "}
+            Costo transporte{" "}
             <input
-              value={costoReal}
-              onChange={(e) => setCostoReal(e.target.value)}
+              value={costo}
+              onChange={(e) => setCosto(e.target.value)}
               inputMode="decimal"
               style={{ width: 80, padding: "4px 6px" }}
             />
           </label>
           <label>
-            Proveedor{" "}
+            App{" "}
             <select value={proveedor} onChange={(e) => setProveedor(e.target.value)}>
               <option value="didi">DiDi</option>
-              <option value="uber">Uber (fallback)</option>
+              <option value="uber">Uber</option>
               <option value="propio">Repartidor propio</option>
             </select>
           </label>
-          <button type="button" disabled={busy} onClick={guardarCostoReal}>Guardar costo real</button>
+          <button type="button" disabled={busy || pedidoPaid} onClick={enviarCotizacion}>
+            Guardar y avisar al cliente
+          </button>
           <button type="button" disabled={busy} onClick={marcarRuta}>Marcar en ruta</button>
         </div>
       )}

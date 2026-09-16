@@ -36,7 +36,14 @@ export function stockMinimoEfectivo(p) {
   return Number(p?.stock_minimo) > 0 ? Number(p.stock_minimo) : STOCK_MIN_DEFAULT;
 }
 
+/** Filas del dashboard / badge: vitrina bajo pedido no es hueco de anaquel. */
+export function filasAlertaStockAnaquel(rows) {
+  return (Array.isArray(rows) ? rows : []).filter((p) => p?.bajo_pedido !== true);
+}
+
 export function nivelStockUrgencia(p) {
+  // Bajo pedido no es hueco de anaquel: nunca entra a agotados / stock bajo / pedir.
+  if (p?.bajo_pedido === true) return null;
   const min = stockMinimoEfectivo(p);
   const stock = stockDe(p);
   const pct = min > 0 ? stock / min : 0;

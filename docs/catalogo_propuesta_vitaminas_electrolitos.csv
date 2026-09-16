@@ -1,10 +1,10 @@
-sku,nombre,categoria,subcategoria,notas_importacion,precio_sugerido_mxn,activo,visible_tienda,requiere_receta,controlado,delivery_allowed,sell_web,sell_pickup,sell_rappi,sell_uber
-,VIT_C_500MG_TBL,,Vitaminas,Completar SKU y presentación según proveedor,,true,true,false,false,true,true,true,false,false
-,VIT_D3_2000UI,,Vitaminas,,,true,true,false,false,true,true,true,false,false
-,COMPLEJO_B_TBL,,Vitaminas,,,true,true,false,false,true,true,true,false,false
-,MULTIVIT_ADULTO,,Vitaminas,,,true,true,false,false,true,true,true,false,false
-,MULTIVIT_PEDIATRICO,,Vitaminas,,,true,true,false,false,true,true,true,false,false
-,PRENATAL_ACIDO_FOLICO,,Vitaminas,,,true,true,false,false,true,true,true,false,false
-,SUERO_ORAL_SOBRES,,Hidratación / electrolitos,,,true,true,false,false,true,true,true,false,false
-,ELECTROLITOS_PEDIATRICO,,Hidratación / electrolitos,,,true,true,false,false,true,true,true,false,false
-,ELECTROLITOS_SIN_AZUCAR,,Hidratación / electrolitos,,,true,true,false,false,true,true,true,false,false
+listo_para_cargar,codigo_propuesta,sku,nombre,categoria,subcategoria,notas_importacion,precio_sugerido_mxn,activo,visible_tienda,requiere_receta,controlado,delivery_allowed,sell_web,sell_pickup,sell_rappi,sell_uber
+false,VIT_C_500MG_TBL,,,Vitaminas,,"NO CARGAR. Borrador: falta ficha de proveedor (nombre de mostrador, EAN, foto, precio ancla). SKU = FC- + últimos 8 del EAN. No inventar caducidad.",,true,true,false,false,true,true,true,false,false
+false,VIT_D3_2000UI,,,Vitaminas,,"NO CARGAR. Borrador: falta ficha de proveedor (nombre de mostrador, EAN, foto, precio ancla).",,true,true,false,false,true,true,true,false,false
+false,COMPLEJO_B_TBL,,,Vitaminas,,"NO CARGAR. Borrador: falta ficha de proveedor (nombre de mostrador, EAN, foto, precio ancla).",,true,true,false,false,true,true,true,false,false
+false,MULTIVIT_ADULTO,,,Vitaminas,,"NO CARGAR. Borrador: falta ficha de proveedor (nombre de mostrador, EAN, foto, precio ancla).",,true,true,false,false,true,true,true,false,false
+false,MULTIVIT_PEDIATRICO,,,Vitaminas,,"NO CARGAR. Borrador: falta ficha de proveedor (nombre de mostrador, EAN, foto, precio ancla).",,true,true,false,false,true,true,true,false,false
+false,PRENATAL_ACIDO_FOLICO,,,Vitaminas,,"NO CARGAR. Borrador: falta ficha de proveedor (nombre de mostrador, EAN, foto, precio ancla).",,true,true,false,false,true,true,true,false,false
+false,SUERO_ORAL_SOBRES,,,Hidratación,,"NO CARGAR. Categoría canónica: Hidratación (no «Hidratación / electrolitos»). Falta ficha de proveedor.",,true,true,false,false,true,true,true,false,false
+false,ELECTROLITOS_PEDIATRICO,,,Hidratación,,"NO CARGAR. Categoría canónica: Hidratación. Falta ficha de proveedor.",,true,true,false,false,true,true,true,false,false
+false,ELECTROLITOS_SIN_AZUCAR,,,Hidratación,,"NO CARGAR. Categoría canónica: Hidratación. Falta ficha de proveedor.",,true,true,false,false,true,true,true,false,false

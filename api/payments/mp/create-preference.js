@@ -1,6 +1,8 @@
 'use strict';
 
 const { isAllowedReturnBase } = require('../../_lib/allowedOrigins');
+const { crearReserva } = require('../../_lib/reservaBajoPedido');
+const { cargoFijoMp, totalConCargoMp } = require('../../_lib/precioOnlineMp');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -32,6 +34,18 @@ module.exports = async function handler(req, res) {
   }
 
   const body = await safeJson(req);
+
+  // Encargo BAJO PEDIDO: reserva en tarjeta (capture manual), no preferencia de Checkout Pro.
+  if (body?.modo === 'reserva') {
+    const authHdr = req.headers.authorization || req.headers.Authorization || '';
+    const out = await crearReserva({
+      env: { accessToken: MP_ACCESS_TOKEN, supabaseUrl: SUPABASE_URL, serviceKey: SUPABASE_SERVICE_ROLE_KEY },
+      body,
+      clienteToken: authHdr.replace(/^Bearer\s+/i, '').trim(),
+    }).catch((e) => ({ status: 500, json: { ok: false, error: 'unexpected_error', message: e?.message || 'unknown' } }));
+    return res.status(out.status).json(out.json);
+  }
+
   const pedidoId = Number(body?.pedidoId);
   const amount = Number(body?.amount || 0);
   const payer = body?.payer && typeof body.payer === 'object' ? body.payer : {};
@@ -87,6 +101,10 @@ module.exports = async function handler(req, res) {
     if (!clienteId) clienteId = Number(pedido.cliente_id);
     if (pedido.tipo !== 'online') return res.status(400).json({ ok: false, error: 'pedido_not_online' });
     if (pedido.estado !== 'pendiente') return res.status(409).json({ ok: false, error: 'pedido_not_pending' });
+    if (pedido.logistics_meta && pedido.logistics_meta.bajo_pedido === true) {
+      // Los encargos se pagan con reserva (se cobra al conseguirlo), nunca con liga directa.
+      return res.status(409).json({ ok: false, error: 'pedido_bajo_pedido_usa_reserva' });
+    }
 
     // Pickup cobro en tienda (BBVA): no generar Preference / Link de pago.
     const metodoPago = String(pedido.metodo_pago || '').toLowerCase().trim();
@@ -101,7 +119,10 @@ module.exports = async function handler(req, res) {
 
     if (isGuest) {
       const created = new Date(pedido.created_at).getTime();
-      if (!Number.isFinite(created) || Date.now() - created > 2 * 60 * 60 * 1000) {
+      const guestMs = String(pedido.tipo_entrega || '').toLowerCase() === 'envio'
+        ? 72 * 60 * 60 * 1000
+        : 2 * 60 * 60 * 1000;
+      if (!Number.isFinite(created) || Date.now() - created > guestMs) {
         return res.status(403).json({ ok: false, error: 'guest_checkout_expired' });
       }
       let telPedido = String(pedido.guest_telefono || '').replace(/\D/g, '');
@@ -120,10 +141,18 @@ module.exports = async function handler(req, res) {
 
     const totalDb = Number(pedido.total || 0);
     if (!Number.isFinite(totalDb) || totalDb <= 0) return res.status(400).json({ ok: false, error: 'invalid_db_total' });
-    if (Math.abs(totalDb - amount) > 0.01) return res.status(409).json({ ok: false, error: 'amount_mismatch' });
+    const cargo = cargoFijoMp();
+    const expected = totalConCargoMp(totalDb);
+    if (expected == null || Math.abs(expected - amount) > 0.01) {
+      return res.status(409).json({ ok: false, error: 'amount_mismatch', expected });
+    }
 
     let envioFee = 0;
     if (pedido.tipo_entrega === 'envio') {
+      const envioEstado = String(pedido.logistics_meta?.envio?.estado || '').toLowerCase();
+      if (!['cotizado', 'link_enviado', 'pagado'].includes(envioEstado) && !(Number(pedido.costo_envio) >= 0)) {
+        return res.status(409).json({ ok: false, error: 'envio_quote_required' });
+      }
       const metaFee = Number(pedido.logistics_meta?.envio?.costo_cotizado);
       const fee = Number.isFinite(Number(pedido.costo_envio)) ? Number(pedido.costo_envio) : metaFee;
       if (!Number.isFinite(fee) || fee < 0) {
@@ -136,12 +165,13 @@ module.exports = async function handler(req, res) {
     const safeBase = isAllowedReturnBase(baseUrl) ? String(baseUrl).replace(/\/+$/, '') : siteDefault;
     const externalReference = `FARMACAPITAL-PED-${pedidoId}`;
     const productsTotal = Math.round((totalDb - envioFee) * 100) / 100;
-    const items = envioFee > 0 && productsTotal > 0 && Math.abs(productsTotal + envioFee - totalDb) <= 0.01
-      ? [
-        { title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: productsTotal },
-        { title: 'Envío a domicilio', quantity: 1, currency_id: 'MXN', unit_price: envioFee },
-      ]
-      : [{ title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: totalDb }];
+    const items = [
+      { title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: productsTotal },
+    ];
+    if (envioFee > 0) {
+      items.push({ title: 'Envío a domicilio', quantity: 1, currency_id: 'MXN', unit_price: envioFee });
+    }
+    items.push({ title: 'Pago con tarjeta (una vez)', quantity: 1, currency_id: 'MXN', unit_price: cargo });
     const mpPayload = {
       external_reference: externalReference,
       notification_url: `${safeBase}/api/payments/mp/webhook`,
@@ -161,6 +191,7 @@ module.exports = async function handler(req, res) {
         pedido_id: pedidoId,
         cliente_id: clienteId,
         costo_envio: envioFee,
+        cargo_mp: cargo,
       },
     };
 

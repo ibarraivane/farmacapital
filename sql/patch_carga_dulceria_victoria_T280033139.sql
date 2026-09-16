@@ -66,7 +66,7 @@ select
   null,
   t.categoria,
   t.tipo,
-  'Alta Dulcería La Victoria T280033139 · 2026-09-05 · EAN pendiente de caja · ticket decía La Famosa',
+  null,
   t.marca,
   t.presentacion,
   t.costo,

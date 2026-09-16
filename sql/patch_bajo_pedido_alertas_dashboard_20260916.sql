@@ -1,7 +1,34 @@
--- Parche: alias FarmaCapital en bundles del dashboard + receta_origen médico
--- Ejecutar en Supabase SQL Editor si los KPIs de receta consultorio salen en $0.
+-- FarmaCapital — bajo pedido no cuenta como agotado en dashboard / sidebar.
+-- Correr DESPUÉS de sql/patch_bajo_pedido_20260916.sql (necesita productos.bajo_pedido).
+-- Idempotente.
 
--- Alias en bundle operación (JS lee ped_receta_farmacapital o ped_receta_farmax)
+begin;
+
+-- Badge del menú Inventario
+create or replace function public.empleado_contar_productos_bajo_stock(p_session_token uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_dummy bigint;
+  v_n int;
+begin
+  v_dummy := public.fn_require_empleado(p_session_token);
+  select count(*)::int into v_n
+  from public.productos p
+  where coalesce(p.activo, false)
+    and not coalesce(p.bajo_pedido, false)
+    and coalesce(p.stock, 0) <= coalesce(p.stock_minimo, 0);
+  return coalesce(v_n, 0);
+end;
+$$;
+
+revoke all on function public.empleado_contar_productos_bajo_stock(uuid) from public;
+grant execute on function public.empleado_contar_productos_bajo_stock(uuid) to anon, authenticated;
+
+-- Bundle del dashboard (copia de patch_dashboard_bundle_farmacapital.sql + exclusión)
 create or replace function public.empleado_dashboard_operacion_bundle(
   p_session_token uuid,
   p_ctx jsonb
@@ -65,7 +92,6 @@ begin
     'ped_semana', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ws), '[]'::jsonb),
     'ped_semana_ant', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ps and p.created_at <= v_pe), '[]'::jsonb),
     'ped_mes', coalesce((select jsonb_agg(jsonb_build_object('total', p.total,'atendido_por', p.atendido_por)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ms), '[]'::jsonb),
-    -- SUM en vez de jsonb_agg de todos los tickets (hincha/tumba el bundle).
     'ventas_acumuladas', coalesce((select sum(p.total)::numeric from public.pedidos p where (p.estado)::text='completado'), 0),
     'ped_todos', coalesce((
       select case
@@ -93,9 +119,16 @@ begin
       ) q
     ), '[]'::jsonb),
     'bajo_stock', coalesce((
-      select jsonb_agg(jsonb_build_object('id', p.id,'nombre', p.nombre,'stock', p.stock,'stock_minimo', p.stock_minimo))
+      select jsonb_agg(jsonb_build_object(
+        'id', p.id,
+        'nombre', p.nombre,
+        'stock', p.stock,
+        'stock_minimo', p.stock_minimo,
+        'bajo_pedido', coalesce(p.bajo_pedido, false)
+      ))
       from public.productos p
-      where coalesce(p.activo,true) and coalesce(p.stock,0) <= 0
+      where coalesce(p.activo,true)
+        and coalesce(p.stock,0) <= 0
         and not coalesce(p.bajo_pedido, false)
       order by p.nombre nulls last
       limit 5
@@ -137,3 +170,8 @@ begin
   );
 end;
 $$;
+
+revoke all on function public.empleado_dashboard_operacion_bundle(uuid, jsonb) from public;
+grant execute on function public.empleado_dashboard_operacion_bundle(uuid, jsonb) to anon, authenticated;
+
+commit;

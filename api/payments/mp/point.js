@@ -7,6 +7,8 @@
 const crypto = require('crypto');
 const { getSupabaseAdminConfig, validateEmployeeSession } = require('../../_lib/supabaseAdmin');
 const { applyRestrictiveCors } = require('../../_lib/allowedOrigins');
+const { cobrarReserva, cancelarReserva } = require('../../_lib/reservaBajoPedido');
+const { sendOrderNotifications } = require('../../_lib/orderNotifications');
 
 const MP_API = 'https://api.mercadopago.com';
 const MP_DEVICES_LEGACY = `${MP_API}/point/integration-api/devices`;
@@ -262,6 +264,21 @@ module.exports = async function handler(req, res) {
   // path: /api/payments/mp/point?action=devices|create-intent|get-intent|cancel-intent|clear-terminal|set-pdv
   const { action, deviceId, intentId, orderId } = req.query;
   const body = req.method === 'POST' ? (typeof req.body === 'object' ? req.body : {}) : null;
+
+  // Encargos bajo pedido: cobrar o cancelar la reserva en tarjeta (sesión de empleado ya validada).
+  if (action === 'reserva-cobrar' || action === 'reserva-cancelar') {
+    if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+    const env = { accessToken: MP_ACCESS_TOKEN, supabaseUrl, serviceKey };
+    const pedidoIdReserva = Number(body?.pedidoId);
+    try {
+      const out = action === 'reserva-cobrar'
+        ? await cobrarReserva({ env, pedidoId: pedidoIdReserva, notify: sendOrderNotifications })
+        : await cancelarReserva({ env, pedidoId: pedidoIdReserva, motivo: body?.motivo });
+      return res.status(out.status).json(out.json);
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: 'unexpected_error', message: e?.message || 'unknown' });
+    }
+  }
 
   try {
     if (action === 'devices') {

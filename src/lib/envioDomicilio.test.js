@@ -14,31 +14,13 @@ describe("envioDomicilio cliente", () => {
     expect(calcularCostoEnvio({ distanciaKm: 1.2, subtotal: 50 }).costo).toBe(30);
     expect(calcularCostoEnvio({ distanciaKm: 3, subtotal: 230 }).costo).toBe(0);
     expect(calcularCostoEnvio({ distanciaKm: 4.5, subtotal: 100 }).costo).toBe(65);
-    expect(calcularCostoEnvio({ distanciaKm: 5.01 }).ok).toBe(false);
+    expect(calcularCostoEnvio({ distanciaKm: 5.01, radioMaximoKm: 5 }).ok).toBe(false);
+    expect(calcularCostoEnvio({ distanciaKm: 8, radioMaximoKm: 0 }).ok).toBe(true);
   });
 
-  test("checkout bloquea fuera de radio y permite pickup", () => {
+  test("checkout de domicilio solo pide dirección; el vendedor cotiza después", () => {
     expect(checkoutPuedePedirEnvio({ entrega: "pickup", direccionOk: true })).toBe(true);
-    expect(checkoutPuedePedirEnvio({
-      entrega: "cdmx",
-      direccionOk: true,
-      estimacion: { ok: false, error: "fuera_radio" },
-    })).toBe(false);
-    expect(checkoutPuedePedirEnvio({
-      entrega: "cdmx",
-      direccionOk: true,
-      estimacion: { ok: true, costo: 30 },
-    })).toBe(true);
-    expect(checkoutPuedePedirEnvio({
-      entrega: "cdmx",
-      direccionOk: true,
-      estimacion: { ok: true, costo: 0, gratis: true },
-    })).toBe(true);
-    expect(checkoutPuedePedirEnvio({
-      entrega: "cdmx",
-      direccionOk: true,
-      estimacion: { ok: false, error: "coords_invalidas" },
-    })).toBe(false);
+    expect(checkoutPuedePedirEnvio({ entrega: "cdmx", direccionOk: true })).toBe(true);
     expect(checkoutPuedePedirEnvio({ entrega: "cdmx", direccionOk: false })).toBe(false);
   });
 
@@ -52,7 +34,6 @@ describe("envioDomicilio cliente", () => {
       config: cfg,
     });
     expect(est.ok).toBe(true);
-    expect(est.costo).toBe(30);
   });
 
   test("SLA restante no es negativo", () => {
@@ -64,7 +45,7 @@ describe("envioDomicilio cliente", () => {
   test("etiqueta de cuenta: cobrado en checkout, no segundo link", () => {
     expect(etiquetaEstadoEnvioCliente({ estado: "cotizado", cobrado_en_checkout: true }, "approved")).toBe("Envío pagado");
     expect(etiquetaEstadoEnvioCliente({ estado: "cotizado", cobrado_en_checkout: true }, "pending")).toBe("Envío en el total");
-    expect(etiquetaEstadoEnvioCliente({ estado: "link_enviado" }, "approved")).toBe("Envío por pagar");
+    expect(etiquetaEstadoEnvioCliente({ estado: "link_enviado" }, "approved")).toBe("Listo para pagar envío");
     expect(etiquetaEstadoEnvioCliente({ estado: "en_ruta" })).toBe("En ruta");
   });
 });
