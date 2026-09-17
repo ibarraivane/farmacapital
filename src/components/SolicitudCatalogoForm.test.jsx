@@ -17,5 +17,6 @@ test("formulario de categoría no usa Te lo conseguimos", () => {
   expect(screen.queryByText(/Te lo conseguimos/i)).not.toBeInTheDocument();
   expect(screen.getByText(/tarjeta de crédito/i)).toBeInTheDocument();
   expect(document.getElementById("pedido-especial-form")).toBeTruthy();
+  expect(document.getElementById("pedido-especial-form").className).toMatch(/farmacapital-solicitud-form/);
   expect(document.getElementById("conseguir-form")).toBeTruthy();
 });

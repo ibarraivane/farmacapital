@@ -184,11 +184,14 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
   return (
     <div
       id="pedido-especial-form"
+      className="farmacapital-solicitud-form"
       style={{
         maxWidth: 560,
         margin: "0 auto",
         padding: enCategoria ? "0 0 8px" : "8px 0 24px",
         scrollMarginTop: 90,
+        colorScheme: "light",
+        background: "#ffffff",
       }}
     >
       <div id="conseguir-form" style={{ scrollMarginTop: 90 }}>

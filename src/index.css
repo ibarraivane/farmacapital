@@ -43,15 +43,29 @@ code {
     monospace;
 }
 
-/* Inputs tienda/admin: fondo blanco y texto oscuro (incl. autofill Chrome/Safari) */
-.farmacapital-field-input {
+/* Inputs: fondo blanco siempre. Safari/iOS en modo oscuro pisa el inline
+   si no va !important (meta color-scheme: light dark). */
+.farmacapital-solicitud-form,
+#pedido-especial-form,
+#conseguir-form {
   color-scheme: light;
 }
 
 .farmacapital-field-input,
 .farmacapital-field-select,
-textarea.farmacapital-field-input {
-  color-scheme: light;
+textarea.farmacapital-field-input,
+.farmacapital-solicitud-form input,
+.farmacapital-solicitud-form select,
+#pedido-especial-form input,
+#pedido-especial-form select,
+#conseguir-form input,
+#conseguir-form select {
+  color-scheme: light !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #001534 !important;
+  -webkit-text-fill-color: #001534 !important;
+  caret-color: #001534 !important;
 }
 
 /* El placeholder debe verse de ejemplo, no como si el cliente ya hubiera escrito. */
@@ -70,12 +84,32 @@ textarea.farmacapital-field-input::placeholder {
 .farmacapital-field-select:-webkit-autofill,
 .farmacapital-field-select:-webkit-autofill:hover,
 .farmacapital-field-select:-webkit-autofill:focus,
-.farmacapital-field-select:-webkit-autofill:active {
+.farmacapital-field-select:-webkit-autofill:active,
+.farmacapital-solicitud-form input:-webkit-autofill,
+#pedido-especial-form input:-webkit-autofill,
+#conseguir-form input:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
   box-shadow: 0 0 0 1000px #ffffff inset !important;
-  -webkit-text-fill-color: #0f172a !important;
-  caret-color: #0f172a;
+  -webkit-text-fill-color: #001534 !important;
+  caret-color: #001534;
   transition: background-color 99999s ease-out 0s;
+}
+
+@media (prefers-color-scheme: dark) {
+  .farmacapital-field-input,
+  .farmacapital-field-select,
+  textarea.farmacapital-field-input,
+  .farmacapital-solicitud-form input,
+  .farmacapital-solicitud-form select,
+  #pedido-especial-form input,
+  #pedido-especial-form select,
+  #conseguir-form input,
+  #conseguir-form select {
+    color-scheme: light !important;
+    background-color: #ffffff !important;
+    color: #001534 !important;
+    -webkit-text-fill-color: #001534 !important;
+  }
 }
 
 @media (max-width: 420px) {
