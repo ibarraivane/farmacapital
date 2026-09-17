@@ -141,6 +141,13 @@ export default function VitrinaConseguir({
       </p>
       {!vacio ? <p style={{ margin: "0 0 14px", fontSize: 14 }}>{formLink}</p> : null}
 
+      {esNutri && rubrosSeccion.length > 1 ? (
+        <div role="tablist" aria-label="Rubros" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, margin: "0 0 16px" }}>
+          {chip("", "Todos")}
+          {rubrosSeccion.map((r) => chip(r.id, r.label))}
+        </div>
+      ) : null}
+
       {vacio ? (
         <>
           <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 16px" }}>
@@ -152,13 +159,6 @@ export default function VitrinaConseguir({
 
       {loading && !hayAlgo ? (
         <div style={{ color: "#64748b", fontSize: 14, padding: "12px 0 24px" }}>Cargando productos…</div>
-      ) : null}
-
-      {esNutri && rubrosSeccion.length > 1 ? (
-        <div role="tablist" aria-label="Rubros" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, marginBottom: 16 }}>
-          {chip("", "Todos")}
-          {rubrosSeccion.map((r) => chip(r.id, r.label))}
-        </div>
       ) : null}
 
       {!vacio && (rubro || esDerma) ? (

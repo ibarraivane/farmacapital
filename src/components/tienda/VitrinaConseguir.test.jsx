@@ -47,6 +47,21 @@ test("banda en 0 no se muestra; copy no inventa marcas", () => {
   expect(screen.getByText(/Redoxon/)).toBeInTheDocument();
 });
 
+test("vitaminas vacía igual muestra chips de rubro", () => {
+  render(
+    <VitrinaConseguir
+      productos={[]}
+      loading={false}
+      stack
+      seccion="nutricion"
+      setPage={jest.fn()}
+      renderProducto={(p) => <div key={p.id}>{p.nombre}</div>}
+    />
+  );
+  expect(screen.getByRole("tab", { name: /Todos/i })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: /Proteína/i })).toBeInTheDocument();
+});
+
 test("dermocosmética usa marcas del catálogo", () => {
   render(
     <VitrinaConseguir
