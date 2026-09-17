@@ -21,11 +21,13 @@
 
 begin;
 
--- Columnas de controlado (pueden faltar en prod antiguas).
+-- Columnas de controlado / vitrina (pueden faltar en prod antiguas).
 alter table public.productos
   add column if not exists controlado boolean not null default false;
 alter table public.productos
   add column if not exists grupo_controlado text;
+alter table public.productos
+  add column if not exists visible_tienda boolean not null default true;
 
 do $$
 declare

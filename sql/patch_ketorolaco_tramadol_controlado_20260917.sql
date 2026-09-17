@@ -4,7 +4,7 @@
 -- Tramadol = Fracción III (art. 245 LGS, vigencia COFEPRIS jul-2026).
 -- Solo se vende en mostrador con receta (no tienda web / Rappi / envío).
 --
--- Idempotente: crea columnas controlado / grupo_controlado si faltan.
+-- Idempotente: crea controlado / grupo_controlado / visible_tienda si faltan.
 -- ============================================================================
 
 begin;
@@ -15,10 +15,15 @@ alter table public.productos
 alter table public.productos
   add column if not exists grupo_controlado text;
 
+alter table public.productos
+  add column if not exists visible_tienda boolean not null default true;
+
 comment on column public.productos.controlado is
   'Medicamento controlado COFEPRIS: solo mostrador (no tienda web / Rappi).';
 comment on column public.productos.grupo_controlado is
   'Fracción LGS art. 245 (I–V). Ej. tramadol = III.';
+comment on column public.productos.visible_tienda is
+  'Si false, no aparece en catálogo web (controlados, etc.).';
 
 update public.productos
    set controlado = true,
