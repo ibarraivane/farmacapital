@@ -2,6 +2,9 @@
 -- FARMA CAPITAL — cosecha Fahorro vitrina bajo pedido 2026-09-17
 -- Generado por scripts/alta-bajo-pedido-desde-fichas.js
 -- 80 SKU(s). Stock 0. Sin lote ni caducidad.
+-- PRECIO: 0 (Cotizar). La columna numérica de la temp es solo referencia
+-- histórica de lista Fahorro — NO es precio FarmaCapital.
+-- Precio de Encargar = costo mayoreo + ganancia; sin costo → Cotizar.
 -- Si el EAN ya existe CON stock: no se marca bajo_pedido.
 -- ============================================================================
 
@@ -138,7 +141,7 @@ select
   'marca',
   t.descripcion,
   null,
-  t.precio,
+  0,  -- Cotizar hasta costo mayoreo + ganancia (nunca lista Fahorro)
   0,
   1,
   true,
@@ -161,8 +164,8 @@ update public.productos p
        activo = true,
        marca = coalesce(nullif(trim(p.marca), ''), t.marca),
        presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
-       imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url),
-       precio = case when coalesce(p.precio, 0) <= 0.01 then t.precio else p.precio end
+       imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url)
+       -- no pisa precio con lista Fahorro
   from _fc_vitrina_bp t
  where (p.codigo_barras = t.ean or p.id = public.fc_buscar_producto_escaneo(t.ean))
    and coalesce(p.stock, 0) = 0;

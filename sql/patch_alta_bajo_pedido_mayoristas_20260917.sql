@@ -2,7 +2,9 @@
 -- FARMA CAPITAL — Lote mayoristas 17-sep-2026 (DermaPharma / Birdman / ON / Promexsa)
 -- Generado por scripts/alta-bajo-pedido-desde-fichas.js
 -- desde docs/fichas_lote_mayoristas_20260917.json
--- 10 SKUs. Ancla = lista Fahorro (SKU = EAN). Stock 0. Sin lote ni caducidad.
+-- 10 SKUs. Stock 0. Sin lote ni caducidad.
+-- PRECIO: 0 (Cotizar) hasta tener costo mayoreo + ganancia.
+-- La cifra «lista Fahorro» en descripcion es solo referencia — NO es PVP FC.
 -- Fotos en public/catalogo-propia/ → URL farmacapital.mx DESPUÉS del deploy.
 -- Si el EAN ya existe CON stock: no se marca bajo_pedido.
 -- ============================================================================
@@ -70,7 +72,7 @@ select
   'marca',
   t.descripcion,
   null,
-  t.precio,
+  0,  -- Cotizar hasta costo mayoreo + ganancia (nunca lista Fahorro)
   0,
   1,
   true,
@@ -93,8 +95,7 @@ update public.productos p
        activo = true,
        marca = coalesce(nullif(trim(p.marca), ''), t.marca),
        presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
-       imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url),
-       precio = case when coalesce(p.precio, 0) <= 0.01 then t.precio else p.precio end
+       imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url)
   from _fc_vitrina_bp t
  where (p.codigo_barras = t.ean or p.id = public.fc_buscar_producto_escaneo(t.ean))
    and coalesce(p.stock, 0) = 0;

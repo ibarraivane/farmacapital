@@ -38,6 +38,8 @@ test("Encargar con precio, Cotizar sin precio usable", () => {
   expect(ctaBajoPedido(prepararProductoTienda(anthelios))).toBe("encargar");
   expect(ctaBajoPedido(whey)).toBe("cotizar");
   expect(ctaBajoPedido(prepararProductoTienda(whey))).toBe("cotizar");
+  // Sin costo mayoreo: precio 0 → Cotizar (nunca Encargar con lista Fahorro)
+  expect(ctaBajoPedido({ ...anthelios, precio: 0, costo: null })).toBe("cotizar");
   expect(ctaBajoPedido(paracetamol)).toBeNull();
 });
 
