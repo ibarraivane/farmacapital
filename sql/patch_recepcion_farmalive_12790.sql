@@ -19,7 +19,7 @@ create temp table _fc_rx_farmalive12790 (
 
 insert into _fc_rx_farmalive12790 (linea, ean, sku, nombre, qty, costo) values
   (1, '7501065065322', null, 'Advil 12 Horas ibuprofeno 600 mg C/6 | Haleon', 3, 74.15),
-  (2, '7501108763468', null, 'Advil ibuprofeno 200 mg cápsulas C/10 | Haleon', 1, 138.18),
+  (2, '7501108763468', null, 'Advil ibuprofeno 200 mg cápsulas C/10 | Haleon', 3, 46.06),
   (3, '020800600347', null, 'Tampax Super Plus tampones C/10 | P&G', 2, 43.12),
   (4, '7501017362998', null, 'Kleenex pañuelos pack C/8 | Kimberly-Clark', 1, 32.83),
   (5, '7501008499245', null, 'Aspirina GO sobres C/10 | Bayer', 10, 58.80),
@@ -58,7 +58,7 @@ select
   '2026-09-15',
   3534.11,
   'borrador',
-  'Pedido Farmalive 12790 · Club Iztapalapa 1 · 15-sep-2026 · EAN del ticket (Advil PR346 Compra 3 @$222.46 → 3×$74.15 · PR347 → EAN Haleon) · precio neto (2%/5%/8%) · promos Prudence @$0.01 · cola Recibir; stock al confirmar pistola'
+  'Pedido Farmalive 12790 · Club Iztapalapa 1 · 15-sep-2026 · Advil PR346 3×$74.15 · PR347 3×$46.06 · precio neto (2%/5%/8%) · promos Prudence @$0.01 · cola Recibir; stock al confirmar pistola'
 where not exists (
   select 1 from public.recepciones
   where folio = '12790' and coalesce(proveedor, '') ilike '%farmalive%'
@@ -69,7 +69,7 @@ set
   total_ticket = 3534.11,
   fecha = '2026-09-15',
   proveedor = 'Farmalive',
-  notas = 'Pedido Farmalive 12790 · Club Iztapalapa 1 · 15-sep-2026 · EAN del ticket (Advil PR346 Compra 3 @$222.46 → 3×$74.15 · PR347 → EAN Haleon) · precio neto (2%/5%/8%) · promos Prudence @$0.01 · cola Recibir; stock al confirmar pistola',
+  notas = 'Pedido Farmalive 12790 · Club Iztapalapa 1 · 15-sep-2026 · Advil PR346 3×$74.15 · PR347 3×$46.06 · precio neto (2%/5%/8%) · promos Prudence @$0.01 · cola Recibir; stock al confirmar pistola',
   updated_at = now()
 where folio = '12790'
   and coalesce(proveedor, '') ilike '%farmalive%'
