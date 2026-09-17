@@ -24,6 +24,7 @@ SKU: `FC-` + últimos 8 del EAN. Si ese SKU ya es de otro EAN → el SQL pone `F
 | Cuenta | Qué llena | Categoría / subcategoría |
 | --- | --- | --- |
 | Nadro, Marzam, Levic | Dermocosmética y vitaminas de consultorio | `Cuidado personal` + `Dermatología` · `Vitaminas` · `Suplemento` |
+| [DermaPharma](https://dermapharma.mx/?country=MX) | Dermocosmética que el dermatólogo pide y Nadro no trae (Sesderma, Heliocare, Neoretin, Frezyderm, Alphascience, ISDIN, Avène) | `Cuidado personal` + `Dermatología` |
 | [Suplementos Mayoreo](https://suplementosmayoreo.com/) y [shop menudeo](https://shop.suplementosmayoreo.com/) | Nutrición deportiva (whey, creatina, pre-entreno) | `Suplemento` + `Nutrición deportiva` |
 | [Birdman B2B MX](https://b2b.birdman.com/?country=MX) | Proteína vegetal, creatina, vitaminas Birdman | igual; marca **Birdman**, no el SKU interno |
 | [Promexsa](https://www.promexsa.com.mx/) | Dispositivos médicos | `Dispositivo médico` |
@@ -33,6 +34,8 @@ Nadro / Marzam / Levic también traen glucómetro y tensiómetro. Si el EAN est�
 Promexsa a veces publica SKU tipo `ORT-AGH-1100` o `DIS-KIB-676`. **Eso no es EAN.** No lo metas como código de barras. Busca el GTIN en la caja o en la ficha; si no hay, el aparato se pide por el formulario de Pedidos especiales hasta que lo tengas.
 
 Birdman B2B y el portal de mayoreo de suplementos piden login para el precio. El nombre y la foto pueden salir de la ficha pública; el ancla, de tu lista. No uses el código interno como nombre.
+
+DermaPharma: nombre y foto de la ficha (no del kit si vendes la pieza suelta). El EAN está en la caja o en el PDP; si solo ves SKU interno, no lo uses como código de barras. Kits y “de regalo” no se dan de alta como un solo EAN.
 
 ## Dónde aparece cada alta
 
