@@ -16,6 +16,21 @@ it("sin galería se queda el packshot", () => {
   expect(ordenarGaleriaProducto("packshot.jpg", [])).toEqual(["packshot.jpg"]);
 });
 
+it("no deja pasar URLs de Del Ahorro en galería ni tarjeta", () => {
+  expect(
+    ordenarGaleriaProducto("https://production-media.fahorro.com/media/x.jpg", [
+      "https://www.fahorro.com/media/y.jpg",
+      "https://www.farmacapital.mx/catalogo-propia/ok.jpg",
+    ]),
+  ).toEqual(["https://www.farmacapital.mx/catalogo-propia/ok.jpg"]);
+  expect(
+    ordenarUrlsTarjeta([
+      { url: "https://www.fahorro.com/media/catalog/product/a.jpg", posicion: 1, es_principal: true },
+      { url: "https://www.farmacapital.mx/catalogo-propia/ok.jpg", posicion: 2, es_principal: false },
+    ]),
+  ).toEqual(["https://www.farmacapital.mx/catalogo-propia/ok.jpg"]);
+});
+
 it("la tarjeta prueba la principal y si falla sigue con la galería de la ficha", () => {
   const urls = ordenarUrlsTarjeta([
     { url: "https://cdn/rappi/1.png", posicion: 1, es_principal: false },

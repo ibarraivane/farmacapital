@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { urlImagenPublicaTienda } from "../utils/tiendaCardImage";
 
 /**
  * Fotos de un producto para la galería.
@@ -17,8 +18,8 @@ function normalizar(url) {
 
 /** Galería Rappi primero; imagen_url solo si no hay set de catálogo. */
 export function ordenarGaleriaProducto(imagenPrincipal, urlsGaleria) {
-  const extra = (urlsGaleria || []).map(normalizar).filter(Boolean);
-  const base = normalizar(imagenPrincipal);
+  const extra = (urlsGaleria || []).map(normalizar).map(urlImagenPublicaTienda).filter(Boolean);
+  const base = urlImagenPublicaTienda(normalizar(imagenPrincipal));
   const fuentes = extra.length ? extra : (base ? [base] : []);
   const vistas = new Set();
   const imagenes = [];
@@ -41,7 +42,7 @@ const IMAGENES_PAGE = 1000;
 export function ordenarUrlsTarjeta(filas) {
   const rows = (filas || [])
     .map((r) => ({
-      url: normalizar(r?.url),
+      url: urlImagenPublicaTienda(normalizar(r?.url)),
       posicion: Number(r?.posicion) || 0,
       principal: !!r?.es_principal,
     }))
