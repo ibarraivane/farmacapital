@@ -2473,7 +2473,7 @@ function HomeServices({setPage}){
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
-    { key:"conseguir", titulo:"Te lo conseguimos", desc:"Dermato, vitaminas y lo que no está", color:BRAND.accent, tipo:"page", destino:"conseguir", icon:PackageSearch },
+    { key:"conseguir", titulo:"Te lo conseguimos", desc:"Dermato, vitaminas, dispositivos y lo que no está", color:BRAND.accent, tipo:"page", destino:"conseguir", icon:PackageSearch },
   ];
   const handleClick = (s)=>{
     if (s.tipo==="page") {

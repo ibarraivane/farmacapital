@@ -22,6 +22,7 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "vitaminas", label: "Vitaminas" },
   { id: "suplementos", label: "Suplementos" },
   { id: "proteina", label: "Proteína" },
+  { id: "dispositivos", label: "Dispositivos" },
 ]);
 
 function norm(s) {
@@ -56,7 +57,8 @@ export function rubroDeProducto(p) {
   const sub = norm(p.subcategoria);
   if (cat === "Cuidado personal" && sub.startsWith("dermatolog")) return "dermatologia";
   if (cat === "Vitaminas") return "vitaminas";
-  if (cat === "Suplemento") return sub.startsWith("protein") ? "proteina" : "suplementos";
+  if (cat === "Suplemento") return sub.startsWith("protein") || sub.startsWith("nutricion deport") ? "proteina" : "suplementos";
+  if (cat === "Dispositivo médico" || cat === "Botiquín") return "dispositivos";
   return "";
 }
 
