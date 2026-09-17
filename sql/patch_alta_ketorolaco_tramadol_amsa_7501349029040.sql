@@ -9,6 +9,7 @@
 -- Entrada: 2 piezas · costo $100 · venta $350
 --
 -- Nota: la caja imprime PMP $280.00; el precio de venta pedido es $350.
+-- CONTROLADO Fracción III (tramadol · COFEPRIS jul-2026): solo mostrador con receta.
 -- Foto packshot: public/catalogo-propia/ketorolaco-tramadol-amsa-10-25-iny-3amp.jpg
 --   (URL tras deploy: https://www.farmacapital.mx/catalogo-propia/ketorolaco-tramadol-amsa-10-25-iny-3amp.jpg)
 --
@@ -19,6 +20,14 @@
 -- ============================================================================
 
 begin;
+
+-- Columnas de controlado / vitrina (pueden faltar en prod antiguas).
+alter table public.productos
+  add column if not exists controlado boolean not null default false;
+alter table public.productos
+  add column if not exists grupo_controlado text;
+alter table public.productos
+  add column if not exists visible_tienda boolean not null default true;
 
 do $$
 declare
@@ -58,7 +67,10 @@ begin
       'precio', v_precio,
       'stock_minimo', 1,
       'activo', true,
-      'requiere_receta', true
+      'requiere_receta', true,
+      'controlado', true,
+      'grupo_controlado', 'III',
+      'visible_tienda', false
     ),
     2,                       -- 2 piezas (cajas)
     'B26F627',
@@ -76,6 +88,9 @@ begin
     subcategoria = 'Analgésico inyectable',
     laboratorio = 'AMSA / Antibióticos de México',
     requiere_receta = true,
+    controlado = true,
+    grupo_controlado = 'III',
+    visible_tienda = false,
     imagen_url = coalesce(nullif(imagen_url, ''), v_foto)
   where id = v_pid;
 
