@@ -28,6 +28,13 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+from lib.imagen_competencia import (  # noqa: E402
+    es_placeholder_imagen_competencia,
+    es_url_imagen_competencia,
+    mensaje_rechazo_imagen_competencia,
+)
+
 CSV_IN = ROOT / "sql" / "generated" / "candidatos_imagenes_20260915.csv"
 DEST = ROOT / "public" / "catalogo-propia"
 SQL_OUT = ROOT / "sql" / "patch_fotos_lote_20260915.sql"
@@ -51,6 +58,8 @@ def slug(nombre: str, ean: str, pos: int) -> str:
 
 
 def bajar(url: str) -> tuple[bytes | None, str, str]:
+    if es_url_imagen_competencia(url):
+        return None, "", mensaje_rechazo_imagen_competencia()
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "image/*,*/*"})
     try:
         with urllib.request.urlopen(req, timeout=90) as r:
@@ -62,6 +71,8 @@ def bajar(url: str) -> tuple[bytes | None, str, str]:
         return None, mime, f"tipo inesperado ({mime or 'sin content-type'})"
     if len(blob) < MIN_BYTES:
         return None, mime, f"demasiado chica ({len(blob)} bytes), probable placeholder"
+    if es_placeholder_imagen_competencia(blob):
+        return None, mime, mensaje_rechazo_imagen_competencia()
     if not mime:
         if blob.startswith(b"\x89PNG"):
             mime = "image/png"

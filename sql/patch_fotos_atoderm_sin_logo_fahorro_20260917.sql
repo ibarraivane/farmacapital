@@ -1,8 +1,9 @@
 -- ============================================================================
 -- FarmaCapital — 2026-09-17
 -- Quitar el placeholder rosa de Del Ahorro (letra «A») en Atoderm Intensive Baume.
--- La cosecha Fahorro guardó su imagen de «sin foto» en catalogo-propia/.
--- Packshots reales ya van en el deploy; este SQL apunta a nombres nuevos (rompe caché).
+-- Packshots reales en el deploy; este SQL apunta a nombres nuevos (rompe caché).
+-- También corre sql/patch_quitar_urls_fahorro_imagenes_20260917.sql para limpiar
+-- cualquier hotlink fahorro.com restante en imagen_url / galería.
 -- Correr DESPUÉS de publicar el deploy de Vercel.
 -- ============================================================================
 

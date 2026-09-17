@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const {
   getSupabaseAdminConfig,
   validateEmployeeSession,
@@ -10,6 +11,15 @@ const { isRhDocumentoRequest, rhDocumentoHandler } = require('../_lib/rhDocument
 
 const ALLOWED_BUCKETS = new Set(['banners', 'productos', 'cortes']);
 const MAX_BYTES = 12 * 1024 * 1024;
+/** PNG logo rosa «A» de Del Ahorro cuando el EAN no tiene packshot. */
+const PLACEHOLDER_FAHORRO_MD5 = '59370f17d7cac03761209f4b0cf46374';
+const PLACEHOLDER_FAHORRO_BYTES = 6334;
+
+function esPlaceholderCompetencia(body) {
+  if (!body?.length) return false;
+  if (body.length === PLACEHOLDER_FAHORRO_BYTES) return true;
+  return crypto.createHash('md5').update(body).digest('hex') === PLACEHOLDER_FAHORRO_MD5;
+}
 
 async function ensureCortesBucket(supabaseUrl, serviceKey) {
   const headers = {
@@ -91,6 +101,14 @@ async function handler(req, res) {
   }
   if (body.length > MAX_BYTES) {
     return res.status(413).json({ ok: false, error: 'file_too_large' });
+  }
+  if (bucket !== 'cortes' && esPlaceholderCompetencia(body)) {
+    return res.status(400).json({
+      ok: false,
+      error: 'competitor_placeholder',
+      message:
+        'Esa imagen es el logo/placeholder de otra farmacia (Del Ahorro). Sube el packshot del producto o déjalo sin foto.',
+    });
   }
 
   if (bucket === 'cortes') {

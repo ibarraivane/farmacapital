@@ -9,11 +9,47 @@ import {
   prepareImageForUpload,
   extFromContentType,
 } from "./imageUploadResize";
+import {
+  esPlaceholderImagenCompetencia,
+  mensajeRechazoImagenCompetencia,
+} from "../lib/imagenCompetencia";
 
 export const FARMACAPITAL_STORAGE = {
   banners: "farmacapital-banners",
   productos: "farmacapital-productos",
 };
+
+function readFileImageSize(file) {
+  return new Promise((resolve) => {
+    if (!file?.type?.startsWith("image/") || file.type === "image/svg+xml") {
+      resolve(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
+/** Rechaza el logo rosa «A» de Del Ahorro antes de tocar Storage. */
+async function assertNoPlaceholderCompetencia(file) {
+  const dims = await readFileImageSize(file);
+  if (esPlaceholderImagenCompetencia({
+    byteLength: file?.size,
+    width: dims?.width,
+    height: dims?.height,
+  })) {
+    throw new Error(mensajeRechazoImagenCompetencia());
+  }
+}
 
 export function guessImageExt(file) {
   return extFromContentType(file?.type || "");
@@ -56,6 +92,7 @@ async function clearProductImageSlots(supabaseClient, productId) {
  * @returns {Promise<{ imagen_url: string, imagen_mobile_url: string }>}
  */
 export async function uploadAutoBannerImages(supabaseClient, bannerId, file) {
+  await assertNoPlaceholderCompetencia(file);
   const id = String(bannerId);
   const prep = await prepareBannerDualForUpload(file);
   await clearBannerImageSlots(supabaseClient, id);
@@ -100,6 +137,7 @@ export async function uploadAutoBannerImages(supabaseClient, bannerId, file) {
  * @returns {Promise<{ imagen_url: string, imagen_mobile_url: string }>}
  */
 export async function uploadAutoProductImages(supabaseClient, productId, file) {
+  await assertNoPlaceholderCompetencia(file);
   const id = String(productId);
   const prep = await prepareProductDualForUpload(file);
   await clearProductImageSlots(supabaseClient, id);
@@ -144,6 +182,7 @@ export async function uploadAutoProductImages(supabaseClient, productId, file) {
  * @param {"desktop"|"mobile"} variant — subida manual de una variante (legacy)
  */
 export async function uploadBannerImage(supabaseClient, bannerId, file, variant) {
+  await assertNoPlaceholderCompetencia(file);
   const id = String(bannerId);
   const preset = variant === "mobile" ? "bannerMobile" : "bannerDesktop";
   const { file: uploadFile, contentType } = await prepareImageForUpload(file, preset);
@@ -163,6 +202,7 @@ export async function uploadBannerImage(supabaseClient, bannerId, file, variant)
 
 /** Una sola variante producto (legacy); preferir uploadAutoProductImages */
 export async function uploadProductImage(supabaseClient, productId, file) {
+  await assertNoPlaceholderCompetencia(file);
   const id = String(productId);
   const { file: uploadFile, contentType } = await prepareImageForUpload(file, "product");
   await clearProductImageSlots(supabaseClient, id);

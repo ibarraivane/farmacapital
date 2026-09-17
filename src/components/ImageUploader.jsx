@@ -2,6 +2,10 @@ import { useState, useRef } from "react";
 import { supabase } from "../supabase";
 import { showToast } from "../ui";
 import { C_LIGHT, BRAND } from "../constants";
+import {
+  esPlaceholderImagenCompetencia,
+  mensajeRechazoImagenCompetencia,
+} from "../lib/imagenCompetencia";
 
 /**
  * Subida de imágenes a Supabase Storage (buckets: banners | productos).
@@ -73,6 +77,16 @@ export default function ImageUploader({
       return;
     }
 
+    const dimsPre = await readImageDimensions(file);
+    if (esPlaceholderImagenCompetencia({
+      byteLength: file.size,
+      width: dimsPre?.width,
+      height: dimsPre?.height,
+    })) {
+      showToast(mensajeRechazoImagenCompetencia(), "error");
+      return;
+    }
+
     setUploading(true);
     setProgress(10);
 
@@ -84,7 +98,7 @@ export default function ImageUploader({
         fileMime === "image/gif" ? "gif" :
         (ext || "jpg");
       const timestamp = Date.now();
-      const dims = await readImageDimensions(file);
+      const dims = dimsPre;
       const dimTag = dims?.width && dims?.height ? `${dims.width}x${dims.height}` : "img";
       const cleanPrefix = filenamePrefix.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
       const fileName = cleanPrefix
