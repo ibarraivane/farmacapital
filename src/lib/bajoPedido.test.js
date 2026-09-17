@@ -13,6 +13,7 @@ import {
   filtrarVitrina,
   filtrarVitrinaSeccion,
   horasRestantesReserva,
+  etiquetaVaciarYAgregar,
   motivoNoMezclar,
   pedidoEsBajoPedido,
   prepararProductoTienda,
@@ -130,8 +131,10 @@ test("carrito no mezcla encargo con anaquel y tope de 12", () => {
   expect(tipoCarrito([paracetamol, anthelios])).toBe("mixto");
   expect(motivoNoMezclar([], anthelios)).toBeNull();
   expect(motivoNoMezclar([anthelios], vitC)).toBeNull();
-  expect(motivoNoMezclar([anthelios], paracetamol)).toMatch(/encargo/);
-  expect(motivoNoMezclar([paracetamol], anthelios)).toMatch(/aparte/);
+  expect(motivoNoMezclar([anthelios], paracetamol)).toMatch(/otro pedido/);
+  expect(motivoNoMezclar([paracetamol], anthelios)).toMatch(/otro pedido/);
+  expect(etiquetaVaciarYAgregar(anthelios)).toMatch(/encargar este/);
+  expect(etiquetaVaciarYAgregar(paracetamol)).toMatch(/agregar este/);
   expect(cantidadMaximaLinea(anthelios)).toBe(CANTIDAD_MAX_BAJO_PEDIDO);
   expect(cantidadMaximaLinea(paracetamol)).toBe(20);
 });

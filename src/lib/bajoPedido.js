@@ -322,12 +322,17 @@ export function motivoNoMezclar(cart, prod) {
   if (t === "vacio") return null;
   const nuevo = esBajoPedido(prod);
   if (t === "bajo_pedido" && !nuevo) {
-    return "Tu carrito tiene productos por encargo, que se pagan con reserva. Termina ese pedido o vacía el carrito para comprar productos en existencia.";
+    return "Tu carrito ya tiene un encargo. Eso se pide en otro pedido, no junto con lo de anaquel. Vacía el carrito o termina ese pedido para comprar este.";
   }
   if (t === "normal" && nuevo) {
-    return "Los productos por encargo se pagan aparte (reserva en tarjeta de crédito). Termina tu compra actual o vacía el carrito para encargar.";
+    return "Tu carrito ya tiene productos de la tienda. El encargo va en otro pedido: apartas con tarjeta y se cobra cuando llega (si no lo conseguimos, no pagas). Vacía el carrito o termina esa compra para encargar este.";
   }
   return null;
+}
+
+/** Texto del botón que vacía y agrega el producto que chocó. */
+export function etiquetaVaciarYAgregar(prod) {
+  return esBajoPedido(prod) ? "Vaciar carrito y encargar este" : "Vaciar carrito y agregar este";
 }
 
 /** Máximo que se puede pedir de una línea. */

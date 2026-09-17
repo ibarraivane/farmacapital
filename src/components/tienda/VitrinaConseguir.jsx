@@ -113,7 +113,7 @@ export default function VitrinaConseguir({
       </h1>
       {lead ? <p style={leadStyle}>{lead}</p> : null}
       <p style={quietStyle}>
-        Si no está en el anaquel, lo pedimos en 24-48 h. Se aparta con tarjeta de crédito.
+        Si no está en el anaquel, lo pedimos en 24-48 h. Apartas con tarjeta y se cobra cuando llega; si no lo conseguimos, no pagas. Si el carrito ya tiene cosas de la tienda, el encargo va en otro pedido.
       </p>
 
       {esBandas ? (

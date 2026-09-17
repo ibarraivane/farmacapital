@@ -55,6 +55,7 @@ import HomeSobrePedido from "./components/tienda/HomeSobrePedido";
 import PedidosEspeciales from "./components/tienda/PedidosEspeciales";
 import FranjaSobrePedido from "./components/tienda/FranjaSobrePedido";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
+import ModalCarritoNoMezclar from "./components/tienda/ModalCarritoNoMezclar";
 import {
   BADGE_EN_TIENDA,
   BADGE_SOBRE_PEDIDO,
@@ -4159,7 +4160,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
 
       const tipoCart = tipoCarrito(reconciled);
       if (tipoCart === "mixto") {
-        notifyCheckout("Los productos por encargo se pagan aparte. Deja en el carrito solo encargos o solo productos en existencia.", "warning");
+        notifyCheckout("El encargo va en otro pedido. Deja en el carrito solo encargos o solo productos de anaquel.", "warning");
         setG(false);
         return;
       }
@@ -6674,6 +6675,7 @@ export default function TiendaFarmaCapital(){
     document.title = TITULOS_TIENDA[page] || TITULO_TIENDA_DEFAULT;
   },[page]);
   const [cart,setCart]           = useState(() => loadStoredCart(getClienteUser()));
+  const [carritoConflicto, setCarritoConflicto] = useState(null);
   const [user,setUser]           = useState(()=> getClienteUser());
   const cartUserIdRef = useRef(user?.id ?? null);
   const skipCartSaveRef = useRef(false);
@@ -6897,8 +6899,7 @@ export default function TiendaFarmaCapital(){
     }
     const noMezcla = motivoNoMezclar(cart, prod);
     if (noMezcla) {
-      // La tienda pública no monta ToastProvider: alert, igual que los otros bloqueos del carrito.
-      alert(noMezcla);
+      setCarritoConflicto({ prod, motivo: noMezcla });
       return false;
     }
     const maxQty = cantidadMaximaLinea(prod);
@@ -7135,6 +7136,23 @@ export default function TiendaFarmaCapital(){
         {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
       </div>
       <WhatsAppFloatingButton />
+      {carritoConflicto && (
+        <ModalCarritoNoMezclar
+          motivo={carritoConflicto.motivo}
+          producto={carritoConflicto.prod}
+          onCancelar={() => setCarritoConflicto(null)}
+          onVerCarrito={() => {
+            setCarritoConflicto(null);
+            setPage("carrito");
+          }}
+          onVaciarYAgregar={() => {
+            const prod = carritoConflicto.prod;
+            setCarritoConflicto(null);
+            if (!prod) return;
+            setCart([{ ...prod, qty: 1, precio: Number(prod.precio ?? 0) }]);
+          }}
+        />
+      )}
     </>
     </TiendaPromosCtx.Provider>
     </TiendaPlaceholderCtx.Provider>

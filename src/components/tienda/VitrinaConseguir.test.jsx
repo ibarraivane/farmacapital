@@ -136,5 +136,5 @@ test("dermocosmética usa marcas del catálogo", () => {
   );
   expect(screen.getByRole("heading", { name: "Dermocosmética" })).toBeInTheDocument();
   expect(screen.getByText(/La Roche-Posay/)).toBeInTheDocument();
-  expect(screen.getAllByText(/tarjeta de crédito/i).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/apartas con tarjeta/i).length).toBeGreaterThan(0);
 });
