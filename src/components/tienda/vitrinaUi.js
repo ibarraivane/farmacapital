@@ -1,6 +1,6 @@
-import { RADIO, SOMBRA, TIPO, TOKENS as T } from "../../theme/tokens";
+import { RADIO, TOKENS as T } from "../../theme/tokens";
 
-/** Lenguaje visual de las páginas Sobre pedido (no el slate de un admin). */
+/** Misma escala que Catálogo / “Explora por categoría”, no un hero de revista. */
 export const V = {
   ink: T.ink,
   inkSoft: T.inkSoft,
@@ -10,38 +10,44 @@ export const V = {
   surface: T.surface,
   surface2: T.surface2,
   border: T.border,
-  jade: T.jade,
-  blue: T.blue,
-  display: TIPO.display,
-  body: TIPO.body,
-  radius: RADIO.lg,
-  radiusMd: RADIO.md,
+  body: "var(--fc-body)",
+  radius: RADIO.md,
   pill: RADIO.pill,
-  shadow: SOMBRA.sm,
 };
 
-export const heroBand = {
-  background: `linear-gradient(180deg, ${T.canvas} 0%, #f7f9fc 100%)`,
-  borderBottom: `1px solid ${T.border}`,
-};
-
-export const eyebrowStyle = {
+export const pageTitle = {
   margin: 0,
-  fontFamily: TIPO.body,
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: "0.16em",
-  textTransform: "uppercase",
-  color: T.jade,
+  fontFamily: "var(--fc-body)",
+  fontSize: "clamp(22px, 5vw, 28px)",
+  fontWeight: 800,
+  lineHeight: 1.2,
+  color: T.ink,
 };
 
-export const displayTitle = {
-  margin: "10px 0 0",
-  fontFamily: TIPO.display,
-  fontWeight: 600,
-  letterSpacing: "-0.02em",
-  lineHeight: 1.12,
+export const sectionTitle = {
+  margin: 0,
+  fontFamily: "var(--fc-body)",
+  fontSize: "clamp(20px, 4.5vw, 24px)",
+  fontWeight: 800,
+  lineHeight: 1.25,
   color: T.ink,
+};
+
+export const leadStyle = {
+  margin: "8px 0 0",
+  maxWidth: "36em",
+  color: T.textMid,
+  fontSize: 15,
+  lineHeight: 1.5,
+  fontFamily: "var(--fc-body)",
+};
+
+export const quietStyle = {
+  margin: "10px 0 0",
+  color: T.textDim,
+  fontSize: 13,
+  lineHeight: 1.45,
+  fontFamily: "var(--fc-body)",
 };
 
 export function irAFormularioPedido() {

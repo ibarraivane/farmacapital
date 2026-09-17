@@ -25,8 +25,8 @@ test("mientras carga no muestra el formulario", () => {
   );
   expect(screen.getByText(/Cargando productos/i)).toBeInTheDocument();
   expect(screen.queryByText("FORMULARIO")).not.toBeInTheDocument();
-  expect(screen.queryByText(/Aún no hay productos en esta página/i)).not.toBeInTheDocument();
-  expect(screen.queryByText(/Aún no hay productos en este rubro/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/No hay piezas cargadas/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/En este rubro no hay piezas/i)).not.toBeInTheDocument();
 });
 
 test("sección vacía oculta la cuadrícula y muestra el formulario arriba", () => {
@@ -41,7 +41,7 @@ test("sección vacía oculta la cuadrícula y muestra el formulario arriba", () 
       formulario={<div>FORMULARIO</div>}
     />
   );
-  expect(screen.getByText(/Aún no hay productos en esta página/i)).toBeInTheDocument();
+  expect(screen.getByText(/No hay piezas cargadas/i)).toBeInTheDocument();
   expect(screen.getByText("FORMULARIO")).toBeInTheDocument();
   expect(screen.queryByText("Cicaplast")).not.toBeInTheDocument();
 });

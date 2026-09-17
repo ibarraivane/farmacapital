@@ -45,8 +45,8 @@ export const SECCIONES_CONSEGUIR = Object.freeze([
     page: "dermocosmetica",
     label: "Dermocosmética",
     titulo: "Dermocosmética",
-    subtitulo: "",
-    desc: "Lo que indica el dermatólogo. En anaquel o lo pedimos.",
+    teaser: "Lo que te recetó el dermatólogo.",
+    desc: "La crema, el gel o el protector que te recetaron.",
     rubros: Object.freeze(["dermatologia"]),
   },
   {
@@ -54,8 +54,8 @@ export const SECCIONES_CONSEGUIR = Object.freeze([
     page: "vitaminas",
     label: "Vitaminas y suplementos",
     titulo: "Vitaminas y suplementos",
-    subtitulo: "",
-    desc: "Vitaminas, suplementos y nutrición deportiva. En anaquel o sobre pedido.",
+    teaser: "Vitaminas, omega y proteína.",
+    desc: "Lo de todos los días y lo del entrenamiento.",
     rubros: Object.freeze(["vitaminas", "suplementos", "proteina"]),
   },
 ]);
@@ -158,9 +158,6 @@ export function copyMarcasSeccion(productos, seccion) {
     marcas.length === 1
       ? marcas[0]
       : `${marcas.slice(0, -1).join(", ")} y ${marcas[marcas.length - 1]}`;
-  if (seccion === "dermatologia") {
-    return `Lo que indica el dermatólogo: ${lista}.`;
-  }
   return `${lista}.`;
 }
 

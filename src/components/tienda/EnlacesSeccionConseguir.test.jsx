@@ -22,5 +22,5 @@ test("conteo N>0 y N=0", () => {
   const { rerender } = render(<EnlacesSeccionConseguir setPage={jest.fn()} productos={productos} />);
   expect(screen.getAllByText(/^1 producto$/i).length).toBe(2);
   rerender(<EnlacesSeccionConseguir setPage={jest.fn()} productos={[]} />);
-  expect(screen.getAllByText("Sobre pedido · 24-48 h").length).toBe(2);
+  expect(screen.getAllByText(/^Ver/).length).toBe(2);
 });

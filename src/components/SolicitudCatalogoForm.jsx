@@ -6,7 +6,7 @@ import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 import { flyerWhatsAppFarmaciaUrl } from "../lib/flyerFarmaCapital";
 import { SOLICITUD_API_PATH, normalizarTelefonoPedido, validarSolicitudTienda } from "../lib/solicitudTienda";
 import { TEXTO_AVISO_RECETA, TEXTO_BUSQUEDA_VACIA, TEXTO_RESERVA } from "../lib/bajoPedido";
-import { TIPO, TOKENS as T } from "../theme/tokens";
+import { TOKENS as T } from "../theme/tokens";
 
 /** Otra pantalla pide abrir Pedidos especiales directo en el formulario (p. ej. «Solicitar precio»). */
 export const CONSEGUIR_FORM_FLAG = "farmacapital_conseguir_form";
@@ -67,7 +67,7 @@ export function CatalogoVacioConseguir({ busq, setPage }) {
       >
         <PackageSearch size={24} color={T.ink} />
       </div>
-      <div style={{ fontWeight: 600, fontSize: 20, color: T.ink, marginBottom: 6, fontFamily: TIPO.display }}>
+      <div style={{ fontWeight: 800, fontSize: 18, color: T.ink, marginBottom: 6, fontFamily: "var(--fc-body)" }}>
         {q ? `Sin resultados para “${q}”` : "No hay productos disponibles por el momento."}
       </div>
       <p style={{ margin: "0 0 16px", color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
@@ -198,11 +198,10 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
           <h2
             style={{
               margin: 0,
-              fontSize: 26,
-              fontWeight: 600,
+              fontSize: 18,
+              fontWeight: 800,
               color: T.ink,
-              fontFamily: TIPO.display,
-              letterSpacing: "-0.02em",
+              fontFamily: "var(--fc-body)",
             }}
           >
             ¿No está en la lista? Pídelo aquí
@@ -211,11 +210,10 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
           <h1
             style={{
               margin: 0,
-              fontSize: 28,
-              fontWeight: 600,
+              fontSize: "clamp(22px, 5vw, 28px)",
+              fontWeight: 800,
               color: T.ink,
-              fontFamily: TIPO.display,
-              letterSpacing: "-0.02em",
+              fontFamily: "var(--fc-body)",
             }}
           >
             Pedidos especiales
