@@ -12,6 +12,7 @@ describe("pedidosTiendaWeb gate pickup", async () => {
   const {
     esPedidoPickupPendienteCobro,
     esPedidoTiendaWebPendiente,
+    esErrorColumnaCostoEnvio,
     etiquetaPagoPedidoOnline,
     METODO_PENDIENTE_TIENDA,
     PAYMENT_STATUS_PENDING_STORE,
@@ -137,5 +138,13 @@ describe("pedidosTiendaWeb gate pickup", async () => {
       logistics_meta: { envio: { estado: "cotizado" } },
     });
     assert.equal(ready.kind, "ready_to_pay");
+  });
+
+  it("detecta el error de POS cuando falta pedidos.costo_envio", () => {
+    assert.equal(
+      esErrorColumnaCostoEnvio({ message: "column p.costo_envio does not exist" }),
+      true
+    );
+    assert.equal(esErrorColumnaCostoEnvio({ message: "Stock insuficiente" }), false);
   });
 });
