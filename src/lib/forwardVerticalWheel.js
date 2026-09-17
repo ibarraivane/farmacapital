@@ -23,7 +23,8 @@ export function forwardVerticalWheelToPage(e, scrollPage) {
   const move = typeof scrollPage === "function"
     ? scrollPage
     : (y) => {
-      if (typeof window !== "undefined") window.scrollBy(0, y);
+      if (typeof window === "undefined" || typeof window.scrollBy !== "function") return;
+      try { window.scrollBy(0, y); } catch (_) { /* jsdom / browsers sin scrollBy */ }
     };
   move(dy);
   return true;

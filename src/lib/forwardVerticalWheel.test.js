@@ -55,8 +55,7 @@ describe("attachTiendaHorizontalStripWheel", () => {
 
   test("solo reenvía si el target está dentro de una banda", () => {
     const moved = [];
-    const orig = global.window;
-    global.window = { scrollBy: (_x, y) => moved.push(y) };
+    const spy = jest.spyOn(window, "scrollBy").mockImplementation((_x, y) => { moved.push(y); });
     const handlers = [];
     const root = {
       addEventListener: (_t, fn) => handlers.push(fn),
@@ -69,6 +68,6 @@ describe("attachTiendaHorizontalStripWheel", () => {
     expect(moved).toEqual([]);
     handlers[0]({ target: inside, deltaY: 90, deltaX: 0 });
     expect(moved).toEqual([90]);
-    global.window = orig;
+    spy.mockRestore();
   });
 });
