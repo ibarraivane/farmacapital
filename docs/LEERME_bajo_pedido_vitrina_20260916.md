@@ -6,6 +6,7 @@ Este lote las crea. **Hasta que pegues el SQL en Supabase, la vitrina sigue vac�
 En la tienda: home → Dermocosmética y Vitaminas y suplementos
 (`/dermocosmetica`, `/vitaminas`; aliases `/conseguir?seccion=…`).
 Fase 2: las páginas mezclan anaquel + encargo. Chip **Nutrición deportiva**.
+Para agrandar el catálogo con Nadro, Marzam, Levic, Suplementos Mayoreo, Birdman y Promexsa: `docs/LEERME_crecer_vitrina_mayoristas_20260917.md`. Dispositivos médicos: `/dispositivos`.
 
 ## Qué pegar (en este orden)
 

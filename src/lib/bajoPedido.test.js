@@ -19,6 +19,7 @@ import {
   rubroDeProducto,
   rubroDeQuery,
   seccionConseguirDeQuery,
+  seccionConseguirPorId,
   tipoCarrito,
 } from "./bajoPedido";
 
@@ -57,6 +58,9 @@ test("rubros por categoria/subcategoria (con alias canónicos)", () => {
   expect(rubroDeProducto(omega)).toBe("suplementos");
   expect(rubroDeProducto(vitC)).toBe("vitaminas");
   expect(rubroDeProducto(paracetamol)).toBe("");
+  expect(rubroDeProducto({ categoria: "Dispositivo médico", nombre: "Tensiómetro de brazo" })).toBe("dispositivos");
+  expect(seccionConseguirDeQuery("?seccion=dispositivos")).toBe("dispositivos");
+  expect(seccionConseguirDeQuery("?seccion=equipo-medico")).toBe("dispositivos");
   const todos = [paracetamol, whey, anthelios, omega, vitC];
   expect(filtrarVitrina(todos).map((p) => p.id)).toEqual([1, 3, 4, 2]);
   expect(filtrarVitrina(todos, "proteina").map((p) => p.id)).toEqual([2]);
@@ -68,6 +72,8 @@ test("rubros por categoria/subcategoria (con alias canónicos)", () => {
   expect(filtrarVitrinaSeccion(todos, "dermatologia").map((p) => p.id)).toEqual([1]);
   expect(filtrarVitrinaSeccion(todos, "nutricion").map((p) => p.id)).toEqual([3, 4, 2]);
   expect(seccionConseguirDeQuery("?seccion=dermocosmetica")).toBe("dermatologia");
+  const tensio = { id: 21, nombre: "Tensiómetro", activo: true, bajo_pedido: true, categoria: "Dispositivo médico" };
+  expect(filtrarVitrinaSeccion([...todos, tensio], "dispositivos").map((p) => p.id)).toEqual([21]);
 });
 
 test("filtrarSeccion por sección y rubro; anaquel e inactivos fuera si no se pide", () => {
@@ -113,6 +119,8 @@ test("copy de marcas solo usa las del catálogo", () => {
   expect(copyMarcasSeccion([a, b, c], "dermatologia")).toMatch(/Heliocare/);
   expect(copyMarcasSeccion([a, b, c], "dermatologia")).not.toMatch(/Effaclar|Pharmaton/);
   expect(copyMarcasSeccion([vitC], "dermatologia")).toBe("La crema, el gel o el protector que te recetaron.");
+  expect(seccionConseguirPorId("dispositivos")?.page).toBe("dispositivos");
+  expect(copyMarcasSeccion([vitC], "dispositivos")).toBe("El aparato que te pidieron en consulta.");
 });
 
 test("carrito no mezcla encargo con anaquel y tope de 12", () => {

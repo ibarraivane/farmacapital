@@ -2,14 +2,15 @@ import { FASE2_INCLUIR_ANAQUEL, SECCIONES_CONSEGUIR, filtrarSeccion } from "../.
 import { V } from "./vitrinaUi";
 
 /**
- * Dos entradas: Dermocosmética · Vitaminas y suplementos.
+ * Entradas de vitrina: Dermocosmética · Vitaminas · Dispositivos.
  */
 export default function EnlacesSeccionConseguir({ setPage, productos = [], stack = false }) {
+  const cols = SECCIONES_CONSEGUIR.length;
   return (
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: stack ? "1fr" : "1fr 1fr",
+        gridTemplateColumns: stack ? "1fr" : `repeat(${cols}, minmax(0, 1fr))`,
         gap: 12,
       }}
     >

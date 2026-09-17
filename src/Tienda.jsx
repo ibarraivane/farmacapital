@@ -120,7 +120,7 @@ import {
   Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar,
   Gift, Truck, Cake, LogOut, Key, Trash2, PackageSearch,
   MessageCircle, Lock, ClipboardList, CircleCheck,
-  LayoutGrid, GalleryHorizontal, Sparkles, Leaf,
+  LayoutGrid, GalleryHorizontal, Sparkles, Leaf, Activity,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -379,7 +379,7 @@ const FAQ_ITEMS = [
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
   { p:"¿Qué hago si no está en el catálogo?", r:"En búsqueda sin resultados toca «Solicitarlo» o entra a Pedidos especiales. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
-  { p:"¿Qué es un producto «Sobre pedido»?", r:"Son productos que no tenemos en anaquel y traemos del mayorista en 24-48 h (dermocosmética, vitaminas, suplementos y nutrición deportiva). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tenemos. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Solicitar precio» y te mandamos el costo." },
+  { p:"¿Qué es un producto «Sobre pedido»?", r:"Son productos que no tenemos en anaquel y traemos del mayorista en 24-48 h (dermocosmética, vitaminas, suplementos, nutrición deportiva y dispositivos médicos). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tenemos. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Solicitar precio» y te mandamos el costo." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -1302,6 +1302,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
     { icon: Star, label: "Puntos FarmaCapital", page: "puntos" },
     { icon: Sparkles, label: "Dermocosmética", page: "dermocosmetica" },
     { icon: Leaf, label: "Vitaminas y suplementos", page: "vitaminas" },
+    { icon: Activity, label: "Dispositivos médicos", page: "dispositivos" },
     ...(usuario ? [{ icon: User, label: "Mi cuenta", page: "cuenta" }] : []),
   ];
 
@@ -6562,7 +6563,7 @@ export default function TiendaFarmaCapital(){
       if (nextRx) sessionStorage.setItem("farmacapital_rx", "1");
       else sessionStorage.removeItem("farmacapital_rx");
     } catch (_) { /* noop */ }
-    const esCategoria = target === "dermocosmetica" || target === "vitaminas" || target === "pedidos-especiales" || p === "conseguir" || opts.seccion !== undefined;
+    const esCategoria = target === "dermocosmetica" || target === "vitaminas" || target === "dispositivos" || target === "pedidos-especiales" || p === "conseguir" || opts.seccion !== undefined;
     if (esCategoria) {
       try {
         const loc = p === "conseguir" || opts.seccion !== undefined
@@ -6571,7 +6572,9 @@ export default function TiendaFarmaCapital(){
             ? resolveTiendaLocation("/dermocosmetica", "")
             : target === "vitaminas"
               ? resolveTiendaLocation("/vitaminas", opts.rubro ? `?rubro=${encodeURIComponent(opts.rubro)}` : "")
-              : resolveTiendaLocation("/pedidos-especiales", opts.search ? `?q=${encodeURIComponent(opts.search)}` : "");
+              : target === "dispositivos"
+                ? resolveTiendaLocation("/dispositivos", "")
+                : resolveTiendaLocation("/pedidos-especiales", opts.search ? `?q=${encodeURIComponent(opts.search)}` : "");
         aplicarLoc(loc, { replace: opts.replace === true, search: loc.search });
       } catch {
         try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
@@ -7039,6 +7042,23 @@ export default function TiendaFarmaCapital(){
         stack={stackPaginas}
         seccion="nutricion"
         rubro={rubroSeccion}
+        setPage={setPage}
+        onIrAFormulario={()=>(document.getElementById("pedido-especial-form") || document.getElementById("conseguir-form"))?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        renderProducto={(p)=>(
+          <ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdD(p);setPage("detalle", { productId: p.id });}}/>
+        )}
+        formulario={
+          <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina variante="categoria" />
+        }
+      />
+    ),
+    dispositivos: (
+      <VitrinaConseguir
+        productos={productosVistaTiendaFarmacia}
+        loading={loadingProductos}
+        stack={stackPaginas}
+        seccion="dispositivos"
+        rubro=""
         setPage={setPage}
         onIrAFormulario={()=>(document.getElementById("pedido-especial-form") || document.getElementById("conseguir-form"))?.scrollIntoView({ behavior: "smooth", block: "start" })}
         renderProducto={(p)=>(

@@ -14,7 +14,7 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 | `precio` | **Ancla de mostrador** (costo + margen de lista). Nunca con Mercado Pago incluido |
 | `precio <= 0.01` | Sale en vitrina con **Cotizar**; no se puede pagar en línea |
 | `stock` | 0. No inventar lote/caducidad |
-| `categoria` / `subcategoria` | Dermatología = `Cuidado personal` + `Dermatología` · Vitaminas = `Vitaminas` · Suplementos = `Suplemento` · Nutrición deportiva = `Suplemento` + `Nutrición deportiva` (alias `Proteína`). **No** hay categoría nueva |
+| `categoria` / `subcategoria` | Dermatología = `Cuidado personal` + `Dermatología` · Vitaminas = `Vitaminas` · Suplementos = `Suplemento` · Nutrición deportiva = `Suplemento` + `Nutrición deportiva` (alias `Proteína`) · Dispositivos = `Dispositivo médico` (categoría ya canónica). Cómo crecer el catálogo: `docs/LEERME_crecer_vitrina_mayoristas_20260917.md` |
 | nombre, marca, foto, SKU | Nombre de mostrador, marca real, foto obligatoria, `FC-` + últimos 8 del EAN |
 | Anaquel | Si hay stock real de góndola, **no** se marca (el RPC de Inventario lo rechaza) |
 
@@ -25,10 +25,10 @@ Tarjeta: solo 3.49% + IVA. Skittles $10 → **$11**.
 - SQL: `sql/patch_servicio_5_pedido_20260916.sql`.
 
 ## Tienda
-- Catálogo: `/dermocosmetica` y `/vitaminas` (`?rubro=vitaminas|suplementos|proteina`). El chip de proteína se llama **Nutrición deportiva**. Formulario: `/pedidos-especiales`.
+- Catálogo: `/dermocosmetica`, `/vitaminas` (`?rubro=vitaminas|suplementos|proteina`) y `/dispositivos`. El chip de proteína se llama **Nutrición deportiva**. Formulario: `/pedidos-especiales`.
 - Fase 2: las páginas de categoría mezclan anaquel + encargo. Badge **En tienda** vs **Sobre pedido · 24-48 h**. Agotado de anaquel sigue Agotado.
 - Aliases eternos: `/conseguir?seccion=…` redirige a la canónica. `/conseguir` sin sección → Pedidos especiales. `?rubro=creatina` y `?seccion=deporte` abren Nutrición deportiva.
-- Menú: Dermocosmética y Vitaminas y suplementos. El servicio se llama **Sobre pedido**; el pie enlaza **Pedidos especiales**.
+- Menú: Dermocosmética, Vitaminas y suplementos, Dispositivos médicos. El servicio se llama **Sobre pedido**; el pie enlaza **Pedidos especiales**.
 - Búsqueda sin resultados: «Solicitarlo» abre el formulario con el término precargado.
 - Tarjeta y ficha bajo pedido: badge **Sobre pedido · 24-48 h**, nunca «Agotado». CTA **Encargar** (con precio) o **Solicitar precio** (sin precio → formulario).
 - Reserva: «Apártalo con tarjeta de crédito. Solo se cobra cuando llega; si no lo conseguimos, no pagas nada.»

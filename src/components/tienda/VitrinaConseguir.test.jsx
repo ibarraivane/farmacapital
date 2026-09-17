@@ -98,6 +98,31 @@ test("fase 2: anaquel de vitaminas entra a la banda", () => {
   expect(screen.getByRole("heading", { name: "Vitaminas" })).toBeInTheDocument();
 });
 
+test("dispositivos usa cuadrícula, no chips", () => {
+  const tensio = {
+    id: 4,
+    nombre: "Tensiómetro de brazo",
+    marca: "Omron",
+    activo: true,
+    bajo_pedido: true,
+    categoria: "Dispositivo médico",
+  };
+  render(
+    <VitrinaConseguir
+      productos={[tensio]}
+      loading={false}
+      stack
+      seccion="dispositivos"
+      setPage={jest.fn()}
+      renderProducto={(p) => <div key={p.id}>{p.nombre}</div>}
+    />
+  );
+  expect(screen.getByRole("heading", { name: "Dispositivos médicos" })).toBeInTheDocument();
+  expect(screen.getByText("Tensiómetro de brazo")).toBeInTheDocument();
+  expect(screen.getByText(/Omron/)).toBeInTheDocument();
+  expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+});
+
 test("dermocosmética usa marcas del catálogo", () => {
   render(
     <VitrinaConseguir

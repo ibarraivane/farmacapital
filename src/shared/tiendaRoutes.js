@@ -11,12 +11,14 @@ import {
 export const TITULOS_TIENDA = Object.freeze({
   dermocosmetica: "Dermocosmética | FarmaCapital",
   vitaminas: "Vitaminas y suplementos | FarmaCapital",
+  dispositivos: "Dispositivos médicos | FarmaCapital",
   "pedidos-especiales": "Pedidos especiales | FarmaCapital",
 });
 export const TITULO_TIENDA_DEFAULT = "FarmaCapital · Farmacia en línea";
 
 const CONSEGUIR_SLUGS = new Set(["conseguir", "te-lo-conseguimos"]);
 const DERMA_SLUGS = new Set(["dermocosmetica", "dermocosmeticas"]);
+const DISPOSITIVOS_SLUGS = new Set(["dispositivos", "dispositivo", "dispositivo-medico", "dispositivos-medicos"]);
 const PEDIDOS_SLUGS = new Set(["pedidos-especiales", "pedido-especial"]);
 
 export const TIENDA_PAGE_IDS = [
@@ -41,6 +43,7 @@ export const TIENDA_PAGE_IDS = [
   "tarjeta",
   "dermocosmetica",
   "vitaminas",
+  "dispositivos",
   "pedidos-especiales",
 ];
 
@@ -63,6 +66,7 @@ export const TIENDA_BANNER_DESTINOS = [
   { id: "tarjeta", label: "Flyer / tarjeta WhatsApp" },
   { id: "dermocosmetica", label: "Dermocosmética" },
   { id: "vitaminas", label: "Vitaminas y suplementos" },
+  { id: "dispositivos", label: "Dispositivos médicos" },
   { id: "pedidos-especiales", label: "Pedidos especiales" },
 ];
 
@@ -88,6 +92,7 @@ const PAGE_TO_SLUG = {
   tarjeta: "tarjeta",
   dermocosmetica: "dermocosmetica",
   vitaminas: "vitaminas",
+  dispositivos: "dispositivos",
   "pedidos-especiales": "pedidos-especiales",
 };
 
@@ -128,6 +133,10 @@ const SLUG_TO_PAGE = {
   dermocosmetica: "dermocosmetica",
   dermocosmeticas: "dermocosmetica",
   vitaminas: "vitaminas",
+  dispositivos: "dispositivos",
+  dispositivo: "dispositivos",
+  "dispositivo-medico": "dispositivos",
+  "dispositivos-medicos": "dispositivos",
   "pedidos-especiales": "pedidos-especiales",
   "pedido-especial": "pedidos-especiales",
   conseguir: "pedidos-especiales",
@@ -207,6 +216,8 @@ export function resolveTiendaLocation(pathname, search = "") {
     } else if (seccion === "nutricion") {
       page = "vitaminas";
       rubro = rubroDeQuery(qs) || rubroDesdeAliasSeccion(qs);
+    } else if (seccion === "dispositivos") {
+      page = "dispositivos";
     } else {
       page = "pedidos-especiales";
       searchOut = q;
@@ -218,6 +229,9 @@ export function resolveTiendaLocation(pathname, search = "") {
     page = "vitaminas";
     seccion = "nutricion";
     rubro = rubroDeQuery(qs);
+  } else if (DISPOSITIVOS_SLUGS.has(slug)) {
+    page = "dispositivos";
+    seccion = "dispositivos";
   } else if (PEDIDOS_SLUGS.has(slug)) {
     page = "pedidos-especiales";
     searchOut = q;
@@ -259,7 +273,7 @@ export function pageIdToTiendaPath(pageId, opts = {}) {
   if (opts.rx) params.set("rx", "1");
   if (opts.reset) params.set("reset", String(opts.reset));
   if (resolved === "pedidos-especiales" && opts.search) params.set("q", String(opts.search));
-  if (resolved !== "pedidos-especiales" && resolved !== "dermocosmetica" && resolved !== "vitaminas" && opts.search) {
+  if (resolved !== "pedidos-especiales" && resolved !== "dermocosmetica" && resolved !== "vitaminas" && resolved !== "dispositivos" && opts.search) {
     params.set("q", String(opts.search));
   }
   if (resolved === "vitaminas" && opts.rubro) params.set("rubro", String(opts.rubro));

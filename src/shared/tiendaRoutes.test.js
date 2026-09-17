@@ -46,6 +46,8 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("vitaminas", { rubro: "proteina" })).toBe("/vitaminas?rubro=proteina");
     expect(pageIdToTiendaPath("conseguir", { seccion: "dermatologia" })).toBe("/dermocosmetica");
     expect(pageIdToTiendaPath("conseguir", { seccion: "nutricion" })).toBe("/vitaminas");
+    expect(pageIdToTiendaPath("dispositivos")).toBe("/dispositivos");
+    expect(pageIdToTiendaPath("conseguir", { seccion: "dispositivos" })).toBe("/dispositivos");
   });
 
   test("aliases de flyer y conseguir", () => {
@@ -58,6 +60,8 @@ describe("tiendaRoutes", () => {
     expect(tiendaPathnameToPageId("/dermocosmetica")).toBe("dermocosmetica");
     expect(tiendaPathnameToPageId("/vitaminas")).toBe("vitaminas");
     expect(tiendaPathnameToPageId("/pedidos-especiales")).toBe("pedidos-especiales");
+    expect(tiendaPathnameToPageId("/dispositivos")).toBe("dispositivos");
+    expect(tiendaPathnameToPageId("/dispositivo-medico")).toBe("dispositivos");
   });
 
   test("resolveTiendaLocation: canónicas, aliases y rubro desconocido", () => {
@@ -106,6 +110,12 @@ describe("tiendaRoutes", () => {
     });
     expect(resolveTiendaLocation("/vitaminas", "?rubro=nutricion-deportiva")).toMatchObject({
       page: "vitaminas", rubro: "proteina",
+    });
+    expect(resolveTiendaLocation("/dispositivos", "")).toMatchObject({
+      page: "dispositivos", seccion: "dispositivos", shouldReplace: false,
+    });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=dispositivos")).toMatchObject({
+      page: "dispositivos", canonicalPath: "/dispositivos", shouldReplace: true,
     });
     expect(resolveTiendaLocation("/conseguir", "")).toMatchObject({
       page: "pedidos-especiales", canonicalPath: "/pedidos-especiales", shouldReplace: true,

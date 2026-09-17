@@ -25,8 +25,7 @@ export default function VitrinaConseguir({
 }) {
   const sec = seccionConseguirPorId(seccion);
   const rubrosSeccion = sec ? RUBROS_BAJO_PEDIDO.filter((r) => sec.rubros.includes(r.id)) : [];
-  const esDerma = sec?.id === "dermatologia";
-  const esNutri = sec?.id === "nutricion";
+  const esBandas = rubrosSeccion.length > 1;
 
   const pool = useMemo(
     () => filtrarSeccion(productos, seccion, { incluirAnaquel: FASE2_INCLUIR_ANAQUEL }),
@@ -117,7 +116,7 @@ export default function VitrinaConseguir({
         Si no está en el anaquel, lo pedimos en 24-48 h. Se aparta con tarjeta de crédito.
       </p>
 
-      {esNutri && rubrosSeccion.length > 1 ? (
+      {esBandas ? (
         <div
           role="tablist"
           aria-label="Rubros"
@@ -162,9 +161,9 @@ export default function VitrinaConseguir({
         </p>
       ) : null}
 
-      {!loading && !vacio && (rubro || esDerma) ? grid(lista) : null}
+      {!loading && !vacio && (rubro || !esBandas) ? grid(lista) : null}
 
-      {!loading && !vacio && !rubro && esNutri
+      {!loading && !vacio && !rubro && esBandas
         ? rubrosSeccion.map((r) => {
             const items = filtrarVitrina(productos, r.id);
             if (!items.length) return null;

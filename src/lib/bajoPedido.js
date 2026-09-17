@@ -36,9 +36,10 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "vitaminas", label: "Vitaminas" },
   { id: "suplementos", label: "Suplementos" },
   { id: "proteina", label: "Nutrición deportiva" },
+  { id: "dispositivos", label: "Dispositivos médicos" },
 ]);
 
-/** Dos páginas de catálogo: dermocosmética vs vitaminas+suplementos+proteína. */
+/** Categorías de vitrina + pedidos. Dispositivos viven en /dispositivos y en Pedidos especiales. */
 export const SECCIONES_CONSEGUIR = Object.freeze([
   {
     id: "dermatologia",
@@ -58,6 +59,15 @@ export const SECCIONES_CONSEGUIR = Object.freeze([
     desc: "Lo de todos los días y lo del entrenamiento.",
     rubros: Object.freeze(["vitaminas", "suplementos", "proteina"]),
   },
+  {
+    id: "dispositivos",
+    page: "dispositivos",
+    label: "Dispositivos médicos",
+    titulo: "Dispositivos médicos",
+    teaser: "Tensiómetro, glucómetro o nebulizador.",
+    desc: "El aparato que te pidieron en consulta.",
+    rubros: Object.freeze(["dispositivos"]),
+  },
 ]);
 
 const SECCION_ALIAS = {
@@ -73,6 +83,11 @@ const SECCION_ALIAS = {
   proteinas: "nutricion",
   nutriciondeportiva: "nutricion",
   deporte: "nutricion",
+  dispositivos: "dispositivos",
+  dispositivo: "dispositivos",
+  dispositivomedico: "dispositivos",
+  dispositivosmedicos: "dispositivos",
+  equipomedico: "dispositivos",
 };
 
 const RUBRO_ALIAS = {
@@ -194,6 +209,7 @@ export function rubroDeProducto(p) {
   if (cat === "Cuidado personal" && sub.startsWith("dermatolog")) return "dermatologia";
   if (cat === "Vitaminas") return "vitaminas";
   if (cat === "Suplemento") return esNutricionDeportiva(sub, p.nombre) ? "proteina" : "suplementos";
+  if (cat === "Dispositivo médico") return "dispositivos";
   return "";
 }
 
