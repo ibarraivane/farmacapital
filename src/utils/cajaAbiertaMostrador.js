@@ -82,8 +82,8 @@ function normalizarTextoPublico(s) {
 }
 
 /**
- * Notas de compra / ticket / proveedor: el cliente no debe ver
- * dónde se compró ni folios internos (Dulcería, Nadro, EAN pendiente…).
+ * Notas de compra / ticket / proveedor / cruce de precios: el cliente no debe ver
+ * dónde se compró, folios internos ni referencias de competencia (Fahorro…).
  */
 export function esNotaInternaCompra(texto) {
   const low = normalizarTextoPublico(texto);
@@ -97,6 +97,15 @@ export function esNotaInternaCompra(texto) {
   if (low.includes("codigo de proveedor") || low.includes("clave de proveedor")) return true;
   if (low.includes("listo para pistola")) return true;
   if (low.includes("por definir") && /costo|pvp|precio/.test(low)) return true;
+  // Cruce de precios / import: "Fahorro SKU=EAN … · precio lista $801"
+  if (/\bsku\s*=\s*ean\b/.test(low)) return true;
+  if (/\bprecio\s+lista\b/.test(low) && /\b(ean|sku|\$)\b/.test(low)) return true;
+  if (
+    /\b(fahorro|farmacias?\s+del\s+ahorro|guadalajara|similares|benavides|san\s+pablo)\b/.test(low) &&
+    /\b(sku|ean|precio\s+lista|ref|lista)\b/.test(low)
+  ) {
+    return true;
+  }
   if (
     /\b(nadro|levic|visoti|exprezo|scorpion|farmalive|farma city|farma mx|dulceria|la victoria|la famosa)\b/.test(low) &&
     /\b(alta|factura|nota|proveedor|ean|folio|t\d{6,})\b/.test(low)

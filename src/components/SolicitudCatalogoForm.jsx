@@ -18,6 +18,12 @@ const inp = {
   fontSize: 15,
   boxSizing: "border-box",
   fontFamily: "inherit",
+  /* iPhone Chrome/Safari dark mode: sin esto el campo se pinta negro. */
+  background: "#ffffff",
+  color: "#0f172a",
+  WebkitTextFillColor: "#0f172a",
+  caretColor: "#0f172a",
+  colorScheme: "light",
 };
 
 function queryInicial(textoInicial) {
@@ -198,12 +204,13 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
         )}
       </div>
       <p style={{ margin: "0 0 20px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
-        Anota el medicamento. Lo vemos en mayorista, te pasamos el costo por WhatsApp o correo y, si te late, pagas con la liga. El envío a domicilio tiene costo.
+        Anota lo que buscas. Te pasamos el costo por WhatsApp o correo y, si te late, pagas con la liga. El envío a domicilio tiene costo.
       </p>
 
       <label style={{ display: "block", marginBottom: 12 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>¿Qué buscas?</span>
         <input
+          className="farmacapital-field-input"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           placeholder="Ej. Losartan 50 mg, 30 tabletas"
@@ -215,6 +222,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
         <label>
           <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Cantidad</span>
           <input
+            className="farmacapital-field-input"
             type="number"
             min={1}
             max={999}
@@ -225,7 +233,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
         </label>
         <label>
           <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>¿Para cuándo?</span>
-          <select value={urgencia} onChange={(e) => setUrgencia(e.target.value)} style={inp}>
+          <select className="farmacapital-field-input farmacapital-field-select" value={urgencia} onChange={(e) => setUrgencia(e.target.value)} style={inp}>
             <option value="sin_prisa">Sin prisa</option>
             <option value="manana">Mañana</option>
             <option value="hoy">Hoy</option>
@@ -235,12 +243,13 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
 
       <label style={{ display: "block", marginBottom: 12 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Tu nombre</span>
-        <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Cómo te llamas" style={inp} />
+        <input className="farmacapital-field-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Cómo te llamas" style={inp} />
       </label>
 
       <label style={{ display: "block", marginBottom: 12 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>WhatsApp (10 dígitos)</span>
         <input
+          className="farmacapital-field-input"
           value={telefono}
           onChange={(e) => setTelefono(e.target.value)}
           onBlur={() => {
@@ -257,6 +266,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       <label style={{ display: "block", marginBottom: 12 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Correo (opcional)</span>
         <input
+          className="farmacapital-field-input"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="para mandarte la liga de pago"
@@ -268,6 +278,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       <label style={{ display: "block", marginBottom: 12 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Dirección de envío (opcional)</span>
         <input
+          className="farmacapital-field-input"
           value={direccion}
           onChange={(e) => setDireccion(e.target.value)}
           placeholder="Calle, número, colonia, CP"
@@ -277,7 +288,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
 
       <label style={{ display: "block", marginBottom: 12 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Notas (marca, receta, presentación)</span>
-        <input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Opcional" style={inp} />
+        <input className="farmacapital-field-input" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Opcional" style={inp} />
       </label>
 
       <label style={{ position: "absolute", left: -9999, width: 1, height: 1, overflow: "hidden" }} aria-hidden>
