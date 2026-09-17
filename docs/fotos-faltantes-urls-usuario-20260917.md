@@ -19,3 +19,22 @@ Packshots conseguidos de las fichas que pasaron. SQL:
 3. Si el bicarbonato no entró en el primer pegado (CDN 404), volver a pegar el SQL completo tras el deploy.
 
 Exomega solo actualiza filas con ese EAN; si el producto aún no está en catálogo, el `update` no hace nada hasta el alta.
+
+## Verificación viva (17-sep noche)
+
+Tras pegar el primer SQL, **no** todos cargaban: varios apuntaban a
+`catalogo-propia/…` que aún no está en Vercel (responde HTML).
+
+| SKU | Estado antes del fix | Acción |
+|---|---|---|
+| `EQ-JAV050` Clorofil | OK (Shopify) | — |
+| `EQ-AMS147` Alendrónico | OK (Farmatodo) | — |
+| `EQ-ALP0210` Acarbosa | ROTA (propia HTML) | forzar Farmatodo |
+| `FC-75068622` Savilé roll-on | ROTA | forzar Unilever |
+| `FC-08DB70CB` Bicarbonato | ROTA | forzar raw GitHub (rama PR) |
+| `FC-70073577` Exomega **400 ml** | ROTA | forzar Farmatodo EAN `3282770073577` |
+
+La crema de noche `3282770397666` **no existe** en catálogo. El Exomega
+que sí hay es Crema Emoliente 400 ml.
+
+**Pegar ahora:** `sql/patch_fotos_forzar_vivas_rotas_20260917.sql`
