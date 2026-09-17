@@ -6,7 +6,8 @@ Este lote las crea. **Hasta que pegues el SQL en Supabase, la vitrina sigue vac�
 ## Qué pegar (en este orden)
 
 1. `sql/patch_bajo_pedido_20260916.sql` — si aún no corre (columna + RPCs).
-2. `sql/patch_alta_bajo_pedido_vitrina_20260916.sql` — este lote.
+2. `sql/patch_alta_bajo_pedido_vitrina_20260916.sql` — primer lote (26).
+3. `sql/patch_alta_bajo_pedido_derm_recetadas_20260916.sql` — marcas que recetan dermatólogos (21).
 
 Supabase → SQL Editor → Run. Idempotente.
 
@@ -23,6 +24,43 @@ SVR **no está en Nadro**. Se consigue con el importador / dermofarmacias (ficha
 `mx.svr.com`). El resto es Nadro i22, pedible hoy.
 
 Isdin Fusion Water **sin color** se omitió: Nadro solo tenía foto genérica.
+
+## Segundo lote — marcas que recetan dermatólogos (21)
+
+No solo Effaclar / ISDIN / SVR. Investigación de consulta dermatológica en México
+(Pierre Fabre, L'Oréal Dermatological Beauty, NAOS, Cantabria, Galderma, Leti)
+cruzada con fichas reales Fahorro (SKU = EAN + packshot). Nadro i22 respondió 429
+en esta pasada; no se inventó ficha.
+
+| EAN | Nombre de mostrador | Ancla |
+| --- | --- | ---: |
+| 3337875816809 | La Roche-Posay Cicaplast Baume B5+ 40 ml | 426 |
+| 3337875696548 | La Roche-Posay Lipikar Baume AP+M 400 ml | 834 |
+| 3337875583626 | La Roche-Posay Hyalu B5 Suero 30 ml | 851 |
+| 3337875543248 | Vichy Minéral 89 Suero 50 ml | 946 |
+| 3337871330286 | Vichy Dercos Shampoo Anti-Caspa Grasa 200 ml | 708 |
+| 3499320012850 | Cetaphil Loción Limpiadora Piel Sensible 473 ml | 598 |
+| 3499320015530 | Cetaphil Limpiador Facial Piel Grasa 473 ml | 630 |
+| 8470001724137 | Heliocare 360 Gel Oil-Free FPS 50+ 50 ml | 788 |
+| 3701129812075 | Bioderma Sensibio H2O Agua Micelar 100 ml | 248 |
+| 3401399277092 | Bioderma Sébium Gel Moussant 500 ml | 829 |
+| 3337875597388 | CeraVe Crema Hidratante 454 g | 575 |
+| 3282776385421 | Avène Cicalfate+ Crema Reparadora 100 ml | 644 |
+| 3282776382109 | Ducray Kelual DS Champú Tratante 100 ml | 584 |
+| 8470002094857 | Endocare Hyaluboost Age Barrier Sérum 30 ml | 1084 |
+| 3661434004735 | Uriage Bariéderm Cica Crema Reparadora 40 ml | 319 |
+| 3282770073577 | A-Derma Exomega Control Crema Emoliente 400 ml | 801 |
+| 8470001541871 | Isdin Ureadin Ultra 20 Crema 100 ml | 450 |
+| 4005800164361 | Eucerin UreaRepair Loción Corporal 10% 400 ml | 682 |
+| 8431166181418 | Leti AT4 Multiprotect Facial FPS 50+ 50 ml | 632 |
+| 8429979444448 | Sesderma C-VIT Crema Facial 50 ml | 1235 |
+| 3504105025878 | Mustela Crema para Rozaduras Bebé 100 ml | 202 |
+
+Buscadas y **sin** alta (sin ficha MX con EAN + foto + precio usable): SkinCeuticals,
+Neostrata, Filorga, ACM, Isispharma, Noreva, Physiogel, Topicrem, Medik8, Differin (Rx).
+
+Fotos en `public/catalogo-propia/`. El SQL apunta a `https://www.farmacapital.mx/catalogo-propia/…`
+**después del deploy**.
 
 ## Lote (26)
 

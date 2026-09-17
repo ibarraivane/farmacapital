@@ -57,6 +57,21 @@ describe("ficha desde la página del proveedor", () => {
     expect(marcaDesdeTexto("SVR Sebiaclear Gel Moussant 400 ml")).toBe("SVR");
   });
 
+  test("marcas que recetan dermatólogos se leen del título", () => {
+    expect(marcaDesdeTexto("Bioderma Sensibio H2O 100 ml")).toBe("Bioderma");
+    expect(marcaDesdeTexto("Heliocare 360 Gel Oil-Free")).toBe("Heliocare");
+    expect(marcaDesdeTexto("Cetaphil Loción Limpiadora")).toBe("Cetaphil");
+    expect(marcaDesdeTexto("Ducray Kelual DS")).toBe("Ducray");
+    expect(marcaDesdeTexto("A-Derma Exomega Control")).toBe("A-Derma");
+    expect(marcaDesdeTexto("Uriage Bariéderm Cica")).toBe("Uriage");
+    expect(marcaDesdeTexto("Endocare Hyaluboost")).toBe("Endocare");
+    expect(marcaDesdeTexto("Sesderma C-VIT")).toBe("Sesderma");
+    expect(marcaDesdeTexto("Mustela Crema Rozaduras")).toBe("Mustela");
+    expect(marcaDesdeTexto("Leti AT4 Multiprotect")).toBe("Leti");
+    expect(marcaDesdeTexto("Bioderma Sébium Gel Moussant")).toBe("Bioderma");
+    expect(marcaDesdeTexto("Vichy Minéral 89")).toBe("Vichy");
+  });
+
   test("FRABEL + CeraVe no se etiqueta como La Roche", () => {
     const ficha = fichaCatalogoDesdeNadro({
       nombre: "GEL CERAVE LIMP CONTR IMPER 236ML",
