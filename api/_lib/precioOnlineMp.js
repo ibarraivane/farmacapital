@@ -1,6 +1,6 @@
 'use strict';
 
-/** Espejo de src/lib/precioOnlineMp.js y de public.fc_precio_online_mp(numeric). */
+/** Espejo de src/lib/precioOnlineMp.js y de public.fc_cargo_plataforma_online(). */
 const TASA_MP_ONLINE = 0.040484;
 const FIJO_MP_MXN = 4;
 const IVA_MP = 1.16;
@@ -20,22 +20,29 @@ function precioOnlineMp(precioLista) {
   return Math.ceil(Math.round(bruto * 100) / 100);
 }
 
-function cargoPlataformaOnline() {
+function esEntregaPickup(entrega) {
+  const e = String(entrega ?? '').toLowerCase().trim();
+  return e === 'pickup' || e === 'recoger' || e === 'web_pickup' || e === 'pickup_store';
+}
+
+function cargoPlataformaOnline(opts = {}) {
+  const entrega = opts.entrega ?? opts.entregaUi ?? opts.tipo_entrega;
+  if (esEntregaPickup(entrega)) return 0;
   return CARGO_SERVICIO_MXN;
 }
 
-function cargoFijoMp() {
-  return cargoPlataformaOnline();
+function cargoFijoMp(opts) {
+  return cargoPlataformaOnline(opts);
 }
 
-function totalPedidoConPlataforma(subProductos) {
+function totalPedidoConPlataforma(subProductos, opts) {
   const b = Number(subProductos);
   if (!Number.isFinite(b) || b <= 0) return null;
-  return Math.round(b + cargoPlataformaOnline());
+  return Math.round(b + cargoPlataformaOnline(opts || {}));
 }
 
-function totalConCargoMp(base) {
-  return totalPedidoConPlataforma(base);
+function totalConCargoMp(base, opts) {
+  return totalPedidoConPlataforma(base, opts);
 }
 
 module.exports = {
@@ -48,6 +55,7 @@ module.exports = {
   CONCEPTO_CARGO_PLATAFORMA,
   precioAnclaUsable,
   precioOnlineMp,
+  esEntregaPickup,
   cargoPlataformaOnline,
   cargoFijoMp,
   totalPedidoConPlataforma,
