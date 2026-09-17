@@ -31,7 +31,7 @@ update public.productos p
          coalesce(p.subcategoria, '') || ' ' || coalesce(p.nombre, ''),
          'áéíóúüñÁÉÍÓÚÜÑ',
          'aeiouunAEIOUUN'
-       )) ~ '(^|[^a-z])(creatina|whey|pre[- ]?entren|bcaa|aminoacido|ganador de peso|mass gainer)([^a-z]|$)'
+       )) ~ '(^|[^a-z])(creatina|whey|pre[- ]?entren|bcaa|aminoacido|ganador de peso|mass gainer)'
        or lower(translate(
          coalesce(p.subcategoria, '') || ' ' || coalesce(p.nombre, ''),
          'áéíóúüñÁÉÍÓÚÜÑ',
