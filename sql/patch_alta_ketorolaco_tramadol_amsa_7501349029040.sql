@@ -21,6 +21,12 @@
 
 begin;
 
+-- Columnas de controlado (pueden faltar en prod antiguas).
+alter table public.productos
+  add column if not exists controlado boolean not null default false;
+alter table public.productos
+  add column if not exists grupo_controlado text;
+
 do $$
 declare
   v_pid bigint;

@@ -3,9 +3,22 @@
 -- Ketorolaco / Tramadol AMSA (EAN 7501349029040, SKU FC-49029040)
 -- Tramadol = Fracción III (art. 245 LGS, vigencia COFEPRIS jul-2026).
 -- Solo se vende en mostrador con receta (no tienda web / Rappi / envío).
+--
+-- Idempotente: crea columnas controlado / grupo_controlado si faltan.
 -- ============================================================================
 
 begin;
+
+alter table public.productos
+  add column if not exists controlado boolean not null default false;
+
+alter table public.productos
+  add column if not exists grupo_controlado text;
+
+comment on column public.productos.controlado is
+  'Medicamento controlado COFEPRIS: solo mostrador (no tienda web / Rappi).';
+comment on column public.productos.grupo_controlado is
+  'Fracción LGS art. 245 (I–V). Ej. tramadol = III.';
 
 update public.productos
    set controlado = true,
@@ -17,7 +30,7 @@ update public.productos
     or (
       nombre ilike '%ketorolaco%'
       and nombre ilike '%tramadol%'
-      and (nombre ilike '%inyect%' or nombre ilike '%ampol%' or nombre ilike '%10%' )
+      and (nombre ilike '%inyect%' or nombre ilike '%ampol%' or nombre ilike '%10%')
     );
 
 commit;
