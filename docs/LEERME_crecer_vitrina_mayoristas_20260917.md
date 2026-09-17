@@ -35,7 +35,7 @@ Promexsa a veces publica SKU tipo `ORT-AGH-1100` o `DIS-KIB-676`. **Eso no es EA
 
 Birdman B2B y el portal de mayoreo de suplementos piden login para el precio. El nombre y la foto pueden salir de la ficha pública; el ancla, de tu lista. No uses el código interno como nombre.
 
-DermaPharma: nombre y foto de la ficha (no del kit si vendes la pieza suelta). El EAN está en la caja o en el PDP; si solo ves SKU interno, no lo uses como código de barras. Kits y “de regalo” no se dan de alta como un solo EAN.
+DermaPharma ([dermapharma.mx](https://dermapharma.mx/?country=MX)): es la fuente para **Dermocosmética** que Nadro no trae bien. El listado a veces pone códigos (`A-crema C/c 50+ep 50ML`, `A-fluido S/c 50+`). Eso no se usa de nombre. Abre la ficha y toma marca + producto + ml (Avène, Heliocare, Sesderma, Neoretin, Frezyderm…). El EAN casi nunca está en la web pública: sale de la caja, del PDP al entrar, o de Fahorro/Nadro si es la misma presentación. Kits y “de regalo” no se dan de alta como un solo EAN.
 
 ## Dónde aparece cada alta
 
