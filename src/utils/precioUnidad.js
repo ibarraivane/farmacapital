@@ -1,6 +1,7 @@
 /** Regla de precio por pieza suelta: margen mayor que caja + penalización vs paquete. */
 
 import { recargoCategoriaEsHigiene } from "../constants/categoriasProducto";
+import { margenSobreVentaPct } from "../lib/margenMarkup";
 
 export const PENALIZACION_CAJA = 1.12; // Σ piezas ≥ 12% sobre precio caja
 
@@ -49,10 +50,7 @@ export function precioUnidadParaVenta(producto) {
 }
 
 export function margenBrutoPct(precioVenta, costo) {
-  const pv = parseFloat(precioVenta) || 0;
-  const co = parseFloat(costo) || 0;
-  if (pv <= 0) return 0;
-  return Math.round(((pv - co) / pv) * 1000) / 10;
+  return margenSobreVentaPct(precioVenta, costo) ?? 0;
 }
 
 /** Aplica regla al guardar producto con venta_unidad. */

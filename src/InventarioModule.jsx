@@ -21,6 +21,7 @@ import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
+import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
 import {
   CATEGORIAS_PRODUCTO as CATEGORIAS,
@@ -174,12 +175,6 @@ const mkBtnPrimary = (C) => ({ padding:"9px 18px", borderRadius:8, border:"none"
 const mkBtnOutline = (C) => ({ padding:"8px 16px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:12, border:`1px solid ${C.blue}`, background:"transparent", color:C.blue });
 const mkBtnGreen = (C) => ({ padding:"9px 18px", borderRadius:8, border:"none", cursor:"pointer", background:C.green, color:"#fff", fontWeight:700, fontSize:12 });
 const mkBtnSecondary = (C) => ({ padding:"9px 18px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:12, border:`1px solid ${C.border}`, background:"transparent", color:C.textMid });
-
-const margen = (pv, co) => {
-  const p = parseFloat(pv), c = parseFloat(co);
-  if (!c || c === 0) return "—";
-  return ((p - c) / c * 100).toFixed(1) + "%";
-};
 
 /** Mes/año para control de caducidad en tabla (ej. 11/2027). */
 function formatCaducidadMesAnio(fecha) {
@@ -468,7 +463,7 @@ const INV_COLUMN_DEFS = {
   min: { label: "Mín", hint: "" },
   precio: { label: "Precio", hint: "" },
   costo: { label: "Costo", hint: "" },
-  margen: { label: "Margen%", hint: "" },
+  margen: { label: "Margen", hint: "Arriba: % de lo que cobraste. Abajo: recargo sobre el costo." },
   cad: { label: "Cad.", hint: "Mes/año del lote más próximo — clic para editar" },
   agot: { label: "Agot. (días)", hint: "" },
   desc: { label: "Desc%", hint: "" },
@@ -795,9 +790,11 @@ const exportarCSV = (productos) => {
     "Descuento_Porcentaje",
     "Marca_Comercial", "Principio_Activo", "Concentracion", "Presentacion",
     "Contenido_Caja", "Linea_Comercial", "Grupo_Farmacologico", "Jerarquia",
-    "SKU_Casa_Saba", "Margen_Porcentaje", "Stock_Maximo", "Notas"
+    "SKU_Casa_Saba", "Margen_Sobre_Venta", "Recargo_Sobre_Costo", "Stock_Maximo", "Notas"
   ];
-  const rows = productos.map(p => [
+  const rows = productos.map(p => {
+    const m = resumenRecargoYMargen(p.precio, p.costo);
+    return [
     p.sku||"", p.codigo_barras||"", p.nombre||"", p.categoria||"", p.tipo||"generico",
     p.stock??0, p.stock_minimo??0,
     parseFloat(p.precio||0).toFixed(2), parseFloat(p.costo||0).toFixed(2),
@@ -806,8 +803,9 @@ const exportarCSV = (productos) => {
     p.marca_comercial||"", p.principio_activo||"", p.concentracion||"",
     p.presentacion||"", p.contenido_caja||"", p.linea_comercial||"",
     p.grupo_farmacologico||"", p.jerarquia||"", p.sku_casa_saba||"",
-    margen(p.precio, p.costo), p.stock_maximo||"", p.notas||""
-  ]);
+    m.margenLabel, m.recargoLabel, p.stock_maximo||"", p.notas||""
+    ];
+  });
   const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
@@ -1350,12 +1348,19 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           <div>
             {field("Precio de venta","precio","number",true)}
             {field("Costo","costo","number",true)}
+            {(() => {
+              const ay = ayudaRecargoVsMargen(form.costo);
+              return (
             <div style={{marginBottom:12,padding:"8px 10px",background:C.blueDim,borderRadius:8,fontSize:11,color:C.blue,lineHeight:1.45}}>
-              Margen sugerido: <strong>genérico / OTC +60%</strong> sobre costo · <strong>patente +30%</strong>.
-              {form.costo ? (
-                <> Ej.: costo ${parseFloat(form.costo).toFixed(2)} → ${Math.ceil(parseFloat(form.costo)*1.6*100)/100} (60%) o ${Math.ceil(parseFloat(form.costo)*1.3*100)/100} (30%).</>
-              ) : null}
+              <strong>+60% / +25%</strong> es recargo sobre el costo, no el margen.
+              {" "}Genérico +60% = margen {ay.genericoMargenPct}%. Patente +25% = margen {ay.patenteMargenPct}%.
+              <br />
+              {ay.usoEjemplo ? "Ej. costo $250" : `Costo $${ay.costo.toFixed(2)}`}
+              {": "}→ ${ay.genericoPrecio} (genérico) o ${ay.patentePrecio} (patente).
+              {" "}Para 30% de margen real: ${ay.margen30Precio}.
             </div>
+              );
+            })()}
             {field("Stock actual","stock","number",true)}
             {field("Stock mínimo","stock_minimo","number")}
             {field("Descuento %","descuento_pct","number")}
@@ -2196,6 +2201,7 @@ function renderInventarioColumnCell(colId, ctx) {
     bajo,
     inact,
     mgn,
+    mgnRecargo,
     mgnCol,
     marcaDisp,
     nombreTabla,
@@ -2566,9 +2572,13 @@ function renderInventarioColumnCell(colId, ctx) {
       );
     case "margen": {
       const audit = auditarMargenProducto(p);
+      const recargo = ctx.mgnRecargo;
       return (
         <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg, ...w("margen") }}>
           {mgn}
+          {recargo && recargo !== "—" ? (
+            <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.8 }}>+{recargo} costo</div>
+          ) : null}
           {audit.accion === "bajar" && audit.sugerido != null ? (
             <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.85 }}>sugerido ${audit.sugerido}</div>
           ) : null}
@@ -4336,13 +4346,15 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                 const proxCad = p.min_caducidad_lotes || resolverLoteCaducidadProducto(p)?.fecha_caducidad;
                 const dias    = diasParaCaducar(proxCad);
                 const nearCad = esPorCaducar(dias);
-                const mgn     = margen(p.precio, p.costo);
+                const mgnRes  = resumenRecargoYMargen(p.precio, p.costo);
+                const mgn     = mgnRes.margenLabel;
+                const mgnRecargo = mgnRes.recargoLabel;
                 const auditMgn = auditarMargenProducto(p);
                 const mgnCol  = auditMgn.accion === "bajar" || auditMgn.accion === "bajo_costo"
                   ? C.red
                   : auditMgn.accion === "revisar_costo"
                     ? C.amber
-                    : (parseFloat(mgn) >= 25 ? C.green : C.amber);
+                    : (mgnRes.recargoPct != null && mgnRes.recargoPct >= 25 ? C.green : C.amber);
                 const marcaDisp = (p.marca || "").trim();
                 const { nombre: nombreTabla, presentacion: presInferida } = nombreYPresentacionTabla(p);
                 const presDisp = presInferida || "—";
@@ -4371,6 +4383,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                   bajo,
                   inact,
                   mgn,
+                  mgnRecargo,
                   mgnCol,
                   marcaDisp,
                   nombreTabla,
