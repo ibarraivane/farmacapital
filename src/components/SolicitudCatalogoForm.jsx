@@ -12,13 +12,21 @@ export const CONSEGUIR_FORM_FLAG = "farmacapital_conseguir_form";
 const inp = {
   width: "100%",
   marginTop: 4,
-  padding: "11px 12px",
+  padding: "12px 14px",
   borderRadius: 10,
-  border: "1px solid #e2e8f0",
-  fontSize: 15,
+  border: "1px solid #cbd5e1",
+  fontSize: 16,
   boxSizing: "border-box",
   fontFamily: "inherit",
+  background: "#ffffff",
+  color: "#0f172a",
+  WebkitTextFillColor: "#0f172a",
+  caretColor: "#0f172a",
+  colorScheme: "light",
 };
+
+const labelTxt = { fontSize: 13, fontWeight: 800, color: "#0f172a", display: "block" };
+const hintTxt = { fontSize: 12, fontWeight: 500, color: "#64748b", display: "block", marginTop: 2 };
 
 function queryInicial(textoInicial) {
   if (textoInicial) return String(textoInicial).trim();
@@ -64,7 +72,7 @@ export function CatalogoVacioConseguir({ busq, setPage }) {
         {q ? `Sin resultados para “${q}”` : "No hay productos disponibles por el momento."}
       </div>
       <p style={{ margin: "0 0 16px", color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
-        ¿No lo encuentras en el catálogo? Te lo conseguimos. El envío a domicilio tiene costo. Te escribimos por WhatsApp o correo con el precio y la liga de pago.
+        ¿No lo encuentras en el catálogo? Te lo conseguimos. Te escribimos por WhatsApp con el precio y la liga de pago. El envío a domicilio se cobra aparte.
       </p>
       <Btn
         col={BRAND.primary}
@@ -197,87 +205,102 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
           </h1>
         )}
       </div>
-      <p style={{ margin: "0 0 20px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
-        Anota el medicamento. Lo vemos en mayorista, te pasamos el costo por WhatsApp o correo y, si te late, pagas con la liga. El envío a domicilio tiene costo.
+      <p style={{ margin: "0 0 20px", color: "#475569", fontSize: 15, lineHeight: 1.6 }}>
+        Escribe el producto. Te decimos el precio por WhatsApp y, si te late, te mandamos la liga para pagar. El envío a domicilio se cobra aparte.
       </p>
 
-      <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>¿Qué buscas?</span>
+      <label style={{ display: "block", marginBottom: 14 }}>
+        <span style={labelTxt}>Producto que buscas</span>
+        <span style={hintTxt}>Nombre, marca y presentación. Ej. Losartan 50 mg, 30 tabletas.</span>
         <input
+          className="farmacapital-field-input"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder="Ej. Losartan 50 mg, 30 tabletas"
+          placeholder="Losartan 50 mg, 30 tabletas"
+          autoComplete="off"
           style={inp}
         />
       </label>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
         <label>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Cantidad</span>
+          <span style={labelTxt}>¿Cuántas piezas?</span>
           <input
+            className="farmacapital-field-input"
             type="number"
             min={1}
             max={999}
             value={cantidad}
             onChange={(e) => setCantidad(e.target.value)}
+            inputMode="numeric"
             style={inp}
           />
         </label>
         <label>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>¿Para cuándo?</span>
-          <select value={urgencia} onChange={(e) => setUrgencia(e.target.value)} style={inp}>
-            <option value="sin_prisa">Sin prisa</option>
+          <span style={labelTxt}>¿Para cuándo lo necesitas?</span>
+          <select className="farmacapital-field-input farmacapital-field-select" value={urgencia} onChange={(e) => setUrgencia(e.target.value)} style={inp}>
+            <option value="sin_prisa">Esta semana está bien</option>
             <option value="manana">Mañana</option>
-            <option value="hoy">Hoy</option>
+            <option value="hoy">Hoy, si se puede</option>
           </select>
         </label>
       </div>
 
-      <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Tu nombre</span>
-        <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Cómo te llamas" style={inp} />
+      <label style={{ display: "block", marginBottom: 14 }}>
+        <span style={labelTxt}>Tu nombre</span>
+        <span style={hintTxt}>Como quieres que te hablemos.</span>
+        <input className="farmacapital-field-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Iván Ibarra" autoComplete="name" style={inp} />
       </label>
 
-      <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>WhatsApp (10 dígitos)</span>
+      <label style={{ display: "block", marginBottom: 14 }}>
+        <span style={labelTxt}>WhatsApp</span>
+        <span style={hintTxt}>10 dígitos, sin 52. Ahí te escribimos el precio.</span>
         <input
+          className="farmacapital-field-input"
           value={telefono}
           onChange={(e) => setTelefono(e.target.value)}
           onBlur={() => {
-            // Si pegan +52 / 52 al inicio, dejar los 10 dígitos que pide la etiqueta.
             const d = normalizarTelefonoPedido(telefono);
             if (d.length === 10 && d !== telefono) setTelefono(d);
           }}
           placeholder="55 1234 5678"
           inputMode="tel"
+          autoComplete="tel"
           style={inp}
         />
       </label>
 
-      <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Correo (opcional)</span>
+      <label style={{ display: "block", marginBottom: 14 }}>
+        <span style={labelTxt}>Correo</span>
+        <span style={hintTxt}>Opcional. Para mandarte la liga de pago.</span>
         <input
+          className="farmacapital-field-input"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="para mandarte la liga de pago"
+          placeholder="ivan@correo.com"
           type="email"
+          autoComplete="email"
           style={inp}
         />
       </label>
 
-      <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Dirección de envío (opcional)</span>
+      <label style={{ display: "block", marginBottom: 14 }}>
+        <span style={labelTxt}>Dirección de envío</span>
+        <span style={hintTxt}>Opcional. Si lo quieres a domicilio: calle, número, colonia y CP.</span>
         <input
+          className="farmacapital-field-input"
           value={direccion}
           onChange={(e) => setDireccion(e.target.value)}
-          placeholder="Calle, número, colonia, CP"
+          placeholder="Calle 12 #45, Roma Norte, 06700"
+          autoComplete="street-address"
           style={inp}
         />
       </label>
 
-      <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Notas (marca, receta, presentación)</span>
-        <input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Opcional" style={inp} />
+      <label style={{ display: "block", marginBottom: 16 }}>
+        <span style={labelTxt}>Algo más que debamos saber</span>
+        <span style={hintTxt}>Opcional. Marca exacta, si traes receta, sabor o talla.</span>
+        <input className="farmacapital-field-input" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Receta, marca o presentación" style={inp} />
       </label>
 
       <label style={{ position: "absolute", left: -9999, width: 1, height: 1, overflow: "hidden" }} aria-hidden>
@@ -286,7 +309,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       </label>
 
       <Btn col={BRAND.primary} onClick={enviar} disabled={enviando} full>
-        {enviando ? "Enviando…" : "Levantar pedido"}
+        {enviando ? "Enviando…" : "Enviar pedido"}
       </Btn>
 
       <button

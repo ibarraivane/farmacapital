@@ -43,15 +43,16 @@ code {
     monospace;
 }
 
-/* Inputs tienda/admin: fondo blanco y texto oscuro (incl. autofill Chrome/Safari) */
-.farmacapital-field-input {
-  color-scheme: light;
-}
-
+/* Inputs tienda/admin: fondo blanco y texto oscuro (incl. autofill Chrome/Safari).
+   Obligatorio: iOS con dark mode pinta negro cualquier input sin color-scheme + fondo. */
 .farmacapital-field-input,
 .farmacapital-field-select,
 textarea.farmacapital-field-input {
   color-scheme: light;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
 }
 
 /* El placeholder debe verse de ejemplo, no como si el cliente ya hubiera escrito. */

@@ -1,0 +1,29 @@
+---
+description: Inputs de tienda siempre fondo blanco (nunca negros por dark mode iOS)
+globs: src/**/*.{jsx,js,css,tsx,ts}
+alwaysApply: true
+---
+
+# Inputs tienda: fondo blanco, nunca negros
+
+En iPhone (Chrome/Safari) con modo oscuro del sistema, un `<input>` / `<select>` / `<textarea>` **sin** fondo y `color-scheme: light` se pinta negro. Eso ya pasó en login, checkout y «Te lo conseguimos». No volver a inventar campos “a ojo”.
+
+## Obligatorio en formularios de la tienda web (`Tienda`, `/conseguir`, checkout, cuenta, login)
+
+1. Clase `farmacapital-field-input` (y `farmacapital-field-select` en selects).
+2. Estilo con fondo blanco y texto oscuro, p. ej. `tiendaFieldStyle()` en `Tienda.jsx`, o explícito:
+   - `background: #ffffff`
+   - `color: #0f172a` (o `C.text` / `C.dark`)
+   - `colorScheme: "light"`
+   - `WebkitTextFillColor` y `caretColor` al mismo color de texto
+3. El CSS global en `src/index.css` refuerza `.farmacapital-field-input` con `background-color: #ffffff !important`. No lo quites.
+
+## Prohibido
+
+- Inputs solo con `border` / `padding` y sin `background` / `colorScheme`.
+- Depender de que el sistema “herede” el color del body.
+- Campos oscuros / dark UI en formularios de cliente de farmacapital.mx.
+
+## Admin / POS
+
+Misma regla en pantallas claras del admin: `Inp` de `ui.jsx` ya trae `farmacapital-field-input` + `colorScheme: light`. Si creas un input crudo, aplica lo mismo.

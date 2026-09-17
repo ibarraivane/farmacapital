@@ -22,6 +22,8 @@ describe("compra vigente", () => {
       "Farmacias Guadalajara"
     );
     expect(normalizeProveedorCompra("Farmacias Guadalajara")).toBe("Farmacias Guadalajara");
+    expect(normalizeProveedorCompra("Farmacia Integral")).toBe("Farma Integral");
+    expect(normalizeProveedorCompra("https://farmacia-integral.odoo.com/shop")).toBe("Farma Integral");
   });
 
   test("solo reemplaza si el nuevo es más barato", () => {
