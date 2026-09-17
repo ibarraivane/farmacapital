@@ -154,7 +154,7 @@ export default function VitrinaConseguir({
         <div style={{ color: "#64748b", fontSize: 14, padding: "12px 0 24px" }}>Cargando productos…</div>
       ) : null}
 
-      {!vacio && esNutri && rubrosSeccion.length > 1 ? (
+      {esNutri && rubrosSeccion.length > 1 ? (
         <div role="tablist" aria-label="Rubros" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, marginBottom: 16 }}>
           {chip("", "Todos")}
           {rubrosSeccion.map((r) => chip(r.id, r.label))}
