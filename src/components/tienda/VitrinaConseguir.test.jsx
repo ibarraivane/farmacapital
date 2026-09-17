@@ -26,6 +26,7 @@ test("mientras carga no muestra el formulario", () => {
   expect(screen.getByText(/Cargando productos/i)).toBeInTheDocument();
   expect(screen.queryByText("FORMULARIO")).not.toBeInTheDocument();
   expect(screen.queryByText(/Aún no hay productos en esta página/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Aún no hay productos en este rubro/i)).not.toBeInTheDocument();
 });
 
 test("sección vacía oculta la cuadrícula y muestra el formulario arriba", () => {

@@ -248,9 +248,9 @@ export default function VitrinaConseguir({
           </div>
         ) : null}
 
-        {!vacio && (rubro || esDerma) ? grid(lista) : null}
+        {!loading && !vacio && (rubro || esDerma) ? grid(lista) : null}
 
-        {!vacio && !rubro && esNutri
+        {!loading && !vacio && !rubro && esNutri
           ? rubrosSeccion.map((r) => {
               const items = filtrarVitrina(productos, r.id);
               if (!items.length) return null;
