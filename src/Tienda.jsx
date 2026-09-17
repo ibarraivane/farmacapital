@@ -83,6 +83,7 @@ import {
 } from "./lib/envioDomicilio";
 import DestinationPicker from "./components/DestinationPicker";
 import RecompraStrip, { ProductosStripStyles } from "./components/RecompraStrip";
+import { attachTiendaHorizontalStripWheel } from "./lib/forwardVerticalWheel";
 import SocialLoginButtons from "./components/SocialLoginButtons";
 import {
   cleanCheckoutColonia,
@@ -639,7 +640,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     width: "100%",
     aspectRatio: String(ratioHero),
     height: "auto",
-    overflow: "hidden",
+    overflow: "clip",
     background: T.ink,
   };
 
@@ -776,7 +777,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   // ── imagen_completa: arte ya incluye copy; solo CTA opcional en zona segura ──
   if (modoCompleto) {
     return (
-      <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"hidden" }}>
+      <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"clip" }}>
         <div
           className="hero-carousel__frame"
           style={heroShellSx}
@@ -828,7 +829,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
 
   // ── imagen_fondo / gradiente: copy superpuesto con overlay moderado ──
   return (
-    <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"hidden" }}>
+    <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"clip" }}>
       <div
         role="presentation"
         onClick={()=> b.pagina && setPage(b.pagina)}
@@ -1859,7 +1860,7 @@ function ProductCard({prod,addToCart,onClick}){
       background:C.white,
       borderRadius:12,
       border:`1px solid ${agotado ? C.border : C.border}`,
-      overflow:"hidden",
+      overflow:"clip",
       display:"flex",
       flexDirection:"column",
       width:"100%",
@@ -1876,7 +1877,7 @@ function ProductCard({prod,addToCart,onClick}){
       <div
         style={{
           background:"#fff",
-          overflow:"hidden",
+          overflow:"clip",
           minHeight:152,
           height:152,
           display:"flex",
@@ -3283,7 +3284,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   };
   const busqActiva = busq.trim().length > 0;
   return(
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh",overflowX:"hidden"}}>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh",overflowX:"clip"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>
         {filtroRx ? "Surtir receta" : "Catálogo FarmaCapital"}
       </h1>
@@ -6604,6 +6605,7 @@ export default function TiendaFarmaCapital(){
       if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
     } catch (_) { /* noop */ }
   },[]);
+  useEffect(() => attachTiendaHorizontalStripWheel(), []);
   useEffect(()=>{
     const id = window.requestAnimationFrame(()=>{ window.scrollTo(0, 0); });
     return ()=>window.cancelAnimationFrame(id);
@@ -6983,21 +6985,21 @@ export default function TiendaFarmaCapital(){
           background:${C.bg};
           font-family:var(--fc-body);
           color:${C.dark};
-          overflow-x:hidden;
-          /* visible: el scroll lo lleva html (evita doble scroller / rebote en móvil). */
+          /* clip recorta X sin crear scrollport (hidden sí lo crea y traga la rueda). */
+          overflow-x:clip;
           overflow-y:visible;
           overscroll-behavior-y:none;
         }
-        /* Header sticky: debe quedar FUERA de un padre con overflow-x:hidden (rompe sticky en móvil). */
+        /* Header sticky: fuera de overflow-x:hidden. clip tampoco crea scrollport. */
         main{
-          overflow-x:hidden;
+          overflow-x:clip;
           overflow-y:visible;
           width:100%;
           max-width:100%;
           padding-bottom:env(safe-area-inset-bottom, 0px);
         }
         .farmacapital-tienda-shell{
-          overflow-x:hidden;
+          overflow-x:clip;
           overflow-y:visible;
         }
         img,svg,video,canvas{max-width:100%;height:auto;}

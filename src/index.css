@@ -4,8 +4,10 @@
 }
 
 /*
-  Un solo scroll vertical (html). Si html Y body tienen overflow-y:auto,
-  en móvil el gesto rebota / se “traba” hasta soltar el dedo.
+  Un solo scroll vertical: el viewport (html).
+  overflow-x:hidden en body/main/#root convierte overflow-y:visible en auto
+  (spec CSS) y Chrome de escritorio se traga la rueda: la página no baja.
+  En esos nodos usamos clip (recorta X, no es scrollport).
 */
 html {
   -webkit-text-size-adjust: 100%;
@@ -35,7 +37,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   height: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   overflow-y: visible;
   overscroll-behavior-y: none;
   max-width: 100%;

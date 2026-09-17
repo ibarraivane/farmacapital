@@ -1,6 +1,7 @@
 import { Children, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { stripArrowState, stripPageScrollLeft } from "../lib/productosStrip";
+import { attachForwardVerticalWheel } from "../lib/forwardVerticalWheel";
 
 /**
  * Ancho fijo de cada tarjeta en banda = celda de la cuadrícula del catálogo.
@@ -35,11 +36,13 @@ export default function RecompraStrip({
     if (!el) return;
     syncArrows();
     el.addEventListener("scroll", syncArrows, { passive: true });
+    const detachWheel = attachForwardVerticalWheel(el);
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncArrows) : null;
     ro?.observe(el);
     window.addEventListener("resize", syncArrows);
     return () => {
       el.removeEventListener("scroll", syncArrows);
+      detachWheel();
       ro?.disconnect();
       window.removeEventListener("resize", syncArrows);
     };

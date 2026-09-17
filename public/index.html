@@ -159,8 +159,10 @@
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
         height: auto;
-        overflow-x: hidden;
-        overflow-y: auto;
+        /* clip, no hidden: hidden + overflow-y visible se vuelve auto y
+           en escritorio la rueda no baja la página. */
+        overflow-x: clip;
+        overflow-y: visible;
         -webkit-overflow-scrolling: touch;
         /* Evita zoom por doble toque; overscroll auto evita scroll “pegajoso” en iOS. */
         touch-action: manipulation;
