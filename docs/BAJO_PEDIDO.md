@@ -11,12 +11,17 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 | Campo | Regla |
 | --- | --- |
 | `bajo_pedido` | `true` (columna creada por `sql/patch_bajo_pedido_20260916.sql`; correr ANTES de las altas) |
-| `precio` | **Ancla de mostrador** (costo + margen de lista). Nunca con Mercado Pago incluido |
-| `precio <= 0.01` | Sale en vitrina con **Cotizar**; no se puede pagar en línea |
+| `costo` | **Costo del mayorista** (DermaPharma, Birdman, Nadro, etc.). Obligatorio para Encargar |
+| `precio` | **Ancla de mostrador** = costo mayoreo + ganancia FarmaCapital (marca +25% / genérico +60% sobre costo). Nunca lista de Del Ahorro / Similares / otra farmacia. Nunca con Mercado Pago incluido |
+| `precio <= 0.01` o sin costo | Sale en vitrina con **Cotizar**; no se puede pagar en línea. Mejor Cotizar que Encargar con precio ajeno |
 | `stock` | 0. No inventar lote/caducidad |
 | `categoria` / `subcategoria` | Dermatología = `Cuidado personal` + `Dermatología` · Vitaminas = `Vitaminas` · Suplementos = `Suplemento` · Proteína = `Suplemento` + `Proteína`. **No** hay categoría nueva |
 | nombre, marca, foto, SKU | Nombre de mostrador, marca real, foto obligatoria, `FC-` + últimos 8 del EAN |
 | Anaquel | Si hay stock real de góndola, **no** se marca (el RPC de Inventario lo rechaza) |
+
+### Prohibido en precio de bajo pedido
+- Pegar PVP / lista de Farmacias del Ahorro, Similares, Guadalajara, etc. como `productos.precio`.
+- Poner «Encargar» sin `costo` de mayoreo: el cliente ordenaría a un precio que tú no puedes sostener.
 
 ## Precio web
 Tarjeta: solo 3.49% + IVA. Skittles $10 → **$11**.

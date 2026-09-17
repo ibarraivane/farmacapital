@@ -1,0 +1,14 @@
+---
+description: Bajo pedido — precio solo con costo mayoreo + ganancia; si no, Cotizar
+alwaysApply: true
+---
+
+# Bajo pedido: mayoreo + ganancia, o Cotizar
+
+En la vitrina `/conseguir` (**bajo pedido**):
+
+1. **`precio`** = costo del **mayorista** (DermaPharma, Birdman, Nadro, etc.) + ganancia FarmaCapital (marca **+25%** / genérico **+60%** sobre costo).
+2. **Sin costo usable** → `precio = 0` → CTA **Cotizar**. Nunca «Encargar» con precio inventado.
+3. **Prohibido** pegar lista / PVP de Del Ahorro, Similares u otra farmacia como `productos.precio`.
+
+Caso 2026-09-17: se cargó ancla Fahorro; se corrigió con `sql/patch_bajo_pedido_cotizar_sin_costo_20260917.sql`.
