@@ -3,6 +3,7 @@ import { PackageSearch } from "lucide-react";
 import { BRAND } from "../../constants";
 import RecompraStrip from "../RecompraStrip";
 import {
+  FASE2_INCLUIR_ANAQUEL,
   RUBROS_BAJO_PEDIDO,
   TEXTO_RESERVA,
   copyMarcasSeccion,
@@ -31,11 +32,11 @@ export default function VitrinaConseguir({
   const esNutri = sec?.id === "nutricion";
 
   const pool = useMemo(
-    () => filtrarSeccion(productos, seccion, { incluirAnaquel: false }),
+    () => filtrarSeccion(productos, seccion, { incluirAnaquel: FASE2_INCLUIR_ANAQUEL }),
     [productos, seccion]
   );
   const lista = useMemo(
-    () => (rubro ? filtrarSeccion(productos, seccion, { rubro, incluirAnaquel: false }) : pool),
+    () => (rubro ? filtrarSeccion(productos, seccion, { rubro, incluirAnaquel: FASE2_INCLUIR_ANAQUEL }) : pool),
     [productos, seccion, rubro, pool]
   );
   const conteo = useMemo(() => {

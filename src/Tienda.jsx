@@ -56,10 +56,12 @@ import PedidosEspeciales from "./components/tienda/PedidosEspeciales";
 import FranjaSobrePedido from "./components/tienda/FranjaSobrePedido";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
+  BADGE_EN_TIENDA,
   BADGE_SOBRE_PEDIDO,
   CANTIDAD_MAX_BAJO_PEDIDO,
   CTA_SOLICITAR_PRECIO,
   TEXTO_RESERVA,
+  badgeVitrina,
   cantidadMaximaLinea,
   ctaBajoPedido,
   esBajoPedido,
@@ -377,7 +379,7 @@ const FAQ_ITEMS = [
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
   { p:"¿Qué hago si no está en el catálogo?", r:"En búsqueda sin resultados toca «Solicitarlo» o entra a Pedidos especiales. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
-  { p:"¿Qué es un producto «Sobre pedido»?", r:"Son productos que no tenemos en anaquel y traemos del mayorista en 24-48 h (dermocosmética, vitaminas, suplementos y proteína). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tenemos. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Solicitar precio» y te mandamos el costo." },
+  { p:"¿Qué es un producto «Sobre pedido»?", r:"Son productos que no tenemos en anaquel y traemos del mayorista en 24-48 h (dermocosmética, vitaminas, suplementos y nutrición deportiva). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tenemos. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Solicitar precio» y te mandamos el costo." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -1931,6 +1933,8 @@ function ProductCard({prod,addToCart,onClick}){
             ? <Tag col={BRAND.secondary} sm>{BADGE_SOBRE_PEDIDO}</Tag>
             : agotado
             ? <Tag col={C.red} sm>Agotado</Tag>
+            : badgeVitrina(prod) === BADGE_EN_TIENDA
+            ? <Tag col={BRAND.accent} sm>{BADGE_EN_TIENDA}</Tag>
             : prod.stock<=3
               ? <Tag col="#f59e0b" sm>Últimas {prod.stock}</Tag>
               : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"} sm>{d==="inmediato"?"Hoy":"24-48 hrs"}</Tag>
@@ -2071,6 +2075,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               ? <Tag col={BRAND.secondary}>{BADGE_SOBRE_PEDIDO}</Tag>
               : agotado
               ? <Tag col={C.red}>Agotado</Tag>
+              : badgeVitrina(prod) === BADGE_EN_TIENDA
+              ? <Tag col={BRAND.accent}>{BADGE_EN_TIENDA}</Tag>
               : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"Disponible hoy":"24-48 hrs"}</Tag>
             }
             {prod.tipo==="generico"&&<Tag col={BRAND.secondary}>Genérico</Tag>}

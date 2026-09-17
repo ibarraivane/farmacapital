@@ -1,6 +1,6 @@
 import { ChevronRight, Leaf, Sparkles } from "lucide-react";
 import { BRAND } from "../../constants";
-import { SECCIONES_CONSEGUIR, filtrarSeccion } from "../../lib/bajoPedido";
+import { FASE2_INCLUIR_ANAQUEL, SECCIONES_CONSEGUIR, filtrarSeccion } from "../../lib/bajoPedido";
 
 const ICONO = {
   dermatologia: Sparkles,
@@ -21,7 +21,7 @@ export default function EnlacesSeccionConseguir({ setPage, productos = [], stack
     >
       {SECCIONES_CONSEGUIR.map((sec) => {
         const Icon = ICONO[sec.id] || Sparkles;
-        const n = filtrarSeccion(productos, sec.id, { incluirAnaquel: false }).length;
+        const n = filtrarSeccion(productos, sec.id, { incluirAnaquel: FASE2_INCLUIR_ANAQUEL }).length;
         const derma = sec.id === "dermatologia";
         const tint = derma ? BRAND.accent : BRAND.secondary;
         return (
@@ -70,7 +70,8 @@ export default function EnlacesSeccionConseguir({ setPage, productos = [], stack
               </p>
               {n > 0 ? (
                 <div style={{ marginTop: 8, color: tint, fontWeight: 700, fontSize: 12 }}>
-                  {n} {n === 1 ? "producto" : "productos"} · 24-48 h
+                  {n} {n === 1 ? "producto" : "productos"}
+                  {FASE2_INCLUIR_ANAQUEL ? "" : " · 24-48 h"}
                 </div>
               ) : (
                 <div style={{ marginTop: 8, color: "#64748b", fontWeight: 600, fontSize: 12 }}>

@@ -1,8 +1,13 @@
 import {
+  BADGE_EN_TIENDA,
+  BADGE_SOBRE_PEDIDO,
   CANTIDAD_MAX_BAJO_PEDIDO,
+  RUBROS_BAJO_PEDIDO,
+  badgeVitrina,
   cantidadMaximaLinea,
   copyMarcasSeccion,
   ctaBajoPedido,
+  esNutricionDeportiva,
   estadoReserva,
   filtrarSeccion,
   filtrarVitrina,
@@ -12,6 +17,7 @@ import {
   pedidoEsBajoPedido,
   prepararProductoTienda,
   rubroDeProducto,
+  rubroDeQuery,
   seccionConseguirDeQuery,
   tipoCarrito,
 } from "./bajoPedido";
@@ -64,7 +70,7 @@ test("rubros por categoria/subcategoria (con alias canónicos)", () => {
   expect(seccionConseguirDeQuery("?seccion=dermocosmetica")).toBe("dermatologia");
 });
 
-test("filtrarSeccion por sección y rubro; anaquel e inactivos fuera", () => {
+test("filtrarSeccion por sección y rubro; anaquel e inactivos fuera si no se pide", () => {
   const inactivo = { ...anthelios, id: 8, activo: false };
   const anaquelDerma = { id: 9, nombre: "Cetaphil anaquel", activo: true, bajo_pedido: false, stock: 3, categoria: "Cuidado personal", subcategoria: "Dermatología" };
   const todos = [paracetamol, whey, anthelios, omega, vitC, inactivo, anaquelDerma];
@@ -74,6 +80,29 @@ test("filtrarSeccion por sección y rubro; anaquel e inactivos fuera", () => {
   expect(filtrarSeccion(todos, "nutricion", { rubro: "suplementos" }).map((p) => p.id)).toEqual([3]);
   expect(filtrarSeccion(todos, "dermatologia", { incluirAnaquel: false }).map((p) => p.id)).not.toContain(9);
   expect(filtrarSeccion(todos, "dermatologia", { incluirAnaquel: false }).map((p) => p.id)).not.toContain(8);
+});
+
+test("fase 2: anaquel + encargo en vitrina; anaquel con stock primero", () => {
+  const anaquelDerma = { id: 9, nombre: "Cetaphil anaquel", activo: true, bajo_pedido: false, stock: 3, categoria: "Cuidado personal", subcategoria: "Dermatología" };
+  const agotadoDerma = { id: 10, nombre: "Zocalo derma", activo: true, bajo_pedido: false, stock: 0, categoria: "Cuidado personal", subcategoria: "Dermatología" };
+  const todos = [anthelios, anaquelDerma, agotadoDerma];
+  expect(filtrarVitrinaSeccion(todos, "dermatologia").map((p) => p.id)).toEqual([9, 1, 10]);
+  expect(badgeVitrina(anaquelDerma)).toBe(BADGE_EN_TIENDA);
+  expect(badgeVitrina(anthelios)).toBe(BADGE_SOBRE_PEDIDO);
+  expect(badgeVitrina(paracetamol)).toBe("");
+});
+
+test("nutrición deportiva: creatina y whey sí; pancreatina y shampoo no", () => {
+  expect(RUBROS_BAJO_PEDIDO.find((r) => r.id === "proteina").label).toBe("Nutrición deportiva");
+  expect(esNutricionDeportiva("Proteína", "Whey Gold")).toBe(true);
+  expect(esNutricionDeportiva("Nutrición deportiva", "Cualquiera")).toBe(true);
+  expect(rubroDeProducto({ categoria: "Suplemento", subcategoria: "", nombre: "Creatina monohidratada 300 g" })).toBe("proteina");
+  expect(rubroDeProducto({ categoria: "Suplemento", subcategoria: "", nombre: "Pre-entreno tropical" })).toBe("proteina");
+  expect(rubroDeProducto({ categoria: "Suplemento", subcategoria: "", nombre: "Pancreatina 150 mg" })).toBe("suplementos");
+  expect(rubroDeProducto({ categoria: "Suplemento", subcategoria: "Proteína", nombre: "Shampoo con proteína" })).toBe("suplementos");
+  expect(rubroDeQuery("?rubro=creatina")).toBe("proteina");
+  expect(rubroDeQuery("?rubro=nutricion-deportiva")).toBe("proteina");
+  expect(seccionConseguirDeQuery("?seccion=deporte")).toBe("nutricion");
 });
 
 test("copy de marcas solo usa las del catálogo", () => {

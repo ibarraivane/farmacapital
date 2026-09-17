@@ -98,6 +98,15 @@ describe("tiendaRoutes", () => {
     expect(resolveTiendaLocation("/conseguir", "?seccion=proteinas")).toMatchObject({
       page: "vitaminas", rubro: "proteina",
     });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=deporte")).toMatchObject({
+      page: "vitaminas", rubro: "proteina", canonicalPath: "/vitaminas?rubro=proteina",
+    });
+    expect(resolveTiendaLocation("/vitaminas", "?rubro=creatina")).toMatchObject({
+      page: "vitaminas", rubro: "proteina", canonicalPath: "/vitaminas?rubro=proteina",
+    });
+    expect(resolveTiendaLocation("/vitaminas", "?rubro=nutricion-deportiva")).toMatchObject({
+      page: "vitaminas", rubro: "proteina",
+    });
     expect(resolveTiendaLocation("/conseguir", "")).toMatchObject({
       page: "pedidos-especiales", canonicalPath: "/pedidos-especiales", shouldReplace: true,
     });

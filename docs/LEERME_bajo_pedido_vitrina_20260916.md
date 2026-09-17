@@ -3,14 +3,16 @@
 La UI de `/conseguir` ya estaba (PR #237). Faltaban filas `bajo_pedido = true`.
 Este lote las crea. **Hasta que pegues el SQL en Supabase, la vitrina sigue vacía.**
 
-En la tienda: home y `/conseguir` tienen **dos enlaces** —
-`/conseguir?seccion=dermatologia` y `/conseguir?seccion=nutricion` (vitaminas + suplementos + proteína).
+En la tienda: home → Dermocosmética y Vitaminas y suplementos
+(`/dermocosmetica`, `/vitaminas`; aliases `/conseguir?seccion=…`).
+Fase 2: las páginas mezclan anaquel + encargo. Chip **Nutrición deportiva**.
 
 ## Qué pegar (en este orden)
 
 1. `sql/patch_bajo_pedido_20260916.sql` — si aún no corre (columna + RPCs).
 2. `sql/patch_alta_bajo_pedido_vitrina_20260916.sql` — primer lote (26).
 3. `sql/patch_alta_bajo_pedido_derm_recetadas_20260916.sql` — marcas que recetan dermatólogos (21).
+4. `sql/patch_fase2_vitrina_nutricion_deportiva_20260917.sql` — reclasifica proteína/creatina. No marca bajo_pedido.
 
 Supabase → SQL Editor → Run. Idempotente.
 

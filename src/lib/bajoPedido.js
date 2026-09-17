@@ -18,7 +18,10 @@ export const TEXTO_AVISO_RECETA =
   "Los medicamentos que requieren receta se surten presentando la receta en tienda. No encargamos en línea medicamentos controlados.";
 
 export const BADGE_SOBRE_PEDIDO = "Sobre pedido · 24-48 h";
+export const BADGE_EN_TIENDA = "En tienda";
 export const CTA_SOLICITAR_PRECIO = "Solicitar precio";
+/** Fase 2: las páginas de categoría mezclan anaquel + encargo (el carrito no). */
+export const FASE2_INCLUIR_ANAQUEL = true;
 export const FRANJA_HOME = "¿No lo encuentras? Lo pedimos por ti · 24-48 h";
 export const TEXTO_BUSQUEDA_VACIA = "No lo tenemos en tienda, pero lo pedimos por ti. Llega en 24-48 h.";
 
@@ -32,7 +35,7 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "dermatologia", label: "Dermatología" },
   { id: "vitaminas", label: "Vitaminas" },
   { id: "suplementos", label: "Suplementos" },
-  { id: "proteina", label: "Proteína" },
+  { id: "proteina", label: "Nutrición deportiva" },
 ]);
 
 /** Dos páginas de catálogo: dermocosmética vs vitaminas+suplementos+proteína. */
@@ -51,8 +54,8 @@ export const SECCIONES_CONSEGUIR = Object.freeze([
     page: "vitaminas",
     label: "Vitaminas y suplementos",
     titulo: "Vitaminas y suplementos",
-    subtitulo: "Vitaminas, suplementos y proteína",
-    desc: "Vitaminas, suplementos y proteína.",
+    subtitulo: "Vitaminas, suplementos y nutrición deportiva",
+    desc: "Vitaminas, suplementos y nutrición deportiva.",
     rubros: Object.freeze(["vitaminas", "suplementos", "proteina"]),
   },
 ]);
@@ -68,6 +71,8 @@ const SECCION_ALIAS = {
   suplementos: "nutricion",
   proteina: "nutricion",
   proteinas: "nutricion",
+  nutriciondeportiva: "nutricion",
+  deporte: "nutricion",
 };
 
 const RUBRO_ALIAS = {
@@ -77,6 +82,10 @@ const RUBRO_ALIAS = {
   suplemento: "suplementos",
   proteina: "proteina",
   proteinas: "proteina",
+  nutriciondeportiva: "proteina",
+  deporte: "proteina",
+  deportiva: "proteina",
+  creatina: "proteina",
 };
 
 /** Aliases de `?seccion=` que además fijan el chip de nutrición. */
@@ -84,6 +93,8 @@ const SECCION_RUBRO_ALIAS = {
   suplementos: "suplementos",
   proteina: "proteina",
   proteinas: "proteina",
+  nutriciondeportiva: "proteina",
+  deporte: "proteina",
 };
 
 /** `?seccion=dermatologia` | `nutricion` (y alias). Vacío = pedidos especiales. */
@@ -125,7 +136,7 @@ export function seccionConseguirPorId(id) {
 
 /** 3-4 marcas con más productos activos del rubro/sección. Nunca inventa. */
 export function marcasDestacadas(productos, seccion, limite = 4) {
-  const list = filtrarSeccion(productos, seccion, { incluirAnaquel: false });
+  const list = filtrarSeccion(productos, seccion, { incluirAnaquel: FASE2_INCLUIR_ANAQUEL });
   const counts = new Map();
   for (const p of list) {
     const m = String(p.marca || "").trim();
@@ -185,8 +196,22 @@ export function rubroDeProducto(p) {
   const sub = norm(p.subcategoria);
   if (cat === "Cuidado personal" && sub.startsWith("dermatolog")) return "dermatologia";
   if (cat === "Vitaminas") return "vitaminas";
-  if (cat === "Suplemento") return sub.startsWith("protein") ? "proteina" : "suplementos";
+  if (cat === "Suplemento") return esNutricionDeportiva(sub, p.nombre) ? "proteina" : "suplementos";
   return "";
+}
+
+/** Proteína, creatina, pre-entreno. No pancreatina ni shampoo con “proteína”. */
+export function esNutricionDeportiva(subcategoria, nombre) {
+  const sub = norm(subcategoria);
+  const nom = norm(nombre);
+  const blob = `${sub} ${nom}`;
+  if (/pancreatin/.test(blob)) return false;
+  if (/(shampoo|acondicionador|peinar|cabello|capilar)/.test(blob)) return false;
+  if (sub.startsWith("protein") || sub.startsWith("nutricion deport") || sub.startsWith("deport")) {
+    return true;
+  }
+  return /(^|[^a-z])(creatina|whey|preentren|pre entren|bcaa|aminoacido|ganador de peso|mass gainer)([^a-z]|$)/.test(blob)
+    || /(proteina 90|proteina vegetal|proteina whey|proteina en polvo|proteina isolate|proteina low)/.test(blob);
 }
 
 /**
@@ -224,8 +249,18 @@ export function prepararListaTienda(productos) {
 }
 
 /**
+ * Badge de disponibilidad en vitrina/ficha.
+ * Sobre pedido gana; anaquel clasificado → En tienda; si no, el UI pone Agotado/Hoy.
+ */
+export function badgeVitrina(p) {
+  if (esBajoPedido(p)) return BADGE_SOBRE_PEDIDO;
+  if (rubroDeProducto(p)) return BADGE_EN_TIENDA;
+  return "";
+}
+
+/**
  * Filtro de página de categoría.
- * `incluirAnaquel` queda en false (fase 2: anaquel + encargo juntos).
+ * Las vitrinas pasan `incluirAnaquel: FASE2_INCLUIR_ANAQUEL`. El carrito no mezcla.
  */
 export function filtrarSeccion(productos, seccion, { rubro = "", incluirAnaquel = false } = {}) {
   const sec = seccionConseguirPorId(seccion);
@@ -240,17 +275,22 @@ export function filtrarSeccion(productos, seccion, { rubro = "", incluirAnaquel 
       if (rubro && r !== rubro) return false;
       return true;
     })
-    .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" }));
+    .sort((a, b) => {
+      const ra = esBajoPedido(a) ? 1 : Number(a.stock) > 0 ? 0 : 2;
+      const rb = esBajoPedido(b) ? 1 : Number(b.stock) > 0 ? 0 : 2;
+      if (ra !== rb) return ra - rb;
+      return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" });
+    });
 }
 
-/** Vitrina: bajo pedido del rubro ("" = todos), alfabético. */
+/** Vitrina de rubro: fase 2 incluye anaquel clasificado. */
 export function filtrarVitrina(productos, rubro = "") {
-  return filtrarSeccion(productos, "", { rubro, incluirAnaquel: false });
+  return filtrarSeccion(productos, "", { rubro, incluirAnaquel: FASE2_INCLUIR_ANAQUEL });
 }
 
-/** Productos de una sección (derma o nutrición). Sin sección = toda la vitrina. */
+/** Productos de una sección (derma o nutrición). Fase 2: anaquel + encargo. */
 export function filtrarVitrinaSeccion(productos, seccionId) {
-  return filtrarSeccion(productos, seccionId, { incluirAnaquel: false });
+  return filtrarSeccion(productos, seccionId, { incluirAnaquel: FASE2_INCLUIR_ANAQUEL });
 }
 
 /** El carrito no mezcla encargos con productos de anaquel (se pagan distinto). */

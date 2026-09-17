@@ -43,6 +43,7 @@ test("banda en 0 no se muestra; copy no inventa marcas", () => {
   );
   expect(screen.getByRole("heading", { name: "Vitaminas" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Proteína" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Nutrición deportiva" })).not.toBeInTheDocument();
   expect(screen.queryByText(/Effaclar|Pharmaton|Cicaplast/i)).not.toBeInTheDocument();
   expect(screen.getByText(/Redoxon/)).toBeInTheDocument();
 });
@@ -59,7 +60,24 @@ test("vitaminas vacía igual muestra chips de rubro", () => {
     />
   );
   expect(screen.getByRole("tab", { name: /Todos/i })).toBeInTheDocument();
-  expect(screen.getByRole("tab", { name: /Proteína/i })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: /Nutrición deportiva/i })).toBeInTheDocument();
+});
+
+test("fase 2: anaquel de vitaminas entra a la banda", () => {
+  const anaquelVit = { id: 3, nombre: "Redoxon anaquel", marca: "Redoxon", activo: true, bajo_pedido: false, stock: 4, categoria: "Vitaminas" };
+  render(
+    <VitrinaConseguir
+      productos={[anaquelVit]}
+      loading={false}
+      stack={false}
+      seccion="nutricion"
+      rubro=""
+      setPage={jest.fn()}
+      renderProducto={(p) => <div key={p.id}>{p.nombre}</div>}
+    />
+  );
+  expect(screen.getByText("Redoxon anaquel")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Vitaminas" })).toBeInTheDocument();
 });
 
 test("dermocosmética usa marcas del catálogo", () => {
