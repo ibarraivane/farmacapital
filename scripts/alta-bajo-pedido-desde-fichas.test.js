@@ -29,6 +29,16 @@ test("rechaza código de ticket y marca de casa", () => {
   assert.throws(() => validarFicha({ ...ok, imagen_url: "" }, 0), /imagen/);
 });
 
+test("lote mayoristas 20260917 pasa validación", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/fichas_lote_mayoristas_20260917.json"), "utf8"));
+  const fichas = validarFichas(raw);
+  assert.equal(fichas.length, 10);
+  assert.ok(fichas.some((f) => f.categoria === "Dispositivo médico"));
+  assert.ok(fichas.some((f) => f.marca === "Birdman"));
+});
+
 test("SQL idempotente con el EAN", () => {
   const sql = armarSql(validarFichas([ok]));
   assert.match(sql, /7501234567890/);

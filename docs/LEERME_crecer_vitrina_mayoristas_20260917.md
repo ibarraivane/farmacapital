@@ -71,4 +71,6 @@ Si la URL de foto es frágil, cópiala a `public/catalogo-propia/` y apunta a `h
 2. `sql/patch_alta_bajo_pedido_derm_recetadas_20260916.sql` — 21 derma
 3. `sql/patch_fase2_vitrina_nutricion_deportiva_20260917.sql` — reclasifica, no inserta
 
-El siguiente lote es el JSON que armes con estas cuentas.
+4. `sql/patch_alta_bajo_pedido_mayoristas_20260917.sql` — primer corte cruzando tus cuentas con Fahorro (10). Ver `docs/LEERME_lote_mayoristas_20260917.md`.
+
+El siguiente lote es el JSON que armes con el precio de **tu** lista B2B.
