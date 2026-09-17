@@ -4,8 +4,9 @@
 }
 
 /*
-  Un solo scroll vertical (html). Si html Y body tienen overflow-y:auto,
-  en móvil el gesto rebota / se “traba” hasta soltar el dedo.
+  El documento tiene que poder bajar. overscroll-behavior-y:none + body
+  overflow-y:visible (PR #246) dejó farmacapital.mx sin scroll vertical.
+  Las bandas (.farmacapital-productos-strip) sí llevan overflow-y:hidden.
 */
 html {
   -webkit-text-size-adjust: 100%;
@@ -14,17 +15,6 @@ html {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
-}
-
-/* iPhone Chrome/Safari (WebKit): refuerza anti-rebote del documento. */
-@supports (-webkit-touch-callout: none) {
-  html {
-    overscroll-behavior-y: none;
-  }
-  body {
-    overscroll-behavior-y: none;
-  }
 }
 
 body {
@@ -36,8 +26,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   height: auto;
   overflow-x: hidden;
-  overflow-y: visible;
-  overscroll-behavior-y: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
   max-width: 100%;
 }
 
