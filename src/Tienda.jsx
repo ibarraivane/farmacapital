@@ -3699,11 +3699,13 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
               <span style={{color:C.mid,fontSize:13}}>Productos</span>
               <span style={{color:C.dark,fontWeight:700}}>{$peso(sub)}</span>
             </div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-              <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
-              <span style={{color:C.dark,fontWeight:700}}>{$peso(cargoPlataformaOnline())}</span>
-            </div>
-            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$peso(totalPedidoConPlataforma(sub) || sub)}</span></div>
+            {cargoPlataformaOnline({ entrega }) > 0 ? (
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
+                <span style={{color:C.dark,fontWeight:700}}>{$peso(cargoPlataformaOnline({ entrega }))}</span>
+              </div>
+            ) : null}
+            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$peso(totalPedidoConPlataforma(sub, { entrega }) || sub)}</span></div>
             <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>
               <IconLabel Icon={Star} color="#92400e" size={13}>+{labelPts(Math.floor(sub/10))}</IconLabel>
             </div>
@@ -3948,8 +3950,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   });
   const envioFueraRadio = false;
   const envioFee = 0;
-  const cargoPlataforma = cart.length ? cargoPlataformaOnline() : 0;
-  const totalPagar = totalPedidoConPlataforma(sub) || Math.round(sub * 100) / 100;
+  const cargoPlataforma = cart.length ? cargoPlataformaOnline({ entrega }) : 0;
+  const totalPagar = totalPedidoConPlataforma(sub, { entrega }) || Math.round(sub * 100) / 100;
   const minOnline = montoMinimoPedidoOnline();
   const alcanzaMinimoEnvio = entrega === "pickup" || cumpleMontoMinimoEnvio(sub, minOnline);
   const msgMinimoEnvio = mensajeMontoMinimoPedidoOnline(minOnline);
@@ -4727,10 +4729,12 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   <span style={{color:C.dark,fontWeight:700}}>Lo cotiza el vendedor</span>
                 </div>
               )}
+              {cargoPlataforma > 0 ? (
               <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
                 <span style={{color:C.mid,fontSize:13}}>{CONCEPTO_CARGO_PLATAFORMA}</span>
                 <span style={{color:C.dark,fontWeight:700}}>{$peso(cargoPlataforma)}</span>
               </div>
+              ) : null}
               <div style={{display:"flex",justifyContent:"space-between",marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
                 <span style={{color:C.dark,fontWeight:800}}>Total</span>
                 <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$peso(totalPagar)}</span>
