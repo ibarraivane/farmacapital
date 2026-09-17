@@ -25,9 +25,12 @@ Tarjeta: solo 3.49% + IVA. Skittles $10 → **$11**.
 - SQL: `sql/patch_servicio_5_pedido_20260916.sql`.
 
 ## Tienda
-- `/conseguir`: hub con dos enlaces (`?seccion=dermatologia` y `?seccion=nutricion` = vitaminas + suplementos + proteína) + formulario «Levantar pedido».
-- Buscador de home/catálogo/ficha: tercer botón «Te lo conseguimos» (celular: «Conseguir»). El header no lo lleva.
-- Tarjeta y ficha: badges **Bajo pedido** + **24-48 hrs**, nunca «Agotado». CTA **Encargar** (con precio) o **Cotizar** (sin precio → formulario prellenado).
+- Catálogo: `/dermocosmetica` y `/vitaminas` (`?rubro=vitaminas|suplementos|proteina`). Formulario: `/pedidos-especiales`.
+- Aliases eternos: `/conseguir?seccion=…` redirige a la canónica. `/conseguir` sin sección → Pedidos especiales.
+- Menú: Dermocosmética y Vitaminas y suplementos. El servicio se llama **Sobre pedido**; el pie enlaza **Pedidos especiales**.
+- Búsqueda sin resultados: «Solicitarlo» abre el formulario con el término precargado.
+- Tarjeta y ficha: badge **Sobre pedido · 24-48 h**, nunca «Agotado». CTA **Encargar** (con precio) o **Solicitar precio** (sin precio → formulario).
+- Reserva: «Apártalo con tarjeta de crédito. Solo se cobra cuando llega; si no lo conseguimos, no pagas nada.»
 - Carrito: máx. 12 por línea; **no mezcla** encargos con productos de anaquel.
 
 ## Cobro: reserva en tarjeta (no cae a la cuenta hasta conseguirlo)

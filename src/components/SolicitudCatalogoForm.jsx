@@ -5,8 +5,9 @@ import { BRAND } from "../constants";
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 import { flyerWhatsAppFarmaciaUrl } from "../lib/flyerFarmaCapital";
 import { SOLICITUD_API_PATH, normalizarTelefonoPedido, validarSolicitudTienda } from "../lib/solicitudTienda";
+import { TEXTO_AVISO_RECETA, TEXTO_BUSQUEDA_VACIA, TEXTO_RESERVA } from "../lib/bajoPedido";
 
-/** Otra pantalla pide abrir /conseguir directo en el formulario (p. ej. «Cotizar»). */
+/** Otra pantalla pide abrir Pedidos especiales directo en el formulario (p. ej. «Solicitar precio»). */
 export const CONSEGUIR_FORM_FLAG = "farmacapital_conseguir_form";
 
 const inp = {
@@ -69,24 +70,25 @@ export function CatalogoVacioConseguir({ busq, setPage }) {
         {q ? `Sin resultados para “${q}”` : "No hay productos disponibles por el momento."}
       </div>
       <p style={{ margin: "0 0 16px", color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
-        ¿No lo encuentras en el catálogo? Te lo conseguimos. El envío a domicilio tiene costo. Te escribimos por WhatsApp o correo con el precio y la liga de pago.
+        {TEXTO_BUSQUEDA_VACIA}
       </p>
       <Btn
         col={BRAND.primary}
         onClick={() => {
           try {
             if (q) sessionStorage.setItem("farmacapital_busq", q);
+            sessionStorage.setItem(CONSEGUIR_FORM_FLAG, "1");
           } catch { /* ignore */ }
-          setPage("conseguir");
+          setPage("pedidos-especiales", { search: q });
         }}
       >
-        Te lo conseguimos
+        Solicitarlo
       </Btn>
     </div>
   );
 }
 
-export default function SolicitudCatalogoForm({ setPage, textoInicial, user, bajoVitrina = false }) {
+export default function SolicitudCatalogoForm({ setPage, textoInicial, user, bajoVitrina = false, variante = "" }) {
   const [texto, setTexto] = useState(() => queryInicial(textoInicial));
   const [cantidad, setCantidad] = useState(1);
   const [urgencia, setUrgencia] = useState("sin_prisa");
@@ -108,7 +110,8 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       if (sessionStorage.getItem(CONSEGUIR_FORM_FLAG) === "1") {
         sessionStorage.removeItem(CONSEGUIR_FORM_FLAG);
         const t = setTimeout(() => {
-          document.getElementById("conseguir-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          (document.getElementById("pedido-especial-form") || document.getElementById("conseguir-form"))
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 150);
         return () => clearTimeout(t);
       }
@@ -177,7 +180,9 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
   }
 
   return (
-    <div id="conseguir-form" style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px", scrollMarginTop: 90 }}>
+    <div id="pedido-especial-form" style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px", scrollMarginTop: 90 }}>
+      <div id="conseguir-form" style={{ scrollMarginTop: 90 }}>
+      {variante !== "pagina" ? (
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
         <div
           style={{
@@ -192,19 +197,31 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
         >
           <Truck size={20} />
         </div>
-        {bajoVitrina ? (
+        {bajoVitrina || variante === "categoria" ? (
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0f172a" }}>
-            ¿No lo encuentras? Te lo conseguimos
+            ¿No está en la lista? Pídelo aquí
           </h2>
         ) : (
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0f172a" }}>
-            ¿No lo encuentras? Te lo conseguimos
+            Pedidos especiales
           </h1>
         )}
       </div>
-      <p style={{ margin: "0 0 20px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
-        Anota el medicamento. Lo vemos en mayorista, te pasamos el costo por WhatsApp o correo y, si te late, pagas con la liga. El envío a domicilio tiene costo.
+      ) : null}
+      {variante !== "pagina" ? (
+      <p style={{ margin: "0 0 12px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
+        {TEXTO_RESERVA} El envío a domicilio tiene costo.
       </p>
+      ) : (
+      <p style={{ margin: "0 0 12px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
+        Anota lo que buscas. Te escribimos por WhatsApp o correo con el costo.
+      </p>
+      )}
+      {variante !== "pagina" ? (
+      <p style={{ margin: "0 0 20px", color: "#92400e", fontSize: 13, lineHeight: 1.55 }}>
+        {TEXTO_AVISO_RECETA}
+      </p>
+      ) : null}
 
       <label style={{ display: "block", marginBottom: 12 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>¿Qué buscas?</span>
@@ -319,6 +336,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       >
         <MessageCircle size={16} /> Prefiero escribir por WhatsApp
       </button>
+      </div>
     </div>
   );
 }

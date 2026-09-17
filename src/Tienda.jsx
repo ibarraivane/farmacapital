@@ -47,21 +47,25 @@ import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, s
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
-import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import { pageIdToTiendaPath, resolveTiendaLocation, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch, TITULOS_TIENDA, TITULO_TIENDA_DEFAULT } from "./shared/tiendaRoutes";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
 import EnlacesSeccionConseguir from "./components/tienda/EnlacesSeccionConseguir";
+import PedidosEspeciales from "./components/tienda/PedidosEspeciales";
+import FranjaSobrePedido from "./components/tienda/FranjaSobrePedido";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
+  BADGE_SOBRE_PEDIDO,
   CANTIDAD_MAX_BAJO_PEDIDO,
+  CTA_SOLICITAR_PRECIO,
+  TEXTO_RESERVA,
   cantidadMaximaLinea,
   ctaBajoPedido,
   esBajoPedido,
   motivoNoMezclar,
   pedidoEsBajoPedido,
   prepararListaTienda,
-  seccionConseguirDeQuery,
   tipoCarrito,
 } from "./lib/bajoPedido";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
@@ -114,7 +118,7 @@ import {
   Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar,
   Gift, Truck, Cake, LogOut, Key, Trash2, PackageSearch,
   MessageCircle, Lock, ClipboardList, CircleCheck,
-  LayoutGrid, GalleryHorizontal,
+  LayoutGrid, GalleryHorizontal, Sparkles, Leaf,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -164,7 +168,7 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
   return Math.max(col, fromLotes);
 }
 
-// Bajo pedido no es «Agotado»: no está en anaquel a propósito (vitrina /conseguir, CTA Encargar/Cotizar).
+// Sobre pedido no es «Agotado»: no está en anaquel a propósito (CTA Encargar / Solicitar precio).
 const productoAgotadoTienda = (p) => Number(p?.stock) <= 0 && !esBajoPedido(p);
 
 /** Catálogo tienda: activos en línea (incluye agotados, como POS). */
@@ -372,8 +376,8 @@ const FAQ_ITEMS = [
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
-  { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos» o entra a /conseguir. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
-  { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que no tenemos en anaquel y traemos del mayorista en 24-48 hrs (dermatología, vitaminas, suplementos y proteína). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tenemos. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Cotizar» y te mandamos el costo." },
+  { p:"¿Qué hago si no está en el catálogo?", r:"En búsqueda sin resultados toca «Solicitarlo» o entra a Pedidos especiales. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
+  { p:"¿Qué es un producto «Sobre pedido»?", r:"Son productos que no tenemos en anaquel y traemos del mayorista en 24-48 h (dermocosmética, vitaminas, suplementos y proteína). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tenemos. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Solicitar precio» y te mandamos el costo." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -1294,6 +1298,8 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
     { icon: TagIcon, label: "Promociones", page: "promo" },
     { icon: Stethoscope, label: "Consulta médica", page: "cita" },
     { icon: Star, label: "Puntos FarmaCapital", page: "puntos" },
+    { icon: Sparkles, label: "Dermocosmética", page: "dermocosmetica" },
+    { icon: Leaf, label: "Vitaminas y suplementos", page: "vitaminas" },
     ...(usuario ? [{ icon: User, label: "Mi cuenta", page: "cuenta" }] : []),
   ];
 
@@ -1922,7 +1928,7 @@ function ProductCard({prod,addToCart,onClick}){
       >
         <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
           {cta
-            ? <><Tag col={BRAND.secondary} sm>Bajo pedido</Tag><Tag col="#f59e0b" sm>24-48 hrs</Tag></>
+            ? <Tag col={BRAND.secondary} sm>{BADGE_SOBRE_PEDIDO}</Tag>
             : agotado
             ? <Tag col={C.red} sm>Agotado</Tag>
             : prod.stock<=3
@@ -1949,7 +1955,7 @@ function ProductCard({prod,addToCart,onClick}){
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={handleDetailClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
           {cta ? (
-            <Btn onClick={handleAddClick} col={added?BRAND.secondary:BRAND.primary} sm style={{flex:1}}>{cta==="cotizar"?"Cotizar":added?"✓ Listo":"Encargar"}</Btn>
+            <Btn onClick={handleAddClick} col={added?BRAND.secondary:BRAND.primary} sm style={{flex:1}}>{cta==="cotizar"?CTA_SOLICITAR_PRECIO:added?"✓ Listo":"Encargar"}</Btn>
           ) : (
           <Btn onClick={handleAddClick} col={agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#9A9184":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{agotado?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
           )}
@@ -2006,7 +2012,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
       sessionStorage.setItem(CONSEGUIR_FORM_FLAG, "1");
     } catch (_) { /* noop */ }
     setBusqHero?.(String(prod.nombre || ""));
-    setPage("conseguir", { search: String(prod.nombre || "") });
+    setPage("pedidos-especiales", { search: String(prod.nombre || "") });
   };
   const similares=productos.filter(p=>categoriasCoinciden(p.categoria, prod.categoria)&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
@@ -2062,7 +2068,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
         <div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             {cta
-              ? <><Tag col={BRAND.secondary}>Bajo pedido</Tag><Tag col="#f59e0b">24-48 hrs</Tag></>
+              ? <Tag col={BRAND.secondary}>{BADGE_SOBRE_PEDIDO}</Tag>
               : agotado
               ? <Tag col={C.red}>Agotado</Tag>
               : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"Disponible hoy":"24-48 hrs"}</Tag>
@@ -2093,11 +2099,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           )}
           {cta && (
             <div style={{background:BRAND.secondary+"10",border:`1px solid ${BRAND.secondary}30`,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
-              <div style={{color:BRAND.primary,fontWeight:800,fontSize:14,marginBottom:4}}>Bajo pedido · 24-48 hrs</div>
+              <div style={{color:BRAND.primary,fontWeight:800,fontSize:14,marginBottom:4}}>{BADGE_SOBRE_PEDIDO}</div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.55}}>
-                {cta==="encargar"
-                  ? "No lo tenemos en anaquel: lo traemos del mayorista. Al encargarlo apartas el total en tu tarjeta de crédito y se cobra solo cuando lo tenemos. Si no lo conseguimos, cancelamos la reserva sin cargo."
-                  : "No lo tenemos en anaquel y su precio cambia con el mayorista. Pídelo y te mandamos el costo por WhatsApp o correo."}
+                {TEXTO_RESERVA}
               </div>
             </div>
           )}
@@ -2122,7 +2126,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           {cta ? (
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
             {cta==="cotizar" ? (
-              <Btn onClick={irACotizar} col={BRAND.primary} style={{flex:"1 1 min(100%,240px)",minWidth:0}}>Cotizar</Btn>
+              <Btn onClick={irACotizar} col={BRAND.primary} style={{flex:"1 1 min(100%,240px)",minWidth:0}}>{CTA_SOLICITAR_PRECIO}</Btn>
             ) : (
               <>
                 <Btn onClick={()=>{ if(addToCart(prod)===false) return; setAdded(true); setTimeout(()=>setAdded(false),1500); }} col={added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{added?"✓ Encargado":"Encargar"}</Btn>
@@ -2204,7 +2208,7 @@ function Footer({setPage}){
         {/* Mi consultorio */}
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Mi consultorio</div>
-          {[["Agendar cita","cita"],["Preguntas frecuentes","faq"],["Surtir receta","catalogo"],["Te lo conseguimos","conseguir"],["Flyer WhatsApp","tarjeta"],["Mis puntos FarmaCapital","puntos"],["Mi cuenta","cuenta"]].map(([l,pg])=>(
+          {[["Agendar cita","cita"],["Preguntas frecuentes","faq"],["Surtir receta","catalogo"],["Pedidos especiales","pedidos-especiales"],["Flyer WhatsApp","tarjeta"],["Mis puntos FarmaCapital","puntos"],["Mi cuenta","cuenta"]].map(([l,pg])=>(
             <button key={l} onClick={()=> l==="Surtir receta" ? goSurtirReceta() : l==="Agendar cita" ? navigateToCita(setPage) : setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"var(--fc-body)"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
@@ -2475,7 +2479,6 @@ function HomeServices({setPage}){
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
-    { key:"conseguir", titulo:"Te lo conseguimos", desc:"Dermato, vitaminas y lo que no está", color:BRAND.accent, tipo:"page", destino:"conseguir", icon:PackageSearch },
   ];
   const handleClick = (s)=>{
     if (s.tipo==="page") {
@@ -2872,7 +2875,7 @@ function TiendaBusquedaBar({
               type="button"
               onClick={() => {
                 try { if (q) sessionStorage.setItem("farmacapital_busq", q); } catch (_) { /* noop */ }
-                setPage("conseguir", { search: q });
+                setPage("pedidos-especiales", { search: q });
               }}
               style={{
                 flex: btnFlex,
@@ -2895,7 +2898,7 @@ function TiendaBusquedaBar({
               }}
             >
               {!tresCtas && <PackageSearch size={btnIcon} strokeWidth={2.25} aria-hidden />}
-              {stack ? "Conseguir" : "Te lo conseguimos"}
+              {stack ? "Pedir" : "Pedidos especiales"}
             </button>
           )}
           {showCita && (
@@ -3062,6 +3065,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 
   return(
     <div>
+      <FranjaSobrePedido setPage={setPage} />
       <HeroCarousel
         setPage={setPage}
         items={bannerZones.hero}
@@ -3072,17 +3076,14 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       <HomeServices setPage={setPage}/>
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "8px 16px 20px" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
-          <h2 style={{ margin: 0, color: C.dark, fontSize: "clamp(18px,4vw,22px)", fontWeight: 800 }}>Te lo conseguimos</h2>
-          <button
-            type="button"
-            onClick={() => setPage("conseguir", { seccion: "", search: "" })}
-            style={{ background: "none", border: "none", color: BRAND.secondary, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", padding: 0 }}
-          >
-            Ver las dos páginas →
-          </button>
-        </div>
         <EnlacesSeccionConseguir setPage={setPage} productos={productos} stack={stack} />
+        <button
+          type="button"
+          onClick={() => setPage("pedidos-especiales")}
+          style={{ background: "none", border: "none", color: BRAND.secondary, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", padding: 0, marginTop: 10 }}
+        >
+          Pedidos especiales →
+        </button>
       </div>
 
       <HomeBannersStrip setPage={setPage} items={bannerZones.strip}/>
@@ -4716,7 +4717,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 )}
                 <div style={{marginTop:4,color:C.mid}}>
                   {esEncargo
-                    ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
+                    ? TEXTO_RESERVA
                     : entrega==="pickup"
                       ? "Pagas al recoger con tarjeta (terminal BBVA)"
                       : "Confirmas ahora; pagas productos + envío cuando el vendedor cotice"}
@@ -6510,28 +6511,46 @@ export default function TiendaFarmaCapital(){
       return false;
     }
   });
+  const locInicial = (() => {
+    try {
+      return resolveTiendaLocation(window.location.pathname, window.location.search);
+    } catch {
+      return { page: "home", seccion: "", rubro: "", search: "", canonicalPath: "/", shouldReplace: false };
+    }
+  })();
   const [page,setPageRaw] = useState(() => {
     if (initialResetToken) return "reset-password";
-    return tiendaPathnameToPageId(window.location.pathname) || "home";
+    return locInicial.page || "home";
   });
-  const [seccionConseguir, setSeccionConseguir] = useState(() => {
-    try { return seccionConseguirDeQuery(window.location.search); } catch { return ""; }
-  });
-  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "" } = {}) => {
+  const [seccionConseguir, setSeccionConseguir] = useState(() => locInicial.seccion || "");
+  const [rubroSeccion, setRubroSeccion] = useState(() => locInicial.rubro || "");
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "", rubro = "" } = {}) => {
     const path = pageIdToTiendaPath(target, {
       rx: target === "catalogo" && rx,
       reset: target === "reset-password" ? token : undefined,
       productId: target === "detalle" ? productId : undefined,
-      search: target === "conseguir" ? search : undefined,
-      seccion: target === "conseguir" ? seccion : undefined,
+      search: target === "pedidos-especiales" ? search : undefined,
+      seccion,
+      rubro: target === "vitaminas" ? rubro : undefined,
     });
     const fn = replace ? window.history.replaceState : window.history.pushState;
-    fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
+    fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined, rubro }, "", path);
+  };
+  const aplicarLoc = (loc, { replace = false, search } = {}) => {
+    if (loc.seccion !== seccionConseguir) setSeccionConseguir(loc.seccion);
+    if (loc.rubro !== rubroSeccion) setRubroSeccion(loc.rubro);
+    writeTiendaHistory(loc.page, {
+      replace,
+      search: search !== undefined ? search : loc.search,
+      seccion: loc.seccion,
+      rubro: loc.rubro,
+    });
+    setPageRaw(loc.page);
   };
   const setPage = (p, opts = {}) => {
     const resolved = p === "reset-password" ? "reset-password" : resolveTiendaPage(p);
-    if (!resolved) return;
-    let target = resolved;
+    if (!resolved && p !== "conseguir") return;
+    let target = resolved || p;
     if (target === "cita" && !getClienteToken()) {
       setPostLoginPage("cita");
       target = "login";
@@ -6546,25 +6565,26 @@ export default function TiendaFarmaCapital(){
       if (nextRx) sessionStorage.setItem("farmacapital_rx", "1");
       else sessionStorage.removeItem("farmacapital_rx");
     } catch (_) { /* noop */ }
-    if (target === "conseguir") {
-      const nextSec = opts.seccion !== undefined ? seccionConseguirDeQuery(`?seccion=${opts.seccion || ""}`) : "";
-      if (nextSec !== seccionConseguir) setSeccionConseguir(nextSec);
+    const esCategoria = target === "dermocosmetica" || target === "vitaminas" || target === "pedidos-especiales" || p === "conseguir" || opts.seccion !== undefined;
+    if (esCategoria) {
       try {
-        writeTiendaHistory(target, {
-          rx: nextRx,
-          token: resetToken,
-          productId: undefined,
-          search: opts.search !== undefined ? opts.search : (busqHero || ""),
-          seccion: nextSec,
-        });
+        const loc = p === "conseguir" || opts.seccion !== undefined
+          ? resolveTiendaLocation("/conseguir", `?seccion=${opts.seccion || ""}&rubro=${opts.rubro || ""}&q=${encodeURIComponent(opts.search || "")}`)
+          : target === "dermocosmetica"
+            ? resolveTiendaLocation("/dermocosmetica", "")
+            : target === "vitaminas"
+              ? resolveTiendaLocation("/vitaminas", opts.rubro ? `?rubro=${encodeURIComponent(opts.rubro)}` : "")
+              : resolveTiendaLocation("/pedidos-especiales", opts.search ? `?q=${encodeURIComponent(opts.search)}` : "");
+        aplicarLoc(loc, { replace: opts.replace === true, search: loc.search });
       } catch {
         try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
+        setPageRaw(target);
       }
-      setPageRaw(target);
       return;
     }
     try {
       writeTiendaHistory(target, {
+        replace: opts.replace === true,
         rx: nextRx,
         token: resetToken,
         productId: target === "detalle" ? (opts.productId || "") : undefined,
@@ -6577,8 +6597,13 @@ export default function TiendaFarmaCapital(){
   };
   useEffect(()=>{
     const h=(e)=>{
-      let p = e.state?.page || tiendaPathnameToPageId(window.location.pathname) || "home";
-      p = resolveTiendaPage(p) || "home";
+      let loc;
+      try {
+        loc = resolveTiendaLocation(window.location.pathname, window.location.search);
+      } catch {
+        loc = { page: e.state?.page || "home", seccion: "", rubro: "", search: "" };
+      }
+      let p = resolveTiendaPage(loc.page) || loc.page || "home";
       if (p === "cita" && !getClienteToken()) {
         setPostLoginPage("cita");
         p = "login";
@@ -6589,9 +6614,8 @@ export default function TiendaFarmaCapital(){
           || sessionStorage.getItem("farmacapital_rx") === "1";
         setFiltroRx(Boolean(rx && p === "catalogo"));
       } catch (_) { /* noop */ }
-      if (p === "conseguir") {
-        try { setSeccionConseguir(seccionConseguirDeQuery(window.location.search)); } catch (_) { setSeccionConseguir(""); }
-      }
+      setSeccionConseguir(loc.seccion || "");
+      setRubroSeccion(loc.rubro || "");
       setPageRaw(p);
     };
     window.addEventListener("popstate",h);
@@ -6603,33 +6627,33 @@ export default function TiendaFarmaCapital(){
         setPageRaw("reset-password");
         writeTiendaHistory("reset-password", { replace: true, token: reset });
       } else {
-        const id = tiendaPathnameToPageId(window.location.pathname) || "home";
+        const loc = resolveTiendaLocation(window.location.pathname, window.location.search);
         const rx = tiendaPathSuggestsReceta(window.location.pathname, window.location.search);
         if (rx) {
           setFiltroRx(true);
           try { sessionStorage.setItem("farmacapital_rx", "1"); } catch (_) { /* noop */ }
         }
-        setPageRaw(id);
+        setPageRaw(loc.page);
+        setSeccionConseguir(loc.seccion || "");
+        setRubroSeccion(loc.rubro || "");
         // OAuth PKCE: no reescribir la URL — hay que conservar ?code= (y errores)
         // para que supabase-js pueda canjear la sesión.
-        if (id === "auth-callback") {
+        if (loc.page === "auth-callback") {
           try {
             window.history.replaceState(
-              { page: id },
+              { page: loc.page },
               "",
               `${window.location.pathname}${window.location.search}${window.location.hash}`
             );
           } catch (_) { /* noop */ }
         } else {
-          let seccion = "";
-          let search = "";
-          try {
-            const qs = new URLSearchParams(window.location.search);
-            seccion = id === "conseguir" ? seccionConseguirDeQuery(window.location.search) : "";
-            search = id === "conseguir" ? (qs.get("q") || "") : "";
-          } catch (_) { /* noop */ }
-          if (id === "conseguir") setSeccionConseguir(seccion);
-          writeTiendaHistory(id, { replace: true, rx: rx && id === "catalogo", seccion, search });
+          writeTiendaHistory(loc.page, {
+            replace: true,
+            rx: rx && loc.page === "catalogo",
+            seccion: loc.seccion,
+            rubro: loc.rubro,
+            search: loc.search,
+          });
         }
       }
     } catch {
@@ -6645,6 +6669,9 @@ export default function TiendaFarmaCapital(){
   useEffect(()=>{
     const id = window.requestAnimationFrame(()=>{ window.scrollTo(0, 0); });
     return ()=>window.cancelAnimationFrame(id);
+  },[page]);
+  useEffect(()=>{
+    document.title = TITULOS_TIENDA[page] || TITULO_TIENDA_DEFAULT;
   },[page]);
   const [cart,setCart]           = useState(() => loadStoredCart(getClienteUser()));
   const [user,setUser]           = useState(()=> getClienteUser());
@@ -6859,7 +6886,7 @@ export default function TiendaFarmaCapital(){
     const bajoPedido = esBajoPedido(prod);
     if (!prod || !prod.activo) return false;
     if (!bajoPedido && Number(prod.stock||0) <= 0) return false;
-    if (bajoPedido && ctaBajoPedido(prod) !== "encargar") return false; // sin precio → Cotizar
+    if (bajoPedido && ctaBajoPedido(prod) !== "encargar") return false; // sin precio → Solicitar precio
     if (!productoEsVendible(prod)) {
       alert("Este producto aún no tiene precio de venta. Disponible en sucursal cuando esté capturado.");
       return false;
@@ -6991,21 +7018,44 @@ export default function TiendaFarmaCapital(){
     envios:        <PoliticaEnvios setPage={setPage}/>,
     "terminos-puntos": <TerminosPuntos setPage={setPage}/>,
     tarjeta:       <FlyerFarmaCapital setPage={setPage}/>,
-    conseguir: (
-      <>
-        <VitrinaConseguir
-          productos={productosVistaTiendaFarmacia}
-          loading={loadingProductos}
-          stack={stackPaginas}
-          seccion={seccionConseguir}
-          setPage={setPage}
-          onIrAFormulario={()=>document.getElementById("conseguir-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          renderProducto={(p)=>(
-            <ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdD(p);setPage("detalle", { productId: p.id });}}/>
-          )}
-        />
-        <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina={productosVistaTiendaFarmacia.some(esBajoPedido)}/>
-      </>
+    dermocosmetica: (
+      <VitrinaConseguir
+        productos={productosVistaTiendaFarmacia}
+        loading={loadingProductos}
+        stack={stackPaginas}
+        seccion="dermatologia"
+        rubro=""
+        setPage={setPage}
+        onIrAFormulario={()=>(document.getElementById("pedido-especial-form") || document.getElementById("conseguir-form"))?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        renderProducto={(p)=>(
+          <ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdD(p);setPage("detalle", { productId: p.id });}}/>
+        )}
+        formulario={
+          <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina variante="categoria" />
+        }
+      />
+    ),
+    vitaminas: (
+      <VitrinaConseguir
+        productos={productosVistaTiendaFarmacia}
+        loading={loadingProductos}
+        stack={stackPaginas}
+        seccion="nutricion"
+        rubro={rubroSeccion}
+        setPage={setPage}
+        onIrAFormulario={()=>(document.getElementById("pedido-especial-form") || document.getElementById("conseguir-form"))?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        renderProducto={(p)=>(
+          <ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdD(p);setPage("detalle", { productId: p.id });}}/>
+        )}
+        formulario={
+          <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina variante="categoria" />
+        }
+      />
+    ),
+    "pedidos-especiales": (
+      <PedidosEspeciales setPage={setPage} productos={productosVistaTiendaFarmacia} stack={stackPaginas}>
+        <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} variante="pagina" />
+      </PedidosEspeciales>
     ),
   };
 

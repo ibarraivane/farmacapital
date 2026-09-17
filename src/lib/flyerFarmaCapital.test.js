@@ -14,8 +14,8 @@ test("QR apunta a la home con UTM de flyer", () => {
 });
 
 test("conseguir lleva la búsqueda", () => {
-  expect(flyerConseguirPath("losartan 50")).toBe("/conseguir?q=losartan%2050");
-  expect(flyerConseguirPath("")).toBe("/conseguir");
+  expect(flyerConseguirPath("losartan 50")).toBe("/pedidos-especiales?q=losartan%2050");
+  expect(flyerConseguirPath("")).toBe("/pedidos-especiales");
 });
 
 test("share de WhatsApp abre selector de contactos con la URL", () => {
@@ -29,7 +29,7 @@ test("share de WhatsApp abre selector de contactos con la URL", () => {
 test("correo lleva ligas reales, no botones de imagen", () => {
   const body = flyerEmailBody("https://www.farmacapital.mx");
   expect(body).toMatch(/Pedir en línea:/);
-  expect(body).toMatch(/conseguir/);
+  expect(body).toMatch(/pedidos-especiales/);
   expect(body).not.toMatch(/Iztapalapa/i);
   expect(flyerMailtoShareUrl("https://www.farmacapital.mx")).toMatch(/^mailto:\?subject=/);
 });

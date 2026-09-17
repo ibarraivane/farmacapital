@@ -13,7 +13,7 @@ export function flyerTarjetaPath() {
 
 export function flyerConseguirPath(q) {
   const query = String(q || "").trim();
-  return query ? `/conseguir?q=${encodeURIComponent(query)}` : "/conseguir";
+  return query ? `/pedidos-especiales?q=${encodeURIComponent(query)}` : "/pedidos-especiales";
 }
 
 export function flyerWhatsAppFarmaciaUrl(telefono = "5562530631") {
@@ -51,7 +51,7 @@ export function flyerEmailBody(origin) {
     "Te comparto FarmaCapital. Entra, busca lo que necesitas y compra en línea. " +
     "Si no está en el catálogo, te lo conseguimos (el envío a domicilio tiene costo).\n\n" +
     `Pedir en línea: ${home}\n` +
-    `¿No lo encuentras?: ${base}/conseguir\n` +
+    `¿No lo encuentras?: ${base}/pedidos-especiales\n` +
     `WhatsApp: ${flyerWhatsAppFarmaciaUrl()}\n\n` +
     "FarmaCapital"
   );

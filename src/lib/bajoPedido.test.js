@@ -1,8 +1,10 @@
 import {
   CANTIDAD_MAX_BAJO_PEDIDO,
   cantidadMaximaLinea,
+  copyMarcasSeccion,
   ctaBajoPedido,
   estadoReserva,
+  filtrarSeccion,
   filtrarVitrina,
   filtrarVitrinaSeccion,
   horasRestantesReserva,
@@ -59,6 +61,29 @@ test("rubros por categoria/subcategoria (con alias canónicos)", () => {
   expect(seccionConseguirDeQuery("")).toBe("");
   expect(filtrarVitrinaSeccion(todos, "dermatologia").map((p) => p.id)).toEqual([1]);
   expect(filtrarVitrinaSeccion(todos, "nutricion").map((p) => p.id)).toEqual([3, 4, 2]);
+  expect(seccionConseguirDeQuery("?seccion=dermocosmetica")).toBe("dermatologia");
+});
+
+test("filtrarSeccion por sección y rubro; anaquel e inactivos fuera", () => {
+  const inactivo = { ...anthelios, id: 8, activo: false };
+  const anaquelDerma = { id: 9, nombre: "Cetaphil anaquel", activo: true, bajo_pedido: false, stock: 3, categoria: "Cuidado personal", subcategoria: "Dermatología" };
+  const todos = [paracetamol, whey, anthelios, omega, vitC, inactivo, anaquelDerma];
+  expect(filtrarSeccion(todos, "dermatologia", { incluirAnaquel: false }).map((p) => p.id)).toEqual([1]);
+  expect(filtrarSeccion(todos, "nutricion", { rubro: "proteina" }).map((p) => p.id)).toEqual([2]);
+  expect(filtrarSeccion(todos, "nutricion", { rubro: "vitaminas" }).map((p) => p.id)).toEqual([4]);
+  expect(filtrarSeccion(todos, "nutricion", { rubro: "suplementos" }).map((p) => p.id)).toEqual([3]);
+  expect(filtrarSeccion(todos, "dermatologia", { incluirAnaquel: false }).map((p) => p.id)).not.toContain(9);
+  expect(filtrarSeccion(todos, "dermatologia", { incluirAnaquel: false }).map((p) => p.id)).not.toContain(8);
+});
+
+test("copy de marcas solo usa las del catálogo", () => {
+  const a = { ...anthelios, marca: "La Roche-Posay" };
+  const b = { ...anthelios, id: 11, nombre: "Otra", marca: "La Roche-Posay" };
+  const c = { ...anthelios, id: 12, nombre: "Heliocare", marca: "Heliocare" };
+  expect(copyMarcasSeccion([a, b, c], "dermatologia")).toMatch(/La Roche-Posay/);
+  expect(copyMarcasSeccion([a, b, c], "dermatologia")).toMatch(/Heliocare/);
+  expect(copyMarcasSeccion([a, b, c], "dermatologia")).not.toMatch(/Effaclar|Pharmaton/);
+  expect(copyMarcasSeccion([vitC], "dermatologia")).toBe("Productos que recomienda el dermatólogo.");
 });
 
 test("carrito no mezcla encargo con anaquel y tope de 12", () => {

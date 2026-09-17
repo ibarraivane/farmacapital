@@ -7,13 +7,20 @@ const productos = [
   { id: 2, nombre: "Elevit", activo: true, bajo_pedido: true, categoria: "Vitaminas" },
 ];
 
-test("dos enlaces: derma y vitaminas/suplementos", async () => {
+test("dos tarjetas: Dermocosmética y Vitaminas y suplementos", async () => {
   const setPage = jest.fn();
   render(<EnlacesSeccionConseguir setPage={setPage} productos={productos} stack />);
-  expect(screen.getByRole("button", { name: /Dermatología/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Dermocosmética/i })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Vitaminas y suplementos/i })).toBeInTheDocument();
-  await userEvent.click(screen.getByRole("button", { name: /Dermatología/i }));
-  expect(setPage).toHaveBeenCalledWith("conseguir", { seccion: "dermatologia", search: "" });
+  await userEvent.click(screen.getByRole("button", { name: /Dermocosmética/i }));
+  expect(setPage).toHaveBeenCalledWith("dermocosmetica", { search: "" });
   await userEvent.click(screen.getByRole("button", { name: /Vitaminas y suplementos/i }));
-  expect(setPage).toHaveBeenCalledWith("conseguir", { seccion: "nutricion", search: "" });
+  expect(setPage).toHaveBeenCalledWith("vitaminas", { search: "" });
+});
+
+test("conteo N>0 y N=0", () => {
+  const { rerender } = render(<EnlacesSeccionConseguir setPage={jest.fn()} productos={productos} />);
+  expect(screen.getAllByText(/1 producto · 24-48 h/i).length).toBe(2);
+  rerender(<EnlacesSeccionConseguir setPage={jest.fn()} productos={[]} />);
+  expect(screen.getAllByText("Sobre pedido · 24-48 h").length).toBe(2);
 });

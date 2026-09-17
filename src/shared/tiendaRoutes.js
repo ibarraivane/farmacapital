@@ -2,6 +2,22 @@
  * Rutas públicas de la tienda (/catalogo, /cuenta, …) ↔ ids internos de página.
  * No deben chocar con slugs del admin (pos, consultorio, inventario, caja, …).
  */
+import {
+  rubroDeQuery,
+  rubroDesdeAliasSeccion,
+  seccionConseguirDeQuery,
+} from "../lib/bajoPedido";
+
+export const TITULOS_TIENDA = Object.freeze({
+  dermocosmetica: "Dermocosmética | FarmaCapital",
+  vitaminas: "Vitaminas y suplementos | FarmaCapital",
+  "pedidos-especiales": "Pedidos especiales | FarmaCapital",
+});
+export const TITULO_TIENDA_DEFAULT = "FarmaCapital · Farmacia en línea";
+
+const CONSEGUIR_SLUGS = new Set(["conseguir", "te-lo-conseguimos"]);
+const DERMA_SLUGS = new Set(["dermocosmetica", "dermocosmeticas"]);
+const PEDIDOS_SLUGS = new Set(["pedidos-especiales", "pedido-especial"]);
 
 export const TIENDA_PAGE_IDS = [
   "home",
@@ -23,7 +39,9 @@ export const TIENDA_PAGE_IDS = [
   "envios",
   "terminos-puntos",
   "tarjeta",
-  "conseguir",
+  "dermocosmetica",
+  "vitaminas",
+  "pedidos-especiales",
 ];
 
 /** Destinos válidos para banners (CTA). detalle/checkout/reset no se eligen a mano. */
@@ -43,7 +61,9 @@ export const TIENDA_BANNER_DESTINOS = [
   { id: "envios", label: "Política de envíos" },
   { id: "terminos-puntos", label: "Términos de puntos" },
   { id: "tarjeta", label: "Flyer / tarjeta WhatsApp" },
-  { id: "conseguir", label: "Te lo conseguimos" },
+  { id: "dermocosmetica", label: "Dermocosmética" },
+  { id: "vitaminas", label: "Vitaminas y suplementos" },
+  { id: "pedidos-especiales", label: "Pedidos especiales" },
 ];
 
 const PAGE_TO_SLUG = {
@@ -66,7 +86,9 @@ const PAGE_TO_SLUG = {
   envios: "envios",
   "terminos-puntos": "terminos-puntos",
   tarjeta: "tarjeta",
-  conseguir: "conseguir",
+  dermocosmetica: "dermocosmetica",
+  vitaminas: "vitaminas",
+  "pedidos-especiales": "pedidos-especiales",
 };
 
 const SLUG_TO_PAGE = {
@@ -103,8 +125,13 @@ const SLUG_TO_PAGE = {
   tarjeta: "tarjeta",
   flyer: "tarjeta",
   hola: "tarjeta",
-  conseguir: "conseguir",
-  "te-lo-conseguimos": "conseguir",
+  dermocosmetica: "dermocosmetica",
+  dermocosmeticas: "dermocosmetica",
+  vitaminas: "vitaminas",
+  "pedidos-especiales": "pedidos-especiales",
+  "pedido-especial": "pedidos-especiales",
+  conseguir: "pedidos-especiales",
+  "te-lo-conseguimos": "pedidos-especiales",
 };
 
 /**
@@ -141,19 +168,101 @@ export function tiendaPathnameToPageId(pathname) {
   return resolveTiendaPage(seg) || "home";
 }
 
+function firstPathSlug(pathname) {
+  const p = String(pathname || "").replace(/\/+$/, "") || "/";
+  const parts = p.split("/").filter(Boolean).map((s) => s.toLowerCase());
+  return parts[0] || "";
+}
+
+function normPathForCompare(path) {
+  const [rawPath, rawQs = ""] = String(path || "").split("?");
+  const clean = (rawPath.replace(/\/+$/, "") || "/") + (rawQs ? `?${rawQs}` : "");
+  return clean;
+}
+
+/**
+ * URL ⇄ { page, seccion, rubro }. Única resolución de /conseguir, categorías y pedidos.
+ * @param {string} pathname
+ * @param {string} [search]
+ */
+export function resolveTiendaLocation(pathname, search = "") {
+  const slug = firstPathSlug(pathname);
+  const qs = typeof search === "string" ? search : "";
+  let q = "";
+  try {
+    q = new URLSearchParams(qs.startsWith("?") ? qs : `?${qs}`).get("q") || "";
+  } catch {
+    q = "";
+  }
+
+  let page = "home";
+  let seccion = "";
+  let rubro = "";
+  let searchOut = "";
+
+  if (CONSEGUIR_SLUGS.has(slug)) {
+    seccion = seccionConseguirDeQuery(qs);
+    if (seccion === "dermatologia") {
+      page = "dermocosmetica";
+    } else if (seccion === "nutricion") {
+      page = "vitaminas";
+      rubro = rubroDeQuery(qs) || rubroDesdeAliasSeccion(qs);
+    } else {
+      page = "pedidos-especiales";
+      searchOut = q;
+    }
+  } else if (DERMA_SLUGS.has(slug)) {
+    page = "dermocosmetica";
+    seccion = "dermatologia";
+  } else if (slug === "vitaminas") {
+    page = "vitaminas";
+    seccion = "nutricion";
+    rubro = rubroDeQuery(qs);
+  } else if (PEDIDOS_SLUGS.has(slug)) {
+    page = "pedidos-especiales";
+    searchOut = q;
+  } else {
+    page = tiendaPathnameToPageId(pathname) || "home";
+    if (page === "pedidos-especiales") searchOut = q;
+  }
+
+  const canonicalPath = pageIdToTiendaPath(page, {
+    rubro: page === "vitaminas" ? rubro : undefined,
+    search: page === "pedidos-especiales" ? searchOut : undefined,
+  });
+  const current = `${String(pathname || "").replace(/\/+$/, "") || "/"}${qs && !String(qs).startsWith("?") ? `?${qs}` : qs}`;
+  const shouldReplace = normPathForCompare(current) !== normPathForCompare(canonicalPath);
+
+  return { page, seccion, rubro, search: searchOut, canonicalPath, shouldReplace };
+}
+
 /**
  * @param {string} pageId
- * @param {{ rx?: boolean, reset?: string, search?: string, productId?: string|number, seccion?: string }} [opts]
+ * @param {{ rx?: boolean, reset?: string, search?: string, productId?: string|number, seccion?: string, rubro?: string }} [opts]
  */
 export function pageIdToTiendaPath(pageId, opts = {}) {
-  const resolved = resolveTiendaPage(pageId) || "home";
+  let resolved = resolveTiendaPage(pageId) || "home";
+  if (resolved === "conseguir") resolved = "pedidos-especiales";
+  if (opts.seccion && (pageId === "conseguir" || resolved === "pedidos-especiales")) {
+    const loc = resolveTiendaLocation("/conseguir", `?seccion=${opts.seccion}${opts.rubro ? `&rubro=${opts.rubro}` : ""}${opts.search ? `&q=${opts.search}` : ""}`);
+    resolved = loc.page;
+    if (loc.page === "vitaminas" && loc.rubro && !opts.rubro) {
+      opts = { ...opts, rubro: loc.rubro };
+    }
+    if (loc.page === "pedidos-especiales" && loc.search && !opts.search) {
+      opts = { ...opts, search: loc.search };
+    }
+  }
   const slug = PAGE_TO_SLUG[resolved];
   const path = slug ? `/${slug}` : "/";
   const params = new URLSearchParams();
   if (opts.rx) params.set("rx", "1");
   if (opts.reset) params.set("reset", String(opts.reset));
-  if (opts.search) params.set("q", String(opts.search));
-  if (opts.seccion) params.set("seccion", String(opts.seccion));
+  if (resolved === "pedidos-especiales" && opts.search) params.set("q", String(opts.search));
+  if (resolved !== "pedidos-especiales" && resolved !== "dermocosmetica" && resolved !== "vitaminas" && opts.search) {
+    params.set("q", String(opts.search));
+  }
+  if (resolved === "vitaminas" && opts.rubro) params.set("rubro", String(opts.rubro));
   if (opts.productId != null && String(opts.productId).trim()) {
     params.set("id", String(opts.productId).trim());
   }

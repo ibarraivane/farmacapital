@@ -5,11 +5,22 @@
  * se exhibe con stock 0, sin «Agotado», y se consigue con mayorista.
  * - Con ancla usable (precio > $0.01): CTA «Encargar» → carrito → pago con
  *   RESERVA en tarjeta (se cobra al conseguirlo; si no, se cancela sin cargo).
- * - Sin ancla: CTA «Cotizar» → formulario de /conseguir.
+ * - Sin ancla: CTA «Solicitar precio» → formulario de /pedidos-especiales.
  * Rubros de la vitrina salen de categoria/subcategoria (no hay categoría nueva).
  */
 import { categoriaCanon } from "../constants/categoriasProducto";
 import { precioAnclaUsable, precioOnlineMp } from "./precioOnlineMp";
+
+export const TEXTO_RESERVA =
+  "Apártalo con tarjeta de crédito. Solo se cobra cuando llega; si no lo conseguimos, no pagas nada.";
+
+export const TEXTO_AVISO_RECETA =
+  "Los medicamentos que requieren receta se surten presentando la receta en tienda. No encargamos en línea medicamentos controlados.";
+
+export const BADGE_SOBRE_PEDIDO = "Sobre pedido · 24-48 h";
+export const CTA_SOLICITAR_PRECIO = "Solicitar precio";
+export const FRANJA_HOME = "¿No lo encuentras? Lo pedimos por ti · 24-48 h";
+export const TEXTO_BUSQUEDA_VACIA = "No lo tenemos en tienda, pero lo pedimos por ti. Llega en 24-48 h.";
 
 /** Tope por línea en el carrito (no depende del stock físico). */
 export const CANTIDAD_MAX_BAJO_PEDIDO = 12;
@@ -24,20 +35,24 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "proteina", label: "Proteína" },
 ]);
 
-/** Dos entradas de /conseguir: derma vs vitaminas+suplementos+proteína. */
+/** Dos páginas de catálogo: dermocosmética vs vitaminas+suplementos+proteína. */
 export const SECCIONES_CONSEGUIR = Object.freeze([
   {
     id: "dermatologia",
-    label: "Dermatología",
-    titulo: "Dermatología",
-    desc: "Lo que receta el dermatólogo: Cicaplast, Effaclar, Heliocare, Bioderma…",
+    page: "dermocosmetica",
+    label: "Dermocosmética",
+    titulo: "Dermocosmética",
+    subtitulo: "",
+    desc: "Productos que recomienda el dermatólogo.",
     rubros: Object.freeze(["dermatologia"]),
   },
   {
     id: "nutricion",
+    page: "vitaminas",
     label: "Vitaminas y suplementos",
-    titulo: "Vitaminas, suplementos y proteína",
-    desc: "Pharmaton, Elevit, Omega 3, proteína y más. Bajo pedido, 24-48 hrs.",
+    titulo: "Vitaminas y suplementos",
+    subtitulo: "Vitaminas, suplementos y proteína",
+    desc: "Vitaminas, suplementos y proteína.",
     rubros: Object.freeze(["vitaminas", "suplementos", "proteina"]),
   },
 ]);
@@ -46,6 +61,7 @@ const SECCION_ALIAS = {
   derma: "dermatologia",
   dermatologia: "dermatologia",
   dermatologico: "dermatologia",
+  dermocosmetica: "dermatologia",
   nutri: "nutricion",
   nutricion: "nutricion",
   vitaminas: "nutricion",
@@ -54,7 +70,23 @@ const SECCION_ALIAS = {
   proteinas: "nutricion",
 };
 
-/** `?seccion=dermatologia` | `nutricion` (y alias). Vacío = hub con los dos enlaces. */
+const RUBRO_ALIAS = {
+  vitaminas: "vitaminas",
+  vitamina: "vitaminas",
+  suplementos: "suplementos",
+  suplemento: "suplementos",
+  proteina: "proteina",
+  proteinas: "proteina",
+};
+
+/** Aliases de `?seccion=` que además fijan el chip de nutrición. */
+const SECCION_RUBRO_ALIAS = {
+  suplementos: "suplementos",
+  proteina: "proteina",
+  proteinas: "proteina",
+};
+
+/** `?seccion=dermatologia` | `nutricion` (y alias). Vacío = pedidos especiales. */
 export function seccionConseguirDeQuery(search) {
   try {
     const raw = new URLSearchParams(typeof search === "string" ? search : "").get("seccion");
@@ -65,8 +97,60 @@ export function seccionConseguirDeQuery(search) {
   }
 }
 
+/** `?rubro=` de nutrición. Desconocido → "" (chip Todos). */
+export function rubroDeQuery(search) {
+  try {
+    const raw = new URLSearchParams(typeof search === "string" ? search : "").get("rubro");
+    const key = norm(raw).replace(/[^a-z]/g, "");
+    return RUBRO_ALIAS[key] || "";
+  } catch {
+    return "";
+  }
+}
+
+/** Si el alias de sección implica un chip (suplementos / proteína). */
+export function rubroDesdeAliasSeccion(search) {
+  try {
+    const raw = new URLSearchParams(typeof search === "string" ? search : "").get("seccion");
+    const key = norm(raw).replace(/[^a-z]/g, "");
+    return SECCION_RUBRO_ALIAS[key] || "";
+  } catch {
+    return "";
+  }
+}
+
 export function seccionConseguirPorId(id) {
   return SECCIONES_CONSEGUIR.find((s) => s.id === id) || null;
+}
+
+/** 3-4 marcas con más productos activos del rubro/sección. Nunca inventa. */
+export function marcasDestacadas(productos, seccion, limite = 4) {
+  const list = filtrarSeccion(productos, seccion, { incluirAnaquel: false });
+  const counts = new Map();
+  for (const p of list) {
+    const m = String(p.marca || "").trim();
+    if (!m) continue;
+    counts.set(m, (counts.get(m) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es", { sensitivity: "base" }))
+    .slice(0, Math.max(1, limite))
+    .map(([m]) => m);
+}
+
+export function copyMarcasSeccion(productos, seccion) {
+  const sec = seccionConseguirPorId(seccion);
+  const marcas = marcasDestacadas(productos, seccion, 4);
+  const base = sec?.desc || "";
+  if (!marcas.length) return base;
+  const lista =
+    marcas.length === 1
+      ? marcas[0]
+      : `${marcas.slice(0, -1).join(", ")} y ${marcas[marcas.length - 1]}`;
+  if (seccion === "dermatologia") {
+    return `Productos que recomienda el dermatólogo: ${lista}.`;
+  }
+  return `${lista}.`;
 }
 
 function norm(s) {
@@ -139,20 +223,34 @@ export function prepararListaTienda(productos) {
   return (productos || []).map(prepararProductoTienda);
 }
 
-/** Vitrina de /conseguir: bajo pedido del rubro ("" = todos), alfabético. */
-export function filtrarVitrina(productos, rubro = "") {
+/**
+ * Filtro de página de categoría.
+ * `incluirAnaquel` queda en false (fase 2: anaquel + encargo juntos).
+ */
+export function filtrarSeccion(productos, seccion, { rubro = "", incluirAnaquel = false } = {}) {
+  const sec = seccionConseguirPorId(seccion);
+  const allow = sec ? new Set(sec.rubros) : null;
   return (productos || [])
-    .filter((p) => esBajoPedido(p) && p.activo !== false)
-    .filter((p) => !rubro || rubroDeProducto(p) === rubro)
+    .filter((p) => p && p.activo !== false)
+    .filter((p) => incluirAnaquel || esBajoPedido(p))
+    .filter((p) => {
+      const r = rubroDeProducto(p);
+      if (!r) return false;
+      if (allow && !allow.has(r)) return false;
+      if (rubro && r !== rubro) return false;
+      return true;
+    })
     .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" }));
+}
+
+/** Vitrina: bajo pedido del rubro ("" = todos), alfabético. */
+export function filtrarVitrina(productos, rubro = "") {
+  return filtrarSeccion(productos, "", { rubro, incluirAnaquel: false });
 }
 
 /** Productos de una sección (derma o nutrición). Sin sección = toda la vitrina. */
 export function filtrarVitrinaSeccion(productos, seccionId) {
-  const sec = seccionConseguirPorId(seccionId);
-  if (!sec) return filtrarVitrina(productos);
-  const allow = new Set(sec.rubros);
-  return filtrarVitrina(productos).filter((p) => allow.has(rubroDeProducto(p)));
+  return filtrarSeccion(productos, seccionId, { incluirAnaquel: false });
 }
 
 /** El carrito no mezcla encargos con productos de anaquel (se pagan distinto). */
@@ -174,7 +272,7 @@ export function motivoNoMezclar(cart, prod) {
     return "Tu carrito tiene productos por encargo, que se pagan con reserva. Termina ese pedido o vacía el carrito para comprar productos en existencia.";
   }
   if (t === "normal" && nuevo) {
-    return "Los productos por encargo se pagan aparte (reserva en tarjeta). Termina tu compra actual o vacía el carrito para encargar.";
+    return "Los productos por encargo se pagan aparte (reserva en tarjeta de crédito). Termina tu compra actual o vacía el carrito para encargar.";
   }
   return null;
 }

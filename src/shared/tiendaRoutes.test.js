@@ -1,5 +1,6 @@
 import {
   pageIdToTiendaPath,
+  resolveTiendaLocation,
   resolveTiendaPage,
   tiendaPathnameToPageId,
   TIENDA_PAGE_IDS,
@@ -40,16 +41,71 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("detalle", { productId: "abc-1" })).toBe("/producto?id=abc-1");
     expect(pageIdToTiendaPath("auth-callback")).toBe("/auth/callback");
     expect(pageIdToTiendaPath("tarjeta")).toBe("/tarjeta");
-    expect(pageIdToTiendaPath("conseguir", { search: "losartan" })).toBe("/conseguir?q=losartan");
-    expect(pageIdToTiendaPath("conseguir", { seccion: "dermatologia" })).toBe("/conseguir?seccion=dermatologia");
-    expect(pageIdToTiendaPath("conseguir", { seccion: "nutricion" })).toBe("/conseguir?seccion=nutricion");
+    expect(pageIdToTiendaPath("pedidos-especiales", { search: "losartan" })).toBe("/pedidos-especiales?q=losartan");
+    expect(pageIdToTiendaPath("dermocosmetica")).toBe("/dermocosmetica");
+    expect(pageIdToTiendaPath("vitaminas", { rubro: "proteina" })).toBe("/vitaminas?rubro=proteina");
+    expect(pageIdToTiendaPath("conseguir", { seccion: "dermatologia" })).toBe("/dermocosmetica");
+    expect(pageIdToTiendaPath("conseguir", { seccion: "nutricion" })).toBe("/vitaminas");
   });
 
-  test("aliases de flyer y te lo conseguimos", () => {
+  test("aliases de flyer y conseguir", () => {
     expect(resolveTiendaPage("flyer")).toBe("tarjeta");
     expect(resolveTiendaPage("hola")).toBe("tarjeta");
-    expect(resolveTiendaPage("te-lo-conseguimos")).toBe("conseguir");
+    expect(resolveTiendaPage("te-lo-conseguimos")).toBe("pedidos-especiales");
+    expect(resolveTiendaPage("conseguir")).toBe("pedidos-especiales");
     expect(tiendaPathnameToPageId("/tarjeta")).toBe("tarjeta");
-    expect(tiendaPathnameToPageId("/conseguir")).toBe("conseguir");
+    expect(tiendaPathnameToPageId("/conseguir")).toBe("pedidos-especiales");
+    expect(tiendaPathnameToPageId("/dermocosmetica")).toBe("dermocosmetica");
+    expect(tiendaPathnameToPageId("/vitaminas")).toBe("vitaminas");
+    expect(tiendaPathnameToPageId("/pedidos-especiales")).toBe("pedidos-especiales");
+  });
+
+  test("resolveTiendaLocation: canónicas, aliases y rubro desconocido", () => {
+    expect(resolveTiendaLocation("/dermocosmetica", "")).toMatchObject({
+      page: "dermocosmetica", seccion: "dermatologia", rubro: "", shouldReplace: false,
+    });
+    expect(resolveTiendaLocation("/vitaminas", "?rubro=proteina")).toMatchObject({
+      page: "vitaminas", seccion: "nutricion", rubro: "proteina", canonicalPath: "/vitaminas?rubro=proteina",
+    });
+    expect(resolveTiendaLocation("/vitaminas", "?rubro=noexiste")).toMatchObject({
+      page: "vitaminas", rubro: "", canonicalPath: "/vitaminas", shouldReplace: true,
+    });
+    expect(resolveTiendaLocation("/pedidos-especiales", "?q=losartan")).toMatchObject({
+      page: "pedidos-especiales", search: "losartan",
+    });
+    const aliasesDerma = ["derma", "dermatologia", "dermatologico", "dermocosmetica"];
+    aliasesDerma.forEach((seccion) => {
+      const loc = resolveTiendaLocation("/conseguir", `?seccion=${seccion}`);
+      expect(loc.page).toBe("dermocosmetica");
+      expect(loc.canonicalPath).toBe("/dermocosmetica");
+      expect(loc.shouldReplace).toBe(true);
+    });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=nutri")).toMatchObject({
+      page: "vitaminas", rubro: "", canonicalPath: "/vitaminas",
+    });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=nutricion")).toMatchObject({
+      page: "vitaminas", canonicalPath: "/vitaminas",
+    });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=vitaminas")).toMatchObject({
+      page: "vitaminas", rubro: "",
+    });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=suplementos")).toMatchObject({
+      page: "vitaminas", rubro: "suplementos", canonicalPath: "/vitaminas?rubro=suplementos",
+    });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=proteina")).toMatchObject({
+      page: "vitaminas", rubro: "proteina", canonicalPath: "/vitaminas?rubro=proteina",
+    });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=proteinas")).toMatchObject({
+      page: "vitaminas", rubro: "proteina",
+    });
+    expect(resolveTiendaLocation("/conseguir", "")).toMatchObject({
+      page: "pedidos-especiales", canonicalPath: "/pedidos-especiales", shouldReplace: true,
+    });
+    expect(resolveTiendaLocation("/conseguir", "?seccion=desconocida")).toMatchObject({
+      page: "pedidos-especiales",
+    });
+    expect(resolveTiendaLocation("/te-lo-conseguimos", "")).toMatchObject({
+      page: "pedidos-especiales",
+    });
   });
 });
