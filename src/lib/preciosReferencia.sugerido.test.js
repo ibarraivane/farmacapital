@@ -13,6 +13,8 @@ test("compra compara Farma City, no la columna Otros", () => {
     "exprezo", "marzam", "nadro", "levic", "farmalive", "farmacity",
   ]);
   expect(FUENTES_COMPRA_TABLA).not.toContain("otros_compra");
+  expect(FUENTES_COMPRA_TABLA).not.toContain("dermaexpress");
+  expect(FUENTES_COMPRA_TABLA).not.toContain("ewafra");
 });
 
 test("percentil 40 no es el mínimo", () => {

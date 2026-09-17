@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { PackageSearch } from "lucide-react";
 import { BRAND } from "../../constants";
 import RecompraStrip from "../RecompraStrip";
-import { RUBROS_BAJO_PEDIDO, filtrarVitrina, rubroDeProducto } from "../../lib/bajoPedido";
+import { CONSEGUIR_UI, RUBROS_BAJO_PEDIDO, STRIP_TOPE_CONSEGUIR, filtrarVitrina, rubroDeProducto } from "../../lib/bajoPedido";
 
 /**
  * Vitrina de /conseguir: productos bajo pedido por rubro.
@@ -56,7 +56,7 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
   return (
     <section style={{ maxWidth: 1200, margin: "0 auto", padding: "clamp(20px,4vw,32px) 16px 8px" }} aria-labelledby="vitrina-conseguir-titulo">
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: BRAND.gradient, display: "grid", placeItems: "center", color: "#fff", flexShrink: 0 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: CONSEGUIR_UI.amber, display: "grid", placeItems: "center", color: "#fff", flexShrink: 0 }}>
           <PackageSearch size={20} aria-hidden />
         </div>
         <h1 id="vitrina-conseguir-titulo" style={{ margin: 0, fontSize: "clamp(22px,5vw,26px)", fontWeight: 800, color: "#0f172a" }}>
@@ -103,15 +103,17 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
           const items = r.id === "__otros"
             ? filtrarVitrina(productos).filter((p) => !rubroDeProducto(p))
             : filtrarVitrina(productos, r.id);
+          const enBanda = items.slice(0, STRIP_TOPE_CONSEGUIR);
+          const verTodo = items.length > 4 && r.id !== "__otros";
           return (
             <RecompraStrip
               key={r.id}
               title={r.label}
               empty={items.length === 0}
-              actionLabel={items.length > 4 && r.id !== "__otros" ? "Ver todo" : undefined}
-              onAction={items.length > 4 && r.id !== "__otros" ? () => setRubro(r.id) : undefined}
+              actionLabel={verTodo ? "Ver todo" : undefined}
+              onAction={verTodo ? () => setRubro(r.id) : undefined}
             >
-              {items.map((p) => renderProducto(p))}
+              {enBanda.map((p) => renderProducto(p))}
             </RecompraStrip>
           );
         })

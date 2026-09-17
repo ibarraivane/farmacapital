@@ -22,7 +22,20 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "vitaminas", label: "Vitaminas" },
   { id: "suplementos", label: "Suplementos" },
   { id: "proteina", label: "Proteína" },
+  { id: "dispositivos", label: "Dispositivos" },
 ]);
+
+/** Recuadro de /conseguir: ámbar, distinto del anaquel blanco. */
+export const CONSEGUIR_UI = Object.freeze({
+  amber: "#d97706",
+  amberSoft: "#f59e0b",
+  cream: "#fffbeb",
+  border: "#f59e0b",
+  text: "#92400e",
+});
+
+/** En «Todos» no se pintan cientos de cards en la banda. */
+export const STRIP_TOPE_CONSEGUIR = 12;
 
 function norm(s) {
   return String(s ?? "")
@@ -54,10 +67,19 @@ export function rubroDeProducto(p) {
   if (!p) return "";
   const cat = categoriaCanon(p.categoria);
   const sub = norm(p.subcategoria);
-  if (cat === "Cuidado personal" && sub.startsWith("dermatolog")) return "dermatologia";
+  if (cat === "Cuidado personal" && (sub.startsWith("dermatolog") || !sub)) return "dermatologia";
   if (cat === "Vitaminas") return "vitaminas";
   if (cat === "Suplemento") return sub.startsWith("protein") ? "proteina" : "suplementos";
+  if (cat === "Dispositivo médico" || cat === "Botiquín") return "dispositivos";
   return "";
+}
+
+/** Estilo del recuadro (tarjeta / ficha / azulejo) para distinguirlo del anaquel. */
+export function estiloRecuadroConseguir({ hover = false } = {}) {
+  return {
+    background: CONSEGUIR_UI.cream,
+    border: `2px solid ${hover ? CONSEGUIR_UI.amber : CONSEGUIR_UI.border}`,
+  };
 }
 
 /**

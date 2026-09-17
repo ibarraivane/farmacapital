@@ -54,9 +54,11 @@ import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
   CANTIDAD_MAX_BAJO_PEDIDO,
+  CONSEGUIR_UI,
   cantidadMaximaLinea,
   ctaBajoPedido,
   esBajoPedido,
+  estiloRecuadroConseguir,
   motivoNoMezclar,
   pedidoEsBajoPedido,
   prepararListaTienda,
@@ -1859,11 +1861,12 @@ function ProductCard({prod,addToCart,onClick}){
   };
   // width/maxWidth 100%: llena la celda del grid O el hueco de 220px de RecompraStrip.
   // Nunca quitar el wrapper fijo de RecompraStrip: sin él la banda se ve como 1 tarjeta a todo el ancho.
+  const recuadroEncargo = cta ? estiloRecuadroConseguir() : null;
   return(
     <div style={{
-      background:C.white,
+      background: recuadroEncargo ? recuadroEncargo.background : C.white,
       borderRadius:12,
-      border:`1px solid ${agotado ? C.border : C.border}`,
+      border: recuadroEncargo ? recuadroEncargo.border : `1px solid ${C.border}`,
       overflow:"clip",
       display:"flex",
       flexDirection:"column",
@@ -1875,8 +1878,8 @@ function ProductCard({prod,addToCart,onClick}){
       transition:"border-color .2s, transform .15s, opacity .15s",
     }}
       {...(!narrow ? { onClick: handleDetailClick } : {})}
-      onMouseEnter={agotado ? undefined : (e=>{ e.currentTarget.style.borderColor=BRAND.secondary; e.currentTarget.style.transform="translateY(-2px)"; })}
-      onMouseLeave={agotado ? undefined : (e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.transform="translateY(0)"; })}
+      onMouseEnter={agotado ? undefined : (e=>{ e.currentTarget.style.borderColor=cta ? CONSEGUIR_UI.amber : BRAND.secondary; e.currentTarget.style.transform="translateY(-2px)"; })}
+      onMouseLeave={agotado ? undefined : (e=>{ e.currentTarget.style.borderColor=cta ? CONSEGUIR_UI.border : C.border; e.currentTarget.style.transform="translateY(0)"; })}
     >
       <div
         style={{
@@ -2095,8 +2098,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           </div>
           )}
           {cta && (
-            <div style={{background:BRAND.secondary+"10",border:`1px solid ${BRAND.secondary}30`,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
-              <div style={{color:BRAND.primary,fontWeight:800,fontSize:14,marginBottom:4}}>Bajo pedido · 24-48 hrs</div>
+            <div style={{background:CONSEGUIR_UI.cream,border:`2px solid ${CONSEGUIR_UI.border}`,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
+              <div style={{color:CONSEGUIR_UI.text,fontWeight:800,fontSize:14,marginBottom:4}}>Bajo pedido · 24-48 hrs</div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.55}}>
                 {cta==="encargar"
                   ? "Disponible bajo pedido en 24-48 hrs. Al encargarlo apartas el total en tu tarjeta de crédito y se cobra solo cuando lo tengamos listo. Si no lo conseguimos, cancelamos la reserva sin cargo."
@@ -2478,7 +2481,7 @@ function HomeServices({setPage}){
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
-    { key:"conseguir", titulo:"Te lo conseguimos", desc:"Dermato, vitaminas y lo que no está", color:BRAND.accent, tipo:"page", destino:"conseguir", icon:PackageSearch },
+    { key:"conseguir", titulo:"Te lo conseguimos", desc:"Dermato, vitaminas, proteína y dispositivos", color:CONSEGUIR_UI.amber, tipo:"page", destino:"conseguir", icon:PackageSearch },
   ];
   const handleClick = (s)=>{
     if (s.tipo==="page") {
@@ -2892,9 +2895,9 @@ function TiendaBusquedaBar({
                 gap: btnGap,
                 padding: btnPad,
                 borderRadius: btnRadius,
-                border: `2px solid ${BRAND.secondary}`,
-                background: C.white,
-                color: BRAND.secondary,
+                border: `2px solid ${CONSEGUIR_UI.amber}`,
+                background: CONSEGUIR_UI.cream,
+                color: CONSEGUIR_UI.text,
                 fontWeight: 800,
                 fontSize: btnFont,
                 fontFamily: "var(--fc-body)",

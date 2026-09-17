@@ -18,6 +18,11 @@ export const FUENTES_IMPORT = [
   { id: "farmalive", label: "Farmalive (lista Club Iztapalapa)", tipo: "compra", adapter: "generico" },
   { id: "farmacity", label: "Farma City (lista Cityfarma Iztapalapa)", tipo: "compra", adapter: "generico" },
   { id: "fahorro", label: "Del Ahorro (venta)", tipo: "venta", adapter: "generico" },
+  { id: "dermaexpress", label: "Dermaexpress (mayoreo dermo)", tipo: "compra", adapter: "generico" },
+  { id: "birdman", label: "Birdman (proteína / wellness)", tipo: "compra", adapter: "generico" },
+  { id: "ewafra", label: "Ewafra / DIS (insumos)", tipo: "compra", adapter: "generico" },
+  { id: "promexsa", label: "Promexsa (techo web, no mayoreo)", tipo: "compra", adapter: "generico" },
+  { id: "mepiel", label: "Mepiel (mayoreo dermo)", tipo: "compra", adapter: "generico" },
 ];
 
 function norm(s) {
