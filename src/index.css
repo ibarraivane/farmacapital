@@ -3,6 +3,10 @@
   50% { opacity: 1; }
 }
 
+/*
+  Un solo scroll vertical (html). Si html Y body tienen overflow-y:auto,
+  en móvil el gesto rebota / se “traba” hasta soltar el dedo.
+*/
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -10,6 +14,17 @@ html {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+/* iPhone Chrome/Safari (WebKit): refuerza anti-rebote del documento. */
+@supports (-webkit-touch-callout: none) {
+  html {
+    overscroll-behavior-y: none;
+  }
+  body {
+    overscroll-behavior-y: none;
+  }
 }
 
 body {
@@ -21,9 +36,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   height: auto;
   overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: auto;
+  overflow-y: visible;
+  overscroll-behavior-y: none;
   max-width: 100%;
 }
 
@@ -565,6 +579,13 @@ details.fc-fold summary:focus-visible {
 .farmacapital-productos-strip {
   min-width: 0;
   max-width: 100%;
+  /* Solo eje X. Sin overflow-y:hidden, iOS (Chrome/Safari) hace
+     overflow-y:auto implícito y el dedo rebota dentro de la banda. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 .farmacapital-productos-strip::-webkit-scrollbar { display: none; }
 .farmacapital-productos-strip-item {
@@ -578,6 +599,19 @@ details.fc-fold summary:focus-visible {
   width: 100% !important;
   max-width: 100% !important;
   height: 100%;
+}
+/* mandatory + gesto vertical sobre la banda = rebote en iPhone. */
+@media (max-width: 767px) {
+  .farmacapital-productos-strip,
+  .farmacapital-home-services-scroll,
+  .farmacapital-home-promos-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity !important;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 @media (min-width: 768px) {
   .farmacapital-productos-strip {
