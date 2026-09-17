@@ -51,7 +51,7 @@ import { pageIdToTiendaPath, resolveTiendaLocation, resolveTiendaPage, tiendaPat
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
-import EnlacesSeccionConseguir from "./components/tienda/EnlacesSeccionConseguir";
+import HomeSobrePedido from "./components/tienda/HomeSobrePedido";
 import PedidosEspeciales from "./components/tienda/PedidosEspeciales";
 import FranjaSobrePedido from "./components/tienda/FranjaSobrePedido";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
@@ -3081,16 +3081,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 
       <HomeServices setPage={setPage}/>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "8px 16px 20px" }}>
-        <EnlacesSeccionConseguir setPage={setPage} productos={productos} stack={stack} />
-        <button
-          type="button"
-          onClick={() => setPage("pedidos-especiales")}
-          style={{ background: "none", border: "none", color: BRAND.secondary, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", padding: 0, marginTop: 10 }}
-        >
-          Pedidos especiales →
-        </button>
-      </div>
+      <HomeSobrePedido setPage={setPage} productos={productos} stack={stack} />
 
       <HomeBannersStrip setPage={setPage} items={bannerZones.strip}/>
 

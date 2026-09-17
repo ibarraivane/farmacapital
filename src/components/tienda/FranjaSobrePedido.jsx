@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { BRAND } from "../../constants";
 import { FRANJA_HOME } from "../../lib/bajoPedido";
+import { V } from "./vitrinaUi";
 
 const STORAGE_KEY = "farmacapital_franja_sobre_pedido_cerrada";
 
@@ -26,28 +26,31 @@ export default function FranjaSobrePedido({ setPage }) {
   };
 
   return (
-    <div
-      style={{
-        background: BRAND.primary,
-        color: "#fff",
-        padding: "8px 16px",
-      }}
-    >
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
-        <span style={{ flex: 1, fontWeight: 600, lineHeight: 1.4 }}>{FRANJA_HOME}</span>
+    <div style={{ background: V.ink, color: V.surface, padding: "9px 16px" }}>
+      <div
+        style={{
+          maxWidth: 1120,
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          fontSize: 13,
+        }}
+      >
+        <span style={{ flex: 1, fontWeight: 500, lineHeight: 1.4, letterSpacing: "0.01em" }}>{FRANJA_HOME}</span>
         <button
           type="button"
           onClick={() => setPage("pedidos-especiales")}
           style={{
-            background: "rgba(255,255,255,.16)",
-            border: "1px solid rgba(255,255,255,.28)",
-            color: "#fff",
-            fontWeight: 700,
+            background: "transparent",
+            border: `1px solid rgba(251,250,248,.35)`,
+            color: V.surface,
+            fontWeight: 600,
             fontSize: 12,
-            borderRadius: 999,
+            borderRadius: V.pill,
             padding: "6px 12px",
             cursor: "pointer",
-            fontFamily: "inherit",
+            fontFamily: V.body,
             whiteSpace: "nowrap",
           }}
         >
@@ -60,11 +63,12 @@ export default function FranjaSobrePedido({ setPage }) {
           style={{
             background: "none",
             border: "none",
-            color: "#fff",
+            color: V.surface,
             cursor: "pointer",
             padding: 4,
             display: "grid",
             placeItems: "center",
+            opacity: 0.7,
           }}
         >
           <X size={16} aria-hidden />

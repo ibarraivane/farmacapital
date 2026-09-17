@@ -1,11 +1,5 @@
-import { ChevronRight, Leaf, Sparkles } from "lucide-react";
-import { BRAND } from "../../constants";
 import { FASE2_INCLUIR_ANAQUEL, SECCIONES_CONSEGUIR, filtrarSeccion } from "../../lib/bajoPedido";
-
-const ICONO = {
-  dermatologia: Sparkles,
-  nutricion: Leaf,
-};
+import { V, displayTitle } from "./vitrinaUi";
 
 /**
  * Dos tarjetas: Dermocosmética · Vitaminas y suplementos.
@@ -16,14 +10,12 @@ export default function EnlacesSeccionConseguir({ setPage, productos = [], stack
       style={{
         display: "grid",
         gridTemplateColumns: stack ? "1fr" : "1fr 1fr",
-        gap: 12,
+        gap: stack ? 12 : 16,
       }}
     >
       {SECCIONES_CONSEGUIR.map((sec) => {
-        const Icon = ICONO[sec.id] || Sparkles;
         const n = filtrarSeccion(productos, sec.id, { incluirAnaquel: FASE2_INCLUIR_ANAQUEL }).length;
         const derma = sec.id === "dermatologia";
-        const tint = derma ? BRAND.accent : BRAND.secondary;
         return (
           <button
             key={sec.id}
@@ -31,54 +23,43 @@ export default function EnlacesSeccionConseguir({ setPage, productos = [], stack
             onClick={() => setPage(sec.page, { search: "" })}
             style={{
               display: "flex",
+              flexDirection: "column",
               alignItems: "flex-start",
-              gap: 12,
               textAlign: "left",
-              padding: "16px 16px 14px",
-              borderRadius: 16,
-              border: `1px solid ${derma ? "#c7ebd6" : "#cdd9f5"}`,
+              padding: stack ? "22px 20px 20px" : "28px 26px 24px",
+              minHeight: stack ? 148 : 176,
+              borderRadius: V.radius,
+              border: `1px solid ${V.border}`,
               background: derma
-                ? "linear-gradient(180deg,#f3fbf6,#fff)"
-                : "linear-gradient(180deg,#f3f6fd,#fff)",
+                ? `linear-gradient(165deg, ${V.surface} 0%, #e8f6ee 100%)`
+                : `linear-gradient(165deg, ${V.surface} 0%, #e8eef8 100%)`,
               cursor: "pointer",
-              fontFamily: "inherit",
-              minHeight: 112,
-              boxShadow: "0 8px 24px rgba(15,23,42,.06)",
+              fontFamily: V.body,
+              boxShadow: V.shadow,
             }}
           >
-            <div
+            <span style={{ width: 28, height: 2, background: derma ? V.jade : V.blue, marginBottom: 16 }} />
+            <span style={{ ...displayTitle, fontSize: stack ? 24 : 28, margin: 0 }}>
+              {sec.label}
+            </span>
+            <p style={{ margin: "10px 0 0", color: V.mid, fontSize: 14, lineHeight: 1.5, maxWidth: 280 }}>
+              {sec.desc}
+            </p>
+            <span
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                background: `${tint}18`,
-                color: tint,
-                display: "grid",
-                placeItems: "center",
-                flexShrink: 0,
+                marginTop: "auto",
+                paddingTop: 18,
+                color: V.ink,
+                fontWeight: 600,
+                fontSize: 13,
+                letterSpacing: "0.01em",
               }}
             >
-              <Icon size={22} aria-hidden />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#0f172a", fontWeight: 800, fontSize: 16 }}>
-                {sec.label}
-                <ChevronRight size={16} aria-hidden />
-              </div>
-              <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 13, lineHeight: 1.45 }}>
-                {sec.desc}
-              </p>
-              {n > 0 ? (
-                <div style={{ marginTop: 8, color: tint, fontWeight: 700, fontSize: 12 }}>
-                  {n} {n === 1 ? "producto" : "productos"}
-                  {FASE2_INCLUIR_ANAQUEL ? "" : " · 24-48 h"}
-                </div>
-              ) : (
-                <div style={{ marginTop: 8, color: "#64748b", fontWeight: 600, fontSize: 12 }}>
-                  Sobre pedido · 24-48 h
-                </div>
-              )}
-            </div>
+              {n > 0
+                ? `${n} ${n === 1 ? "producto" : "productos"}`
+                : "Sobre pedido · 24-48 h"}
+              <span aria-hidden style={{ marginLeft: 8 }}>→</span>
+            </span>
           </button>
         );
       })}

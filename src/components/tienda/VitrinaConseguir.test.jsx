@@ -11,6 +11,23 @@ const derma = {
   subcategoria: "Dermatología",
 };
 
+test("mientras carga no muestra el formulario", () => {
+  render(
+    <VitrinaConseguir
+      productos={[]}
+      loading
+      stack
+      seccion="dermatologia"
+      setPage={jest.fn()}
+      renderProducto={(p) => <div key={p.id}>{p.nombre}</div>}
+      formulario={<div>FORMULARIO</div>}
+    />
+  );
+  expect(screen.getByText(/Cargando productos/i)).toBeInTheDocument();
+  expect(screen.queryByText("FORMULARIO")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Aún no hay productos en esta página/i)).not.toBeInTheDocument();
+});
+
 test("sección vacía oculta la cuadrícula y muestra el formulario arriba", () => {
   render(
     <VitrinaConseguir
@@ -93,5 +110,5 @@ test("dermocosmética usa marcas del catálogo", () => {
   );
   expect(screen.getByRole("heading", { name: "Dermocosmética" })).toBeInTheDocument();
   expect(screen.getByText(/La Roche-Posay/)).toBeInTheDocument();
-  expect(screen.getByText(/tarjeta de crédito/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/tarjeta de crédito/i).length).toBeGreaterThan(0);
 });

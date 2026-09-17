@@ -112,7 +112,7 @@ test("copy de marcas solo usa las del catálogo", () => {
   expect(copyMarcasSeccion([a, b, c], "dermatologia")).toMatch(/La Roche-Posay/);
   expect(copyMarcasSeccion([a, b, c], "dermatologia")).toMatch(/Heliocare/);
   expect(copyMarcasSeccion([a, b, c], "dermatologia")).not.toMatch(/Effaclar|Pharmaton/);
-  expect(copyMarcasSeccion([vitC], "dermatologia")).toBe("Productos que recomienda el dermatólogo.");
+  expect(copyMarcasSeccion([vitC], "dermatologia")).toBe("Lo que indica el dermatólogo. En anaquel o lo pedimos.");
 });
 
 test("carrito no mezcla encargo con anaquel y tope de 12", () => {

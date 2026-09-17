@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, PackageSearch, Truck } from "lucide-react";
+import { MessageCircle, PackageSearch } from "lucide-react";
 import { Btn, showToast } from "../ui";
 import { BRAND } from "../constants";
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 import { flyerWhatsAppFarmaciaUrl } from "../lib/flyerFarmaCapital";
 import { SOLICITUD_API_PATH, normalizarTelefonoPedido, validarSolicitudTienda } from "../lib/solicitudTienda";
 import { TEXTO_AVISO_RECETA, TEXTO_BUSQUEDA_VACIA, TEXTO_RESERVA } from "../lib/bajoPedido";
+import { TIPO, TOKENS as T } from "../theme/tokens";
 
 /** Otra pantalla pide abrir Pedidos especiales directo en el formulario (p. ej. «Solicitar precio»). */
 export const CONSEGUIR_FORM_FLAG = "farmacapital_conseguir_form";
@@ -13,16 +14,16 @@ export const CONSEGUIR_FORM_FLAG = "farmacapital_conseguir_form";
 const inp = {
   width: "100%",
   marginTop: 4,
-  padding: "11px 12px",
+  padding: "12px 14px",
   borderRadius: 10,
-  border: "1px solid #e2e8f0",
+  border: `1px solid ${T.border}`,
   fontSize: 15,
   boxSizing: "border-box",
   fontFamily: "inherit",
   background: "#ffffff",
-  color: "#0f172a",
-  WebkitTextFillColor: "#0f172a",
-  caretColor: "#0f172a",
+  color: T.ink,
+  WebkitTextFillColor: T.ink,
+  caretColor: T.ink,
   colorScheme: "light",
 };
 
@@ -43,10 +44,10 @@ export function CatalogoVacioConseguir({ busq, setPage }) {
     <div
       style={{
         gridColumn: "1 / -1",
-        background: "#fff",
-        border: "1px solid #e2e8f0",
+        background: T.surface,
+        border: `1px solid ${T.border}`,
         borderRadius: 16,
-        padding: "28px 20px",
+        padding: "32px 22px",
         textAlign: "center",
         maxWidth: 520,
         margin: "0 auto",
@@ -57,16 +58,16 @@ export function CatalogoVacioConseguir({ busq, setPage }) {
           width: 48,
           height: 48,
           borderRadius: 14,
-          background: BRAND.primary + "14",
+          background: T.canvas,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
           marginBottom: 12,
         }}
       >
-        <PackageSearch size={24} color={BRAND.primary} />
+        <PackageSearch size={24} color={T.ink} />
       </div>
-      <div style={{ fontWeight: 800, fontSize: 18, color: "#0f172a", marginBottom: 6 }}>
+      <div style={{ fontWeight: 600, fontSize: 20, color: T.ink, marginBottom: 6, fontFamily: TIPO.display }}>
         {q ? `Sin resultados para “${q}”` : "No hay productos disponibles por el momento."}
       </div>
       <p style={{ margin: "0 0 16px", color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
@@ -179,52 +180,66 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
     );
   }
 
+  const enCategoria = bajoVitrina || variante === "categoria";
   return (
-    <div id="pedido-especial-form" style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px", scrollMarginTop: 90 }}>
+    <div
+      id="pedido-especial-form"
+      style={{
+        maxWidth: 560,
+        margin: "0 auto",
+        padding: enCategoria ? "0 0 8px" : "8px 0 24px",
+        scrollMarginTop: 90,
+      }}
+    >
       <div id="conseguir-form" style={{ scrollMarginTop: 90 }}>
       {variante !== "pagina" ? (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            background: BRAND.gradient,
-            display: "grid",
-            placeItems: "center",
-            color: "#fff",
-          }}
-        >
-          <Truck size={20} />
-        </div>
-        {bajoVitrina || variante === "categoria" ? (
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0f172a" }}>
+      <div style={{ marginBottom: 8 }}>
+        {enCategoria ? (
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 26,
+              fontWeight: 600,
+              color: T.ink,
+              fontFamily: TIPO.display,
+              letterSpacing: "-0.02em",
+            }}
+          >
             ¿No está en la lista? Pídelo aquí
           </h2>
         ) : (
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0f172a" }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 28,
+              fontWeight: 600,
+              color: T.ink,
+              fontFamily: TIPO.display,
+              letterSpacing: "-0.02em",
+            }}
+          >
             Pedidos especiales
           </h1>
         )}
       </div>
       ) : null}
       {variante !== "pagina" ? (
-      <p style={{ margin: "0 0 12px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
+      <p style={{ margin: "0 0 12px", color: T.textMid, fontSize: 14, lineHeight: 1.6 }}>
         {TEXTO_RESERVA} El envío a domicilio tiene costo.
       </p>
       ) : (
-      <p style={{ margin: "0 0 12px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
+      <p style={{ margin: "0 0 12px", color: T.textMid, fontSize: 14, lineHeight: 1.6 }}>
         Anota lo que buscas. Te escribimos por WhatsApp o correo con el costo.
       </p>
       )}
       {variante !== "pagina" ? (
-      <p style={{ margin: "0 0 20px", color: "#92400e", fontSize: 13, lineHeight: 1.55 }}>
+      <p style={{ margin: "0 0 20px", color: T.inkSoft, fontSize: 13, lineHeight: 1.55 }}>
         {TEXTO_AVISO_RECETA}
       </p>
       ) : null}
 
       <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>¿Qué buscas?</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: T.textMid }}>¿Qué buscas?</span>
         <input
           className="farmacapital-field-input"
           value={texto}
@@ -236,7 +251,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
         <label>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Cantidad</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: T.textMid }}>Cantidad</span>
           <input
             className="farmacapital-field-input"
             type="number"
@@ -248,7 +263,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
           />
         </label>
         <label>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>¿Para cuándo?</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: T.textMid }}>¿Para cuándo?</span>
           <select className="farmacapital-field-select" value={urgencia} onChange={(e) => setUrgencia(e.target.value)} style={inp}>
             <option value="sin_prisa">Sin prisa</option>
             <option value="manana">Mañana</option>
@@ -258,12 +273,12 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       </div>
 
       <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Tu nombre</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: T.textMid }}>Tu nombre</span>
         <input className="farmacapital-field-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Cómo te llamas" style={inp} />
       </label>
 
       <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>WhatsApp (10 dígitos)</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: T.textMid }}>WhatsApp (10 dígitos)</span>
         <input
           className="farmacapital-field-input"
           value={telefono}
@@ -280,7 +295,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       </label>
 
       <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Correo (opcional)</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: T.textMid }}>Correo (opcional)</span>
         <input
           className="farmacapital-field-input"
           value={email}
@@ -292,7 +307,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       </label>
 
       <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Dirección de envío (opcional)</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: T.textMid }}>Dirección de envío (opcional)</span>
         <input
           className="farmacapital-field-input"
           value={direccion}
@@ -303,7 +318,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
       </label>
 
       <label style={{ display: "block", marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Notas (marca, receta, presentación)</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: T.textMid }}>Notas (marca, receta, presentación)</span>
         <input className="farmacapital-field-input" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Opcional" style={inp} />
       </label>
 

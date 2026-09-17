@@ -1,19 +1,18 @@
 import { useMemo } from "react";
-import { PackageSearch } from "lucide-react";
-import { BRAND } from "../../constants";
 import RecompraStrip from "../RecompraStrip";
 import {
   FASE2_INCLUIR_ANAQUEL,
   RUBROS_BAJO_PEDIDO,
-  TEXTO_RESERVA,
-  copyMarcasSeccion,
+  marcasDestacadas,
   filtrarSeccion,
   filtrarVitrina,
   seccionConseguirPorId,
 } from "../../lib/bajoPedido";
+import { V, displayTitle, eyebrowStyle, heroBand, irAFormularioPedido } from "./vitrinaUi";
 
 /**
  * Página de categoría: Dermocosmética o Vitaminas y suplementos.
+ * Vitrina primero; el formulario es el cierre, no el centro.
  */
 export default function VitrinaConseguir({
   productos,
@@ -49,12 +48,16 @@ export default function VitrinaConseguir({
 
   const hayAlgo = pool.length > 0;
   const vacio = !loading && !hayAlgo;
-  const copyMarcas = copyMarcasSeccion(productos, seccion);
+  const marcas = marcasDestacadas(productos, seccion, 4);
+  const irForm = typeof onIrAFormulario === "function" ? onIrAFormulario : irAFormularioPedido;
 
   const irChip = (id) => {
     if (typeof setPage !== "function" || !sec) return;
     setPage(sec.page, { rubro: id, replace: true, search: "" });
   };
+
+  const titulo = sec ? sec.titulo : "Pedidos especiales";
+  const lead = sec?.desc || "";
 
   const chip = (id, label) => {
     const on = rubro === id;
@@ -67,43 +70,25 @@ export default function VitrinaConseguir({
         onClick={() => irChip(id)}
         style={{
           flexShrink: 0,
-          padding: "8px 14px",
-          borderRadius: 999,
-          border: `1px solid ${on ? BRAND.primary : "#e2e8f0"}`,
-          background: on ? BRAND.primary : "#fff",
-          color: on ? "#fff" : "#334155",
-          fontWeight: 700,
+          padding: "9px 16px",
+          borderRadius: V.pill,
+          border: "none",
+          background: on ? V.ink : "transparent",
+          color: on ? V.surface : V.inkSoft,
+          fontWeight: 600,
           fontSize: 13,
           cursor: "pointer",
-          fontFamily: "inherit",
+          fontFamily: V.body,
           minHeight: 40,
         }}
       >
         {label}
-        {conteo[id] ? <span style={{ opacity: 0.75, marginLeft: 6 }}>{conteo[id]}</span> : null}
+        {conteo[id] ? (
+          <span style={{ opacity: on ? 0.72 : 0.5, marginLeft: 7, fontWeight: 600 }}>{conteo[id]}</span>
+        ) : null}
       </button>
     );
   };
-
-  const titulo = sec ? sec.titulo : "Pedidos especiales";
-  const formLink = typeof onIrAFormulario === "function" ? (
-    <button
-      type="button"
-      onClick={onIrAFormulario}
-      style={{
-        background: "none",
-        border: "none",
-        padding: 0,
-        color: BRAND.secondary,
-        fontWeight: 700,
-        cursor: "pointer",
-        fontSize: 14,
-        fontFamily: "inherit",
-      }}
-    >
-      ¿No está en la lista? Pídelo aquí
-    </button>
-  ) : null;
 
   const grid = (items) =>
     items.length ? (
@@ -113,77 +98,187 @@ export default function VitrinaConseguir({
           gap: stack ? 16 : 18,
           gridTemplateColumns: stack ? "1fr" : "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
           alignItems: "stretch",
-          marginBottom: 12,
+          marginBottom: 8,
         }}
       >
         {items.map((p) => renderProducto(p))}
       </div>
     ) : (
-      <div style={{ color: "#64748b", fontSize: 14, padding: "8px 0 20px" }}>
+      <p style={{ color: V.mid, fontSize: 15, padding: "8px 0 12px", lineHeight: 1.55 }}>
         Aún no hay productos en este rubro. Pídelo en el formulario.
-      </div>
+      </p>
     );
 
   return (
-    <section style={{ maxWidth: 1200, margin: "0 auto", padding: "clamp(20px,4vw,32px) 16px 8px" }} aria-labelledby="vitrina-conseguir-titulo">
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: BRAND.gradient, display: "grid", placeItems: "center", color: "#fff", flexShrink: 0 }}>
-          <PackageSearch size={20} aria-hidden />
+    <div>
+      <header style={{ ...heroBand, padding: stack ? "28px 16px 22px" : "40px 24px 28px" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+          <p style={eyebrowStyle}>Sobre pedido · 24-48 h</p>
+          <h1
+            id="vitrina-conseguir-titulo"
+            style={{ ...displayTitle, fontSize: stack ? 34 : 46 }}
+          >
+            {titulo}
+          </h1>
+          {lead ? (
+            <p style={{ margin: "14px 0 0", maxWidth: 540, color: V.mid, fontSize: 16, lineHeight: 1.55 }}>
+              {lead}
+            </p>
+          ) : null}
+          {marcas.length ? (
+            <p style={{ margin: "16px 0 0", color: V.ink, fontSize: 14, letterSpacing: "0.01em", lineHeight: 1.5 }}>
+              {marcas.join("  ·  ")}
+            </p>
+          ) : null}
+
+          <ul
+            style={{
+              listStyle: "none",
+              margin: "22px 0 0",
+              padding: "16px 0 0",
+              borderTop: `1px solid ${V.border}`,
+              display: "grid",
+              gridTemplateColumns: stack ? "1fr" : "repeat(3, minmax(0, 1fr))",
+              gap: stack ? 12 : 20,
+            }}
+          >
+            <li style={{ color: V.mid, fontSize: 13, lineHeight: 1.45 }}>
+              <strong style={{ display: "block", color: V.ink, fontWeight: 600, marginBottom: 2 }}>En tienda y sobre pedido</strong>
+              Anaquel primero; si no está, lo pedimos.
+            </li>
+            <li style={{ color: V.mid, fontSize: 13, lineHeight: 1.45 }}>
+              <strong style={{ display: "block", color: V.ink, fontWeight: 600, marginBottom: 2 }}>Reserva en tarjeta de crédito</strong>
+              Solo se cobra cuando llega. Si no, no pagas.
+            </li>
+            <li style={{ color: V.mid, fontSize: 13, lineHeight: 1.45 }}>
+              <strong style={{ display: "block", color: V.ink, fontWeight: 600, marginBottom: 2 }}>Receta en mostrador</strong>
+              Se presenta en tienda. No encargamos controlados.
+            </li>
+          </ul>
         </div>
-        <h1 id="vitrina-conseguir-titulo" style={{ margin: 0, fontSize: "clamp(22px,5vw,26px)", fontWeight: 800, color: "#0f172a" }}>
-          {titulo}
-        </h1>
-      </div>
-      {sec?.subtitulo ? (
-        <p style={{ margin: "0 0 8px", color: "#0f172a", fontWeight: 700, fontSize: 15 }}>{sec.subtitulo}</p>
-      ) : null}
-      <p style={{ margin: "0 0 8px", color: "#475569", fontSize: 14, lineHeight: 1.6, maxWidth: 760 }}>
-        {copyMarcas} {TEXTO_RESERVA}
-      </p>
-      {!vacio ? <p style={{ margin: "0 0 14px", fontSize: 14 }}>{formLink}</p> : null}
+      </header>
 
-      {esNutri && rubrosSeccion.length > 1 ? (
-        <div role="tablist" aria-label="Rubros" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, margin: "0 0 16px" }}>
-          {chip("", "Todos")}
-          {rubrosSeccion.map((r) => chip(r.id, r.label))}
-        </div>
-      ) : null}
+      <section
+        style={{ maxWidth: 1120, margin: "0 auto", padding: stack ? "22px 16px 48px" : "28px 24px 64px" }}
+        aria-labelledby="vitrina-conseguir-titulo"
+      >
+        {esNutri && rubrosSeccion.length > 1 ? (
+          <div
+            role="tablist"
+            aria-label="Rubros"
+            style={{
+              display: "flex",
+              gap: 4,
+              overflowX: "auto",
+              padding: 4,
+              margin: "0 0 22px",
+              background: V.surface2,
+              borderRadius: V.pill,
+              width: "fit-content",
+              maxWidth: "100%",
+            }}
+          >
+            {chip("", "Todos")}
+            {rubrosSeccion.map((r) => chip(r.id, r.label))}
+          </div>
+        ) : null}
 
-      {vacio ? (
-        <>
-          <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 16px" }}>
-            Aún no hay productos en esta página. Cuéntanos qué necesitas.
-          </p>
-          {formulario}
-        </>
-      ) : null}
+        {loading && !hayAlgo ? (
+          <div aria-busy="true" aria-live="polite">
+            <p style={{ color: V.dim, fontSize: 13, margin: "0 0 16px" }}>Cargando productos…</p>
+            <div
+              style={{
+                display: "grid",
+                gap: 16,
+                gridTemplateColumns: stack ? "1fr 1fr" : "repeat(4, 220px)",
+              }}
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    height: 280,
+                    maxWidth: 220,
+                    borderRadius: V.radiusMd,
+                    background: V.surface2,
+                    border: `1px solid ${V.border}`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
 
-      {loading && !hayAlgo ? (
-        <div style={{ color: "#64748b", fontSize: 14, padding: "12px 0 24px" }}>Cargando productos…</div>
-      ) : null}
+        {vacio ? (
+          <div
+            style={{
+              padding: stack ? "28px 20px" : "40px 36px",
+              borderRadius: V.radius,
+              background: V.surface,
+              border: `1px solid ${V.border}`,
+              boxShadow: V.shadow,
+              marginBottom: 28,
+            }}
+          >
+            <p style={{ ...eyebrowStyle, marginBottom: 8 }}>Vitrina</p>
+            <h2 style={{ ...displayTitle, fontSize: 28, margin: 0 }}>
+              Aún no hay productos en esta página
+            </h2>
+            <p style={{ margin: "12px 0 0", color: V.mid, fontSize: 15, lineHeight: 1.55, maxWidth: 420 }}>
+              Cuéntanos qué necesitas. Lo pedimos y te escribimos con el costo.
+            </p>
+            <button
+              type="button"
+              onClick={irForm}
+              style={{
+                marginTop: 20,
+                padding: "12px 20px",
+                borderRadius: V.pill,
+                border: "none",
+                background: V.ink,
+                color: V.surface,
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+                fontFamily: V.body,
+              }}
+            >
+              Pedirlo
+            </button>
+          </div>
+        ) : null}
 
-      {!vacio && (rubro || esDerma) ? (
-        grid(lista)
-      ) : null}
+        {!vacio && (rubro || esDerma) ? grid(lista) : null}
 
-      {!vacio && !rubro && esNutri
-        ? rubrosSeccion.map((r) => {
-            const items = filtrarVitrina(productos, r.id);
-            if (!items.length) return null;
-            return (
-              <RecompraStrip
-                key={r.id}
-                title={r.label}
-                actionLabel="Ver todo"
-                onAction={() => irChip(r.id)}
-              >
-                {items.map((p) => renderProducto(p))}
-              </RecompraStrip>
-            );
-          })
-        : null}
+        {!vacio && !rubro && esNutri
+          ? rubrosSeccion.map((r) => {
+              const items = filtrarVitrina(productos, r.id);
+              if (!items.length) return null;
+              return (
+                <RecompraStrip
+                  key={r.id}
+                  title={r.label}
+                  actionLabel="Ver todo"
+                  onAction={() => irChip(r.id)}
+                >
+                  {items.map((p) => renderProducto(p))}
+                </RecompraStrip>
+              );
+            })
+          : null}
 
-      {!vacio ? formulario : null}
-    </section>
+        {!loading && formulario ? (
+          <div
+            style={{
+              marginTop: hayAlgo || vacio ? 36 : 0,
+              paddingTop: 28,
+              borderTop: `1px solid ${V.border}`,
+            }}
+          >
+            {formulario}
+          </div>
+        ) : null}
+      </section>
+    </div>
   );
 }
