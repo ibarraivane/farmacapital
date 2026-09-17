@@ -1,0 +1,180 @@
+BRIEF FARMACAPITAL — Dos páginas de “Te lo conseguimos” (derma vs nutrición)
+Para pegar a Claude. No es SQL ni alta de productos.
+
+CONTEXTO
+Farmacapital es una farmacia en México (PWA, React, Supabase). Ya existe “bajo pedido”:
+productos que NO están en anaquel y se consiguen con mayorista en 24-48 hrs.
+Campo productos.bajo_pedido = true, stock 0, sin lote ni caducidad inventada.
+
+El SQL de altas YA SE CORRIÓ. El catálogo de derma / vitaminas / suplementos / proteína
+ya está en la base. NO hace falta más SQL ni más SKUs para esta tarea.
+
+Lo que se pide: cómo entra el cliente a esos productos. DOS entradas, no un catálogo mezclado:
+1) Un link a la página de DERMATOLOGÍA
+2) Otro link a la página de SUPLEMENTOS + VITAMINAS + PROTEÍNA
+
+NO crear categoría nueva en inventario. NO tocar el flujo de pago.
+NO inventar nombres/fotos/EAN/FPS/lote/caducidad.
+
+DOCUMENTO QUE MANDA
+docs/BAJO_PEDIDO.md
+
+REGLAS QUE YA EXISTEN Y NO SE CAMBIAN
+- Bajo pedido = no está en anaquel. Se exhibe con stock 0, SIN badge “Agotado”.
+- Si hay precio ancla usable (precio > $0.01): CTA “Encargar” → carrito → pago con
+  RESERVA en tarjeta (Mercado Pago capture_mode manual). Se cobra cuando lo tienen;
+  si no se consigue, se cancela sin cargo. Vence en 5 días. Solo tarjeta de crédito.
+- Si no hay ancla: CTA “Cotizar” → formulario de /conseguir.
+- El carrito NO mezcla encargos con productos de anaquel.
+- Máx. 12 piezas por línea de encargo.
+- Pedido de encargo: RPC cliente_crear_pedido_bajo_pedido
+  (NO usar cliente_crear_pedido_online). Queda logistics_meta.bajo_pedido = true.
+- Precio en inventario = ancla de mostrador. El precio web le suma solo 3.49% + IVA
+  (ej. Skittles $10 → $11). Servicio $5 una vez por pedido.
+- Si un producto YA tiene stock de anaquel, NO se marca bajo_pedido.
+- Nombre de mostrador, marca real, foto. SKU FC- + últimos 8 del EAN.
+  Ficha desde el proveedor, no desde el código del PDF.
+- Formulario “¿No lo encuentras?” se queda abajo de la vitrina.
+  Celdas del form en claro (no dark).
+- Tarjetas de producto en bandas: hueco fijo 220px.
+  No quitar wrapper .farmacapital-productos-strip-item,
+  ni el width/max-width: 100% !important del hijo,
+  ni las flechas de RecompraStrip en laptop.
+
+CÓMO SE CLASIFICA UN PRODUCTO (UNA SOLA REGLA)
+No hay categoría nueva. Se usa categoria + subcategoria que ya dejó el SQL:
+
+  categoria            subcategoria      rubro interno    página
+  Cuidado personal     Dermatología      dermatologia     DERMA
+  Vitaminas            (cualquiera)      vitaminas        NUTRICIÓN
+  Suplemento           (no proteína)     suplementos      NUTRICIÓN
+  Suplemento           Proteína          proteina         NUTRICIÓN
+
+Lógica en código (ya existe la base):
+- src/lib/bajoPedido.js → rubroDeProducto(p), filtrarVitrina(productos, rubro), esBajoPedido(p)
+- RUBROS_BAJO_PEDIDO: dermatologia, vitaminas, suplementos, proteina
+- Entra a vitrina solo si bajo_pedido === true y activo !== false
+
+LAS DOS PÁGINAS (PROPUESTA DE UX)
+
+A) Hub
+URL: /conseguir (sin query seccion)
+Título: “Te lo conseguimos”
+Texto: elige dermatología o vitaminas y suplementos. Traemos del mayorista en 24-48 hrs.
+Muestra DOS TARJETAS (enlaces), no productos.
+Abajo: formulario SolicitudCatalogoForm (#conseguir-form).
+El menú / footer “Te lo conseguimos” abre ESTE hub.
+
+B) Página Dermatología
+URL compartible: /conseguir?seccion=dermatologia
+Título: Dermatología
+Copy: lo que receta el dermatólogo (Cicaplast, Effaclar, Heliocare, Bioderma…).
+Con precio: encargas y apartas con tarjeta; se cobra cuando los tenemos.
+Vista: cuadrícula de tarjetas 220px (mismo hueco que el resto de la tienda).
+Sin chips (solo hay un rubro).
+Link atrás: “Te lo conseguimos” → vuelve al hub.
+Abajo: el mismo formulario. “¿No está en la lista? Pídelo abajo.”
+
+C) Página Vitaminas / suplementos / proteína
+URL compartible: /conseguir?seccion=nutricion
+Título: Vitaminas, suplementos y proteína
+Copy similar + 24-48 hrs.
+Chips: Todos | Vitaminas | Suplementos | Proteína
+Vista inicial (Todos): TRES BANDAS (RecompraStrip) una por rubro,
+tarjetas 220px + flechas en laptop. Si hay muchos, “Ver todo” filtra a ese chip.
+Si elige un chip: cuadrícula de ese rubro.
+Link atrás al hub.
+Abajo: el mismo formulario.
+
+D) Home
+Debajo de HomeServices, bloque “Te lo conseguimos” con las MISMAS dos tarjetas.
+Link “Ver las dos páginas →” abre el hub (/conseguir sin seccion).
+En celular las tarjetas van apiladas; en laptop lado a lado.
+
+CÓMO SE VEN LAS DOS TARJETAS (enlaces, no productos)
+Dos botones/cards:
+1) Dermatología — tint verde, ícono tipo sparkles.
+   Desc: “Lo que receta el dermatólogo: Cicaplast, Effaclar, Heliocare, Bioderma…”
+2) Vitaminas y suplementos — tint azul, ícono tipo hoja.
+   Desc: “Pharmaton, Elevit, Omega 3, proteína y más. Bajo pedido, 24-48 hrs.”
+Si ya cargó el catálogo: “N productos · 24-48 hrs”.
+Si no: “Bajo pedido · 24-48 hrs”.
+Al click: setPage("conseguir", { seccion: "dermatologia"|"nutricion", search: "" }).
+
+POR QUÉ DOS PÁGINAS Y NO CHIPS EN UNA SOLA
+Un chip en /conseguir no se comparte. “Pásame el link de derma” tiene que abrir
+SOLO derma (WhatsApp, flyer).
+Vitaminas + suplementos + proteína van JUNTAS: el cliente las pide como lo mismo.
+Derma no.
+Tres páginas (vitamina / suplemento / proteína) partirían de más un catálogo todavía chico.
+No son dos tiendas ni dos checkouts. Solo filtran la vitrina.
+Encargar / Cotizar / reserva siguen iguales.
+
+RUTAS / ESTADO
+Archivo: src/shared/tiendaRoutes.js → pageIdToTiendaPath("conseguir", { seccion })
+debe producir:
+- /conseguir
+- /conseguir?seccion=dermatologia
+- /conseguir?seccion=nutricion
+
+Aliases de query que deben unificarse:
+- derma, dermatologia, dermatologico → dermatologia
+- nutri, nutricion, vitaminas, suplementos, proteina, proteinas → nutricion
+- vacío / desconocido → hub (seccion = "")
+
+writeTiendaHistory / popstate / carga inicial NO deben borrar ?seccion=.
+Si se entra por link directo, se abre esa página, no el hub.
+Un setPage("conseguir") genérico (menú) va al hub: seccion "".
+
+ARCHIVOS RELEVANTES (repo farmacapital)
+- src/lib/bajoPedido.js + src/lib/bajoPedido.test.js
+- src/components/tienda/VitrinaConseguir.jsx
+- src/components/SolicitudCatalogoForm.jsx (formulario; celdas claras)
+- src/Tienda.jsx (home, setPage, page conseguir)
+- src/shared/tiendaRoutes.js + src/shared/tiendaRoutes.test.js
+- src/components/RecompraStrip.jsx (bandas 220px)
+- docs/BAJO_PEDIDO.md
+- SQL ya corrido (NO volver a inventar altas):
+  - sql/patch_bajo_pedido_20260916.sql
+  - sql/patch_alta_bajo_pedido_vitrina_20260916.sql (primer lote)
+  - sql/patch_alta_bajo_pedido_derm_recetadas_20260916.sql (segundo lote derma)
+
+HAY UN BOSQUEJO EN LA RAMA (no está pedido como final)
+En cursor/celdas-vitrina-bajo-pedido-556e / PR #245 ya quedó un primer pase:
+- SECCIONES_CONSEGUIR y filtrarVitrinaSeccion / seccionConseguirDeQuery en bajoPedido.js
+- src/components/tienda/EnlacesSeccionConseguir.jsx (+ test)
+- VitrinaConseguir como hub + sección
+- Home con las dos tarjetas
+- pageIdToTiendaPath con seccion
+La dueña pidió PRIMERO evaluar, no crear. Ese bosquejo se puede usar, ajustar o tirar.
+No es la fuente de verdad; este brief sí.
+
+QUÉ NO HACER
+- No más SQL de altas ni SKUs inventados.
+- No copiar nombres del PDF del mayorista.
+- No marcar bajo_pedido si hay stock de anaquel.
+- No inventar caducidad / lote / FPS.
+- No mezclar encargo y anaquel en el carrito.
+- No usar lazy() para Recibir (otro módulo; no tocarlo).
+- No “simplificar” las bandas de 220px.
+- No poner celdas oscuras en el formulario.
+- No crear rutas tipo /conseguir-derma y /conseguir-vitaminas si se puede
+  resolver con ?seccion= sobre /conseguir (SPA ya resuelve /conseguir).
+- No tres páginas separadas para vitamina / suplemento / proteína.
+
+CRITERIO DE LISTO (cuando autoricen implementar)
+1. Home muestra dos enlaces: Derma y Vitaminas/suplementos.
+2. Click derma → URL /conseguir?seccion=dermatologia y SOLO productos de
+   Cuidado personal + Dermatología con bajo_pedido.
+3. Click nutrición → URL /conseguir?seccion=nutricion y vitaminas + suplementos + proteína.
+4. /conseguir sin seccion = hub con las dos tarjetas + form, sin mezclar las dos
+   vitrinas en la misma grilla.
+5. Recargar / compartir el link abre la misma sección.
+6. Encargar / Cotizar / formulario / reserva siguen igual.
+7. Tests: bajoPedido.test.js, tiendaRoutes.test.js, y el de las dos tarjetas.
+8. Verificar en navegador: home → derma → atrás → nutrición; desktop y mobile.
+   Local sin .env de Supabase puede mostrar conteo 0; las URLs y las tarjetas
+   igual tienen que funcionar.
+
+INSTRUCCIÓN CORTA SI CLAUDE VA A IMPLEMENTAR
+No toques Recibir ni el SQL. Solo las dos entradas de tienda.
