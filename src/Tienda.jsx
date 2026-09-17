@@ -2488,12 +2488,12 @@ function HomeServices({setPage}){
           display:"flex",
           gap:12,
           overflowX:"auto",
+          overflowY:"hidden",
           scrollSnapType:"x mandatory",
           paddingBottom:4,
           scrollbarWidth:"none",
           WebkitOverflowScrolling:"touch",
           overscrollBehaviorX:"contain",
-          overscrollBehaviorY:"none",
           touchAction:"pan-x pan-y",
         }}>
           {servicios.map((s)=>(
@@ -2602,11 +2602,11 @@ function HomePromociones({promos,setPage}){
         display:"flex",
         gap:12,
         overflowX:"auto",
+        overflowY:"hidden",
         scrollSnapType:"x mandatory",
         scrollbarWidth:"none",
         WebkitOverflowScrolling:"touch",
         overscrollBehaviorX:"contain",
-        overscrollBehaviorY:"none",
         touchAction:"pan-x pan-y",
         paddingBottom:4,
       }}>

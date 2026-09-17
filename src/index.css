@@ -17,6 +17,16 @@ html {
   overscroll-behavior-y: none;
 }
 
+/* iPhone Chrome/Safari (WebKit): refuerza anti-rebote del documento. */
+@supports (-webkit-touch-callout: none) {
+  html {
+    overscroll-behavior-y: none;
+  }
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--fc-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
@@ -568,10 +578,13 @@ details.fc-fold summary:focus-visible {
 .farmacapital-productos-strip {
   min-width: 0;
   max-width: 100%;
-  /* Contiene el rebote horizontal; deja pasar el scroll vertical de la página. */
+  /* Solo eje X. Sin overflow-y:hidden, iOS (Chrome/Safari) hace
+     overflow-y:auto implícito y el dedo rebota dentro de la banda. */
+  overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-x: contain;
-  overscroll-behavior-y: none;
   touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 .farmacapital-productos-strip::-webkit-scrollbar { display: none; }
 .farmacapital-productos-strip-item {
@@ -586,15 +599,17 @@ details.fc-fold summary:focus-visible {
   max-width: 100% !important;
   height: 100%;
 }
-/* mandatory + gesto vertical sobre la banda = rebote en iOS/Android. */
+/* mandatory + gesto vertical sobre la banda = rebote en iPhone. */
 @media (max-width: 767px) {
   .farmacapital-productos-strip,
   .farmacapital-home-services-scroll,
   .farmacapital-home-promos-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
     scroll-snap-type: x proximity !important;
     overscroll-behavior-x: contain;
-    overscroll-behavior-y: none;
     touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
   }
 }
 @media (min-width: 768px) {

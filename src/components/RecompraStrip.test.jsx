@@ -80,16 +80,17 @@ it("no deja que ProductCard (width:100% inline) estire la tarjeta a todo el anch
   expect(container.querySelectorAll(".farmacapital-productos-strip-item")).toHaveLength(1);
 });
 
-it("en móvil suaviza el snap y contiene overscroll para no atrapar el scroll vertical", () => {
+it("en móvil suaviza el snap y fuerza overflow-y hidden (iPhone Chrome)", () => {
   const { container } = renderBanda();
   const strip = container.querySelector(".farmacapital-productos-strip");
+  expect(strip.style.overflowY).toBe("hidden");
   expect(strip.style.overscrollBehaviorX || strip.style.overscrollBehavior).toMatch(/contain/);
   expect(strip.style.touchAction).toMatch(/pan-x/);
   const css = Array.from(container.querySelectorAll("style"))
     .map((n) => n.textContent || "")
     .join("\n");
+  expect(css).toMatch(/overflow-y:\s*hidden/);
   expect(css).toMatch(/scroll-snap-type:\s*x\s+proximity/);
-  expect(css).toMatch(/overscroll-behavior-y:\s*none/);
 });
 
 it("lleva flechas izquierda y derecha aunque no haya overflow", () => {

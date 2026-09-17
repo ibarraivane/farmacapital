@@ -73,7 +73,7 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
         ) : null}
       </p>
 
-      <div role="tablist" aria-label="Rubros" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, marginBottom: 16 }}>
+      <div role="tablist" aria-label="Rubros" style={{ display: "flex", gap: 8, overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", overscrollBehaviorX: "contain", touchAction: "pan-x pan-y", paddingBottom: 6, marginBottom: 16 }}>
         {chip("", "Todos")}
         {RUBROS_BAJO_PEDIDO.map((r) => chip(r.id, r.label))}
       </div>
