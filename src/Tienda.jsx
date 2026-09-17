@@ -2504,7 +2504,9 @@ function HomeServices({setPage}){
           overscrollBehaviorX:"contain",
           touchAction:"pan-x pan-y",
         }}>
-          {servicios.map((s)=>(
+          {servicios.map((s)=>{
+            const encargo = s.key === "conseguir";
+            return (
             <button
               key={s.key}
               type="button"
@@ -2514,8 +2516,8 @@ function HomeServices({setPage}){
                 width:"min(160px, 38vw)",
                 padding:"14px",
                 borderRadius:12,
-                border:"none",
-                background:s.color+"14",
+                border: encargo ? `2px solid ${CONSEGUIR_UI.border}` : "none",
+                background: encargo ? CONSEGUIR_UI.cream : s.color+"14",
                 cursor:"pointer",
                 scrollSnapAlign:"start",
                 textAlign:"left",
@@ -2527,11 +2529,11 @@ function HomeServices({setPage}){
               }}
               onMouseEnter={(e)=>{
                 e.currentTarget.style.transform="translateY(-2px)";
-                e.currentTarget.style.background=s.color+"22";
+                e.currentTarget.style.background=encargo ? "#fde68a" : s.color+"22";
               }}
               onMouseLeave={(e)=>{
                 e.currentTarget.style.transform="translateY(0)";
-                e.currentTarget.style.background=s.color+"14";
+                e.currentTarget.style.background=encargo ? CONSEGUIR_UI.cream : s.color+"14";
               }}
             >
               <div style={{width:34,height:34,borderRadius:9,background:s.color+"22",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -2540,7 +2542,8 @@ function HomeServices({setPage}){
               <div style={{color:C.dark,fontSize:13,fontWeight:700,lineHeight:1.2}}>{s.titulo}</div>
               <div style={{color:s.color,fontSize:11,fontWeight:600,lineHeight:1.3}}>{s.desc}</div>
             </button>
-          ))}
+            );
+          })}
         </div>
         <style>{`
           .farmacapital-home-services-scroll::-webkit-scrollbar { display: none; }
