@@ -46,4 +46,9 @@ describe("tienda scroll root (shell)", () => {
     expect(tienda).not.toMatch(/main\{\s*overflow-x:hidden/s);
     expect(tienda).not.toMatch(/farmacapital-tienda-shell\{\s*overflow-x:hidden/s);
   });
+
+  test("el hero recorta con clip, no hidden (hidden traga la rueda)", () => {
+    expect(tienda).toMatch(/className="hero-carousel"[\s\S]*?overflow:"clip"/);
+    expect(tienda).toMatch(/heroShellSx[\s\S]*?overflow:\s*"clip"/);
+  });
 });

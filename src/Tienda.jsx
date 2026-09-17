@@ -640,7 +640,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     width: "100%",
     aspectRatio: String(ratioHero),
     height: "auto",
-    overflow: "hidden",
+    overflow: "clip",
     background: T.ink,
   };
 
@@ -777,7 +777,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   // ── imagen_completa: arte ya incluye copy; solo CTA opcional en zona segura ──
   if (modoCompleto) {
     return (
-      <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"hidden" }}>
+      <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"clip" }}>
         <div
           className="hero-carousel__frame"
           style={heroShellSx}
@@ -829,7 +829,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
 
   // ── imagen_fondo / gradiente: copy superpuesto con overlay moderado ──
   return (
-    <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"hidden" }}>
+    <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"clip" }}>
       <div
         role="presentation"
         onClick={()=> b.pagina && setPage(b.pagina)}
@@ -1860,7 +1860,7 @@ function ProductCard({prod,addToCart,onClick}){
       background:C.white,
       borderRadius:12,
       border:`1px solid ${agotado ? C.border : C.border}`,
-      overflow:"hidden",
+      overflow:"clip",
       display:"flex",
       flexDirection:"column",
       width:"100%",
@@ -1877,7 +1877,7 @@ function ProductCard({prod,addToCart,onClick}){
       <div
         style={{
           background:"#fff",
-          overflow:"hidden",
+          overflow:"clip",
           minHeight:152,
           height:152,
           display:"flex",

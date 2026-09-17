@@ -64,9 +64,15 @@ test.describe("tienda — scroll al cambiar de página", () => {
       pad.setAttribute("data-testid", "farmacapital-scroll-pad");
       (document.querySelector("main") || document.body).appendChild(pad);
     });
-    await page.mouse.move(200, 80);
-    await page.mouse.wheel(0, 900);
-    const top = await page.evaluate(() => window.scrollY);
+    // Varios puntos: el aviso de config, el hero o el centro. Uno tiene que bajar.
+    let top = 0;
+    for (const [x, y] of [[640, 200], [400, 360], [240, 90]]) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.mouse.move(x, y);
+      await page.mouse.wheel(0, 900);
+      top = await page.evaluate(() => window.scrollY);
+      if (top > 80) break;
+    }
     expect(top, "rueda del mouse no bajó la página en escritorio").toBeGreaterThan(80);
   });
 

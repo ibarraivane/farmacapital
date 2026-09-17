@@ -51,6 +51,7 @@ describe("attachTiendaHorizontalStripWheel", () => {
     expect(TIENDA_H_SCROLL_SELECTOR).toMatch(/farmacapital-productos-strip/);
     expect(TIENDA_H_SCROLL_SELECTOR).toMatch(/farmacapital-home-services-scroll/);
     expect(TIENDA_H_SCROLL_SELECTOR).toMatch(/farmacapital-home-promos-scroll/);
+    expect(TIENDA_H_SCROLL_SELECTOR).toMatch(/hero-carousel/);
   });
 
   test("solo reenvía si el target está dentro de una banda", () => {

@@ -8,6 +8,7 @@ export const TIENDA_H_SCROLL_SELECTOR = [
   ".farmacapital-productos-strip",
   ".farmacapital-home-services-scroll",
   ".farmacapital-home-promos-scroll",
+  ".hero-carousel",
 ].join(", ");
 
 export function shouldForwardVerticalWheel(e) {
