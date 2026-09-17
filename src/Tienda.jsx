@@ -371,7 +371,7 @@ const FAQ_ITEMS = [
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
   { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos» o entra a /conseguir. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
-  { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que no tenemos en anaquel y traemos del mayorista en 24-48 hrs (dermatología, vitaminas, suplementos y proteína). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tenemos. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Cotizar» y te mandamos el costo." },
+  { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos y proteína). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tengamos listo. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Cotizar» y te mandamos el costo." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -2094,8 +2094,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               <div style={{color:BRAND.primary,fontWeight:800,fontSize:14,marginBottom:4}}>Bajo pedido · 24-48 hrs</div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.55}}>
                 {cta==="encargar"
-                  ? "No lo tenemos en anaquel: lo traemos del mayorista. Al encargarlo apartas el total en tu tarjeta de crédito y se cobra solo cuando lo tenemos. Si no lo conseguimos, cancelamos la reserva sin cargo."
-                  : "No lo tenemos en anaquel y su precio cambia con el mayorista. Pídelo y te mandamos el costo por WhatsApp o correo."}
+                  ? "Disponible bajo pedido en 24-48 hrs. Al encargarlo apartas el total en tu tarjeta de crédito y se cobra solo cuando lo tengamos listo. Si no lo conseguimos, cancelamos la reserva sin cargo."
+                  : "Disponible bajo pedido. Te cotizamos el precio y te lo mandamos por WhatsApp o correo."}
               </div>
             </div>
           )}
@@ -4430,7 +4430,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         <h1 style={{color:C.dark,fontSize:"clamp(20px,5vw,26px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>{lastOrder.reservado ? "¡Encargo apartado!" : "¡Pedido confirmado!"}</h1>
         {lastOrder.reservado && (
           <p style={{color:C.mid,fontSize:14,lineHeight:1.6,margin:"0 auto 8px",maxWidth:460}}>
-            Reservamos {$(lastOrder.sub)} en tu tarjeta; todavía no se cobra. Lo pedimos al mayorista y cobramos cuando lo tengamos (24-48 hrs). Si no lo conseguimos, cancelamos la reserva sin cargo y te avisamos por WhatsApp.
+            Reservamos {$(lastOrder.sub)} en tu tarjeta; todavía no se cobra. Lo conseguimos en 24-48 hrs y cobramos cuando esté listo. Si no lo conseguimos, cancelamos la reserva sin cargo y te avisamos por WhatsApp.
           </p>
         )}
         {folio&&(
@@ -4751,7 +4751,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           {step===3&&reservaPendiente&&(
             <div style={{display:"grid",gap:12}}>
               <div style={{fontSize:13,color:C.mid,lineHeight:1.5}}>
-                Pedido {formatFolioOnline(reservaPendiente.pedidoId)} creado. Falta apartar el pago para que lo pidamos al mayorista.
+                Pedido {formatFolioOnline(reservaPendiente.pedidoId)} creado. Falta apartar el pago para confirmar el encargo.
               </div>
               <ReservaTarjetaMP
                 pedidoId={reservaPendiente.pedidoId}

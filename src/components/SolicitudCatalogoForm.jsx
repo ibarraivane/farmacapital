@@ -198,7 +198,7 @@ export default function SolicitudCatalogoForm({ setPage, textoInicial, user, baj
         )}
       </div>
       <p style={{ margin: "0 0 20px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
-        Anota el medicamento. Lo vemos en mayorista, te pasamos el costo por WhatsApp o correo y, si te late, pagas con la liga. El envío a domicilio tiene costo.
+        Anota lo que buscas. Te pasamos el costo por WhatsApp o correo y, si te late, pagas con la liga. El envío a domicilio tiene costo.
       </p>
 
       <label style={{ display: "block", marginBottom: 12 }}>

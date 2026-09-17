@@ -64,8 +64,8 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
         </h1>
       </div>
       <p style={{ margin: "0 0 14px", color: "#475569", fontSize: 14, lineHeight: 1.6, maxWidth: 760 }}>
-        Productos <strong>bajo pedido</strong> que traemos del mayorista en 24-48 hrs. Con precio: los encargas y apartas con
-        tarjeta; se cobra cuando los tenemos. Sin precio: te lo cotizamos.{" "}
+        Productos <strong>bajo pedido</strong>: te los conseguimos en 24-48 hrs. Con precio: encargas y apartas con
+        tarjeta; se cobra cuando estén listos. Sin precio: te cotizamos.{" "}
         {typeof onIrAFormulario === "function" ? (
           <button type="button" onClick={onIrAFormulario} style={{ background: "none", border: "none", padding: 0, color: BRAND.secondary, fontWeight: 700, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
             ¿No está en la lista? Pídelo abajo.
