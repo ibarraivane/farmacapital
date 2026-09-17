@@ -204,13 +204,13 @@ export function rubroDeProducto(p) {
 export function esNutricionDeportiva(subcategoria, nombre) {
   const sub = norm(subcategoria);
   const nom = norm(nombre);
-  const blob = `${sub} ${nom}`;
+  const blob = `${sub} ${nom}`.replace(/-/g, " ");
   if (/pancreatin/.test(blob)) return false;
   if (/(shampoo|acondicionador|peinar|cabello|capilar)/.test(blob)) return false;
   if (sub.startsWith("protein") || sub.startsWith("nutricion deport") || sub.startsWith("deport")) {
     return true;
   }
-  return /(^|[^a-z])(creatina|whey|preentren|pre entren|bcaa|aminoacido|ganador de peso|mass gainer)([^a-z]|$)/.test(blob)
+  return /(^|[^a-z])(creatina|whey|pre[- ]?entren|bcaa|aminoacido|ganador de peso|mass gainer)/.test(blob)
     || /(proteina 90|proteina vegetal|proteina whey|proteina en polvo|proteina isolate|proteina low)/.test(blob);
 }
 
