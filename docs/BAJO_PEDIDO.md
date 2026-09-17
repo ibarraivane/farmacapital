@@ -67,3 +67,4 @@ Se combina con un conflicto trivial de `import` en `Tienda.jsx`. «Avísame cuan
 6. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
 7. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.
 8. `sql/patch_fase2_vitrina_nutricion_deportiva_20260917.sql` — reclasifica proteína/creatina a `Nutrición deportiva`. **No** marca bajo_pedido.
+9. `sql/patch_alta_bajo_pedido_cosecha_fahorro_20260917.sql` — 80 SKUs cosechados de Fahorro. **Después** del deploy de fotos.

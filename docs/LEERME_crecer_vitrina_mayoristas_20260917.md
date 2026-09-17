@@ -1,6 +1,8 @@
 # Cómo agrandar Dermocosmética, Vitaminas y Dispositivos
 
-Estar registrado en el mayorista **no** llena la tienda. Cada pieza entra cuando abres su ficha, copias nombre de mostrador + EAN + foto + precio, y pegas el SQL. Sin EAN y sin foto no hay alta.
+No hay que copiar producto por producto. El catálogo se llena con `scripts/cosechar-fahorro-vitrina.js`: baja fichas públicas de Fahorro (EAN + nombre + foto + precio de lista) y `scripts/alta-bajo-pedido-desde-fichas.js` arma el SQL. **No se usan claves B2B.**
+
+Estar registrado en el mayorista **no** llena la tienda por sí solo. Si una marca no está en Fahorro (o el SKU interno no es EAN), sí hace falta la ficha. Sin EAN y sin foto no hay alta.
 
 Plantilla vacía: `docs/fichas_proxima_vitrina.json`
 Generador: `node scripts/alta-bajo-pedido-desde-fichas.js docs/fichas_proxima_vitrina.json sql/patch_alta_bajo_pedido_SIGUIENTE.sql`
@@ -72,5 +74,6 @@ Si la URL de foto es frágil, cópiala a `public/catalogo-propia/` y apunta a `h
 3. `sql/patch_fase2_vitrina_nutricion_deportiva_20260917.sql` — reclasifica, no inserta
 
 4. `sql/patch_alta_bajo_pedido_mayoristas_20260917.sql` — primer corte cruzando tus cuentas con Fahorro (10). Ver `docs/LEERME_lote_mayoristas_20260917.md`.
+5. `sql/patch_alta_bajo_pedido_cosecha_fahorro_20260917.sql` — 80 SKUs cosechados (derm + nutri + dispositivos). Ver `docs/LEERME_cosecha_fahorro_20260917.md`.
 
-El siguiente lote es el JSON que armes con el precio de **tu** lista B2B.
+Para otro corte: `FC_COSECHA_MAX=80 node scripts/cosechar-fahorro-vitrina.js` y luego el generador SQL. Si quieres el precio de **tu** lista B2B (no el de Fahorro), pégalo en `docs/fichas_proxima_vitrina.json`.

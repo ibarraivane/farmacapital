@@ -15,6 +15,7 @@ Para agrandar el catálogo con Nadro, Marzam, Levic, Suplementos Mayoreo, Birdma
 3. `sql/patch_alta_bajo_pedido_derm_recetadas_20260916.sql` — marcas que recetan dermatólogos (21).
 4. `sql/patch_fase2_vitrina_nutricion_deportiva_20260917.sql` — reclasifica proteína/creatina. No marca bajo_pedido.
 5. `sql/patch_alta_bajo_pedido_mayoristas_20260917.sql` — 10 SKUs DermaPharma / Birdman / ON / Nebucor. **Después** de publicar las fotos.
+6. `sql/patch_alta_bajo_pedido_cosecha_fahorro_20260917.sql` — 80 SKUs cosechados de Fahorro (derm + nutri + dispositivos). **Después** de publicar las fotos.
 
 Supabase → SQL Editor → Run. Idempotente.
 

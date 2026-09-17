@@ -39,6 +39,19 @@ test("lote mayoristas 20260917 pasa validación", () => {
   assert.ok(fichas.some((f) => f.marca === "Birdman"));
 });
 
+test("cosecha Fahorro 20260917 pasa validación", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/fichas_cosecha_fahorro.json"), "utf8"));
+  const fichas = validarFichas(raw);
+  assert.equal(fichas.length, 80);
+  assert.ok(fichas.every((f) => f.ean.length >= 8 && f.ean.length <= 13));
+  assert.ok(!fichas.some((f) => /intima/i.test(f.nombre)));
+  assert.ok(!fichas.some((f) => /50250/.test(f.presentacion)));
+  assert.ok(fichas.some((f) => f.subcategoria === "Tiras"));
+  assert.ok(fichas.some((f) => f.subcategoria === "Nutrición deportiva"));
+});
+
 test("SQL idempotente con el EAN", () => {
   const sql = armarSql(validarFichas([ok]));
   assert.match(sql, /7501234567890/);
