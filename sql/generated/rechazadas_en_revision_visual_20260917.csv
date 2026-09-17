@@ -1,0 +1,11 @@
+producto_id,nombre,fuente_descartada,motivo_del_descarte
+1765,Dolver Maver ibuprofeno 10 tab 600 mg,curitek,marca de agua 'Curitek' repetida sobre toda la imagen
+1786,Odivitor atorvastatina 10 mg C/20 Maver,curitek,marca de agua 'Curitek' repetida sobre toda la imagen
+1787,Frinver norfenefrina gotas 24 ml Maver,curitek,marca de agua 'Curitek' repetida sobre toda la imagen
+1317,Gerber Etapa 2 durazno 100 g,superdtodo,no es packshot: es un recorte de la etiqueta azul del frasco
+1319,Gerber Etapa 2 mango 100 g,superdtodo,la imagen no carga
+339,Alcohol Etilico Rojo 96°,farmasuper,"placeholder gris de 'sin imagen', no hay foto real"
+547,Bicarbonato Velazquez Grande 200G,farmasuper,"placeholder gris de 'sin imagen', no hay foto real"
+1289,Peine para piojos de acero económico 9309,similares,"imagen equivocada: muestra una manopla de baño 'Mittenz', no un peine"
+1315,Gerber Etapa 2 comida casera res 100 g,surtace,sticker de precio '$11' quemado en la foto
+1316,Gerber Etapa 2 comida casera pollo 100 g,surtace,sticker de precio '$11' quemado en la foto
