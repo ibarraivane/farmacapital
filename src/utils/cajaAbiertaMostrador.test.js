@@ -276,3 +276,20 @@ test("descripcionPublicaTienda oculta dónde se compró (Dulcería / ticket / EA
     }),
   ).toBe("");
 });
+
+test("descripcionPublicaTienda oculta cruce Fahorro / precio lista (no es ficha de cliente)", () => {
+  const aDerma = {
+    nombre: "A-Derma Exomega Control Crema Emoliente 400 ml",
+    descripcion: "Fahorro SKU=EAN 3282770073577 · Exomega Control 400 ml · precio lista $801",
+    presentacion: "400 ml",
+  };
+  expect(esNotaInternaCompra(aDerma.descripcion)).toBe(true);
+  expect(descripcionPublicaTienda(aDerma)).toBe("");
+  expect(subtituloPublicoTienda(aDerma)).toBe("400 ml");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Avène Cicalfate+",
+      descripcion: "SKU=EAN 3282770208122 · precio lista $640",
+    }),
+  ).toBe("");
+});
