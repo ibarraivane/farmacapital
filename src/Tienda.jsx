@@ -6984,9 +6984,8 @@ export default function TiendaFarmaCapital(){
           font-family:var(--fc-body);
           color:${C.dark};
           overflow-x:hidden;
-          /* visible: el scroll lo lleva html (evita doble scroller / rebote en móvil). */
-          overflow-y:visible;
-          overscroll-behavior-y:none;
+          overflow-y:auto;
+          overscroll-behavior-y:auto;
         }
         /* Header sticky: debe quedar FUERA de un padre con overflow-x:hidden (rompe sticky en móvil). */
         main{

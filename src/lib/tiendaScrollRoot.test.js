@@ -1,24 +1,30 @@
 /**
- * Regresión: html + body con overflow-y:auto a la vez generan rebote /
- * “traba” de scroll en móvil (hay que soltar el dedo para poder bajar).
- * Solo html debe ser el scroller vertical; body overflow-y visible.
- * En iPhone Chrome, las bandas con solo overflow-x:auto también atrapan el gesto.
+ * La página tiene que poder bajar. #246 dejó html/body con
+ * overscroll-behavior-y:none y body overflow-y:visible → sin scroll.
+ * Las bandas siguen siendo solo eje X (overflow-y:hidden, 220px).
  */
 const fs = require("fs");
 const path = require("path");
 
 const css = fs.readFileSync(path.join(__dirname, "../index.css"), "utf8");
+const tienda = fs.readFileSync(path.join(__dirname, "../Tienda.jsx"), "utf8");
 
 describe("tienda scroll root (index.css)", () => {
-  test("html es el único scroller vertical", () => {
+  test("html permite scroll vertical (sin overscroll none)", () => {
     expect(css).toMatch(/html\s*\{[^}]*overflow-y:\s*auto/s);
-    expect(css).toMatch(/html\s*\{[^}]*overscroll-behavior-y:\s*none/s);
+    expect(css).not.toMatch(/html\s*\{[^}]*overscroll-behavior-y:\s*none/s);
   });
 
-  test("body no compite con overflow-y:auto", () => {
-    // Bloque principal de body (margin:0…), no el refuerzo corto de @supports.
-    expect(css).toMatch(/body\s*\{[^}]*margin:\s*0;[^}]*overflow-y:\s*visible/s);
-    expect(css).not.toMatch(/body\s*\{[^}]*margin:\s*0;[^}]*overflow-y:\s*auto/s);
+  test("body también scrollea (overflow-y auto, no visible)", () => {
+    expect(css).toMatch(/body\s*\{[^}]*margin:\s*0;[^}]*overflow-y:\s*auto/s);
+    expect(css).not.toMatch(/body\s*\{[^}]*margin:\s*0;[^}]*overflow-y:\s*visible/s);
+    expect(css).toMatch(/body\s*\{[^}]*margin:\s*0;[^}]*overscroll-behavior-y:\s*auto/s);
+  });
+
+  test("el inline de Tienda no vuelve a bloquear el documento", () => {
+    expect(tienda).toMatch(/overflow-y:\s*auto/);
+    expect(tienda).toMatch(/overscroll-behavior-y:\s*auto/);
+    expect(tienda).not.toMatch(/overscroll-behavior-y:\s*none/);
   });
 
   test("bandas son solo scroll horizontal (overflow-y hidden) y en móvil usan snap proximity", () => {
