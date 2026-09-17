@@ -1,6 +1,7 @@
 import {
   aplicarReglaPrecioUnidad,
   calcPrecioUnidad,
+  margenBrutoPct,
   precioUnidadParaVenta,
 } from "./precioUnidad";
 
@@ -28,4 +29,9 @@ test("POS cobra el precio que se guardó", () => {
 test("si no hay precio, usa la regla", () => {
   expect(aplicarReglaPrecioUnidad({ ...gasa, precio_unidad: 0 }).precio_unidad).toBe(7);
   expect(precioUnidadParaVenta({ ...gasa, precio_unidad: 0 })).toBe(7);
+});
+
+test("margen de pieza es sobre el precio, no sobre el costo", () => {
+  expect(margenBrutoPct(130, 100)).toBe(23.1);
+  expect(margenBrutoPct(0, 100)).toBe(0);
 });

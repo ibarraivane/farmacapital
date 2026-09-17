@@ -14,7 +14,7 @@ import {
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
 import {
-  margenAltaRecepcion,
+  desgloseAltaRecepcion,
   payloadAltaRecepcion,
   precioSugeridoAltaRecepcion,
 } from "./lib/recepcionAlta";
@@ -1286,13 +1286,15 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                         onChange={(e) => setAltaTipo(e.target.value)}
                         style={inpBase(C)}
                       >
-                        <option value="generico">Genérico · ganancia 60%</option>
-                        <option value="marca">Patente · ganancia 25%</option>
+                        <option value="generico">Genérico · +60% al costo</option>
+                        <option value="marca">Patente · +25% al costo</option>
                       </select>
                       <div style={{ color: C.textMid, fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
-                        {precioSugeridoAltaRecepcion(costo, altaTipo)
-                          ? `Venta sugerida ${fmtPrecioVenta(precioSugeridoAltaRecepcion(costo, altaTipo))} (${margenAltaRecepcion(altaTipo)}% sobre el costo de factura).`
-                          : "El costo de la factura arma el precio de venta."}
+                        {(() => {
+                          const d = desgloseAltaRecepcion(costo, altaTipo);
+                          if (!d) return "El costo de la factura arma el precio de venta.";
+                          return `Venta sugerida ${fmtPrecioVenta(d.precio)} (+${d.recargoPct}% al costo · margen real ${d.margenPct}%).`;
+                        })()}
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>

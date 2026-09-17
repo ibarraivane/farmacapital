@@ -4,6 +4,7 @@ import {
   precioSugeridoAltaRecepcion,
   payloadAltaRecepcion,
   skuAltaRecepcion,
+  desgloseAltaRecepcion,
 } from "./recepcionAlta";
 
 test("patente 25% y genérico 60% de recargo sobre costo", () => {
@@ -12,6 +13,15 @@ test("patente 25% y genérico 60% de recargo sobre costo", () => {
   expect(margenAltaRecepcion("generico")).toBe(60);
   expect(precioSugeridoAltaRecepcion(204.38, "marca")).toBe(256);
   expect(precioSugeridoAltaRecepcion(77.28, "generico")).toBe(124);
+});
+
+test("costo $250: recargo 60%/25% no es margen 60%/25%", () => {
+  expect(precioSugeridoAltaRecepcion(250, "generico")).toBe(400);
+  expect(precioSugeridoAltaRecepcion(250, "marca")).toBe(313);
+  const gen = desgloseAltaRecepcion(250, "generico");
+  const pat = desgloseAltaRecepcion(250, "marca");
+  expect(gen).toEqual({ precio: 400, recargoPct: 60, margenPct: 37.5 });
+  expect(pat).toEqual({ precio: 313, recargoPct: 25, margenPct: 20.1 });
 });
 
 test("sku desde EAN: FC- + últimos 8", () => {

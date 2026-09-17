@@ -1,0 +1,41 @@
+---
+description: Recargo (sobre costo) no es margen (sobre precio de venta). No mezclar las dos fórmulas al poner o mostrar %.
+alwaysApply: true
+---
+
+# Recargo vs margen
+
+Hay dos porcentajes distintos. No son intercambiables.
+
+- **Recargo / markup / “aumentar 30%”** se calcula **sobre el costo**: `precio = costo × (1 + recargo)`.
+- **Margen real** se calcula **sobre el precio de venta**: `margen = (precio − costo) / precio`.
+
+## El truco ($100 de costo)
+
+| Qué dijiste | Fórmula | Precio | El otro % |
+|---|---|---|---|
+| Le agregué 30% al costo | $100 × 1.30 | **$130** | margen **23.1%** |
+| Quiero 30% de margen | $100 ÷ 0.70 | **$142.86** | recargo **42.9%** |
+
+Mismo ejemplo en mostrador, costo **$250**: recargo 30% → $325 (margen 23.1%). Margen 30% → $358.
+
+Helpers: `src/lib/margenMarkup.js`. Tests: `src/lib/margenMarkup.test.js`.
+
+## Qué usa FarmaCapital hoy
+
+| Sitio | Base | Números |
+|---|---|---|
+| Recibir alta, piso de Referencias, `classifyProductoMargen` | **Recargo sobre costo** | genérico **+60%** · patente **+25%** |
+| Dashboard, Rappi, ficha (pieza/caja), `calcMargenVenta` | **Margen sobre venta** | Rappi piso patente 20% / genérico 40% |
+| Inventario tabla | **Los dos** | arriba margen · abajo recargo |
+
++60% al costo = **37.5%** de margen. +25% al costo = **20%** de margen.
+
+## Obligatorio
+
+1. Si el dueño dice “margen 30%”, usá `precio = costo / 0.70` (`precioDesdeMargen` / `precioDesdeMargenBruto`).
+2. Si dice “súbele 30%” / “+60% al costo”, usá `precio = costo × 1.30` (`precioSugeridoAltaRecepcion`, `calcPriceFloor`).
+3. En UI, no pongas “Margen%” a un recargo sobre costo. Mostrá ambos o etiquetá “recargo”.
+4. No “corrijas” Recibir a `costo / 0.40` para el 60%. Eso ya nació mal una vez (alta a $25 con costo $10).
+5. No cambies Rappi 20%/40% sobre venta ni el monitor (12/25/30 sobre costo) sin pedirlo: son pisos de otro canal.
+6. Si tocás estas fórmulas, corre `src/lib/margenMarkup.test.js` y `src/lib/recepcionAlta.test.js`.

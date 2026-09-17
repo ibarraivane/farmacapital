@@ -5,6 +5,7 @@
  */
 
 import { roundPrecioVenta } from "./preciosReferencia";
+import { margenSobreVentaPct } from "./margenMarkup";
 
 export const MARKUP_ALTA_PATENTE = 0.25;
 export const MARKUP_ALTA_GENERICO = 0.6;
@@ -31,6 +32,17 @@ export function precioSugeridoAltaRecepcion(costo, tipo) {
   const c = Number(costo);
   if (!Number.isFinite(c) || c <= 0) return null;
   return roundPrecioVenta(c * (1 + markupAltaRecepcion(tipo)));
+}
+
+/** Recargo al costo + margen real de esa venta sugerida. */
+export function desgloseAltaRecepcion(costo, tipo) {
+  const precio = precioSugeridoAltaRecepcion(costo, tipo);
+  if (precio == null) return null;
+  return {
+    precio,
+    recargoPct: Math.round(markupAltaRecepcion(tipo) * 100),
+    margenPct: margenSobreVentaPct(precio, costo),
+  };
 }
 
 /**
