@@ -157,6 +157,9 @@ export default function RecompraStrip({
             overflowX: "auto",
             scrollSnapType: "x mandatory",
             WebkitOverflowScrolling: "touch",
+            overscrollBehaviorX: "contain",
+            overscrollBehaviorY: "none",
+            touchAction: "pan-x pan-y",
             scrollbarWidth: "none",
             paddingBottom: 6,
             marginInline: -4,
@@ -191,6 +194,9 @@ export function ProductosStripStyles() {
       .farmacapital-productos-strip {
         min-width: 0;
         max-width: 100%;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: none;
+        touch-action: pan-x pan-y;
       }
       .farmacapital-productos-strip::-webkit-scrollbar { display: none; }
       .farmacapital-productos-strip-item {
@@ -204,6 +210,11 @@ export function ProductosStripStyles() {
         width: 100% !important;
         max-width: 100% !important;
         height: 100%;
+      }
+      @media (max-width: 767px) {
+        .farmacapital-productos-strip {
+          scroll-snap-type: x proximity !important;
+        }
       }
       @media (min-width: 768px) {
         .farmacapital-productos-strip {

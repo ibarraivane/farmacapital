@@ -2492,6 +2492,9 @@ function HomeServices({setPage}){
           paddingBottom:4,
           scrollbarWidth:"none",
           WebkitOverflowScrolling:"touch",
+          overscrollBehaviorX:"contain",
+          overscrollBehaviorY:"none",
+          touchAction:"pan-x pan-y",
         }}>
           {servicios.map((s)=>(
             <button
@@ -2602,6 +2605,9 @@ function HomePromociones({promos,setPage}){
         scrollSnapType:"x mandatory",
         scrollbarWidth:"none",
         WebkitOverflowScrolling:"touch",
+        overscrollBehaviorX:"contain",
+        overscrollBehaviorY:"none",
+        touchAction:"pan-x pan-y",
         paddingBottom:4,
       }}>
         {activas.map((p,i)=>{
@@ -6974,16 +6980,21 @@ export default function TiendaFarmaCapital(){
           font-family:var(--fc-body);
           color:${C.dark};
           overflow-x:hidden;
-          overflow-y:auto;
-          overscroll-behavior-y:auto;
+          /* visible: el scroll lo lleva html (evita doble scroller / rebote en móvil). */
+          overflow-y:visible;
+          overscroll-behavior-y:none;
         }
         /* Header sticky: debe quedar FUERA de un padre con overflow-x:hidden (rompe sticky en móvil). */
         main{
           overflow-x:hidden;
+          overflow-y:visible;
           width:100%;
           max-width:100%;
           padding-bottom:env(safe-area-inset-bottom, 0px);
-          -webkit-overflow-scrolling:touch;
+        }
+        .farmacapital-tienda-shell{
+          overflow-x:hidden;
+          overflow-y:visible;
         }
         img,svg,video,canvas{max-width:100%;height:auto;}
         ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${C.bg};}::-webkit-scrollbar-thumb{background:${C.border};border-radius:4px;}
