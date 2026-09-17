@@ -76,6 +76,36 @@ if (/Enlaza grises de cualquier ticket vivo/.test(sqlFl127790)) {
 if (!/r\.folio = '127790'/.test(sqlFl127790)) {
   fail("Farmalive 127790: el enlazar tiene que ir acotado al folio.");
 }
+const sqlFl12790 = read("sql/patch_recepcion_farmalive_12790.sql");
+const csvFl12790 = read("sql/generated/ticket_farmalive_12790.csv");
+const sqlAdvil12h = read("sql/patch_costo_advil_12h_farmalive_12790.sql");
+if (/'7501065065322'[^)]*,\s*1,\s*222\.46/.test(sqlFl12790)) {
+  fail("Farmalive 12790: Advil 12H PR346 era Compra 3 @$222.46, no 1 caja a $222.46.");
+}
+if (!/'7501065065322'[^)]*,\s*3,\s*74\.15/.test(sqlFl12790)) {
+  fail("Farmalive 12790: Advil 12H tiene que ir 3 cajas a $74.15 (222.46/3).");
+}
+if (!/7501065065322,Advil 12 Horas.*,3,74\.15,222\.46/.test(csvFl12790)) {
+  fail("CSV Farmalive 12790: Advil 12H qty=3 unitario $74.15, no el pack $222.46.");
+}
+if (!/costo = 74\.15/.test(sqlAdvil12h) || !/FC-65065322/.test(sqlAdvil12h)) {
+  fail("El SQL de catálogo tiene que partir Advil 12H FC-65065322 a $74.15.");
+}
+if (/'7501108763468'[^)]*,\s*1,\s*138\.18/.test(sqlFl12790)) {
+  fail("Farmalive 12790: Advil 200 caps PR347 era Compra 3 @$138.18, no 1 caja a $138.18.");
+}
+if (!/'7501108763468'[^)]*,\s*3,\s*46\.06/.test(sqlFl12790)) {
+  fail("Farmalive 12790: Advil 200 caps tiene que ir 3 cajas a $46.06 (138.18/3).");
+}
+if (!/7501108763468,Advil ibuprofeno 200 mg.*,3,46\.06,138\.18/.test(csvFl12790)) {
+  fail("CSV Farmalive 12790: Advil 200 caps qty=3 unitario $46.06, no el pack $138.18.");
+}
+if (!/costo = 46\.06/.test(sqlAdvil12h) || !/FC-08763468/.test(sqlAdvil12h)) {
+  fail("El SQL de catálogo tiene que partir Advil 200 caps FC-08763468 a $46.06.");
+}
+if (!/'7501065013767'[^)]*,\s*1,\s*42\.14/.test(sqlFl12790)) {
+  fail("Farmalive 12790: Advil 200 TAB C/12 es 1 caja a $42.14 (no es Compra 3).");
+}
 const sqlFl6 = read("sql/patch_recibir_farmalive_127790_faltantes_y_reabiertos_20260916.sql");
 if (!/7501008499245/.test(sqlFl6) || !/7501008849949/.test(sqlFl6)) {
   fail("El SQL de los 6 faltantes tiene que dar de alta Aspirina GO y el 3-pack.");
