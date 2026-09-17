@@ -82,8 +82,7 @@ order by p.id, m.forzar desc, m.url;
 
 update public.productos p
 set imagen_url = m.url,
-    imagen_mobile_url = m.url,
-    updated_at = now()
+    imagen_mobile_url = m.url
 from tmp_foto_match m
 where p.id = m.producto_id;
 
