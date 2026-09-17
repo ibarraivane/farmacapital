@@ -44,7 +44,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { mapaPromosPorProducto, ofertaDeProducto } from "./lib/precioOferta";
 import { hoyISOMexico } from "./lib/fecha";
 import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, siguienteIndiceFotoTarjeta } from "./hooks/useProductoImagenes";
-import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
+import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl, urlImagenPublicaTienda } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
@@ -355,10 +355,14 @@ function usePromosProducto(productoId) {
  * placeholder. En móvil se usa imagen_mobile_url solo si no hay foto de catálogo.
  */
 function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = ""){
-  if (!prod) return placeholderFallback || "";
-  if (fotoCatalogo) return fotoCatalogo;
-  if (narrow && prod.imagen_mobile_url) return prod.imagen_mobile_url;
-  return prod.imagen_url || placeholderFallback || "";
+  if (!prod) return urlImagenPublicaTienda(placeholderFallback) || "";
+  const catalogo = urlImagenPublicaTienda(fotoCatalogo);
+  if (catalogo) return catalogo;
+  if (narrow) {
+    const mobile = urlImagenPublicaTienda(prod.imagen_mobile_url);
+    if (mobile) return mobile;
+  }
+  return urlImagenPublicaTienda(prod.imagen_url) || urlImagenPublicaTienda(placeholderFallback) || "";
 }
 
 // ── FAQ ───────────────────────────────────────────────────────

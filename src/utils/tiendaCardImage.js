@@ -5,6 +5,10 @@
  * 480 px cubre pantalla 3× (152×3) sin bajar el JPEG original.
  */
 
+import { urlImagenPublicaTienda } from "../lib/imagenCompetencia";
+
+export { esUrlImagenCompetencia, urlImagenPublicaTienda } from "../lib/imagenCompetencia";
+
 export const TIENDA_CARD_THUMB_PX = 480;
 export const CATALOGO_PAGE_SIZE = 36;
 export const PRODUCTOS_CACHE_KEY = "farmacapital_productos_cache";
@@ -22,9 +26,10 @@ function clampThumbWidth(width) {
 /**
  * Reescribe una URL pública de Supabase Storage a /render/image con width.
  * Deja intactas URLs externas (Nadro, marca), data/blob, GIF y SVG.
+ * Bloquea hotlinks a Del Ahorro (ver imagenCompetencia).
  */
 export function tiendaCardImageUrl(rawUrl, width = TIENDA_CARD_THUMB_PX) {
-  const url = String(rawUrl || "").trim();
+  const url = urlImagenPublicaTienda(rawUrl);
   if (!url) return "";
   if (/^(data:|blob:)/i.test(url)) return url;
   if (SKIP_THUMB_EXT.test(url)) return url;

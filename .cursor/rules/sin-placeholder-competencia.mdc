@@ -1,0 +1,24 @@
+---
+description: Nunca subir logo/placeholder de otra farmacia (Del Ahorro) como foto de producto
+alwaysApply: true
+---
+
+# Sin placeholder de competencia en imágenes
+
+FarmaCapital **no** usa el logo ni el placeholder de otra farmacia como foto de catálogo o marketing.
+
+## Qué pasó (no repetir)
+
+Fahorro a veces responde un PNG 500×500 (MD5 `59370f17…`, ~6334 bytes) con la **«A» rosa** cuando el EAN no tiene packshot. Eso se guardó en `catalogo-propia/` y salió en `/conseguir` (Atoderm).
+
+## Obligatorio
+
+1. **Packshot del producto** (marca, mayoreo, retailer con foto real) o dejar `imagen_url` vacío.
+2. Antes de guardar en `catalogo-propia/` o Storage: rechazar con `esPlaceholderImagenCompetencia` / `scripts/lib/imagen_competencia.py`.
+3. **No** poner `imagen_url` hotlink a `fahorro.com` / `production-media.fahorro.com`. Copiar a `catalogo-propia/` solo si es packshot real.
+4. En tienda, `urlImagenPublicaTienda` ya oculta hosts Fahorro.
+
+## Prohibido
+
+- Guardar el logo «A» / “imagen no disponible” de Del Ahorro, Similares, Guadalajara, etc. como foto de producto.
+- Decir “ya tiene imagen” cuando es el placeholder de la cadena.
