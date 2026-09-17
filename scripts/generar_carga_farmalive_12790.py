@@ -4,7 +4,11 @@
 Fuente: ticket físico FARMA live Club Iztapalapa 1 · TICKET DE VENTA No. 12790.
 32 artículos / 65 unidades. Subtotal $3,623.22 − descuento $89.11 = $3,534.11.
 Costo = precio neto (después del descuento de línea: 2%, 5% u 8%).
-Advil PR346/PR347: el ticket imprime clave interna; EAN de ficha Haleon.
+Advil PR346: el ticket imprime clave interna + «Compra 3 a Precio Especial».
+Qty impresa = 1 (SKU promo) · lista $227.00 · 2% · neto $222.46 el pack.
+3 cajas físicas C/6 (EAN Haleon 7501065065322). Unitario = 222.46 / 3 = $74.15.
+El pie del ticket cuenta el pack como 1 unidad (65); Recibir usa 3 cajas (67).
+Advil PR347: misma leyenda «Compra 3»; se dejó qty=1 hasta confirmar cajas.
 Promos Prudence @$0.01 se dejan como renglón aparte (mismo EAN).
 Gargax −$0.01 para absorber redondeo de % por línea ($3534.12 → $3534.11).
 Sin lote ni MMAA.
@@ -25,12 +29,13 @@ FOLIO = "12790"
 PROVEEDOR = "Farmalive"
 FECHA = "2026-09-15"
 TOTAL_TICKET = 3534.11
-PIEZAS_ESPERADAS = 65
+# Pie del ticket: 65 (PR346 pack = 1). Recibir: 67 (3 cajas C/6).
+PIEZAS_ESPERADAS = 67
 ARTICULOS = 32
 
 # descripcion mostrador, qty, subtotal_neto, ean
 RAW = [
-    ("Advil 12 Horas ibuprofeno 600 mg C/6 | Haleon", 1, 222.46, "7501065065322"),
+    ("Advil 12 Horas ibuprofeno 600 mg C/6 | Haleon", 3, 222.46, "7501065065322"),
     ("Advil ibuprofeno 200 mg cápsulas C/10 | Haleon", 1, 138.18, "7501108763468"),
     ("Tampax Super Plus tampones C/10 | P&G", 2, 86.24, "020800600347"),
     ("Kleenex pañuelos pack C/8 | Kimberly-Clark", 1, 32.83, "7501017362998"),
@@ -101,8 +106,9 @@ def main() -> None:
         total=TOTAL_TICKET,
         notas=(
             f"Pedido Farmalive {FOLIO} · Club Iztapalapa 1 · 15-sep-2026 · "
-            "EAN del ticket (Advil PR346/PR347 → EAN Haleon) · precio neto "
-            "(2%/5%/8%) · promos Prudence @$0.01 · cola Recibir; stock al confirmar pistola"
+            "EAN del ticket (Advil PR346 Compra 3 @$222.46 → 3×$74.15 · "
+            "PR347 → EAN Haleon) · precio neto (2%/5%/8%) · promos Prudence "
+            "@$0.01 · cola Recibir; stock al confirmar pistola"
         ),
         rows=data,
     )

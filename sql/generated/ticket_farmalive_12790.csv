@@ -1,5 +1,5 @@
 linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
-1,12790,2026-09-15,Farmalive,7501065065322,Advil 12 Horas ibuprofeno 600 mg C/6 | Haleon,1,222.46,222.46,,,,3534.11,ticket
+1,12790,2026-09-15,Farmalive,7501065065322,Advil 12 Horas ibuprofeno 600 mg C/6 | Haleon,3,74.15,222.46,,,,3534.11,ticket
 2,12790,2026-09-15,Farmalive,7501108763468,Advil ibuprofeno 200 mg cápsulas C/10 | Haleon,1,138.18,138.18,,,,3534.11,ticket
 3,12790,2026-09-15,Farmalive,020800600347,Tampax Super Plus tampones C/10 | P&G,2,43.12,86.24,,,,3534.11,ticket
 4,12790,2026-09-15,Farmalive,7501017362998,Kleenex pañuelos pack C/8 | Kimberly-Clark,1,32.83,32.83,,,,3534.11,ticket
