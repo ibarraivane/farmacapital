@@ -124,6 +124,7 @@ describe("manualContenido", () => {
     expect(blob).toMatch(/Telcel/i);
     expect(blob).toMatch(/cajón|cajon/i);
     expect(blob).toMatch(/recargo en 0/);
+    expect(blob).toMatch(/tarjeta/i);
     const r = buscarManual("telcel compensacion", [t], GLOSARIO);
     expect(r.temas.some((x) => x.id === "recargas")).toBe(true);
     expect(r.glosario.some((g) => g.id === "compensacion-mp" || g.id === "recarga")).toBe(true);

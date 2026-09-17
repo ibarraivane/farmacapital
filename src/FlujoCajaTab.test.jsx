@@ -29,7 +29,7 @@ test("Flujo muestra textos de mostrador y las mismas cifras", async () => {
   expect(screen.getByText(/La nómina se paga los viernes/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Capturar gastos" })).toBeInTheDocument();
   expect(screen.getByText("Este mes no compré a proveedor")).toBeInTheDocument();
-  expect(screen.getByText("Recargas: el efectivo ya está contado")).toBeInTheDocument();
+  expect(screen.getByText("Recargas: el cobro ya está contado")).toBeInTheDocument();
   expect(screen.getByText("¿Por qué los $210.00 aparecen dos veces?")).toBeInTheDocument();
   expect(screen.getByText("¿Por qué comprar medicamento no aparece como pérdida?")).toBeInTheDocument();
   expect(screen.getAllByText("$-30.50").length).toBeGreaterThanOrEqual(1);
@@ -40,6 +40,21 @@ test("Flujo muestra textos de mostrador y las mismas cifras", async () => {
   expect(visible).not.toMatch(/total_general|costo_liquidacion|\bv1\b|RRHH|semilla|cubeta|pass-through|P&L|consulta 4/i);
   expect(visible).not.toMatch(/\bpiso\b/i);
   expect(supabase.rpc).not.toHaveBeenCalled();
+});
+
+test("si hubo recargas con tarjeta, el flujo las muestra fuera del cajón", async () => {
+  const bundle = {
+    ...FLUJO_DEMO_BUNDLE,
+    cubetas: {
+      ...FLUJO_DEMO_BUNDLE.cubetas,
+      cajon_cobrado_servicios: 110,
+      tarjeta_cobrada_servicios: 100,
+    },
+  };
+  render(<FlujoCajaTab usuario={{ nombre: "Ivan Ibarra" }} demoBundle={bundle} />);
+  expect(await screen.findByText("Cobrado con tarjeta")).toBeInTheDocument();
+  expect(screen.getByText("corte de tarjeta, no cajón")).toBeInTheDocument();
+  expect(screen.getByText("$100.00")).toBeInTheDocument();
 });
 
 test("en Gastos la nómina se describe como semanal de viernes", async () => {

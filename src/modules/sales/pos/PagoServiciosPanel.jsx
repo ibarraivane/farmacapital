@@ -3,7 +3,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
-import { CATALOGO_SERVICIOS, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, esMismoDiaMexico, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, utilidadServicio } from "../../../lib/pagoServicio";
+import { CATALOGO_SERVICIOS, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, resumenPagosServicioDia, utilidadServicio } from "../../../lib/pagoServicio";
 import { rolEsAdmin } from "../../../utils/permissions";
 import { printServicioTicket } from "../../../utils/servicioTicket";
 
@@ -149,24 +149,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     [historial]
   );
 
-  const resumenDia = useMemo(() => {
-    return historialHoy.reduce(
-      (acc, row) => {
-        const cobrado = parseFloat(row.total_cobrado || 0);
-        const recargo = parseFloat(row.comision || 0);
-        const comp = compensacionMpDeFila(row);
-        acc.ops += 1;
-        acc.total += cobrado;
-        acc.comision += recargo;
-        acc.compensacionMp += comp;
-        acc.utilidad += utilidadServicio({ comision: recargo, compensacionMp: comp });
-        if (row.metodo_pago === "efectivo") acc.efectivo += cobrado;
-        if (row.metodo_pago === "tarjeta") acc.tarjeta += cobrado;
-        return acc;
-      },
-      { ops: 0, total: 0, comision: 0, compensacionMp: 0, utilidad: 0, efectivo: 0, tarjeta: 0 }
-    );
-  }, [historialHoy]);
+  const resumenDia = useMemo(() => resumenPagosServicioDia(historialHoy), [historialHoy]);
 
   const validarForm = () => {
     if (!Number.isFinite(monto) || monto <= 0) {
@@ -201,18 +184,20 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     total,
   });
 
-  const cobrarEfectivo = async () => {
+  const registrar = async (metodoPago) => {
     if (!validarForm()) return;
     setGuardando(true);
     try {
-      const payload = buildPayload("efectivo");
+      const payload = buildPayload(metodoPago);
       const data = await rpcRegistrarPagoServicio(payload);
-      showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)}`, "success");
+      const como = labelMetodoServicio(metodoPago);
+      showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)} · ${como}`, "success");
       printServicioTicket({
         ...payload,
         folio: data.folio,
         total: data.total_cobrado,
         comision: data.comision ?? payload.comision,
+        metodoPago,
       }, config);
       limpiarForm();
       fetchHistorial();
@@ -223,7 +208,11 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     setGuardando(false);
   };
 
-  const cobrarTarjeta = () => {
+  const cobrarEfectivo = () => registrar("efectivo");
+
+  const cobrarTarjeta = () => registrar("tarjeta");
+
+  const cobrarTarjetaPoint = () => {
     if (!validarForm()) return;
     const folio = `SRV-${Date.now().toString().slice(-8)}`;
     onCobrarPoint?.({ ...buildPayload("tarjeta"), folio });
@@ -313,15 +302,15 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
           {servicio.categoria === "recarga" ? (
-            <><strong>Recargas.</strong> Primero el tiempo aire en la Point. Aquí solo anotas el monto: <strong>sin recargo</strong>. Prefiere <strong>Efectivo</strong>.</>
+            <><strong>Recargas.</strong> Primero el tiempo aire en la Point. Aquí anotas el monto: <strong>sin recargo</strong>. Cobra en <strong>efectivo</strong> o <strong>tarjeta</strong>: cada uno se cuenta aparte en el corte.</>
           ) : (
-            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto: el recargo ({$(servicio.comision)}) se suma solo. Prefiere <strong>Efectivo</strong>.</>
+            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto: el recargo ({$(servicio.comision)}) se suma solo. Cobra en <strong>efectivo</strong> o <strong>tarjeta</strong>.</>
           )}
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
           {servicio.categoria === "recarga"
-            ? "No se cobra comisión de farmacia. Mercado Pago te acredita aparte el 1% en su app (Actividad)."
-            : "El recargo entra al cajón. Mercado Pago te acredita aparte el 1% en su app (Actividad), no en efectivo."}
+            ? "Efectivo entra al cajón. Tarjeta entra al corte de tarjeta, no al efectivo esperado. Mercado Pago te acredita aparte el 1% en su app (Actividad)."
+            : "El recargo va con el método que eligió el cliente. Mercado Pago te acredita aparte el 1% en su app (Actividad)."}
         </div>
       </div>
 
@@ -339,7 +328,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       </div>
       {resumenDia.ops > 0 && (
         <div style={{ color: C.textDim, fontSize: 11, marginTop: -8, marginBottom: 16, lineHeight: 1.4 }}>
-          Utilidad = recargo al cliente {$(resumenDia.comision)} + compensación MP {$(resumenDia.compensacionMp)}. El 1% no está en el cajón.
+          Hoy: efectivo {$(resumenDia.efectivo)} · tarjeta {$(resumenDia.tarjeta)}. Utilidad = recargo {$(resumenDia.comision)} + compensación MP {$(resumenDia.compensacionMp)}. El 1% no está en el cajón.
         </div>
       )}
 
@@ -419,16 +408,22 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
             </span>
           </label>
 
+          <div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>CÓMO PAGÓ EL CLIENTE</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Btn col={C.green} onClick={cobrarEfectivo} dis={guardando}>
               💵 Efectivo
             </Btn>
-            <Btn col={BRAND.secondary} onClick={cobrarTarjeta} dis={guardando}>
-              💳 Tarjeta Point
+            <Btn col={C.blue} onClick={cobrarTarjeta} dis={guardando}>
+              💳 Tarjeta
             </Btn>
+            {typeof onCobrarPoint === "function" && (
+              <Btn ol col={BRAND.secondary} onClick={cobrarTarjetaPoint} dis={guardando}>
+                Cobrar en Point
+              </Btn>
+            )}
           </div>
           <div style={{ color: C.textDim, fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>
-            Tarjeta Point cobra comisión sobre recarga + recargo. En CFE u otros montos grandes se pierde dinero. Prefiere efectivo.
+            Efectivo suma al cajón. Tarjeta suma al corte de tarjeta (Point o BBVA), no al efectivo esperado. Point cobra comisión sobre el total: en CFE u otros montos grandes se pierde dinero.
           </div>
         </Box>
 
@@ -458,7 +453,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                 </div>
                 <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                   <Tag col={row.metodo_pago === "tarjeta" ? C.blue : C.amber} sm>
-                    {row.metodo_pago === "tarjeta" ? "Tarjeta" : "Efectivo"}
+                    {labelMetodoServicio(row.metodo_pago)}
                   </Tag>
                   {row.liquidado_point && <Tag col={C.green} sm>Liquidado Point</Tag>}
                   <Btn sm ol col={C.textMid} onClick={() => printServicioTicket(row, config)}>

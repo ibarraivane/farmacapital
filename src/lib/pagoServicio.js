@@ -110,9 +110,50 @@ export function tituloTicketServicio(categoria, proveedor) {
   return `PAGO ${prov}`.toUpperCase();
 }
 
+export const METODOS_PAGO_SERVICIO = ["efectivo", "tarjeta"];
+
+export function normalizarMetodoServicio(metodo) {
+  const m = String(metodo || "").toLowerCase().trim();
+  if (m === "tarjeta" || m === "bbva_terminal" || m === "mercadopago_point") return "tarjeta";
+  return "efectivo";
+}
+
 export function labelMetodoServicio(metodo) {
-  const m = String(metodo || "").toLowerCase();
-  if (m === "tarjeta") return "Tarjeta Point";
-  if (m === "efectivo") return "Efectivo";
-  return metodo || "Efectivo";
+  const m = normalizarMetodoServicio(metodo);
+  if (m === "tarjeta") return "Tarjeta";
+  return "Efectivo";
+}
+
+/** Totales del día para POS Servicios. Tarjeta no se mezcla con el cajón. */
+export function resumenPagosServicioDia(rows) {
+  return (Array.isArray(rows) ? rows : []).reduce(
+    (acc, row) => {
+      const cobrado = money2(row?.total_cobrado);
+      const recargo = money2(row?.comision);
+      const comp = compensacionMpDeFila(row);
+      acc.ops += 1;
+      acc.total = money2(acc.total + cobrado);
+      acc.comision = money2(acc.comision + recargo);
+      acc.compensacionMp = money2(acc.compensacionMp + comp);
+      acc.utilidad = money2(acc.utilidad + utilidadServicio({ comision: recargo, compensacionMp: comp }));
+      const metodo = normalizarMetodoServicio(row?.metodo_pago);
+      if (metodo === "tarjeta") acc.tarjeta = money2(acc.tarjeta + cobrado);
+      else acc.efectivo = money2(acc.efectivo + cobrado);
+      return acc;
+    },
+    { ops: 0, total: 0, comision: 0, compensacionMp: 0, utilidad: 0, efectivo: 0, tarjeta: 0 },
+  );
+}
+
+/** Flujo de caja: el cajón solo cuenta efectivo. Si el SQL aún no parte tarjeta, todo se trata como cajón. */
+export function desgloseCobroServicios(cubetas) {
+  const rawTarjeta = cubetas?.tarjeta_cobrada_servicios;
+  const hasTarjeta = rawTarjeta != null && rawTarjeta !== "";
+  const tarjeta = hasTarjeta ? money2(rawTarjeta) : 0;
+  const cajon = money2(cubetas?.cajon_cobrado_servicios);
+  return {
+    efectivo: cajon,
+    tarjeta,
+    total: money2(cajon + tarjeta),
+  };
 }

@@ -26,6 +26,7 @@ import {
   parseFlujoBundle,
   pctBarra,
 } from "./lib/flujoCaja";
+import { desgloseCobroServicios } from "./lib/pagoServicio";
 
 const C = C_LIGHT;
 
@@ -541,6 +542,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
   const cajaCol = incompleta ? C.textMid : C.teal;
   const liq = Number(bundle.cubetas?.saldo_mp_liquidacion) || 0;
   const utilidad = Number(bundle.cubetas?.utilidad_servicios) || 0;
+  const desgloseServicios = desgloseCobroServicios(bundle.cubetas);
   const marcadoPor = nombreCorto(usuario?.nombre);
   const leyenda = [
     leyendaRango(bundle.desde, bundle.hasta),
@@ -618,15 +620,24 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
           ) : null}
 
           <section className="fc-recon">
-            <h3 className="fc-recon-title">Recargas: el efectivo ya está contado</h3>
+            <h3 className="fc-recon-title">Recargas: el cobro ya está contado</h3>
             <dl className="fc-recon-grid">
               <div>
                 <dt>Cobrado en efectivo</dt>
                 <dd>
-                  {$(bundle.cubetas?.cajon_cobrado_servicios)}
+                  {$(desgloseServicios.efectivo)}
                   <span className="fc-recon-note">entró al cajón</span>
                 </dd>
               </div>
+              {desgloseServicios.tarjeta > 0 ? (
+                <div>
+                  <dt>Cobrado con tarjeta</dt>
+                  <dd>
+                    {$(desgloseServicios.tarjeta)}
+                    <span className="fc-recon-note">corte de tarjeta, no cajón</span>
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt>Descontado por Mercado Pago</dt>
                 <dd className="is-neg">
@@ -650,7 +661,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
               </div>
             </dl>
             <Fold title={`¿Por qué los ${$(liq)} aparecen dos veces?`}>
-              Cuando cobras una recarga, el efectivo entra al cajón y se cuenta en el corte. Ese mismo día Mercado Pago te descuenta el monto de tu saldo. Es el mismo dinero pasando, no un error. Lo que de verdad ganaste fueron {$(utilidad)}.
+              La recarga se paga del saldo de Mercado Pago. Si el cliente dejó efectivo, ese dinero entra al cajón y se cuenta en el corte. Si pagó con tarjeta, va al corte de tarjeta, no al cajón. Ese mismo día Mercado Pago te descuenta el monto de tu saldo. Es el mismo dinero pasando, no un error. Lo que de verdad ganaste fueron {$(utilidad)}.
             </Fold>
           </section>
 

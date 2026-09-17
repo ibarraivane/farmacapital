@@ -41,6 +41,22 @@ describe("ticket de recarga", () => {
     expect(html).toContain("$0.00");
   });
 
+  test("una recarga cobrada con tarjeta imprime el método", () => {
+    const html = servicioTicketInner({
+      folio: "SRV-20260917-000080",
+      proveedor: "Telcel",
+      categoria: "recarga",
+      referencia: "5512345678",
+      montoServicio: 80,
+      comision: 0,
+      total: 80,
+      metodoPago: "tarjeta",
+    }, {});
+    expect(html).toContain("RECARGA TELCEL");
+    expect(html).toContain("Tarjeta");
+    expect(html).not.toContain("Efectivo");
+  });
+
   test("escapa la referencia para no romper el HTML", () => {
     const html = servicioTicketInner({
       folio: "SRV-1",

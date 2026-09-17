@@ -1,4 +1,4 @@
-import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
+import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, desgloseCobroServicios, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, normalizarMetodoServicio, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, resumenPagosServicioDia, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
 
 describe("pagoServicio", () => {
   test("compensación MP es 1% redondeado a centavos", () => {
@@ -59,7 +59,9 @@ describe("pagoServicio", () => {
   test("el ticket de recarga se titula RECARGA + operadora", () => {
     expect(tituloTicketServicio("recarga", "Telcel")).toBe("RECARGA TELCEL");
     expect(tituloTicketServicio("luz", "CFE")).toBe("PAGO CFE");
-    expect(labelMetodoServicio("tarjeta")).toBe("Tarjeta Point");
+    expect(labelMetodoServicio("tarjeta")).toBe("Tarjeta");
+    expect(labelMetodoServicio("bbva_terminal")).toBe("Tarjeta");
+    expect(labelMetodoServicio("efectivo")).toBe("Efectivo");
   });
 
   test("el día de la farmacia es el de Ciudad de México", () => {
@@ -67,5 +69,42 @@ describe("pagoServicio", () => {
     expect(fechaLocalMexico(medianocheMexicoComoUtc)).toBe("2026-08-22");
     expect(esMismoDiaMexico("2026-08-22T18:00:00.000Z", "2026-08-22")).toBe(true);
     expect(esMismoDiaMexico("2026-08-22T05:00:00.000Z", "2026-08-22")).toBe(false);
+  });
+
+  test("tarjeta y Point/BBVA se guardan como tarjeta; lo demás es efectivo", () => {
+    expect(normalizarMetodoServicio("tarjeta")).toBe("tarjeta");
+    expect(normalizarMetodoServicio("bbva_terminal")).toBe("tarjeta");
+    expect(normalizarMetodoServicio("mercadopago_point")).toBe("tarjeta");
+    expect(normalizarMetodoServicio("efectivo")).toBe("efectivo");
+    expect(normalizarMetodoServicio("")).toBe("efectivo");
+  });
+
+  test("el resumen del día parte efectivo y tarjeta", () => {
+    const r = resumenPagosServicioDia([
+      { total_cobrado: 50, comision: 0, monto_servicio: 50, metodo_pago: "efectivo" },
+      { total_cobrado: 100, comision: 0, monto_servicio: 100, metodo_pago: "tarjeta" },
+      { total_cobrado: 208, comision: 8, monto_servicio: 200, metodo_pago: "efectivo" },
+    ]);
+    expect(r.ops).toBe(3);
+    expect(r.efectivo).toBe(258);
+    expect(r.tarjeta).toBe(100);
+    expect(r.total).toBe(358);
+    expect(r.comision).toBe(8);
+  });
+
+  test("flujo de caja: el cajón es efectivo; tarjeta va aparte si el SQL ya la manda", () => {
+    expect(desgloseCobroServicios({ cajon_cobrado_servicios: 210 })).toEqual({
+      efectivo: 210,
+      tarjeta: 0,
+      total: 210,
+    });
+    expect(desgloseCobroServicios({
+      cajon_cobrado_servicios: 110,
+      tarjeta_cobrada_servicios: 100,
+    })).toEqual({
+      efectivo: 110,
+      tarjeta: 100,
+      total: 210,
+    });
   });
 });

@@ -2986,8 +2986,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         hint={
           mpServicioRef.current
             ? (mpServicioRef.current.categoria === "recarga"
-              ? "Cobra al cliente solo el monto de la recarga en la Point. El tiempo aire ya salió del saldo MP. Prefiere efectivo: la comisión de Point se come el 1%."
-              : "Cobra al cliente el recibo + tu recargo en la Point. El servicio ya se pagó con saldo MP. Prefiere efectivo: la comisión de Point se come la ganancia.")
+              ? "Cobra al cliente el monto de la recarga en la Point. El tiempo aire ya salió del saldo MP. Queda registrado como tarjeta en el corte, no como efectivo."
+              : "Cobra al cliente el recibo + tu recargo en la Point. El servicio ya se pagó con saldo MP. Queda registrado como tarjeta en el corte, no como efectivo.")
             : pay === "mixto"
               ? `Pago mixto: cobra solo ${mixtoMontosRef.current?.tarjeta > 0 ? $(mixtoMontosRef.current.tarjeta) : "la parte en tarjeta"} en el Point. El efectivo ya lo capturaste aparte.`
               : "El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
