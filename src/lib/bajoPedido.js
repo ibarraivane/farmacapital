@@ -24,6 +24,51 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "proteina", label: "Proteína" },
 ]);
 
+/** Dos entradas de /conseguir: derma vs vitaminas+suplementos+proteína. */
+export const SECCIONES_CONSEGUIR = Object.freeze([
+  {
+    id: "dermatologia",
+    label: "Dermatología",
+    titulo: "Dermatología",
+    desc: "Lo que receta el dermatólogo: Cicaplast, Effaclar, Heliocare, Bioderma…",
+    rubros: Object.freeze(["dermatologia"]),
+  },
+  {
+    id: "nutricion",
+    label: "Vitaminas y suplementos",
+    titulo: "Vitaminas, suplementos y proteína",
+    desc: "Pharmaton, Elevit, Omega 3, proteína y más. Bajo pedido, 24-48 hrs.",
+    rubros: Object.freeze(["vitaminas", "suplementos", "proteina"]),
+  },
+]);
+
+const SECCION_ALIAS = {
+  derma: "dermatologia",
+  dermatologia: "dermatologia",
+  dermatologico: "dermatologia",
+  nutri: "nutricion",
+  nutricion: "nutricion",
+  vitaminas: "nutricion",
+  suplementos: "nutricion",
+  proteina: "nutricion",
+  proteinas: "nutricion",
+};
+
+/** `?seccion=dermatologia` | `nutricion` (y alias). Vacío = hub con los dos enlaces. */
+export function seccionConseguirDeQuery(search) {
+  try {
+    const raw = new URLSearchParams(typeof search === "string" ? search : "").get("seccion");
+    const key = norm(raw).replace(/[^a-z]/g, "");
+    return SECCION_ALIAS[key] || "";
+  } catch {
+    return "";
+  }
+}
+
+export function seccionConseguirPorId(id) {
+  return SECCIONES_CONSEGUIR.find((s) => s.id === id) || null;
+}
+
 function norm(s) {
   return String(s ?? "")
     .trim()
@@ -100,6 +145,14 @@ export function filtrarVitrina(productos, rubro = "") {
     .filter((p) => esBajoPedido(p) && p.activo !== false)
     .filter((p) => !rubro || rubroDeProducto(p) === rubro)
     .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" }));
+}
+
+/** Productos de una sección (derma o nutrición). Sin sección = toda la vitrina. */
+export function filtrarVitrinaSeccion(productos, seccionId) {
+  const sec = seccionConseguirPorId(seccionId);
+  if (!sec) return filtrarVitrina(productos);
+  const allow = new Set(sec.rubros);
+  return filtrarVitrina(productos).filter((p) => allow.has(rubroDeProducto(p)));
 }
 
 /** El carrito no mezcla encargos con productos de anaquel (se pagan distinto). */

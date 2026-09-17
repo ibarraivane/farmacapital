@@ -143,7 +143,7 @@ export function tiendaPathnameToPageId(pathname) {
 
 /**
  * @param {string} pageId
- * @param {{ rx?: boolean, reset?: string, search?: string, productId?: string|number }} [opts]
+ * @param {{ rx?: boolean, reset?: string, search?: string, productId?: string|number, seccion?: string }} [opts]
  */
 export function pageIdToTiendaPath(pageId, opts = {}) {
   const resolved = resolveTiendaPage(pageId) || "home";
@@ -153,6 +153,7 @@ export function pageIdToTiendaPath(pageId, opts = {}) {
   if (opts.rx) params.set("rx", "1");
   if (opts.reset) params.set("reset", String(opts.reset));
   if (opts.search) params.set("q", String(opts.search));
+  if (opts.seccion) params.set("seccion", String(opts.seccion));
   if (opts.productId != null && String(opts.productId).trim()) {
     params.set("id", String(opts.productId).trim());
   }

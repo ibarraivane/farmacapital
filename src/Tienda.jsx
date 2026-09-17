@@ -51,6 +51,7 @@ import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPa
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
+import EnlacesSeccionConseguir from "./components/tienda/EnlacesSeccionConseguir";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
   CANTIDAD_MAX_BAJO_PEDIDO,
@@ -60,6 +61,7 @@ import {
   motivoNoMezclar,
   pedidoEsBajoPedido,
   prepararListaTienda,
+  seccionConseguirDeQuery,
   tipoCarrito,
 } from "./lib/bajoPedido";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
@@ -3068,6 +3070,20 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       />
 
       <HomeServices setPage={setPage}/>
+
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "8px 16px 20px" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+          <h2 style={{ margin: 0, color: C.dark, fontSize: "clamp(18px,4vw,22px)", fontWeight: 800 }}>Te lo conseguimos</h2>
+          <button
+            type="button"
+            onClick={() => setPage("conseguir", { seccion: "", search: "" })}
+            style={{ background: "none", border: "none", color: BRAND.secondary, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+          >
+            Ver las dos páginas →
+          </button>
+        </div>
+        <EnlacesSeccionConseguir setPage={setPage} productos={productos} stack={stack} />
+      </div>
 
       <HomeBannersStrip setPage={setPage} items={bannerZones.strip}/>
 
@@ -6498,12 +6514,16 @@ export default function TiendaFarmaCapital(){
     if (initialResetToken) return "reset-password";
     return tiendaPathnameToPageId(window.location.pathname) || "home";
   });
-  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "" } = {}) => {
+  const [seccionConseguir, setSeccionConseguir] = useState(() => {
+    try { return seccionConseguirDeQuery(window.location.search); } catch { return ""; }
+  });
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "" } = {}) => {
     const path = pageIdToTiendaPath(target, {
       rx: target === "catalogo" && rx,
       reset: target === "reset-password" ? token : undefined,
       productId: target === "detalle" ? productId : undefined,
       search: target === "conseguir" ? search : undefined,
+      seccion: target === "conseguir" ? seccion : undefined,
     });
     const fn = replace ? window.history.replaceState : window.history.pushState;
     fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
@@ -6526,12 +6546,29 @@ export default function TiendaFarmaCapital(){
       if (nextRx) sessionStorage.setItem("farmacapital_rx", "1");
       else sessionStorage.removeItem("farmacapital_rx");
     } catch (_) { /* noop */ }
+    if (target === "conseguir") {
+      const nextSec = opts.seccion !== undefined ? seccionConseguirDeQuery(`?seccion=${opts.seccion || ""}`) : "";
+      if (nextSec !== seccionConseguir) setSeccionConseguir(nextSec);
+      try {
+        writeTiendaHistory(target, {
+          rx: nextRx,
+          token: resetToken,
+          productId: undefined,
+          search: opts.search !== undefined ? opts.search : (busqHero || ""),
+          seccion: nextSec,
+        });
+      } catch {
+        try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
+      }
+      setPageRaw(target);
+      return;
+    }
     try {
       writeTiendaHistory(target, {
         rx: nextRx,
         token: resetToken,
         productId: target === "detalle" ? (opts.productId || "") : undefined,
-        search: target === "conseguir" ? (opts.search || busqHero || "") : undefined,
+        search: undefined,
       });
     } catch {
       try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
@@ -6552,6 +6589,9 @@ export default function TiendaFarmaCapital(){
           || sessionStorage.getItem("farmacapital_rx") === "1";
         setFiltroRx(Boolean(rx && p === "catalogo"));
       } catch (_) { /* noop */ }
+      if (p === "conseguir") {
+        try { setSeccionConseguir(seccionConseguirDeQuery(window.location.search)); } catch (_) { setSeccionConseguir(""); }
+      }
       setPageRaw(p);
     };
     window.addEventListener("popstate",h);
@@ -6581,7 +6621,15 @@ export default function TiendaFarmaCapital(){
             );
           } catch (_) { /* noop */ }
         } else {
-          writeTiendaHistory(id, { replace: true, rx: rx && id === "catalogo" });
+          let seccion = "";
+          let search = "";
+          try {
+            const qs = new URLSearchParams(window.location.search);
+            seccion = id === "conseguir" ? seccionConseguirDeQuery(window.location.search) : "";
+            search = id === "conseguir" ? (qs.get("q") || "") : "";
+          } catch (_) { /* noop */ }
+          if (id === "conseguir") setSeccionConseguir(seccion);
+          writeTiendaHistory(id, { replace: true, rx: rx && id === "catalogo", seccion, search });
         }
       }
     } catch {
@@ -6949,6 +6997,8 @@ export default function TiendaFarmaCapital(){
           productos={productosVistaTiendaFarmacia}
           loading={loadingProductos}
           stack={stackPaginas}
+          seccion={seccionConseguir}
+          setPage={setPage}
           onIrAFormulario={()=>document.getElementById("conseguir-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}
           renderProducto={(p)=>(
             <ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdD(p);setPage("detalle", { productId: p.id });}}/>

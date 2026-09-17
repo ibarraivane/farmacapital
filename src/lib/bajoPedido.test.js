@@ -4,11 +4,13 @@ import {
   ctaBajoPedido,
   estadoReserva,
   filtrarVitrina,
+  filtrarVitrinaSeccion,
   horasRestantesReserva,
   motivoNoMezclar,
   pedidoEsBajoPedido,
   prepararProductoTienda,
   rubroDeProducto,
+  seccionConseguirDeQuery,
   tipoCarrito,
 } from "./bajoPedido";
 
@@ -50,6 +52,13 @@ test("rubros por categoria/subcategoria (con alias canónicos)", () => {
   const todos = [paracetamol, whey, anthelios, omega, vitC];
   expect(filtrarVitrina(todos).map((p) => p.id)).toEqual([1, 3, 4, 2]);
   expect(filtrarVitrina(todos, "proteina").map((p) => p.id)).toEqual([2]);
+  expect(seccionConseguirDeQuery("?seccion=dermatologia")).toBe("dermatologia");
+  expect(seccionConseguirDeQuery("?seccion=derma")).toBe("dermatologia");
+  expect(seccionConseguirDeQuery("?seccion=vitaminas")).toBe("nutricion");
+  expect(seccionConseguirDeQuery("?seccion=nutricion")).toBe("nutricion");
+  expect(seccionConseguirDeQuery("")).toBe("");
+  expect(filtrarVitrinaSeccion(todos, "dermatologia").map((p) => p.id)).toEqual([1]);
+  expect(filtrarVitrinaSeccion(todos, "nutricion").map((p) => p.id)).toEqual([3, 4, 2]);
 });
 
 test("carrito no mezcla encargo con anaquel y tope de 12", () => {

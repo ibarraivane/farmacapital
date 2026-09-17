@@ -25,7 +25,7 @@ Tarjeta: solo 3.49% + IVA. Skittles $10 → **$11**.
 - SQL: `sql/patch_servicio_5_pedido_20260916.sql`.
 
 ## Tienda
-- `/conseguir`: vitrina por rubro (Todos · Dermatología · Vitaminas · Suplementos · Proteína) + formulario «Levantar pedido».
+- `/conseguir`: hub con dos enlaces (`?seccion=dermatologia` y `?seccion=nutricion` = vitaminas + suplementos + proteína) + formulario «Levantar pedido».
 - Buscador de home/catálogo/ficha: tercer botón «Te lo conseguimos» (celular: «Conseguir»). El header no lo lleva.
 - Tarjeta y ficha: badges **Bajo pedido** + **24-48 hrs**, nunca «Agotado». CTA **Encargar** (con precio) o **Cotizar** (sin precio → formulario prellenado).
 - Carrito: máx. 12 por línea; **no mezcla** encargos con productos de anaquel.

@@ -1,26 +1,54 @@
-import { useMemo, useState } from "react";
-import { PackageSearch } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, PackageSearch } from "lucide-react";
 import { BRAND } from "../../constants";
 import RecompraStrip from "../RecompraStrip";
-import { RUBROS_BAJO_PEDIDO, filtrarVitrina, rubroDeProducto } from "../../lib/bajoPedido";
+import EnlacesSeccionConseguir from "./EnlacesSeccionConseguir";
+import {
+  RUBROS_BAJO_PEDIDO,
+  filtrarVitrina,
+  filtrarVitrinaSeccion,
+  seccionConseguirPorId,
+} from "../../lib/bajoPedido";
 
 /**
- * Vitrina de /conseguir: productos bajo pedido por rubro.
- * «Todos» = una banda por rubro (tarjetas de 220px, mismo RecompraStrip del home).
- * Un rubro = cuadrícula igual a la del catálogo.
- * `renderProducto` viene de Tienda.jsx para usar la misma ProductCard (Encargar / Cotizar).
+ * Vitrina de /conseguir.
+ * Hub (sin sección): dos enlaces — Dermatología / Vitaminas y suplementos.
+ * Sección: cuadrícula o bandas del grupo. Nutrición filtra por vitamina / suplemento / proteína.
  */
-export default function VitrinaConseguir({ productos, loading, stack, renderProducto, onIrAFormulario }) {
+export default function VitrinaConseguir({
+  productos,
+  loading,
+  stack,
+  renderProducto,
+  onIrAFormulario,
+  seccion = "",
+  setPage,
+}) {
+  const sec = seccionConseguirPorId(seccion);
+  const rubrosSeccion = sec ? RUBROS_BAJO_PEDIDO.filter((r) => sec.rubros.includes(r.id)) : RUBROS_BAJO_PEDIDO;
   const [rubro, setRubro] = useState("");
 
-  const conteo = useMemo(() => {
-    const m = { "": filtrarVitrina(productos).length };
-    RUBROS_BAJO_PEDIDO.forEach((r) => { m[r.id] = filtrarVitrina(productos, r.id).length; });
-    return m;
-  }, [productos]);
+  useEffect(() => {
+    setRubro("");
+  }, [seccion]);
 
-  const lista = useMemo(() => (rubro ? filtrarVitrina(productos, rubro) : []), [productos, rubro]);
-  const hayAlgo = conteo[""] > 0;
+  const pool = useMemo(
+    () => (sec ? filtrarVitrinaSeccion(productos, sec.id) : filtrarVitrina(productos)),
+    [productos, sec]
+  );
+
+  const conteo = useMemo(() => {
+    const m = { "": pool.length };
+    rubrosSeccion.forEach((r) => { m[r.id] = filtrarVitrina(productos, r.id).length; });
+    return m;
+  }, [productos, pool.length, rubrosSeccion]);
+
+  const lista = useMemo(
+    () => (rubro ? filtrarVitrina(productos, rubro) : pool),
+    [productos, rubro, pool]
+  );
+  const hayAlgo = pool.length > 0;
+  const esHub = !sec;
 
   const chip = (id, label) => {
     const on = rubro === id;
@@ -51,21 +79,46 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
     );
   };
 
-  if (!hayAlgo && !loading) return null;
+  const titulo = sec ? sec.titulo : "Te lo conseguimos";
 
   return (
     <section style={{ maxWidth: 1200, margin: "0 auto", padding: "clamp(20px,4vw,32px) 16px 8px" }} aria-labelledby="vitrina-conseguir-titulo">
+      {sec && typeof setPage === "function" ? (
+        <button
+          type="button"
+          onClick={() => setPage("conseguir", { seccion: "", search: "" })}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            margin: "0 0 10px",
+            padding: 0,
+            border: "none",
+            background: "none",
+            color: BRAND.secondary,
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          <ChevronLeft size={16} aria-hidden /> Te lo conseguimos
+        </button>
+      ) : null}
+
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
         <div style={{ width: 40, height: 40, borderRadius: 12, background: BRAND.gradient, display: "grid", placeItems: "center", color: "#fff", flexShrink: 0 }}>
           <PackageSearch size={20} aria-hidden />
         </div>
         <h1 id="vitrina-conseguir-titulo" style={{ margin: 0, fontSize: "clamp(22px,5vw,26px)", fontWeight: 800, color: "#0f172a" }}>
-          Te lo conseguimos
+          {titulo}
         </h1>
       </div>
       <p style={{ margin: "0 0 14px", color: "#475569", fontSize: 14, lineHeight: 1.6, maxWidth: 760 }}>
-        Productos <strong>bajo pedido</strong> que traemos del mayorista en 24-48 hrs. Con precio: los encargas y apartas con
-        tarjeta; se cobra cuando los tenemos. Sin precio: te lo cotizamos.{" "}
+        {sec
+          ? `${sec.desc} Con precio: los encargas y apartas con tarjeta; se cobra cuando los tenemos.`
+          : "Elige dermatología o vitaminas y suplementos. Traemos del mayorista en 24-48 hrs."}
+        {" "}
         {typeof onIrAFormulario === "function" ? (
           <button type="button" onClick={onIrAFormulario} style={{ background: "none", border: "none", padding: 0, color: BRAND.secondary, fontWeight: 700, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
             ¿No está en la lista? Pídelo abajo.
@@ -73,14 +126,22 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
         ) : null}
       </p>
 
-      <div role="tablist" aria-label="Rubros" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, marginBottom: 16 }}>
-        {chip("", "Todos")}
-        {RUBROS_BAJO_PEDIDO.map((r) => chip(r.id, r.label))}
-      </div>
+      {esHub ? (
+        <div style={{ marginBottom: 22 }}>
+          <EnlacesSeccionConseguir setPage={setPage} productos={productos} stack={stack} />
+        </div>
+      ) : null}
+
+      {!esHub && rubrosSeccion.length > 1 ? (
+        <div role="tablist" aria-label="Rubros" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, marginBottom: 16 }}>
+          {chip("", "Todos")}
+          {rubrosSeccion.map((r) => chip(r.id, r.label))}
+        </div>
+      ) : null}
 
       {loading && !hayAlgo ? (
         <div style={{ color: "#64748b", fontSize: 14, padding: "12px 0 24px" }}>Cargando productos…</div>
-      ) : rubro ? (
+      ) : esHub ? null : rubro || sec?.id === "dermatologia" ? (
         lista.length ? (
           <div
             style={{
@@ -99,23 +160,33 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
           </div>
         )
       ) : (
-        [...RUBROS_BAJO_PEDIDO, { id: "__otros", label: "Otros encargos" }].map((r) => {
-          const items = r.id === "__otros"
-            ? filtrarVitrina(productos).filter((p) => !rubroDeProducto(p))
-            : filtrarVitrina(productos, r.id);
+        rubrosSeccion.map((r) => {
+          const items = filtrarVitrina(productos, r.id);
           return (
             <RecompraStrip
               key={r.id}
               title={r.label}
               empty={items.length === 0}
-              actionLabel={items.length > 4 && r.id !== "__otros" ? "Ver todo" : undefined}
-              onAction={items.length > 4 && r.id !== "__otros" ? () => setRubro(r.id) : undefined}
+              actionLabel={items.length > 4 ? "Ver todo" : undefined}
+              onAction={items.length > 4 ? () => setRubro(r.id) : undefined}
             >
               {items.map((p) => renderProducto(p))}
             </RecompraStrip>
           );
         })
       )}
+
+      {esHub && !loading && hayAlgo ? (
+        <div style={{ color: "#64748b", fontSize: 13, margin: "4px 0 8px" }}>
+          {pool.length} productos bajo pedido en las dos páginas.
+        </div>
+      ) : null}
+
+      {!esHub && !rubro && sec?.id !== "dermatologia" && !hayAlgo && !loading ? (
+        <div style={{ color: "#64748b", fontSize: 14, padding: "8px 0 20px" }}>
+          Aún no hay productos en esta página. Pídelo en el formulario de abajo.
+        </div>
+      ) : null}
     </section>
   );
 }

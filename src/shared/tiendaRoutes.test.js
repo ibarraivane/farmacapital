@@ -41,6 +41,8 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("auth-callback")).toBe("/auth/callback");
     expect(pageIdToTiendaPath("tarjeta")).toBe("/tarjeta");
     expect(pageIdToTiendaPath("conseguir", { search: "losartan" })).toBe("/conseguir?q=losartan");
+    expect(pageIdToTiendaPath("conseguir", { seccion: "dermatologia" })).toBe("/conseguir?seccion=dermatologia");
+    expect(pageIdToTiendaPath("conseguir", { seccion: "nutricion" })).toBe("/conseguir?seccion=nutricion");
   });
 
   test("aliases de flyer y te lo conseguimos", () => {

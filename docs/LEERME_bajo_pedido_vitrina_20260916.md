@@ -3,6 +3,9 @@
 La UI de `/conseguir` ya estaba (PR #237). Faltaban filas `bajo_pedido = true`.
 Este lote las crea. **Hasta que pegues el SQL en Supabase, la vitrina sigue vacía.**
 
+En la tienda: home y `/conseguir` tienen **dos enlaces** —
+`/conseguir?seccion=dermatologia` y `/conseguir?seccion=nutricion` (vitaminas + suplementos + proteína).
+
 ## Qué pegar (en este orden)
 
 1. `sql/patch_bajo_pedido_20260916.sql` — si aún no corre (columna + RPCs).
