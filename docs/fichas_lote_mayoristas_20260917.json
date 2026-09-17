@@ -1,0 +1,122 @@
+[
+  {
+    "ean": "3337875890021",
+    "nombre": "La Roche-Posay Mela B3 suero antimanchas 30 ml",
+    "marca": "La Roche-Posay",
+    "presentacion": "30 ml",
+    "categoria": "Cuidado personal",
+    "subcategoria": "Dermatología",
+    "forma": "Sérum",
+    "precio": 1467,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/lrp-mela-b3-serum-30ml.jpg",
+    "fuente": "DermaPharma vende la línea. Ficha Fahorro SKU=EAN 3337875890021 · lista $1,467"
+  },
+  {
+    "ean": "3337875761031",
+    "nombre": "La Roche-Posay Anthelios Age Correct FPS 50+ 50 ml",
+    "marca": "La Roche-Posay",
+    "presentacion": "50 ml",
+    "categoria": "Cuidado personal",
+    "subcategoria": "Dermatología",
+    "forma": "Crema",
+    "precio": 998,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/lrp-anthelios-age-correct-50ml.jpg",
+    "fuente": "DermaPharma / Nadro pedible. Fahorro SKU=EAN 3337875761031 · $998"
+  },
+  {
+    "ean": "8429420248977",
+    "nombre": "Isdin Fotoprotector Fusion Water Magic FPS 50 50 ml",
+    "marca": "Isdin",
+    "presentacion": "50 ml",
+    "categoria": "Cuidado personal",
+    "subcategoria": "Dermatología",
+    "forma": "Fluido",
+    "precio": 784,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/isdin-fusion-water-magic-50ml.jpg",
+    "fuente": "DermaPharma. Fahorro SKU=EAN 8429420248977 · lista $784"
+  },
+  {
+    "ean": "8429420160750",
+    "nombre": "Isdin FotoUltra 100 Active Unify 50 ml",
+    "marca": "Isdin",
+    "presentacion": "50 ml",
+    "categoria": "Cuidado personal",
+    "subcategoria": "Dermatología",
+    "forma": "Fluido",
+    "precio": 813,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/isdin-fotoultra-100-active-unify-50ml.jpg",
+    "fuente": "DermaPharma. Fahorro SKU=EAN 8429420160750 · $813"
+  },
+  {
+    "ean": "8429420244191",
+    "nombre": "Isdin FotoUltra Age Repair Fusion Water Color FPS 50 50 ml",
+    "marca": "Isdin",
+    "presentacion": "50 ml",
+    "categoria": "Cuidado personal",
+    "subcategoria": "Dermatología",
+    "forma": "Fluido",
+    "precio": 792,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/isdin-age-repair-fusion-water-color-50ml.jpg",
+    "fuente": "DermaPharma. Fahorro SKU=EAN 8429420244191 · $792"
+  },
+  {
+    "ean": "7503025737355",
+    "nombre": "Birdman creatina monohidratada 450 g",
+    "marca": "Birdman",
+    "presentacion": "450 g",
+    "categoria": "Suplemento",
+    "subcategoria": "Nutrición deportiva",
+    "forma": "Polvo",
+    "precio": 584,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/birdman-creatina-450g.jpg",
+    "fuente": "Birdman B2B / Fahorro SKU=EAN 7503025737355 · lista $584 · ficha mx.birdman.com"
+  },
+  {
+    "ean": "7503037273377",
+    "nombre": "Birdman Fitmingo proteína vegetal moka 510 g",
+    "marca": "Birdman",
+    "presentacion": "510 g",
+    "categoria": "Suplemento",
+    "subcategoria": "Nutrición deportiva",
+    "forma": "Polvo",
+    "precio": 604,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/birdman-fitmingo-moka-510g.jpg",
+    "fuente": "Birdman B2B / Fahorro SKU=EAN 7503037273377 · lista $604"
+  },
+  {
+    "ean": "7503037273940",
+    "nombre": "Birdman creatina Electrolyte Refresher Golden Peach 300 g",
+    "marca": "Birdman",
+    "presentacion": "300 g",
+    "categoria": "Suplemento",
+    "subcategoria": "Nutrición deportiva",
+    "forma": "Polvo",
+    "precio": 482,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/birdman-creatina-electrolyte-peach-300g.jpg",
+    "fuente": "Birdman B2B / Fahorro SKU=EAN 7503037273940 · lista $482"
+  },
+  {
+    "ean": "748927054804",
+    "nombre": "Optimum Nutrition Gold Standard 100% Whey vainilla 907 g",
+    "marca": "Optimum Nutrition",
+    "presentacion": "907 g",
+    "categoria": "Suplemento",
+    "subcategoria": "Nutrición deportiva",
+    "forma": "Polvo",
+    "precio": 1253,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/on-gold-standard-whey-vainilla-907g.jpg",
+    "fuente": "Suplementos Mayoreo / Fahorro SKU=EAN 748927054804 · lista $1,253"
+  },
+  {
+    "ean": "7798031060140",
+    "nombre": "Nebucor nebulizador P-103",
+    "marca": "Nebucor",
+    "presentacion": "1 pieza",
+    "categoria": "Dispositivo médico",
+    "subcategoria": "Respiratorio",
+    "forma": "Aparato",
+    "precio": 890,
+    "imagen_url": "https://www.farmacapital.mx/catalogo-propia/nebucor-nebulizador-p103.jpg",
+    "fuente": "Promexsa / Fahorro SKU=EAN 7798031060140 · $890 · incluye mascarillas adulto e infantil"
+  }
+]

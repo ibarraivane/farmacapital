@@ -5,11 +5,25 @@
  * se exhibe con stock 0, sin «Agotado», y se consigue con mayorista.
  * - Con ancla usable (precio > $0.01): CTA «Encargar» → carrito → pago con
  *   RESERVA en tarjeta (se cobra al conseguirlo; si no, se cancela sin cargo).
- * - Sin ancla: CTA «Cotizar» → formulario de /conseguir.
+ * - Sin ancla: CTA «Solicitar precio» → formulario de /pedidos-especiales.
  * Rubros de la vitrina salen de categoria/subcategoria (no hay categoría nueva).
  */
 import { categoriaCanon } from "../constants/categoriasProducto";
 import { precioAnclaUsable, precioOnlineMp } from "./precioOnlineMp";
+
+export const TEXTO_RESERVA =
+  "Apártalo con tarjeta de crédito. Solo se cobra cuando llega; si no lo conseguimos, no pagas nada.";
+
+export const TEXTO_AVISO_RECETA =
+  "Los medicamentos que requieren receta se surten presentando la receta en tienda. No encargamos en línea medicamentos controlados.";
+
+export const BADGE_SOBRE_PEDIDO = "Sobre pedido · 24-48 h";
+export const BADGE_EN_TIENDA = "En tienda";
+export const CTA_SOLICITAR_PRECIO = "Solicitar precio";
+/** Fase 2: las páginas de categoría mezclan anaquel + encargo (el carrito no). */
+export const FASE2_INCLUIR_ANAQUEL = true;
+export const FRANJA_HOME = "¿No lo encuentras? Lo pedimos por ti · 24-48 h";
+export const TEXTO_BUSQUEDA_VACIA = "No lo tenemos en tienda, pero lo pedimos por ti. Llega en 24-48 h.";
 
 /** Tope por línea en el carrito (no depende del stock físico). */
 export const CANTIDAD_MAX_BAJO_PEDIDO = 12;
@@ -21,8 +35,146 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "dermatologia", label: "Dermatología" },
   { id: "vitaminas", label: "Vitaminas" },
   { id: "suplementos", label: "Suplementos" },
-  { id: "proteina", label: "Proteína" },
+  { id: "proteina", label: "Nutrición deportiva" },
+  { id: "dispositivos", label: "Dispositivos médicos" },
 ]);
+
+/** Categorías de vitrina + pedidos. Dispositivos viven en /dispositivos y en Pedidos especiales. */
+export const SECCIONES_CONSEGUIR = Object.freeze([
+  {
+    id: "dermatologia",
+    page: "dermocosmetica",
+    label: "Dermocosmética",
+    titulo: "Dermocosmética",
+    teaser: "Lo que te recetó el dermatólogo.",
+    desc: "La crema, el gel o el protector que te recetaron.",
+    rubros: Object.freeze(["dermatologia"]),
+  },
+  {
+    id: "nutricion",
+    page: "vitaminas",
+    label: "Vitaminas y suplementos",
+    titulo: "Vitaminas y suplementos",
+    teaser: "Vitaminas, omega y proteína.",
+    desc: "Lo de todos los días y lo del entrenamiento.",
+    rubros: Object.freeze(["vitaminas", "suplementos", "proteina"]),
+  },
+  {
+    id: "dispositivos",
+    page: "dispositivos",
+    label: "Dispositivos médicos",
+    titulo: "Dispositivos médicos",
+    teaser: "Tensiómetro, glucómetro o nebulizador.",
+    desc: "El aparato que te pidieron en consulta.",
+    rubros: Object.freeze(["dispositivos"]),
+  },
+]);
+
+const SECCION_ALIAS = {
+  derma: "dermatologia",
+  dermatologia: "dermatologia",
+  dermatologico: "dermatologia",
+  dermocosmetica: "dermatologia",
+  nutri: "nutricion",
+  nutricion: "nutricion",
+  vitaminas: "nutricion",
+  suplementos: "nutricion",
+  proteina: "nutricion",
+  proteinas: "nutricion",
+  nutriciondeportiva: "nutricion",
+  deporte: "nutricion",
+  dispositivos: "dispositivos",
+  dispositivo: "dispositivos",
+  dispositivomedico: "dispositivos",
+  dispositivosmedicos: "dispositivos",
+  equipomedico: "dispositivos",
+};
+
+const RUBRO_ALIAS = {
+  vitaminas: "vitaminas",
+  vitamina: "vitaminas",
+  suplementos: "suplementos",
+  suplemento: "suplementos",
+  proteina: "proteina",
+  proteinas: "proteina",
+  nutriciondeportiva: "proteina",
+  deporte: "proteina",
+  deportiva: "proteina",
+  creatina: "proteina",
+};
+
+/** Aliases de `?seccion=` que además fijan el chip de nutrición. */
+const SECCION_RUBRO_ALIAS = {
+  suplementos: "suplementos",
+  proteina: "proteina",
+  proteinas: "proteina",
+  nutriciondeportiva: "proteina",
+  deporte: "proteina",
+};
+
+/** `?seccion=dermatologia` | `nutricion` (y alias). Vacío = pedidos especiales. */
+export function seccionConseguirDeQuery(search) {
+  try {
+    const raw = new URLSearchParams(typeof search === "string" ? search : "").get("seccion");
+    const key = norm(raw).replace(/[^a-z]/g, "");
+    return SECCION_ALIAS[key] || "";
+  } catch {
+    return "";
+  }
+}
+
+/** `?rubro=` de nutrición. Desconocido → "" (chip Todos). */
+export function rubroDeQuery(search) {
+  try {
+    const raw = new URLSearchParams(typeof search === "string" ? search : "").get("rubro");
+    const key = norm(raw).replace(/[^a-z]/g, "");
+    return RUBRO_ALIAS[key] || "";
+  } catch {
+    return "";
+  }
+}
+
+/** Si el alias de sección implica un chip (suplementos / proteína). */
+export function rubroDesdeAliasSeccion(search) {
+  try {
+    const raw = new URLSearchParams(typeof search === "string" ? search : "").get("seccion");
+    const key = norm(raw).replace(/[^a-z]/g, "");
+    return SECCION_RUBRO_ALIAS[key] || "";
+  } catch {
+    return "";
+  }
+}
+
+export function seccionConseguirPorId(id) {
+  return SECCIONES_CONSEGUIR.find((s) => s.id === id) || null;
+}
+
+/** 3-4 marcas con más productos activos del rubro/sección. Nunca inventa. */
+export function marcasDestacadas(productos, seccion, limite = 4) {
+  const list = filtrarSeccion(productos, seccion, { incluirAnaquel: FASE2_INCLUIR_ANAQUEL });
+  const counts = new Map();
+  for (const p of list) {
+    const m = String(p.marca || "").trim();
+    if (!m) continue;
+    counts.set(m, (counts.get(m) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es", { sensitivity: "base" }))
+    .slice(0, Math.max(1, limite))
+    .map(([m]) => m);
+}
+
+export function copyMarcasSeccion(productos, seccion) {
+  const sec = seccionConseguirPorId(seccion);
+  const marcas = marcasDestacadas(productos, seccion, 4);
+  const base = sec?.desc || "";
+  if (!marcas.length) return base;
+  const lista =
+    marcas.length === 1
+      ? marcas[0]
+      : `${marcas.slice(0, -1).join(", ")} y ${marcas[marcas.length - 1]}`;
+  return `${lista}.`;
+}
 
 function norm(s) {
   return String(s ?? "")
@@ -56,8 +208,23 @@ export function rubroDeProducto(p) {
   const sub = norm(p.subcategoria);
   if (cat === "Cuidado personal" && sub.startsWith("dermatolog")) return "dermatologia";
   if (cat === "Vitaminas") return "vitaminas";
-  if (cat === "Suplemento") return sub.startsWith("protein") ? "proteina" : "suplementos";
+  if (cat === "Suplemento") return esNutricionDeportiva(sub, p.nombre) ? "proteina" : "suplementos";
+  if (cat === "Dispositivo médico") return "dispositivos";
   return "";
+}
+
+/** Proteína, creatina, pre-entreno. No pancreatina ni shampoo con “proteína”. */
+export function esNutricionDeportiva(subcategoria, nombre) {
+  const sub = norm(subcategoria);
+  const nom = norm(nombre);
+  const blob = `${sub} ${nom}`.replace(/-/g, " ");
+  if (/pancreatin/.test(blob)) return false;
+  if (/(shampoo|acondicionador|peinar|cabello|capilar)/.test(blob)) return false;
+  if (sub.startsWith("protein") || sub.startsWith("nutricion deport") || sub.startsWith("deport")) {
+    return true;
+  }
+  return /(^|[^a-z])(creatina|whey|pre[- ]?entren|bcaa|aminoacido|ganador de peso|mass gainer)/.test(blob)
+    || /(proteina 90|proteina vegetal|proteina whey|proteina en polvo|proteina isolate|proteina low)/.test(blob);
 }
 
 /**
@@ -94,12 +261,49 @@ export function prepararListaTienda(productos) {
   return (productos || []).map(prepararProductoTienda);
 }
 
-/** Vitrina de /conseguir: bajo pedido del rubro ("" = todos), alfabético. */
-export function filtrarVitrina(productos, rubro = "") {
+/**
+ * Badge de disponibilidad en vitrina/ficha.
+ * Sobre pedido gana; anaquel clasificado → En tienda; si no, el UI pone Agotado/Hoy.
+ */
+export function badgeVitrina(p) {
+  if (esBajoPedido(p)) return BADGE_SOBRE_PEDIDO;
+  if (rubroDeProducto(p)) return BADGE_EN_TIENDA;
+  return "";
+}
+
+/**
+ * Filtro de página de categoría.
+ * Las vitrinas pasan `incluirAnaquel: FASE2_INCLUIR_ANAQUEL`. El carrito no mezcla.
+ */
+export function filtrarSeccion(productos, seccion, { rubro = "", incluirAnaquel = false } = {}) {
+  const sec = seccionConseguirPorId(seccion);
+  const allow = sec ? new Set(sec.rubros) : null;
   return (productos || [])
-    .filter((p) => esBajoPedido(p) && p.activo !== false)
-    .filter((p) => !rubro || rubroDeProducto(p) === rubro)
-    .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" }));
+    .filter((p) => p && p.activo !== false)
+    .filter((p) => incluirAnaquel || esBajoPedido(p))
+    .filter((p) => {
+      const r = rubroDeProducto(p);
+      if (!r) return false;
+      if (allow && !allow.has(r)) return false;
+      if (rubro && r !== rubro) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const ra = esBajoPedido(a) ? 1 : Number(a.stock) > 0 ? 0 : 2;
+      const rb = esBajoPedido(b) ? 1 : Number(b.stock) > 0 ? 0 : 2;
+      if (ra !== rb) return ra - rb;
+      return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" });
+    });
+}
+
+/** Vitrina de rubro: fase 2 incluye anaquel clasificado. */
+export function filtrarVitrina(productos, rubro = "") {
+  return filtrarSeccion(productos, "", { rubro, incluirAnaquel: FASE2_INCLUIR_ANAQUEL });
+}
+
+/** Productos de una sección (derma o nutrición). Fase 2: anaquel + encargo. */
+export function filtrarVitrinaSeccion(productos, seccionId) {
+  return filtrarSeccion(productos, seccionId, { incluirAnaquel: FASE2_INCLUIR_ANAQUEL });
 }
 
 /** El carrito no mezcla encargos con productos de anaquel (se pagan distinto). */
@@ -121,7 +325,7 @@ export function motivoNoMezclar(cart, prod) {
     return "Tu carrito tiene productos por encargo, que se pagan con reserva. Termina ese pedido o vacía el carrito para comprar productos en existencia.";
   }
   if (t === "normal" && nuevo) {
-    return "Los productos por encargo se pagan aparte (reserva en tarjeta). Termina tu compra actual o vacía el carrito para encargar.";
+    return "Los productos por encargo se pagan aparte (reserva en tarjeta de crédito). Termina tu compra actual o vacía el carrito para encargar.";
   }
   return null;
 }

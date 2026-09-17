@@ -1,14 +1,25 @@
 import {
+  BADGE_EN_TIENDA,
+  BADGE_SOBRE_PEDIDO,
   CANTIDAD_MAX_BAJO_PEDIDO,
+  RUBROS_BAJO_PEDIDO,
+  badgeVitrina,
   cantidadMaximaLinea,
+  copyMarcasSeccion,
   ctaBajoPedido,
+  esNutricionDeportiva,
   estadoReserva,
+  filtrarSeccion,
   filtrarVitrina,
+  filtrarVitrinaSeccion,
   horasRestantesReserva,
   motivoNoMezclar,
   pedidoEsBajoPedido,
   prepararProductoTienda,
   rubroDeProducto,
+  rubroDeQuery,
+  seccionConseguirDeQuery,
+  seccionConseguirPorId,
   tipoCarrito,
 } from "./bajoPedido";
 
@@ -47,9 +58,69 @@ test("rubros por categoria/subcategoria (con alias canónicos)", () => {
   expect(rubroDeProducto(omega)).toBe("suplementos");
   expect(rubroDeProducto(vitC)).toBe("vitaminas");
   expect(rubroDeProducto(paracetamol)).toBe("");
+  expect(rubroDeProducto({ categoria: "Dispositivo médico", nombre: "Tensiómetro de brazo" })).toBe("dispositivos");
+  expect(seccionConseguirDeQuery("?seccion=dispositivos")).toBe("dispositivos");
+  expect(seccionConseguirDeQuery("?seccion=equipo-medico")).toBe("dispositivos");
   const todos = [paracetamol, whey, anthelios, omega, vitC];
   expect(filtrarVitrina(todos).map((p) => p.id)).toEqual([1, 3, 4, 2]);
   expect(filtrarVitrina(todos, "proteina").map((p) => p.id)).toEqual([2]);
+  expect(seccionConseguirDeQuery("?seccion=dermatologia")).toBe("dermatologia");
+  expect(seccionConseguirDeQuery("?seccion=derma")).toBe("dermatologia");
+  expect(seccionConseguirDeQuery("?seccion=vitaminas")).toBe("nutricion");
+  expect(seccionConseguirDeQuery("?seccion=nutricion")).toBe("nutricion");
+  expect(seccionConseguirDeQuery("")).toBe("");
+  expect(filtrarVitrinaSeccion(todos, "dermatologia").map((p) => p.id)).toEqual([1]);
+  expect(filtrarVitrinaSeccion(todos, "nutricion").map((p) => p.id)).toEqual([3, 4, 2]);
+  expect(seccionConseguirDeQuery("?seccion=dermocosmetica")).toBe("dermatologia");
+  const tensio = { id: 21, nombre: "Tensiómetro", activo: true, bajo_pedido: true, categoria: "Dispositivo médico" };
+  expect(filtrarVitrinaSeccion([...todos, tensio], "dispositivos").map((p) => p.id)).toEqual([21]);
+});
+
+test("filtrarSeccion por sección y rubro; anaquel e inactivos fuera si no se pide", () => {
+  const inactivo = { ...anthelios, id: 8, activo: false };
+  const anaquelDerma = { id: 9, nombre: "Cetaphil anaquel", activo: true, bajo_pedido: false, stock: 3, categoria: "Cuidado personal", subcategoria: "Dermatología" };
+  const todos = [paracetamol, whey, anthelios, omega, vitC, inactivo, anaquelDerma];
+  expect(filtrarSeccion(todos, "dermatologia", { incluirAnaquel: false }).map((p) => p.id)).toEqual([1]);
+  expect(filtrarSeccion(todos, "nutricion", { rubro: "proteina" }).map((p) => p.id)).toEqual([2]);
+  expect(filtrarSeccion(todos, "nutricion", { rubro: "vitaminas" }).map((p) => p.id)).toEqual([4]);
+  expect(filtrarSeccion(todos, "nutricion", { rubro: "suplementos" }).map((p) => p.id)).toEqual([3]);
+  expect(filtrarSeccion(todos, "dermatologia", { incluirAnaquel: false }).map((p) => p.id)).not.toContain(9);
+  expect(filtrarSeccion(todos, "dermatologia", { incluirAnaquel: false }).map((p) => p.id)).not.toContain(8);
+});
+
+test("fase 2: anaquel + encargo en vitrina; anaquel con stock primero", () => {
+  const anaquelDerma = { id: 9, nombre: "Cetaphil anaquel", activo: true, bajo_pedido: false, stock: 3, categoria: "Cuidado personal", subcategoria: "Dermatología" };
+  const agotadoDerma = { id: 10, nombre: "Zocalo derma", activo: true, bajo_pedido: false, stock: 0, categoria: "Cuidado personal", subcategoria: "Dermatología" };
+  const todos = [anthelios, anaquelDerma, agotadoDerma];
+  expect(filtrarVitrinaSeccion(todos, "dermatologia").map((p) => p.id)).toEqual([9, 1, 10]);
+  expect(badgeVitrina(anaquelDerma)).toBe(BADGE_EN_TIENDA);
+  expect(badgeVitrina(anthelios)).toBe(BADGE_SOBRE_PEDIDO);
+  expect(badgeVitrina(paracetamol)).toBe("");
+});
+
+test("nutrición deportiva: creatina y whey sí; pancreatina y shampoo no", () => {
+  expect(RUBROS_BAJO_PEDIDO.find((r) => r.id === "proteina").label).toBe("Nutrición deportiva");
+  expect(esNutricionDeportiva("Proteína", "Whey Gold")).toBe(true);
+  expect(esNutricionDeportiva("Nutrición deportiva", "Cualquiera")).toBe(true);
+  expect(rubroDeProducto({ categoria: "Suplemento", subcategoria: "", nombre: "Creatina monohidratada 300 g" })).toBe("proteina");
+  expect(rubroDeProducto({ categoria: "Suplemento", subcategoria: "", nombre: "Pre-entreno tropical" })).toBe("proteina");
+  expect(rubroDeProducto({ categoria: "Suplemento", subcategoria: "", nombre: "Pancreatina 150 mg" })).toBe("suplementos");
+  expect(rubroDeProducto({ categoria: "Suplemento", subcategoria: "Proteína", nombre: "Shampoo con proteína" })).toBe("suplementos");
+  expect(rubroDeQuery("?rubro=creatina")).toBe("proteina");
+  expect(rubroDeQuery("?rubro=nutricion-deportiva")).toBe("proteina");
+  expect(seccionConseguirDeQuery("?seccion=deporte")).toBe("nutricion");
+});
+
+test("copy de marcas solo usa las del catálogo", () => {
+  const a = { ...anthelios, marca: "La Roche-Posay" };
+  const b = { ...anthelios, id: 11, nombre: "Otra", marca: "La Roche-Posay" };
+  const c = { ...anthelios, id: 12, nombre: "Heliocare", marca: "Heliocare" };
+  expect(copyMarcasSeccion([a, b, c], "dermatologia")).toMatch(/La Roche-Posay/);
+  expect(copyMarcasSeccion([a, b, c], "dermatologia")).toMatch(/Heliocare/);
+  expect(copyMarcasSeccion([a, b, c], "dermatologia")).not.toMatch(/Effaclar|Pharmaton/);
+  expect(copyMarcasSeccion([vitC], "dermatologia")).toBe("La crema, el gel o el protector que te recetaron.");
+  expect(seccionConseguirPorId("dispositivos")?.page).toBe("dispositivos");
+  expect(copyMarcasSeccion([vitC], "dispositivos")).toBe("El aparato que te pidieron en consulta.");
 });
 
 test("carrito no mezcla encargo con anaquel y tope de 12", () => {

@@ -468,10 +468,10 @@ export default function FlyerFarmaCapital({ setPage }) {
         </button>
         <button
           type="button"
-          onClick={() => setPage?.("conseguir")}
+          onClick={() => setPage?.("pedidos-especiales")}
           style={{ background: "none", border: "none", color: BLUE, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
         >
-          ¿No lo encuentras? Te lo conseguimos
+          Pedidos especiales
         </button>
       </div>
     </div>

@@ -26,8 +26,20 @@ const MARCAS_TITULO = [
   ["nivea", "Nivea"],
   ["vichy", "Vichy"],
   ["isdin", "Isdin"],
+  ["svr", "SVR"],
   ["avene", "Avène"],
   ["avène", "Avène"],
+  ["bioderma", "Bioderma"],
+  ["heliocare", "Heliocare"],
+  ["cetaphil", "Cetaphil"],
+  ["ducray", "Ducray"],
+  ["a-derma", "A-Derma"],
+  ["aderma", "A-Derma"],
+  ["uriage", "Uriage"],
+  ["endocare", "Endocare"],
+  ["sesderma", "Sesderma"],
+  ["mustela", "Mustela"],
+  ["leti", "Leti"],
 ];
 
 function norm(s) {
