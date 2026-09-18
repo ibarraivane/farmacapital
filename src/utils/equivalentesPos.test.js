@@ -1,4 +1,4 @@
-import { claveSustancia, clasificarRelacionProducto, coincideConsultaDirecta, etiquetaTipoProducto, grupoOpcionesRelacionadas, grupoEquivalentesDeBusqueda } from "./equivalentesPos";
+import { claveSustancia, clasificarRelacionProducto, coincideConsultaDirecta, empaqueComparable, etiquetaTipoProducto, grupoOpcionesRelacionadas, grupoEquivalentesDeBusqueda } from "./equivalentesPos";
 
 const treda = { id: 1, nombre: "Treda antidiarreico C/20", marca: "Treda", tipo: "marca", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "C/20", forma_farmaceutica: "Tabletas", concentracion: "129/280/30 mg", precio: 189, activo: true };
 const nineka = { id: 2, nombre: "Nineka 20 tabletas", marca: "Nineka", tipo: "generico", principio_activo: "Neomicina / Caolín y Pectina", presentacion: "C/20", forma_farmaceutica: "Tabletas", concentracion: "129/280/30 mg", precio: 61, activo: true };
@@ -20,6 +20,15 @@ describe("claveSustancia", () => {
 });
 
 describe("clasificación farmacéutica", () => {
+  it("7 tabletas y caja con 7 tabletas son el mismo empaque", () => {
+    const amsa = { nombre: "Levofloxacino", presentacion: "7 TABLETAS", forma_farmaceutica: "TABLETAS", concentracion: "500 MG", principio_activo: "LEVOFLOXACINO" };
+    const bea = { nombre: "Levofloxacino 500 mg Caja con 7 tabletas beadvance", presentacion: "Caja con 7 tabletas", forma_farmaceutica: "Tableta", concentracion: "500 mg", principio_activo: "Levofloxacino" };
+    const cina = { nombre: "Cina 750 mg", presentacion: "Caja con 7 tabletas", forma_farmaceutica: "Tableta", concentracion: "750 mg", principio_activo: "Levofloxacino 750 mg" };
+    expect(empaqueComparable(amsa)).toBe(empaqueComparable(bea));
+    expect(clasificarRelacionProducto(bea, amsa)).toBe("misma_configuracion");
+    expect(clasificarRelacionProducto(cina, amsa)).toBe("otra_forma");
+  });
+
   it("separa configuración comparable, contenido distinto y otra forma", () => {
     expect(clasificarRelacionProducto(nineka, treda)).toBe("misma_configuracion");
     expect(clasificarRelacionProducto(nineka10, treda)).toBe("otro_contenido");
@@ -378,5 +387,60 @@ describe("grupoEquivalentesDeBusqueda", () => {
       ...grupo.otrasPresentaciones,
     ].map((p) => p.id).sort();
     expect(ids).toEqual([1, 2, 3]);
+  });
+
+  it("levofloxaci y levofloxacino agrupan las mismas tres presentaciones", () => {
+    const amsa = {
+      id: 1,
+      nombre: "Levofloxacino",
+      marca: "AMSA",
+      tipo: "generico",
+      principio_activo: "LEVOFLOXACINO",
+      concentracion: "500 MG",
+      presentacion: "7 TABLETAS",
+      forma_farmaceutica: "TABLETAS",
+      precio: 31,
+      activo: true,
+    };
+    const bea = {
+      id: 2,
+      nombre: "Levofloxacino 500 mg Caja con 7 tabletas beadvance",
+      marca: "beadvance",
+      tipo: "generico",
+      principio_activo: "Levofloxacino",
+      concentracion: "500 mg",
+      presentacion: "Caja con 7 tabletas",
+      forma_farmaceutica: "Tableta",
+      precio: 31,
+      activo: true,
+    };
+    const cina = {
+      id: 3,
+      nombre: "Cina 750 mg Caja con 7 tabletas Landsteiner",
+      marca: "Landsteiner",
+      tipo: "generico",
+      principio_activo: "Levofloxacino 750 mg",
+      concentracion: "750 mg",
+      presentacion: "Caja con 7 tabletas",
+      forma_farmaceutica: "Tableta",
+      precio: 47,
+      activo: true,
+    };
+    const catalogo = [cina, bea, amsa];
+    const idsDe = (grupo) => [
+      ...(grupo?.coincidenciasDirectas || []),
+      ...(grupo?.mismaConfiguracion || []),
+      ...(grupo?.otroContenido || []),
+      ...(grupo?.otrasPresentaciones || []),
+    ].map((p) => p.id).sort();
+
+    const porPrefijo = grupoEquivalentesDeBusqueda(catalogo, [cina, bea], "Levofloxaci");
+    const porNombre = grupoEquivalentesDeBusqueda(catalogo, [amsa, bea, cina], "Levofloxacino");
+    expect(porPrefijo).not.toBeNull();
+    expect(porNombre).not.toBeNull();
+    expect(idsDe(porPrefijo)).toEqual([1, 2, 3]);
+    expect(idsDe(porNombre)).toEqual([1, 2, 3]);
+    expect(clasificarRelacionProducto(bea, amsa)).toBe("misma_configuracion");
+    expect(clasificarRelacionProducto(cina, amsa)).toBe("otra_forma");
   });
 });

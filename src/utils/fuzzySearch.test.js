@@ -1,6 +1,7 @@
 import {
   inventarioProductMatchesBusqueda,
   inventarioSearchRelevanceRank,
+  isAffixedSubstanceCollision,
   tiendaProductMatchesBusqueda,
   tiendaSearchRelevanceRank,
 } from "./fuzzySearch";
@@ -517,6 +518,78 @@ describe("catalog search dimensions", () => {
     };
     expect(tiendaProductMatchesBusqueda(kenciclen, "kenciclen")).toBe(true);
     expect(tiendaProductMatchesBusqueda(kenciclen, "doxiciclina")).toBe(true);
+  });
+});
+
+describe("prefijo de la misma molécula", () => {
+  const amsa = {
+    id: 801,
+    activo: true,
+    nombre: "Levofloxacino",
+    marca: "AMSA",
+    tipo: "generico",
+    principio_activo: "LEVOFLOXACINO",
+    concentracion: "500 MG",
+    presentacion: "7 TABLETAS",
+    forma_farmaceutica: "TABLETAS",
+    precio: 31,
+  };
+  const beadvance = {
+    id: 802,
+    activo: true,
+    nombre: "Levofloxacino 500 mg Caja con 7 tabletas beadvance",
+    marca: "beadvance",
+    tipo: "generico",
+    principio_activo: "Levofloxacino",
+    concentracion: "500 mg",
+    presentacion: "Caja con 7 tabletas",
+    forma_farmaceutica: "Tableta",
+    precio: 31,
+  };
+  const cina = {
+    id: 803,
+    activo: true,
+    nombre: "Cina 750 mg Caja con 7 tabletas Landsteiner",
+    marca: "Landsteiner",
+    tipo: "generico",
+    principio_activo: "Levofloxacino 750 mg",
+    concentracion: "750 mg",
+    presentacion: "Caja con 7 tabletas",
+    forma_farmaceutica: "Tableta",
+    precio: 47,
+  };
+  const desloro = {
+    id: 804,
+    activo: true,
+    nombre: "Histapharm 5 mg",
+    marca: "Quimpharma",
+    principio_activo: "Desloratadina",
+  };
+
+  test("prefijo de la misma palabra no es otra molécula; desloratadina sí", () => {
+    expect(isAffixedSubstanceCollision("levofloxaci", "levofloxacino")).toBe(false);
+    expect(isAffixedSubstanceCollision("levofloxacino", "levofloxaci")).toBe(false);
+    expect(isAffixedSubstanceCollision("loratadina", "desloratadina")).toBe(true);
+    expect(isAffixedSubstanceCollision("desloratadina", "loratadina")).toBe(true);
+  });
+
+  test("levofloxaci y levofloxacino encuentran las tres fichas, no otra molécula", () => {
+    for (const q of ["Levofloxaci", "Levofloxacino", "levofloxacino"]) {
+      expect(tiendaProductMatchesBusqueda(amsa, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(beadvance, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(cina, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(desloro, q)).toBe(false);
+    }
+    expect(tiendaProductMatchesBusqueda(amsa, "loratadina")).toBe(false);
+  });
+
+  test("el nombre corto Levofloxacino no pierde contra el nombre largo al rankear", () => {
+    expect(tiendaSearchRelevanceRank(amsa, "Levofloxaci")).toBeLessThanOrEqual(
+      tiendaSearchRelevanceRank(cina, "Levofloxaci")
+    );
+    expect(tiendaSearchRelevanceRank(amsa, "Levofloxacino")).toBeLessThanOrEqual(
+      tiendaSearchRelevanceRank(beadvance, "Levofloxacino")
+    );
   });
 });
 
