@@ -6,6 +6,7 @@ Las tarjetas salían con el cubo gris porque la URL 404 (Vercel devolvía el HTM
 
 1. Esperar el deploy de este PR (`public/catalogo-propia/…` en farmacapital.mx).
 2. Pegar **todo** `sql/patch_fotos_catalogo_caja_20260918.sql` en Supabase → Run.
+   Si falló con `ux_producto_imagenes_una_principal`, usa esta versión (inserta la galería en falso y luego rota la principal). El intento anterior se revirtió.
 3. Recargar la tienda.
 
 ## Cubrebocas

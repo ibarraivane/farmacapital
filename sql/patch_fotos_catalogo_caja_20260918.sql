@@ -3,7 +3,9 @@
 --
 -- PRIMERO: merge/deploy de este PR (los JPG viven en public/catalogo-propia/).
 -- DESPUÉS: pegar TODO en Supabase → SQL Editor → Run.
--- Idempotente. No usa Fahorro.
+--
+-- Galería: inserta es_principal=false y luego rota
+-- (evita ux_producto_imagenes_una_principal). Idempotente. No usa Fahorro.
 -- ============================================================================
 
 begin;
@@ -41,43 +43,70 @@ insert into _fc_foto_caja (sku, ean, file) values
   ('FC-85171118', '7501685171118', 'sico-invisible-c3-7501685171113.jpg'),
   ('FC-00100013', '2008500100013', 'cubrebocas-tricapa-negro.jpg');
 
+create temp table _fc_foto_match (
+  producto_id bigint primary key,
+  url text not null,
+  file text not null
+) on commit drop;
+
+insert into _fc_foto_match (producto_id, url, file)
+select distinct on (p.id)
+  p.id,
+  'https://www.farmacapital.mx/catalogo-propia/' || t.file,
+  t.file
+from public.productos p
+join _fc_foto_caja t
+  on (t.sku is not null and p.sku = t.sku)
+  or (t.ean is not null and nullif(btrim(p.codigo_barras), '') = t.ean)
+order by p.id, t.file;
+
 update public.productos p
 set
-  imagen_url = 'https://www.farmacapital.mx/catalogo-propia/' || t.file,
-  imagen_mobile_url = 'https://www.farmacapital.mx/catalogo-propia/' || t.file
-from _fc_foto_caja t
-where (
-    (t.sku is not null and p.sku = t.sku)
-    or (t.ean is not null and p.codigo_barras = t.ean)
-  )
-  and coalesce(p.imagen_url, '') not like '%' || t.file || '%';
+  imagen_url = m.url,
+  imagen_mobile_url = m.url
+from _fc_foto_match m
+where p.id = m.producto_id
+  and coalesce(p.imagen_url, '') is distinct from m.url;
 
 insert into public.producto_imagenes
   (producto_id, url, storage_path, posicion, es_principal, origen)
 select
-  p.id,
-  'https://www.farmacapital.mx/catalogo-propia/' || t.file,
-  'catalogo-propia/' || t.file,
-  coalesce((select max(i.posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true,
+  m.producto_id,
+  m.url,
+  'catalogo-propia/' || m.file,
+  coalesce((select max(i.posicion) from public.producto_imagenes i where i.producto_id = m.producto_id), 0) + 1,
+  false,
   'propia'
-from public.productos p
-join _fc_foto_caja t
-  on (t.sku is not null and p.sku = t.sku)
-  or (t.ean is not null and p.codigo_barras = t.ean)
+from _fc_foto_match m
 where not exists (
   select 1 from public.producto_imagenes i
-  where i.producto_id = p.id
-    and i.url like '%' || t.file || '%'
+  where i.producto_id = m.producto_id and i.url = m.url
 );
 
 update public.producto_imagenes i
-set es_principal = (i.url like '%' || t.file || '%')
+set es_principal = false
+where i.producto_id in (select producto_id from _fc_foto_match)
+  and i.es_principal
+  and i.url not in (
+    select m.url from _fc_foto_match m where m.producto_id = i.producto_id
+  );
+
+update public.producto_imagenes i
+set es_principal = true
+where i.producto_id in (select producto_id from _fc_foto_match)
+  and i.es_principal is distinct from true
+  and i.url in (
+    select m.url from _fc_foto_match m where m.producto_id = i.producto_id
+  );
+
+select
+  p.id,
+  p.sku,
+  left(p.nombre, 48) as nombre,
+  left(p.imagen_url, 80) as foto
 from public.productos p
-join _fc_foto_caja t
-  on (t.sku is not null and p.sku = t.sku)
-  or (t.ean is not null and p.codigo_barras = t.ean)
-where i.producto_id = p.id;
+join _fc_foto_match m on m.producto_id = p.id
+order by p.sku;
 
 notify pgrst, 'reload schema';
 
