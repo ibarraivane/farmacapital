@@ -10,11 +10,11 @@ El archivo único de 900 KB **no cabe** en Supabase. Por eso `/conseguir` sigue 
 
 Al final `99` debe devolver algo como:
 
-| bajo_pedido | encargar | cotizar |
+| bajo_pedido | con_precio | ordenar |
 |---:|---:|---:|
-| ~3300 | ~2700 | ~640 |
+| ~3300 | 0 | ~3300 |
 
-Si sigue en ~111, faltó alguna parte o `99` no corrió.
+Si sigue en ~111, faltó alguna parte o `99` no corrió. El precio público va en 0 (botón Ordenar) aunque el staging traiga una cifra calculada.
 
 ## Opción B — una sola corrida
 

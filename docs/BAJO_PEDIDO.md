@@ -11,9 +11,9 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 | Campo | Regla |
 | --- | --- |
 | `bajo_pedido` | `true` (columna creada por `sql/patch_bajo_pedido_20260916.sql`; correr ANTES de las altas) |
-| `costo` | **Costo del mayorista** (DermaPharma, Birdman, Nadro, etc.). Obligatorio para Encargar |
-| `precio` | **Ancla de mostrador** = costo mayoreo + ganancia FarmaCapital (marca +25% / genérico +60% sobre costo). Nunca lista de Del Ahorro / Similares / otra farmacia. Nunca con Mercado Pago incluido |
-| `precio <= 0.01` o sin costo | Sale en vitrina con **Cotizar**; no se puede pagar en línea. Mejor Cotizar que Encargar con precio ajeno |
+| `costo` | **Costo del mayorista** (DermaPharma, Birdman, Nadro, etc.). Se guarda para cotizar. No se publica |
+| `precio` | **Hoy: 0.** El dueño no ha revisado cifras. La vitrina dice **Ordenar**, sin número. Cuando él cierre un precio: costo mayoreo + ganancia (marca +25% / genérico +60% sobre costo). Nunca lista de otra farmacia |
+| `precio = 0` | CTA **Ordenar** → formulario. No se puede pagar en línea |
 | `stock` | 0. No inventar lote/caducidad |
 | `categoria` / `subcategoria` | Dermatología = `Cuidado personal` + `Dermatología` · Vitaminas = `Vitaminas` · Suplementos = `Suplemento` · Proteína = `Suplemento` + `Proteína` · Dispositivos = `Dispositivo médico` o `Botiquín`. **No** hay categoría nueva |
 | nombre, marca, foto, SKU | Nombre de mostrador, marca real, foto obligatoria, `FC-` + últimos 8 del EAN |
@@ -21,7 +21,7 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 
 ### Prohibido en precio de bajo pedido
 - Pegar PVP / lista de Farmacias del Ahorro, Similares, Guadalajara, etc. como `productos.precio`.
-- Poner «Encargar» sin `costo` de mayoreo: el cliente ordenaría a un precio que tú no puedes sostener.
+- Poner precio de otra farmacia, o decir «Encargar», mientras el dueño no cierre las cifras.
 
 ## Precio web
 Tarjeta: solo 3.49% + IVA. Skittles $10 → **$11**.
@@ -30,9 +30,9 @@ Tarjeta: solo 3.49% + IVA. Skittles $10 → **$11**.
 - SQL: `sql/patch_servicio_5_pedido_20260916.sql`.
 
 ## Tienda
-- `/conseguir`: vitrina por rubro (Todos · Dermatología · Vitaminas · Suplementos · Proteína · Dispositivos médicos) + formulario «Levantar pedido». Recuadro ámbar/crema, distinto del anaquel. CTA **Encargar** en terracota (`#C9451F`), no el navy de Ver detalle.
+- `/conseguir`: vitrina por rubro (Todos · Dermatología · Vitaminas · Suplementos · Proteína · Dispositivos médicos) + formulario «Levantar pedido». Recuadro ámbar/crema, distinto del anaquel. CTA **Ordenar** (navy), sin precio.
 - Buscador de home/catálogo/ficha: tercer botón «Te lo conseguimos» (celular: «Conseguir»). El header no lo lleva.
-- Tarjeta y ficha: badges **Bajo pedido** + **24-48 hrs**, nunca «Agotado». CTA **Encargar** (con precio) o **Cotizar** (sin precio → formulario prellenado).
+- Tarjeta y ficha: badges **Bajo pedido** + **24-48 hrs**, nunca «Agotado». CTA **Ordenar** (sin precio → formulario prellenado). No decir «Encargar» hasta que el dueño cierre precios.
 - Carrito: máx. 12 por línea; **no mezcla** encargos con productos de anaquel.
 
 ## Cobro: reserva en tarjeta (no cae a la cuenta hasta conseguirlo)

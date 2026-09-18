@@ -8,7 +8,7 @@ import { CONSEGUIR_UI, RUBROS_BAJO_PEDIDO, STRIP_TOPE_CONSEGUIR, filtrarVitrina,
  * Vitrina de /conseguir: productos bajo pedido por rubro.
  * «Todos» = una banda por rubro (tarjetas de 220px, mismo RecompraStrip del home).
  * Un rubro = cuadrícula igual a la del catálogo.
- * `renderProducto` viene de Tienda.jsx para usar la misma ProductCard (Encargar / Cotizar).
+ * `renderProducto` viene de Tienda.jsx para usar la misma ProductCard (botón Ordenar, sin precio).
  */
 export default function VitrinaConseguir({ productos, loading, stack, renderProducto, onIrAFormulario }) {
   const [rubro, setRubro] = useState("");
@@ -64,8 +64,7 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
         </h1>
       </div>
       <p style={{ margin: "0 0 14px", color: "#475569", fontSize: 14, lineHeight: 1.6, maxWidth: 760 }}>
-        Productos <strong>bajo pedido</strong>: te los conseguimos en 24-48 hrs. Con precio: encargas y apartas con
-        tarjeta; se cobra cuando estén listos. Sin precio: te cotizamos.{" "}
+        Productos <strong>bajo pedido</strong>: te los conseguimos en 24-48 hrs. Toca <strong>Ordenar</strong> y te cotizamos; todavía no publicamos el precio.{" "}
         {typeof onIrAFormulario === "function" ? (
           <button type="button" onClick={onIrAFormulario} style={{ background: "none", border: "none", padding: 0, color: BRAND.secondary, fontWeight: 700, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
             ¿No está en la lista? Pídelo abajo.

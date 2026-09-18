@@ -3,14 +3,13 @@
  *
  * Un producto bajo pedido (`productos.bajo_pedido = true`) no está en anaquel:
  * se exhibe con stock 0, sin «Agotado», y se consigue con mayorista.
- * - Con ancla usable (precio > $0.01): CTA «Encargar» → carrito → pago con
- *   RESERVA en tarjeta (se cobra al conseguirlo; si no, se cancela sin cargo).
- * - Sin ancla: CTA «Cotizar» → formulario de /conseguir.
- * Rubros de la vitrina salen de categoria/subcategoria (no hay categoría nueva).
+ * El dueño aún no revisa los precios de la vitrina. Por eso NO se publica cifra
+ * y el CTA es «Ordenar» → formulario de /conseguir (no carrito, no reserva).
+ * Rubros: categoria/subcategoria (no hay categoría nueva).
  */
 import { categoriaCanon } from "../constants/categoriasProducto";
 import { TOKENS } from "../theme/tokens";
-import { precioAnclaUsable, precioOnlineMp } from "./precioOnlineMp";
+import { precioOnlineMp } from "./precioOnlineMp";
 
 /** Tope por línea en el carrito (no depende del stock físico). */
 export const CANTIDAD_MAX_BAJO_PEDIDO = 12;
@@ -26,9 +25,12 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "dispositivos", label: "Dispositivos médicos" },
 ]);
 
+/** Botón de la vitrina. No decir «Encargar»: el dueño no ha cerrado precios. */
+export const ETIQUETA_CTA_ORDENAR = "Ordenar";
+
 /**
- * Encargar (terracota de marca): distinto del navy de «Ver detalle» / «+ Carrito».
- * El jade queda para la confirmación («✓ Listo»).
+ * Terracota de marca, distinto del navy de «Ver detalle». Reservado por si
+ * más adelante se vuelve a cobrar en línea. Hoy la vitrina no lo usa.
  */
 export const COLOR_CTA_ENCARGAR = TOKENS.accent;
 export const COLOR_CTA_ENCARGADO = TOKENS.jade;
@@ -69,10 +71,13 @@ export function precioAncla(p) {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** "encargar" si se puede pagar en línea, "cotizar" si no hay precio usable, null si no es bajo pedido. */
+/**
+ * "ordenar" en toda la vitrina (sin precio publicado), null si no es bajo pedido.
+ * No devolver "encargar": el dueño todavía no revisó las cifras.
+ */
 export function ctaBajoPedido(p) {
   if (!esBajoPedido(p)) return null;
-  return precioAnclaUsable(precioAncla(p)) ? "encargar" : "cotizar";
+  return "ordenar";
 }
 
 export function rubroDeProducto(p) {
@@ -97,22 +102,22 @@ export function estiloRecuadroConseguir({ hover = false } = {}) {
 /**
  * Producto como lo ve la TIENDA WEB: ancla → precio con MP.
  * Idempotente: si ya trae `precio_ancla`, no vuelve a inflar.
- * Bajo pedido: sin descuentos (el servidor cobra fc_precio_online_mp sin promos).
+ * Bajo pedido: sin cifra (el dueño no ha cerrado precios).
  */
 export function prepararProductoTienda(p) {
   if (!p) return p;
-  const ancla = precioAncla(p);
-  const web = precioOnlineMp(ancla);
-  if (web == null) {
-    if (!esBajoPedido(p)) return p;
+  if (esBajoPedido(p)) {
     return {
       ...p,
-      precio_ancla: ancla,
+      precio_ancla: 0,
       precio: 0,
       descuento_pct: 0,
       precio_marca: null,
     };
   }
+  const ancla = precioAncla(p);
+  const web = precioOnlineMp(ancla);
+  if (web == null) return p;
   const marcaN = Number(p.precio_marca);
   const marcaWeb = Number.isFinite(marcaN) && marcaN > 0.01 ? precioOnlineMp(marcaN) : p.precio_marca;
   return {
@@ -120,7 +125,7 @@ export function prepararProductoTienda(p) {
     precio_ancla: ancla,
     precio: web,
     precio_marca: marcaWeb ?? p.precio_marca,
-    descuento_pct: esBajoPedido(p) ? 0 : (p.descuento_pct ?? 0),
+    descuento_pct: p.descuento_pct ?? 0,
   };
 }
 
