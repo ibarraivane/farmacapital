@@ -113,6 +113,22 @@ if (!/7501008499245/.test(sqlFl6) || !/7501008849949/.test(sqlFl6)) {
 if (!/estado = 'pendiente_alta'/.test(sqlFl6) || !/confirmada/.test(sqlFl6)) {
   fail("El SQL correctivo tiene que cerrar tickets reabiertos (pendiente_alta → confirmada).");
 }
+const sqlScan18 = read("sql/patch_recibir_farmalive_equilibrio_escanear_20260918.sql");
+if (!/12790/.test(sqlScan18) || !/127900/.test(sqlScan18)) {
+  fail("El SQL 20260918 tiene que cubrir folio 12790 y 127900, no solo 127790.");
+}
+if (!/7501008499429/.test(sqlScan18) || !/6502400079009/.test(sqlScan18) || !/7501088509926/.test(sqlScan18)) {
+  fail("El SQL 20260918 tiene que alta Teatrical 19g, Gotinal y Aspirina 3-pack con el EAN de la caja.");
+}
+if (!/'codigo_barras', pr\.codigo_barras/.test(sqlScan18)) {
+  fail("fc_recepcion_json tiene que mandar codigo_barras para el match de pistola.");
+}
+if (!/6502400%/.test(sqlScan18)) {
+  fail("fc_match_codigo_barras tiene que cruzar Genomma 12↔13 (6502400).");
+}
+if (/itemId && !pendiente\.pendienteAlta/.test(rec)) {
+  fail("RecepcionModule: un renglón pendiente de alta con itemId se confirma, no se duplica.");
+}
 
 async function assertScanLogic() {
   const scanUrl = pathToFileURL(path.join(root, "src/lib/recepcionScan.js")).href;
@@ -125,6 +141,7 @@ async function assertScanLogic() {
     matchScanEnTicket,
     extractGs1Gtin,
     esSerialTerminalPoint,
+    barcodeDigitsMatch,
   } = await import(scanUrl);
   const { parseCaducidadMMAA } = await import(cadUrl);
 
@@ -185,6 +202,13 @@ async function assertScanLogic() {
   }
   if (!esSerialTerminalPoint("NCCC05728001")) {
     fail("Serial Point NCCC… debe reconocerse para no dejarlo pegado.");
+  }
+  if (!barcodeDigitsMatch("6502400079009", "650240079009")) {
+    fail("Teatrical rosa: la caja 6502400079009 tiene que abrir el ticket 650240079009.");
+  }
+  const teatrical = { confirmado: false, codigo_escaneado: "650240079009", origen: "csv" };
+  if (!itemMatchScan(teatrical, "6502400079009")) {
+    fail("Pistola Teatrical 19 g tiene que abrir el renglón amarillo.");
   }
 }
 

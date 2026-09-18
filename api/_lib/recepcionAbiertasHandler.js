@@ -86,7 +86,7 @@ async function cargarRecepcion(supabaseUrl, serviceKey, recepcionId) {
     productos = await restGet(
       supabaseUrl,
       serviceKey,
-      `productos?id=in.(${pids.join(',')})&select=id,nombre,sku`,
+      `productos?id=in.(${pids.join(',')})&select=id,nombre,sku,codigo_barras`,
     );
   }
   const prodById = new Map(productos.map((p) => [Number(p.id), p]));
@@ -99,6 +99,7 @@ async function cargarRecepcion(supabaseUrl, serviceKey, recepcionId) {
       codigo_escaneado: i.codigo_escaneado,
       nombre: pr?.nombre || i.nombre_snapshot || i.codigo_escaneado,
       sku: pr?.sku || null,
+      codigo_barras: pr?.codigo_barras || null,
       cantidad: i.cantidad,
       fecha_caducidad: i.fecha_caducidad,
       numero_lote: i.numero_lote,

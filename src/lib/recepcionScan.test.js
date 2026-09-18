@@ -12,6 +12,8 @@ import {
   esSerialTerminalPoint,
   barcodeDigitsMatch,
   normalizeBarcodeRaw,
+  genommaTicketVsCaja,
+  beepContieneCodigo,
 } from "./recepcionScan";
 
 const TEGADERM = {
@@ -312,6 +314,53 @@ describe("GS1 / DataMatrix en Recibir", () => {
     const r = resolverEscaneoRecepcion({
       items: [item],
       codigo: "]d201075013490233691728031110U26J016",
+      productos: [],
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("gris");
+  });
+
+  test("Genomma 12 vs 13: ticket se come un 0, la caja lo trae", () => {
+    expect(genommaTicketVsCaja("650240079009", "6502400079009")).toBe(true);
+    expect(genommaTicketVsCaja("650240078996", "6502400078996")).toBe(true);
+    expect(barcodeDigitsMatch("6502400079009", "650240079009")).toBe(true);
+    expect(barcodeDigitsMatch("6502400078996", "650240078996")).toBe(true);
+    const rosa = {
+      confirmado: false,
+      codigo_escaneado: "650240079009",
+      origen: "csv",
+    };
+    const azul = {
+      confirmado: false,
+      codigo_escaneado: "650240078996",
+      origen: "csv",
+    };
+    expect(itemMatchScan(rosa, "6502400079009", [])).toBe(true);
+    expect(itemMatchScan(rosa, "6502400070009", [])).toBe(true);
+    expect(itemMatchScan(azul, "6502400078996", [])).toBe(true);
+    expect(resolverEscaneoRecepcion({
+      items: [rosa, azul],
+      codigo: "6502400079009",
+      productos: [],
+      esTicketDocumento: true,
+    }).tipo).toBe("gris");
+  });
+
+  test("beep GS1 largo contiene el EAN aunque AI 01 no parsee", () => {
+    expect(beepContieneCodigo("01075013490233691728031110U26J016", "7501349023369")).toBe(true);
+    const item = {
+      confirmado: false,
+      codigo_escaneado: "EQ-AMS160",
+      sku: "EQ-AMS160",
+      codigo_barras: "7501349023369",
+      numero_lote: "U26J016",
+      origen: "pdf",
+    };
+    expect(itemMatchScan(item, "7501349023369", [])).toBe(true);
+    expect(itemMatchScan(item, "01099999999999991728031110U26J016", [])).toBe(true);
+    const r = resolverEscaneoRecepcion({
+      items: [item],
+      codigo: "7501349023369",
       productos: [],
       esTicketDocumento: true,
     });
