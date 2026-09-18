@@ -98,6 +98,18 @@ export function codigosBarrasDeProducto(product) {
 }
 
 /** Coincidencia flexible EAN-13 / UPC-A (pistola vs BD con dígito extra). */
+function genommaTicketVsCajaLookup(a, b) {
+  const norm = (d) => {
+    const t = String(d || "").replace(/\D/g, "");
+    if (/^6502400\d{6}$/.test(t)) return `650240${t.slice(7)}`;
+    if (/^650240\d{6}$/.test(t)) return t;
+    return null;
+  };
+  const na = norm(a);
+  const nb = norm(b);
+  return !!(na && nb && na === nb);
+}
+
 export function barcodeDigitsMatch(scanRaw, storedRaw, { allowNearPrefix = true } = {}) {
   const scan = normalizeBarcodeRaw(scanRaw);
   const stored = normalizeBarcodeRaw(storedRaw);
@@ -111,6 +123,7 @@ export function barcodeDigitsMatch(scanRaw, storedRaw, { allowNearPrefix = true 
     if (stored.startsWith(scan) && stored.length - scan.length <= 1) return true;
     if (scan.startsWith(stored) && scan.length - stored.length <= 1) return true;
   }
+  if (genommaTicketVsCajaLookup(scan, stored)) return true;
   return false;
 }
 

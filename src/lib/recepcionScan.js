@@ -87,6 +87,19 @@ export function scanCodigoCandidates(raw) {
   return out;
 }
 
+/** Genomma 650240: ticket 12 dígitos se come un 0; la caja trae 13 (6502400…). */
+export function genommaTicketVsCaja(a, b) {
+  const norm = (d) => {
+    const t = String(d || "").replace(/\D/g, "");
+    if (/^6502400\d{6}$/.test(t)) return `650240${t.slice(7)}`;
+    if (/^650240\d{6}$/.test(t)) return t;
+    return null;
+  };
+  const na = norm(a);
+  const nb = norm(b);
+  return !!(na && nb && na === nb);
+}
+
 export function barcodeDigitsMatch(scanRaw, storedRaw) {
   const scan = normalizeBarcodeRaw(scanRaw).replace(/\D/g, "");
   const stored = normalizeBarcodeRaw(storedRaw).replace(/\D/g, "");
@@ -100,6 +113,19 @@ export function barcodeDigitsMatch(scanRaw, storedRaw) {
   // Dígito verificador al final: ticket 650240013850 ↔ catálogo 6502400138504
   if (scan.length >= 8 && stored.length === scan.length + 1 && stored.startsWith(scan)) return true;
   if (stored.length >= 8 && scan.length === stored.length + 1 && scan.startsWith(stored)) return true;
+  if (genommaTicketVsCaja(scan, stored)) return true;
+  return false;
+}
+
+/** El DataMatrix a veces no parsea AI 01; el EAN del ticket va embebido en el beep. */
+export function beepContieneCodigo(raw, storedRaw) {
+  const digits = normalizeBarcodeRaw(raw).replace(/\D/g, "");
+  const stored = normalizeBarcodeRaw(storedRaw).replace(/\D/g, "");
+  if (!stored || stored.length < 8 || digits.length <= stored.length) return false;
+  if (digits.includes(stored)) return true;
+  if (stored.length >= 12 && digits.includes(stored.slice(0, 12))) return true;
+  if (/^650240\d{6}$/.test(stored) && digits.includes(`6502400${stored.slice(6)}`)) return true;
+  if (/^6502400\d{6}$/.test(stored) && digits.includes(`650240${stored.slice(7)}`)) return true;
   return false;
 }
 
@@ -149,7 +175,10 @@ export function recepcionEsTicket(doc) {
 function itemMatchScanOne(it, codigo, productos = []) {
   if (!it || !codigo) return false;
   if (it.codigo_escaneado && codigoEsAlias(codigo, it.codigo_escaneado)) return true;
+  if (it.codigo_barras && codigoEsAlias(codigo, it.codigo_barras)) return true;
   if (it.sku && String(it.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
+  if (it.codigo_escaneado && beepContieneCodigo(codigo, it.codigo_escaneado)) return true;
+  if (it.codigo_barras && beepContieneCodigo(codigo, it.codigo_barras)) return true;
 
   const porId = it.producto_id != null
     ? productos.find((p) => p?.id === it.producto_id)
@@ -171,7 +200,10 @@ function loteTicketMatch(it, raw) {
   const lot = extractGs1Lot(raw);
   if (lot && lot.toUpperCase() === stored.toUpperCase()) return true;
   const code = normalizeBarcodeRaw(raw);
-  return !!(code && code.toUpperCase() === stored.toUpperCase());
+  if (code && code.toUpperCase() === stored.toUpperCase()) return true;
+  const rawU = normalizeBarcodeRaw(raw).toUpperCase();
+  if (stored.length >= 5 && rawU.includes(stored.toUpperCase())) return true;
+  return false;
 }
 
 export function itemMatchScan(it, codigo, productos = []) {

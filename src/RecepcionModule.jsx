@@ -664,7 +664,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       if (hit.motivo === "serial_point" || esSerialTerminalPoint(codigo)) {
         setErrorLinea("Eso es el serial de la terminal Point, no un producto. Escanea el código de barras de la caja.");
       } else {
-        setErrorLinea("No corresponde a ninguno de los ítems de este ticket. Escanea el EAN de la caja (no el lote).");
+        setErrorLinea("Ese beep no está en este ticket. Toca el renglón gris de esa caja y teclea MMAA.");
       }
       return;
     }
@@ -787,9 +787,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         setErrorLinea("Pon el nombre del producto");
         return;
       }
+      const itemRow = (doc?.items || []).find((i) => i.id === pendiente.itemId);
+      const codigoAlta = String(itemRow?.codigo_escaneado || pendiente.codigo || "").trim();
       const pdata = payloadAltaRecepcion({
         nombre,
-        codigo: pendiente.codigo,
+        codigo: codigoAlta,
         tipo: altaTipo,
         costo: costoN,
       });
@@ -829,7 +831,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     }
     let data;
     let error;
-    if (pendiente.itemId && !pendiente.pendienteAlta) {
+    if (pendiente.itemId) {
       ({ data, error } = await supabase.rpc("recepcion_confirmar_item", {
         p_session_token: tok,
         p_item_id: pendiente.itemId,
