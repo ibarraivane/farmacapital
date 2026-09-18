@@ -55,6 +55,7 @@ import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
   CANTIDAD_MAX_BAJO_PEDIDO,
   cantidadMaximaLinea,
+  colorCtaEncargar,
   ctaBajoPedido,
   esBajoPedido,
   motivoNoMezclar,
@@ -376,7 +377,7 @@ const FAQ_ITEMS = [
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
   { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos» o entra a /conseguir. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
-  { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos y proteína). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tengamos listo. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Cotizar» y te mandamos el costo." },
+    { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos, proteína y dispositivos médicos). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tengamos listo. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Cotizar» y te mandamos el costo." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -1952,7 +1953,7 @@ function ProductCard({prod,addToCart,onClick}){
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={handleDetailClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
           {cta ? (
-            <Btn onClick={handleAddClick} col={added?BRAND.secondary:BRAND.primary} sm style={{flex:1}}>{cta==="cotizar"?"Cotizar":added?"✓ Listo":"Encargar"}</Btn>
+            <Btn onClick={handleAddClick} col={cta==="cotizar"?BRAND.primary:colorCtaEncargar(added)} sm style={{flex:1}}>{cta==="cotizar"?"Cotizar":added?"✓ Listo":"Encargar"}</Btn>
           ) : (
           <Btn onClick={handleAddClick} col={agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#9A9184":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{agotado?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
           )}
@@ -2128,7 +2129,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               <Btn onClick={irACotizar} col={BRAND.primary} style={{flex:"1 1 min(100%,240px)",minWidth:0}}>Cotizar</Btn>
             ) : (
               <>
-                <Btn onClick={()=>{ if(addToCart(prod)===false) return; setAdded(true); setTimeout(()=>setAdded(false),1500); }} col={added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{added?"✓ Encargado":"Encargar"}</Btn>
+                <Btn onClick={()=>{ if(addToCart(prod)===false) return; setAdded(true); setTimeout(()=>setAdded(false),1500); }} col={colorCtaEncargar(added)} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{added?"✓ Encargado":"Encargar"}</Btn>
                 <Btn onClick={()=>{ if(addToCart(prod)===false) return; setPage("carrito"); }} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Encargar y apartar</Btn>
               </>
             )}

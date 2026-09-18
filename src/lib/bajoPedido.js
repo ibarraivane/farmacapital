@@ -9,6 +9,7 @@
  * Rubros de la vitrina salen de categoria/subcategoria (no hay categoría nueva).
  */
 import { categoriaCanon } from "../constants/categoriasProducto";
+import { TOKENS } from "../theme/tokens";
 import { precioAnclaUsable, precioOnlineMp } from "./precioOnlineMp";
 
 /** Tope por línea en el carrito (no depende del stock físico). */
@@ -22,8 +23,19 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "vitaminas", label: "Vitaminas" },
   { id: "suplementos", label: "Suplementos" },
   { id: "proteina", label: "Proteína" },
-  { id: "dispositivos", label: "Dispositivos" },
+  { id: "dispositivos", label: "Dispositivos médicos" },
 ]);
+
+/**
+ * Encargar (terracota de marca): distinto del navy de «Ver detalle» / «+ Carrito».
+ * El jade queda para la confirmación («✓ Listo»).
+ */
+export const COLOR_CTA_ENCARGAR = TOKENS.accent;
+export const COLOR_CTA_ENCARGADO = TOKENS.jade;
+
+export function colorCtaEncargar(added) {
+  return added ? COLOR_CTA_ENCARGADO : COLOR_CTA_ENCARGAR;
+}
 
 function norm(s) {
   return String(s ?? "")
