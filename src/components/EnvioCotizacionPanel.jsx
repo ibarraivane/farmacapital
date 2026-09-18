@@ -8,9 +8,19 @@ import {
   leerMetaEnvio,
   proveedorSugerido,
 } from "../lib/envioDomicilio";
+import { Inp, Btn } from "../ui";
+import { C_LIGHT } from "../constants";
 
 const DIDI_STAFF_URL = "https://www.didi-food.com/es-MX/mobile-delivery/home";
 const UBER_STAFF_URL = "https://m.uber.com/";
+
+const campoClaro = {
+  background: "#ffffff",
+  color: C_LIGHT.text,
+  WebkitTextFillColor: C_LIGHT.text,
+  caretColor: C_LIGHT.text,
+  colorScheme: "light",
+};
 
 export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
   const meta = leerMetaEnvio(pedido);
@@ -79,6 +89,7 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
       background: "#f0fdfa",
       fontSize: 12,
       color: "#134e4a",
+      colorScheme: "light",
     }}>
       <div style={{ fontWeight: 800, marginBottom: 6 }}>Entrega a domicilio</div>
       <div style={{ lineHeight: 1.4, marginBottom: 8 }}>
@@ -113,27 +124,41 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
       </div>
       {meta.estado !== "en_ruta" && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-          <label>
-            Costo transporte{" "}
-            <input
+          <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#134e4a", fontWeight: 700 }}>
+            Costo transporte
+            <Inp
               value={costo}
               onChange={(e) => setCosto(e.target.value)}
+              placeholder="0.00"
               inputMode="decimal"
-              style={{ width: 80, padding: "4px 6px" }}
+              style={{ width: 96, minWidth: 96, padding: "8px 10px", minHeight: 40, ...campoClaro }}
             />
           </label>
-          <label>
-            App{" "}
-            <select value={proveedor} onChange={(e) => setProveedor(e.target.value)}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#134e4a", fontWeight: 700 }}>
+            App
+            <select
+              className="farmacapital-field-input farmacapital-field-select"
+              value={proveedor}
+              onChange={(e) => setProveedor(e.target.value)}
+              style={{
+                ...campoClaro,
+                minHeight: 40,
+                padding: "8px 10px",
+                border: "1px solid #e2e8f0",
+                borderRadius: 8,
+                fontSize: 16,
+                fontFamily: "var(--fc-body)",
+              }}
+            >
               <option value="didi">DiDi</option>
               <option value="uber">Uber</option>
               <option value="propio">Repartidor propio</option>
             </select>
           </label>
-          <button type="button" disabled={busy || pedidoPaid} onClick={enviarCotizacion}>
+          <Btn sm col="#0f766e" dis={busy || pedidoPaid} onClick={enviarCotizacion}>
             Guardar y avisar al cliente
-          </button>
-          <button type="button" disabled={busy} onClick={marcarRuta}>Marcar en ruta</button>
+          </Btn>
+          <Btn sm ol col="#0f766e" dis={busy} onClick={marcarRuta}>Marcar en ruta</Btn>
         </div>
       )}
     </div>

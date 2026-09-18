@@ -179,11 +179,12 @@ async function fetchPedidosTransaccionesCola(supabase, tok, opts = {}) {
 export async function countPedidosTiendaPendientesHead(supabase, sessionToken = null) {
   const tok = sessionTokenEmpleado(sessionToken);
   if (!tok) return { count: 0, error: null };
-  const { data, error } = await supabase.rpc("empleado_contar_pedidos_tienda_web_pendientes", {
-    p_session_token: tok,
+  const { data, error } = await fetchPedidosTiendaPendientesMerged(supabase, null, {
+    sessionToken: tok,
+    maxRows: 300,
   });
-  if (error) return { count: 0, error };
-  return { count: Number(data) || 0, error: null };
+  if (error && !(data && data.length)) return { count: 0, error };
+  return { count: (data || []).length, error: null };
 }
 
 /**

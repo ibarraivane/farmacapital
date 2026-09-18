@@ -137,7 +137,7 @@ export function Btn({children,onClick,col,sm,ol,outline,dis,disabled,full,style,
   );
 };
 
-export function Inp({value,onChange,placeholder,style,type,onKeyDown,onBlur,disabled,name,autoComplete,className="",invalid=false}){
+export function Inp({value,onChange,placeholder,style,type,onKeyDown,onBlur,disabled,name,autoComplete,className="",invalid=false,inputMode}){
   const C = C_LIGHT;
   return(
 
@@ -148,6 +148,7 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown,onBlur,disa
     disabled={disabled}
     placeholder={placeholder}
     type={type||"text"}
+    inputMode={inputMode}
     onKeyDown={onKeyDown}
     name={name}
     autoComplete={autoComplete}

@@ -63,27 +63,20 @@ import { planSurtirReceta } from "../../../utils/recetaDisponibilidad";
 import RecetaColaMostrador from "../../../components/receta/RecetaColaMostrador";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
-import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import PagoServiciosPanel, { rpcRegistrarPagoServicio } from "./PagoServiciosPanel";
 import { printServicioTicket } from "../../../utils/servicioTicket";
 import AperturaCajaModal from "./AperturaCajaModal";
 import { NuevaDevolucionModal } from "../../../DevolucionesModule";
 import { esVendedor, fetchSesionCajaAbierta } from "../../../utils/cajaSesion";
 import {
-  buildOnlineOrderReceiptMessage,
   formatFolioOnline,
   notifyOrderReady,
-  openWhatsAppToCustomer,
 } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
-import EnvioCotizacionPanel from "../../../components/EnvioCotizacionPanel";
+import PedidoOnlineCard from "../../../components/PedidoOnlineCard";
+import CronometroPedidoOnline from "../../../components/CronometroPedidoOnline";
 import { despacharEnvioPedido } from "../../../lib/envioDomicilioClient";
-
-function ubicacionPedidoItem(item) {
-  const raw = item?.productos?.ubicacion_texto;
-  return String(raw || "").trim() || "Sin ubicación";
-}
 
 function mlDePresentacion(producto) {
   const t = `${producto?.presentacion || ""} ${producto?.nombre || ""} ${producto?.concentracion || ""}`;
@@ -2760,7 +2753,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       )}
       <style>{`
         .farmacapital-pos-root input.farmacapital-pos-srch,
-        .farmacapital-pos-root input.farmacapital-field-input {
+        .farmacapital-pos-root input.farmacapital-field-input,
+        .farmacapital-pos-root select.farmacapital-field-select {
           color-scheme: light;
           background: #ffffff !important;
           color: #0f172a;
@@ -2774,7 +2768,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           opacity: 1;
         }
         .farmacapital-pos-root input.farmacapital-pos-srch:-webkit-autofill,
-        .farmacapital-pos-root input.farmacapital-field-input:-webkit-autofill {
+        .farmacapital-pos-root input.farmacapital-field-input:-webkit-autofill,
+        .farmacapital-pos-root select.farmacapital-field-select:-webkit-autofill {
           -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
           box-shadow: 0 0 0 1000px #ffffff inset !important;
           -webkit-text-fill-color: #0f172a !important;
@@ -2782,7 +2777,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         @media (max-width: 1100px) {
           .farmacapital-pos-root { overflow-x: hidden; max-width: 100%; }
           .farmacapital-pos-root input.farmacapital-pos-srch,
-          .farmacapital-pos-root input.farmacapital-field-input {
+          .farmacapital-pos-root input.farmacapital-field-input,
+          .farmacapital-pos-root select.farmacapital-field-select {
             font-size: 16px !important;
           }
         }
@@ -3767,114 +3763,30 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <>
               {!pedOnline.length ? (
                 <div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin pedidos online pendientes</div>
-              ) : pedOnline.map(p=>{
-            const clienteNombre = p.clientes?.nombre || p.guest_nombre || "—";
-            const clienteTel    = p.clientes?.telefono || p.guest_telefono || "";
-            const folioPOS      = formatFolioOnline(p.id);
-            const enviarWhatsApp = ()=>{
-              if(!clienteTel){ showToast("Este pedido no tiene teléfono registrado","warning"); return; }
-              const msg = buildOnlineOrderReceiptMessage({
-                pedidoId: p.id,
-                items: (p.pedido_items||[]).map(i=>({
-                  nombre: i.productos?.nombre,
-                  qty: i.cantidad,
-                  precio: i.precio_unitario,
-                })),
-                total: p.total,
-                tipoEntrega: p.tipo_entrega,
-                metodoPago: p.metodo_pago,
-              });
-              if (!openWhatsAppToCustomer(clienteTel, msg)) {
-                showToast("No se pudo abrir WhatsApp","warning");
-              }
-            };
-            return(
-            <Box key={p.id} style={{padding: isNarrow ? 14 : 20,marginBottom:12,minWidth:0}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:10}}>
-                <div>
-                  <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                    <div style={{color:C.text,fontWeight:800,fontSize:15}}>Pedido #{p.id}</div>
-                    <div style={{background:BRAND.primary,color:"#fff",fontWeight:900,fontSize:13,padding:"2px 10px",borderRadius:20}}>{folioPOS}</div>
-                  </div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
-                    <Tag col={p.tipo_entrega==="envio"?C.teal:C.green} sm>{labelTipoEntregaPedido(p.tipo_entrega)}</Tag>
-                    {(p.guest_nombre||p.guest_telefono)&&<Tag col={C.amber} sm>Invitado</Tag>}
-                  </div>
-                  <div style={{color:C.text,fontSize:13,fontWeight:700,marginTop:6}}>{clienteNombre}</div>
-                  {clienteTel&&<div style={{color:C.textMid,fontSize:12,marginTop:1}}>📱 {clienteTel}</div>}
-                  {p.tipo_entrega==="envio"&&p.direccion&&(
-                    <div style={{color:C.textDim,fontSize:11,marginTop:4,maxWidth:480,lineHeight:1.35,display:"flex",alignItems:"flex-start",gap:5}}>
-                      <span style={{marginTop:1}}><IconoAnaquel size={13} /></span>
-                      {p.direccion}
-                    </div>
-                  )}
-                  {p.tipo_entrega==="envio" && (
-                    <EnvioCotizacionPanel
-                      pedido={p}
-                      showToast={showToast}
-                      onUpdated={(envio) => {
-                        setPedOn((rows) => rows.map((x) => (
-                          x.id === p.id
-                            ? { ...x, logistics_meta: { ...(x.logistics_meta || {}), envio } }
-                            : x
-                        )));
-                      }}
-                    />
-                  )}
-                  <div style={{color:C.textDim,fontSize:11,marginTop:2}}>{new Date(p.created_at).toLocaleString("es-MX")}</div>
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{color:C.blue,fontWeight:900,fontSize:18}}>{$(p.total)}</div>
-                  {(() => {
-                    const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
-                    return <Tag col={ep.col} sm>{ep.label}</Tag>;
-                  })()}
-                </div>
-              </div>
-              <div style={{background:C.bg,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
-                <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Productos</div>
-                {(p.pedido_items||[]).map((item,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:6}}>
-                    <div style={{minWidth:0}}>
-                      <div style={{color:C.text,fontSize:12}}>{item.productos?.nombre} ×{item.cantidad}</div>
-                      <div style={{color:ubicacionPedidoItem(item)==="Sin ubicación"?C.textDim:C.blue,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
-                        <IconoAnaquel size={13} />
-                        {ubicacionPedidoItem(item)}
-                      </div>
-                    </div>
-                    <span style={{color:C.blue,fontSize:12,fontWeight:700,flexShrink:0}}>{$(item.precio_unitario*item.cantidad)}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <Btn onClick={()=>surtirOnline(p)} col={C.green} dis={guardando}>✓ Surtir y marcar listo</Btn>
-                {esPedidoPickupPendienteCobro(p) && (
-                  <Btn
-                    col="#1a237e"
-                    dis={guardando}
-                    onClick={()=>{
-                      bbvaOnlinePedidoRef.current = p;
-                      setBbvaFolio(formatFolioOnline(p.id));
-                      setBbvaModal(true);
-                    }}
-                  >
-                    🏦 Cobrar con terminal BBVA
-                  </Btn>
-                )}
-                <button onClick={enviarWhatsApp} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>
-                  💬 WhatsApp cliente
-                </button>
-                <Btn ol col={C.red} sm onClick={async()=>{
-                  const tok = sessionStorage.getItem("farmacapital_session_token");
-                  const { error } = await supabase.rpc("admin_cancelar_pedido", {
-                    p_session_token: tok, p_pedido_id: p.id,
-                  });
-                  if (error) showToast("Error: "+error.message, "error");
-                  setPedOn(x=>x.filter(z=>z.id!==p.id));
-                }}>Cancelar</Btn>
-              </div>
-            </Box>
-          );})}
+              ) : pedOnline.map((p) => (
+                <PedidoOnlineCard
+                  key={p.id}
+                  pedido={p}
+                  isNarrow={isNarrow}
+                  showToast={showToast}
+                  guardando={guardando}
+                  surtirOnline={surtirOnline}
+                  setPedOn={setPedOn}
+                  onCobrarBbva={(ped) => {
+                    bbvaOnlinePedidoRef.current = ped;
+                    setBbvaFolio(formatFolioOnline(ped.id));
+                    setBbvaModal(true);
+                  }}
+                  onCancelar={async (ped) => {
+                    const tok = sessionStorage.getItem("farmacapital_session_token");
+                    const { error } = await supabase.rpc("admin_cancelar_pedido", {
+                      p_session_token: tok, p_pedido_id: ped.id,
+                    });
+                    if (error) showToast("Error: " + error.message, "error");
+                    else setPedOn((x) => x.filter((z) => z.id !== ped.id));
+                  }}
+                />
+              ))}
               <div style={{marginTop:18}}>
                 <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:8}}>Historial reciente (surtidos)</div>
                 {pedOnlineHist.length === 0 ? (
@@ -3901,6 +3813,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                           const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
                           return <Tag col={ep.col} sm>{ep.label}</Tag>;
                         })()}
+                        <CronometroPedidoOnline pedido={p} />
                         <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{$(p.total)}</span>
                         {esPedidoPickupPendienteCobro(p) && p.estado === "listo" && (
                           <Btn sm col="#1a237e" dis={guardando} onClick={()=>{
