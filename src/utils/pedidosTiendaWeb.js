@@ -1,4 +1,4 @@
-import { parseRpcJsonArray } from "./rpcJson";
+import { parseRpcJsonArray } from "./rpcJson.js";
 
 /**
  * Pedidos creados desde la tienda en línea (checkout) que siguen pendientes de surtir.
@@ -105,6 +105,11 @@ export function esPedidoTiendaWebPendiente(p) {
   return m === "tarjeta" || m === "mercadopago" || m === METODO_PENDIENTE_TIENDA;
 }
 
+/** Cola POS / dashboard: pagados por surtir + domicilio aún sin cobro (para cotizar). */
+export function pedidoEnColaOnline(p) {
+  return esPedidoTiendaWebPendiente(p) || esPedidoEnvioPorCotizar(p);
+}
+
 function sessionTokenEmpleado(explicit) {
   return (
     explicit ??
@@ -139,7 +144,7 @@ export async function fetchPedidosTiendaPendientesMerged(supabase, _selectSpecUn
   });
   if (error) return { data: [], error };
   let rows = parseRpcJsonArray(data);
-  rows = rows.filter(esPedidoTiendaWebPendiente);
+  rows = rows.filter(pedidoEnColaOnline);
   rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   return { data: rows, error: null };
 }

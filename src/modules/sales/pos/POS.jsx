@@ -48,7 +48,7 @@ import {
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
-import { esPedidoTiendaWebPendiente, esPedidoEnvioPorCotizar, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged, esErrorColumnaCostoEnvio } from "../../../utils/pedidosTiendaWeb";
+import { esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged, esErrorColumnaCostoEnvio, pedidoEnColaOnline } from "../../../utils/pedidosTiendaWeb";
 import { parseRpcJsonArray } from "../../../utils/rpcJson";
 import {
   telefonoClientePedido,
@@ -941,7 +941,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (pedsRes?.error) {
         console.warn("[POS] Pedidos online:", pedsRes.error.message);
       } else {
-        setPedOn((pedsRes?.data || []).filter((p) => esPedidoTiendaWebPendiente(p) || esPedidoEnvioPorCotizar(p)));
+        setPedOn((pedsRes?.data || []).filter(pedidoEnColaOnline));
       }
       if (histRes?.error) {
         console.warn("[POS] Historial online:", histRes.error.message);
@@ -1098,7 +1098,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
         const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
         setProds(enrichPosProductosConLotes(prodsRaw, lotesMap));
-        setPedOn((pedsRes?.data || []).filter((p) => esPedidoTiendaWebPendiente(p) || esPedidoEnvioPorCotizar(p)));
+        setPedOn((pedsRes?.data || []).filter(pedidoEnColaOnline));
         setPedOnHist(parseRpcJsonArray(histRes?.data));
 
       } catch (e) {
@@ -3695,7 +3695,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {tab==="online"&&(
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
-            <strong>Operación:</strong> aparecen pedidos listos para surtir: domicilio con <strong>pago Mercado Pago aprobado</strong>, y pick-up <strong>confirmado (cobro en tienda con BBVA)</strong>. En domicilio el cliente ya pagó el envío en checkout: abre DiDi (o propio) y marca en ruta.
+            <strong>Operación:</strong> pick-up confirmado (cobro en tienda con BBVA) y domicilio. En domicilio el pedido entra <strong>sin pago</strong> para que cotices DiDi/Uber, avises por WhatsApp y el cliente pague productos + envío. Cuando Mercado Pago marque aprobado, surtes y marcas en ruta.
           </div>
           {loading ? <SkeletonTable rows={3} cols={4}/> : (
             <>

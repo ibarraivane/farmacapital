@@ -6,6 +6,7 @@ import TicketVenta from "./components/tickets/TicketVenta";
 import { printTicket } from "./utils/printTicket";
 import { printServicioTicket } from "./utils/servicioTicket";
 import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedidoEsTipoOnline, pedidoEsTipoServicio } from "./utils/orderChannels";
+import { etiquetaPagoPedidoOnline, esPedidoEnvioPorCotizar } from "./utils/pedidosTiendaWeb";
 import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { parseRpcJsonArray } from "./utils/rpcJson";
@@ -696,6 +697,14 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   </td>
                   <td data-label="Estado" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: estCol(p.estado) + "20", color: estCol(p.estado) }}>{p.estado || "—"}</span>
+                    {pedidoEsTipoOnline(p.tipo) && (() => {
+                      const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textMid });
+                      return (
+                        <div style={{ fontSize: 10, color: ep.col, fontWeight: 700, marginTop: 4, lineHeight: 1.3, maxWidth: 160 }}>
+                          {ep.label}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td data-label="Acciones" data-actions style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", width: 1 }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
@@ -811,6 +820,15 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <div><span style={{ color: C.textMid }}>Total: </span><strong style={{ color: C.green }}>{fmtM(modalDetalle.total)}</strong></div>
               <div><span style={{ color: C.textMid }}>Método: </span><strong style={{ color: C.text }}>{modalDetalle.metodo_pago || "—"}</strong></div>
               <div><span style={{ color: C.textMid }}>Estado: </span><strong style={{ color: estCol(modalDetalle.estado) }}>{modalDetalle.estado}</strong></div>
+              {pedidoEsTipoOnline(modalDetalle.tipo) && (() => {
+                const ep = etiquetaPagoPedidoOnline(modalDetalle, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textMid });
+                return (
+                  <div>
+                    <span style={{ color: C.textMid }}>Pago: </span>
+                    <strong style={{ color: ep.col }}>{ep.label}</strong>
+                  </div>
+                );
+              })()}
               <div><span style={{ color: C.textMid }}>Tipo: </span><strong style={{ color: C.text }}>{labelTipoPedido(modalDetalle.tipo)}</strong></div>
               <div><span style={{ color: C.textMid }}>Atendido por: </span><strong style={{ color: C.text }}>{modalDetalle.usuarios?.nombre || "—"}</strong></div>
               {esPagoServicio(modalDetalle) && (
@@ -830,6 +848,11 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               )}
               {pedidoEsTipoOnline(modalDetalle.tipo) && modalDetalle.tipo_entrega === "envio" && modalDetalle.direccion && (
                 <div style={{ gridColumn: "1 / -1" }}><span style={{ color: C.textMid }}>Dirección: </span><strong style={{ color: C.text }}>{modalDetalle.direccion}</strong></div>
+              )}
+              {esPedidoEnvioPorCotizar(modalDetalle) && (
+                <div style={{ gridColumn: "1 / -1", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 12px", color: "#92400e", fontSize: 12, lineHeight: 1.45 }}>
+                  El cliente todavía no pagó. Cotiza el envío en POS → Pedidos online, avísale por WhatsApp y él paga productos + envío en Mi cuenta.
+                </div>
               )}
             </div>
             {modalDetalle.notas && <div style={{ background: C.cardDark, borderRadius: 8, padding: "8px 12px", marginBottom: 14, color: C.textMid, fontSize: 12 }}>📝 {modalDetalle.notas}</div>}

@@ -12,6 +12,8 @@ describe("pedidosTiendaWeb gate pickup", async () => {
   const {
     esPedidoPickupPendienteCobro,
     esPedidoTiendaWebPendiente,
+    esPedidoEnvioPorCotizar,
+    pedidoEnColaOnline,
     esErrorColumnaCostoEnvio,
     etiquetaPagoPedidoOnline,
     METODO_PENDIENTE_TIENDA,
@@ -80,6 +82,19 @@ describe("pedidosTiendaWeb gate pickup", async () => {
       }),
       false
     );
+  });
+
+  it("envio pendiente sin pago entra a la cola para cotizar", () => {
+    const p = {
+      estado: "pendiente",
+      tipo: "online",
+      metodo_pago: "mercadopago",
+      payment_status: null,
+      tipo_entrega: "envio",
+    };
+    assert.equal(esPedidoTiendaWebPendiente(p), false);
+    assert.equal(esPedidoEnvioPorCotizar(p), true);
+    assert.equal(pedidoEnColaOnline(p), true);
   });
 
   it("esPedidoTiendaWebPendiente pickup ok", () => {
