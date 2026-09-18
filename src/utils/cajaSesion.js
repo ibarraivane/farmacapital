@@ -8,21 +8,42 @@ function resultadoAuth(errorMsg) {
   return { sesion: null, error: msg, auth: esErrorSesionEmpleado(msg) || msg === "Sesión expirada." };
 }
 
-export async function fetchSesionCajaAbierta() {
+/** Postgres/Supabase cortó la consulta (8s). No es que la caja se haya cerrado. */
+export function esErrorTimeoutPostgres(msg) {
+  return /statement timeout|lock timeout|canceling statement/i.test(String(msg || ""));
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const MSG_TIMEOUT_CAJA = "La caja tardó en responder";
+
+export async function fetchSesionCajaAbierta({ intentos = 3, esperar = sleep } = {}) {
   const tok = getSessionToken();
   if (!tok) return resultadoAuth("Sesión expirada.");
-  const { data, error } = await supabase.rpc("empleado_sesion_caja_abierta", {
-    p_session_token: tok,
-  });
-  if (error) {
-    const msg = error.message || "No se pudo verificar la caja.";
-    return { sesion: null, error: msg, auth: esErrorSesionEmpleado(msg) };
+  let ultimo = "No se pudo verificar la caja.";
+  for (let i = 0; i < intentos; i += 1) {
+    const { data, error } = await supabase.rpc("empleado_sesion_caja_abierta", {
+      p_session_token: tok,
+    });
+    if (!error) {
+      const sesion = parseRpcJsonObject(data);
+      if (!sesion.abierta) return { sesion: null, error: null, auth: false };
+      return { sesion, error: null, auth: false };
+    }
+    ultimo = error.message || ultimo;
+    if (esErrorSesionEmpleado(ultimo)) return { sesion: null, error: ultimo, auth: true };
+    if (!esErrorTimeoutPostgres(ultimo) || i === intentos - 1) {
+      return {
+        sesion: null,
+        error: esErrorTimeoutPostgres(ultimo) ? MSG_TIMEOUT_CAJA : ultimo,
+        auth: false,
+      };
+    }
+    await esperar(350 * (i + 1));
   }
-  // jsonb a veces llega como string: sin parse, .abierta falla y Mi Día
-  // cae al turno del perfil y deja fuera las ventas de la cobertura.
-  const sesion = parseRpcJsonObject(data);
-  if (!sesion.abierta) return { sesion: null, error: null, auth: false };
-  return { sesion, error: null, auth: false };
+  return { sesion: null, error: MSG_TIMEOUT_CAJA, auth: false };
 }
 
 export async function abrirSesionCaja({ denoms, nota }) {

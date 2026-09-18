@@ -28,6 +28,13 @@ El ticket físico es **12790** (32 renglones, $3,534.11). Los parches del 16-sep
 
 Packshot pendiente en `catalogo-propia/` (Teatrical 19 g, Gotinal, Aspirina 3-pack). No usar placeholder de otra cadena. SQL de `imagen_url` después del deploy, cuando estén los JPG.
 
+## Caja: “No se pudo verificar la caja” / statement timeout
+
+Eso **no cierra la caja**. Al abrir POS, el catálogo y la verificación pisan el mismo token (`UPDATE sesiones`) y Postgres corta a los 8 s.
+
+1. Pegar también `sql/patch_caja_verificar_sin_timeout_20260918.sql` en Supabase → Run. **Sin este SQL el aviso sigue** (el JS solo reintenta).
+2. Recargar POS. Si vuelve el aviso, toca **Reintentar** (la app ya reintenta sola 3 veces). No cerrar sesión: la caja no se cierra.
+
 ## No hacer
 
 - No ir a Inventario → Catálogo a darlos de alta a mano.
