@@ -3,7 +3,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
-import { CATALOGO_SERVICIOS, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, resumenPagosServicioDia, utilidadServicio } from "../../../lib/pagoServicio";
+import { CATALOGO_SERVICIOS, CLAVE_SERVICIOS_RECARGOS, catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, draftRecargosDe, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, recargoEsValido, recargosReciboParaGuardar, resumenPagosServicioDia, serviciosReciboDe, utilidadServicio } from "../../../lib/pagoServicio";
 import { rolEsAdmin } from "../../../utils/permissions";
 import { printServicioTicket } from "../../../utils/servicioTicket";
 
@@ -83,27 +83,33 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const [saldoStr, setSaldoStr] = useState("");
   const [minimoStr, setMinimoStr] = useState("500");
   const [salvandoSaldo, setSalvandoSaldo] = useState(false);
+  const [catalogo, setCatalogo] = useState(CATALOGO_SERVICIOS);
+  const [recargoDraft, setRecargoDraft] = useState(() => draftRecargosDe(CATALOGO_SERVICIOS));
+  const [salvandoRecargos, setSalvandoRecargos] = useState(false);
   const esAdmin = rolEsAdmin(usuario?.rol);
 
   const servicio = useMemo(
-    () => CATALOGO_SERVICIOS.find((s) => s.id === selId) || CATALOGO_SERVICIOS[0],
-    [selId]
+    () => catalogo.find((s) => s.id === selId) || catalogo[0] || CATALOGO_SERVICIOS[0],
+    [catalogo, selId]
   );
 
   const monto = parseMonto(montoStr);
-  const comision = recargoCatalogoDe(servicio.id);
+  const comision = Number(servicio.comision) || 0;
   const total = Number.isFinite(monto) && Number.isFinite(comision) ? Math.round((monto + comision) * 100) / 100 : 0;
   const compensacionMp = Number.isFinite(monto) ? compensacionMpDe(monto) : 0;
   const utilidad = Number.isFinite(comision) ? utilidadServicio({ comision, compensacionMp }) : 0;
 
   const fetchSaldoMp = useCallback(async () => {
     try {
-      const { data, error } = await supabase.from("configuracion").select("clave,valor").in("clave", CLAVES_SALDO_MP);
+      const { data, error } = await supabase.from("configuracion").select("clave,valor").in("clave", [...CLAVES_SALDO_MP, CLAVE_SERVICIOS_RECARGOS]);
       if (error) throw error;
       const st = parseSaldoConfig(data);
       setSaldoMp(st);
       setSaldoStr(st.configurado ? String(st.saldo) : "");
       setMinimoStr(String(st.minimo));
+      const next = catalogoServiciosConRecargos(data);
+      setCatalogo(next);
+      setRecargoDraft(draftRecargosDe(next));
     } catch (e) {
       console.error(e);
     }
@@ -247,6 +253,67 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     setSalvandoSaldo(false);
   };
 
+  const guardarRecargosAdmin = async () => {
+    const parsed = recargosReciboParaGuardar(recargoDraft, CATALOGO_SERVICIOS);
+    if (!parsed.ok) {
+      showToast(parsed.error, "error");
+      return;
+    }
+    setSalvandoRecargos(true);
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+
+      try {
+        const resp = await fetch("/api/inventarioProcesarPdf?type=pago-servicio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-session-token": tok },
+          body: JSON.stringify({
+            session_token: tok,
+            action: "set_recargos",
+            recargos: parsed.recargos,
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok && data?.ok) {
+          showToast("Recargos de recibos guardados. El siguiente cobro ya los usa.", "success");
+          fetchSaldoMp();
+          setSalvandoRecargos(false);
+          return;
+        }
+        if (data?.error && data.error !== "requiere_admin" && data.error !== "nada_que_guardar") {
+          throw new Error(data.error);
+        }
+      } catch (e) {
+        if (e?.message && e.message !== "Failed to fetch") throw e;
+      }
+
+      const rpcAdmin = await supabase.rpc("admin_set_servicios_recargos", {
+        p_session_token: tok,
+        p_recargos: parsed.recargos,
+      });
+      if (!rpcAdmin.error && rpcAdmin.data?.success) {
+        showToast("Recargos de recibos guardados. El siguiente cobro ya los usa.", "success");
+        fetchSaldoMp();
+        setSalvandoRecargos(false);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("empleado_upsert_configuracion", {
+        p_session_token: tok,
+        p_clave: CLAVE_SERVICIOS_RECARGOS,
+        p_valor: parsed.json,
+      });
+      if (error) throw error;
+      if (data?.success === false) throw new Error(data?.error || "No se pudo guardar");
+      showToast("Recargos de recibos guardados. El siguiente cobro ya los usa.", "success");
+      fetchSaldoMp();
+    } catch (e) {
+      showToast(e?.message || "No se pudieron guardar los recargos", "error");
+    }
+    setSalvandoRecargos(false);
+  };
+
   const leerSaldoMercadoPago = async () => {
     setSalvandoSaldo(true);
     try {
@@ -299,6 +366,28 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
           )}
         </div>
       )}
+      {esAdmin && (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>Recargos de recibos (solo admin)</div>
+          <div style={{ color: C.textDim, fontSize: 11, lineHeight: 1.45, marginBottom: 10 }}>
+            Esto es lo que se le suma al cliente en CFE, Izzi, Sky, etc. Las recargas de tiempo aire siguen sin recargo. El cambio aplica al siguiente cobro; los tickets ya hechos no se tocan.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
+            {serviciosReciboDe(CATALOGO_SERVICIOS).map((s) => (
+              <label key={s.id} style={{ display: "block", minWidth: 0 }}>
+                <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>{s.emoji} {s.proveedor}</div>
+                <Inp
+                  value={recargoDraft[s.id] ?? String(s.comision)}
+                  onChange={(e) => setRecargoDraft((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                  placeholder={String(s.comision)}
+                  style={{ width: "100%", boxSizing: "border-box" }}
+                />
+              </label>
+            ))}
+          </div>
+          <Btn col={BRAND.secondary} onClick={guardarRecargosAdmin} dis={salvandoRecargos}>Guardar recargos</Btn>
+        </div>
+      )}
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
           {servicio.categoria === "recarga" ? (
@@ -338,7 +427,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
 
           <div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>SERVICIO</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-            {CATALOGO_SERVICIOS.map((s) => (
+            {catalogo.map((s) => (
               <button
                 key={s.id}
                 type="button"

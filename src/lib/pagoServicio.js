@@ -20,7 +20,8 @@ export function esMismoDiaMexico(iso, dia = fechaLocalMexico()) {
 }
 
 /** Recargo de mostrador por servicio. No lo pone Mercado Pago: lo pone FarmaCapital.
- *  Recargas (tiempo aire): comision 0. Recibos (CFE, Sky…): sí llevan recargo. */
+ *  Recargas (tiempo aire): comision 0. Recibos (CFE, Sky, Izzi…): sí llevan recargo.
+ *  Los montos de recibo los puede cambiar el admin en POS → Servicios. */
 export const CATALOGO_SERVICIOS = [
   { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 0, emoji: "📱" },
   { id: "movistar", categoria: "recarga", proveedor: "Movistar", comision: 0, emoji: "📱" },
@@ -30,20 +31,85 @@ export const CATALOGO_SERVICIOS = [
   { id: "cfe", categoria: "luz", proveedor: "CFE", comision: 8, emoji: "💡" },
   { id: "telmex", categoria: "telefonia", proveedor: "Telmex", comision: 8, emoji: "☎️" },
   { id: "totalplay", categoria: "telefonia", proveedor: "Totalplay", comision: 8, emoji: "📺" },
-  { id: "izzi", categoria: "telefonia", proveedor: "Izzi", comision: 8, emoji: "📺" },
+  { id: "izzi", categoria: "telefonia", proveedor: "Izzi", comision: 10, emoji: "📺" },
   { id: "sky", categoria: "tv", proveedor: "Sky", comision: 10, emoji: "📡" },
   { id: "agua", categoria: "agua", proveedor: "Agua (local)", comision: 8, emoji: "💧" },
   { id: "gas", categoria: "gas", proveedor: "Gas Natural", comision: 8, emoji: "🔥" },
   { id: "otro", categoria: "otro", proveedor: "Otro servicio", comision: 10, emoji: "📋" },
 ];
 
-/** Recargo fijo del catálogo. El piso no lo captura. */
-export function recargoCatalogoDe(idOrProveedor) {
+export const CLAVE_SERVICIOS_RECARGOS = "servicios_recargos";
+export const RECARGO_RECIBO_MAX = 200;
+
+export function esServicioRecarga(categoria) {
+  return String(categoria || "").toLowerCase() === "recarga";
+}
+
+export function serviciosReciboDe(catalogo = CATALOGO_SERVICIOS) {
+  return (Array.isArray(catalogo) ? catalogo : []).filter((s) => !esServicioRecarga(s.categoria));
+}
+
+/** JSON guardado en configuracion.servicios_recargos, o filas {clave,valor}. */
+export function parseRecargosOverrides(raw) {
+  if (raw == null || raw === "") return {};
+  if (Array.isArray(raw)) {
+    const row = raw.find((r) => r && r.clave === CLAVE_SERVICIOS_RECARGOS);
+    return parseRecargosOverrides(row?.valor);
+  }
+  let obj = raw;
+  if (typeof raw === "string") {
+    try { obj = JSON.parse(raw); } catch { return {}; }
+  }
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const id = String(k || "").trim().toLowerCase();
+    if (!id) continue;
+    const n = money2(v);
+    if (!Number.isFinite(n) || n < 0) continue;
+    out[id] = n;
+  }
+  return out;
+}
+
+export function catalogoServiciosConRecargos(overrides, base = CATALOGO_SERVICIOS) {
+  const map = parseRecargosOverrides(overrides);
+  return (Array.isArray(base) ? base : []).map((s) => {
+    if (esServicioRecarga(s.categoria)) return { ...s, comision: 0 };
+    const next = map[s.id];
+    return { ...s, comision: next != null ? money2(next) : money2(s.comision) };
+  });
+}
+
+export function draftRecargosDe(catalogo = CATALOGO_SERVICIOS) {
+  return Object.fromEntries(
+    serviciosReciboDe(catalogo).map((s) => [s.id, String(s.comision)]),
+  );
+}
+
+/** Recargo del catálogo (defaults o el que ya mergeó el admin). El piso no lo teclea. */
+export function recargoCatalogoDe(idOrProveedor, catalogo = CATALOGO_SERVICIOS) {
   const key = String(idOrProveedor || "").trim().toLowerCase();
-  const hit = CATALOGO_SERVICIOS.find(
+  const list = Array.isArray(catalogo) && catalogo.length ? catalogo : CATALOGO_SERVICIOS;
+  const hit = list.find(
     (s) => s.id === key || String(s.proveedor).toLowerCase() === key
   );
   return money2(hit?.comision ?? 0);
+}
+
+export function recargosReciboParaGuardar(draft, catalogo = CATALOGO_SERVICIOS) {
+  const recargos = {};
+  for (const s of serviciosReciboDe(catalogo)) {
+    const n = money2(draft?.[s.id]);
+    if (!Number.isFinite(n) || n <= 0) {
+      return { ok: false, error: `El recargo de ${s.proveedor} tiene que ser mayor a 0.` };
+    }
+    if (n > RECARGO_RECIBO_MAX) {
+      return { ok: false, error: `El recargo de ${s.proveedor} no puede pasar de $${RECARGO_RECIBO_MAX}.` };
+    }
+    recargos[s.id] = n;
+  }
+  return { ok: true, recargos, json: JSON.stringify(recargos) };
 }
 
 /** Recargas van en 0. Recibos de servicio sí llevan recargo.

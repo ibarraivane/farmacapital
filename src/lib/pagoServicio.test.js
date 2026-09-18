@@ -1,4 +1,4 @@
-import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, desgloseCobroServicios, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, normalizarMetodoServicio, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, resumenPagosServicioDia, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
+import { catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, desgloseCobroServicios, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, normalizarMetodoServicio, parseRecargosOverrides, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, recargosReciboParaGuardar, resumenPagosServicioDia, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
 
 describe("pagoServicio", () => {
   test("compensación MP es 1% redondeado a centavos", () => {
@@ -40,8 +40,25 @@ describe("pagoServicio", () => {
     expect(recargoCatalogoDe("movilidad-cdmx")).toBe(0);
     expect(recargoCatalogoDe("Tarjeta Movilidad CDMX")).toBe(0);
     expect(recargoCatalogoDe("CFE")).toBe(8);
+    expect(recargoCatalogoDe("izzi")).toBe(10);
+    expect(recargoCatalogoDe("Izzi")).toBe(10);
     expect(recargoCatalogoDe("Sky")).toBe(10);
     expect(recargoCatalogoDe("desconocido")).toBe(0);
+  });
+
+  test("el admin puede sobreescribir el recargo de un recibo; recargas siguen en 0", () => {
+    const cat = catalogoServiciosConRecargos({ izzi: 10, cfe: 12, telcel: 5 });
+    expect(recargoCatalogoDe("izzi", cat)).toBe(10);
+    expect(recargoCatalogoDe("cfe", cat)).toBe(12);
+    expect(recargoCatalogoDe("telcel", cat)).toBe(0);
+    expect(parseRecargosOverrides([{ clave: "servicios_recargos", valor: '{"izzi":12}' }])).toEqual({ izzi: 12 });
+    const bad = recargosReciboParaGuardar({ izzi: 0 });
+    expect(bad.ok).toBe(false);
+    const ok = recargosReciboParaGuardar({
+      cfe: 8, telmex: 8, totalplay: 8, izzi: 10, sky: 10, agua: 8, gas: 8, otro: 10,
+    });
+    expect(ok.ok).toBe(true);
+    expect(ok.recargos.izzi).toBe(10);
   });
 
   test("saldo de recargas avisa solo si ya lo cargó el admin y está bajo el mínimo", () => {

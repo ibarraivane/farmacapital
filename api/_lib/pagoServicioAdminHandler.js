@@ -43,6 +43,20 @@ function recargoCategoriaValido(comision, categoria) {
   return n > 0;
 }
 
+const RECIBO_IDS = ['cfe', 'telmex', 'totalplay', 'izzi', 'sky', 'agua', 'gas', 'otro'];
+const RECARGO_RECIBO_MAX = 200;
+
+function recargosReciboValidos(raw) {
+  const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const recargos = {};
+  for (const id of RECIBO_IDS) {
+    const n = roundMoney(src[id]);
+    if (!(n > 0) || n > RECARGO_RECIBO_MAX) return null;
+    recargos[id] = n;
+  }
+  return recargos;
+}
+
 function folioServicioMexico(id) {
   const ymd = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Mexico_City',
@@ -185,6 +199,23 @@ async function pagoServicioAdminHandler(req, res) {
     const isAdmin = await validateAdminSession(supabaseUrl, serviceKey, sessionToken);
     if (!isAdmin) {
       return res.status(403).json({ ok: false, error: 'requiere_admin' });
+    }
+
+    if (action === 'set_recargos') {
+      const recargos = recargosReciboValidos(body.recargos);
+      if (!recargos) {
+        return res.status(400).json({ ok: false, error: 'El recargo de cada recibo tiene que ser mayor a 0.' });
+      }
+      const upsert = await fetch(`${supabaseUrl}/rest/v1/configuracion?on_conflict=clave`, {
+        method: 'POST',
+        headers: { ...headers, Prefer: 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify({ clave: 'servicios_recargos', valor: JSON.stringify(recargos) }),
+      });
+      const saved = await upsert.json().catch(() => null);
+      if (!upsert.ok) {
+        return res.status(502).json({ ok: false, error: patchError(saved) });
+      }
+      return res.status(200).json({ ok: true, recargos });
     }
 
     const id = Number(body.id);
