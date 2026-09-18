@@ -1,0 +1,204 @@
+ean,nombre,marca,costo_derma,costo_bio_sin_iva,costo_bio_con_iva,pvp_ref,disp_derma,disp_bio_web,semaforo_derma,ganador_costo,precio_fc_derma_mas25,precio_fc_bio_mas25
+3282770075526,Ducray Anaphase Shampoo para Caída Crónica 400 ml,Ducray,592.0,520.0,603.2,740.0,1,no,ROJO,empate,740,754
+3282770104950,Ducray Anacaps Suplemento alimenticio c/30 cápsulas,Ducray,719.0,785.0,910.6,899.0,1,no,ROJO,Dermaexpress,899,1139
+3282770114171,Avene XeraCalm A.D bálsamo relipidizante para piel muy seca 400 ml,Avene,621.0,620.0,719.2,777.0,0,no,ROJO,Dermaexpress,777,899
+3282770139204,Avene Cleanance Gel limpiador matificante para piel sensible con tendencia acneica 200 ml,Avene,494.0,410.0,475.6,659.0,1,no,AMARILLO,Bioinstrumental,618,595
+3282770145175,Ducray Keracnyl UV FPS50+ Fluido antiimperfecciones 50 ml,Ducray,543.0,450.0,522.0,679.0,1,no,ROJO,Bioinstrumental,679,653
+3282770146790,Avene Xeracalm Aceite limpiador para piel seca con tendencia a eccema atópico 400 ml,Avene,479.0,430.0,498.8,599.0,0,no,ROJO,Dermaexpress,599,624
+3282770153255,Ducray Neoptide Expert Sérum anticaída 50 ml,Ducray,975.0,960.0,1113.6,1219.0,1,no,ROJO,Dermaexpress,1219,1392
+3282770153484,Darrow Actine Gel limpiador para piel grasa 240 gr,Darrow,351.0,300.0,348.0,439.0,1,no,ROJO,empate,439,435
+3282770153507,Darrow Actine Gel limpiador para piel grasa 400 gr,Darrow,423.0,390.0,452.4,529.0,1,no,ROJO,Dermaexpress,529,566
+3282770202854,Avene Cleanance Comedomed Concentrado anti-imperfecciones 30 ml,Avene,743.0,580.0,672.8,929.0,1,no,ROJO,Bioinstrumental,929,841
+3282770207217,Avene Fluido solar despigmentante SPF50+ tono claro 40 ml,Avene,559.0,440.0,510.4,699.0,1,no,ROJO,Bioinstrumental,699,638
+3282770207651,Darrow Actine Colors Protector Solar FPS50+ para piel grasa tono Medio 40 gr,Darrow,375.0,375.0,435.0,469.0,1,no,ROJO,Dermaexpress,469,544
+3282770207774,Avene Cleanance Gel limpiador para piel sensible con tendencia acneica 400 ml,Avene,614.0,560.0,649.6,819.0,1,no,AMARILLO,Dermaexpress,768,812
+3282770388497,Darrow Nutriforce Crema hidratante corporal para piel atópica 390 gr,Darrow,463.0,430.0,498.8,579.0,1,no,ROJO,Dermaexpress,579,624
+3282770392401,Ducray Kelual DS Gel limpiador antiescamas 200 ml,Ducray,391.0,400.0,464.0,489.0,1,no,ROJO,Dermaexpress,489,580
+3282770393989,Darrow Actine One Protector Solar FPS50+ 40 gr,Darrow,463.0,430.0,498.8,579.0,1,no,ROJO,Dermaexpress,579,624
+3282770394948,Ducray Sensinol Shampoo antipicor 200 ml,Ducray,415.0,460.0,533.6,519.0,1,no,ROJO,Dermaexpress,519,667
+3282770395365,Avene Cleanance Comedomed Peeling antiimperfecciones 40 ml,Avene,775.0,640.0,742.4,969.0,1,no,ROJO,Bioinstrumental,969,928
+3282770397291,Ducray Sabal Shampoo Seborregulador para Cabello Graso 200 ml,Ducray,396.0,460.0,533.6,495.0,1,no,ROJO,Dermaexpress,495,667
+3282770398021,Avene Cleanance Barra Limpiadora Purificante para piel grasa 100 gr,Avene,183.0,170.0,197.2,229.0,1,no,ROJO,Dermaexpress,229,247
+3282776432026,Dexeryl Crema restauradora para piel seca 250 gr,Ducray,247.0,230.0,266.8,309.0,1,no,ROJO,Dermaexpress,309,334
+3282779003131,Avene Agua termal spray calmante para piel sensible 300 ml,Avene,431.0,360.0,417.6,539.0,1,no,ROJO,Bioinstrumental,539,522
+3282779035576,Avene Agua termal Spray calmante para piel sensible 50 ml,Avene,151.0,150.0,174.0,189.0,1,no,ROJO,Dermaexpress,189,218
+3282779293440,Ducray Kertyol PSO Shampoo para la psoriasis 200 ml,Ducray,479.0,525.0,609.0,599.0,1,no,ROJO,Dermaexpress,599,762
+3337872413025,La Roche-Posay Effaclar Mat Hidratante facial matificante para piel grasa 40 ml,La Roche Posay,711.0,630.0,730.8,949.0,1,no,AMARILLO,empate,889,914
+3337872414152,La Roche-Posay Pigmentclar Ojos Contorno de ojos iluminador anti-ojeras 15 ml,La Roche Posay,824.0,840.0,974.4,1099.0,0,no,AMARILLO,Dermaexpress,1030,1218
+3337875586269,La Roche-Posay Cicaplast Gel B5 Tratamiento hidratante para cicatrices 40 ml,La Roche Posay,524.0,530.0,614.8,699.0,1,no,AMARILLO,Dermaexpress,655,769
+3337875597180,CeraVe Gel limpiador hidratante facial y corporal 236 ml,Cerave,359.0,255.0,295.8,479.0,1,no,AMARILLO,Bioinstrumental,449,370
+3337875597197,CeraVe Gel limpiador facial espumoso 236 ml 236 ml,Cerave,359.0,330.0,382.8,479.0,1,no,AMARILLO,Dermaexpress,449,479
+3337875597210,CeraVe Loción hidratante para piel seca 236 ml,Cerave,261.0,220.0,255.2,349.0,1,no,AMARILLO,empate,327,319
+3337875597272,CeraVe Crema reparadora para contorno de ojos 14 ml,Cerave,411.0,310.0,359.6,549.0,1,no,AMARILLO,Bioinstrumental,514,450
+3337875597357,CeraVe Gel limpiador facial espumoso 473 ml,Cerave,479.0,370.0,429.2,639.0,1,no,AMARILLO,Bioinstrumental,599,537
+3337875597371,CeraVe Crema hidratante facial y corporal 50 ml,Cerave,126.0,100.0,116.0,169.0,1,no,AMARILLO,Bioinstrumental,158,145
+3337875597388,CeraVe Crema hidratante facial y corporal 453 ml,Cerave,411.0,330.0,382.8,549.0,1,no,AMARILLO,Bioinstrumental,514,479
+3337875597395,CeraVe Loción hidratante para piel seca 473 ml 473ml,Cerave,411.0,335.0,388.6,549.0,1,no,AMARILLO,Bioinstrumental,514,486
+3337875598996,CeraVe Crema hidratante facial y corporal 170 ml 170gr,Cerave,236.0,200.0,232.0,315.0,1,no,AMARILLO,empate,295,290
+3337875684101,CeraVe SA Crema alisadora antirugosidades corporal 340 ml,Cerave,486.0,400.0,464.0,649.0,1,no,AMARILLO,Bioinstrumental,608,580
+3337875782357,CeraVe Gel control de imperfecciones 40 ml,Cerave,396.0,410.0,475.6,529.0,1,no,AMARILLO,Dermaexpress,495,595
+3337875784054,CeraVe Limpiador control de imperfecciones 236 ml,Cerave,359.0,295.0,342.2,479.0,1,no,AMARILLO,Bioinstrumental,449,428
+3337875797597,La Roche-Posay Protector Solar Anthelios UVMune FPS50+ Fluido invisible para piel sensible y mixta 50 ml,La Roche Posay,599.0,505.0,585.8,799.0,0,no,AMARILLO,empate,749,733
+3337875890069,La Roche-Posay Mela B3 Cleanser Dermolimpiador anti-manchas 200 ml,La Roche Posay,561.0,530.0,614.8,749.0,1,no,AMARILLO,Dermaexpress,702,769
+3337875904292,Cerave Loción Hidratante Intensiva con Ceramidas y Ácido Hialurónico 236 ml,Cerave,374.0,400.0,464.0,499.0,1,no,AMARILLO,Dermaexpress,468,580
+3337875905596,Cerave Gel Espumoso Refill (16 oz) Limpiador para piel normal a grasa 473 ml,Cerave,389.0,450.0,522.0,519.0,1,no,AMARILLO,Dermaexpress,487,653
+3337875905633,CeraVe Loción Hidratante Refill 473 ml,Cerave,336.0,350.0,406.0,449.0,1,no,AMARILLO,Dermaexpress,420,508
+3337875909525,CeraVe Oil Control Gel-crema hidratante piel mixta a grasa 52 ml,Cerave,411.0,485.0,562.6,549.0,1,no,AMARILLO,Dermaexpress,514,704
+3337875917810,"La Roche-Posay Protector Solar Anthelios UV Air FPS 50+ Fluido ligero invisible oil-free para piel sensible, mixta y grasa 40 ml",La Roche Posay,411.0,430.0,498.8,549.0,0,no,AMARILLO,Dermaexpress,514,624
+3337875924887,Effaclar Duo+M anti-imperfecciones 22 Parches,La Roche Posay,300.0,350.0,406.0,400.0,0,no,AMARILLO,Dermaexpress,375,508
+3337875925358,CeraVe Limpiador Air Foam Reequilibrante con Aminoácidos y Ceramidas 148 ml,Cerave,299.0,320.0,371.2,399.0,1,no,AMARILLO,Dermaexpress,374,464
+3401353791220,Bioderma Sébium Gel Moussant Limpiador anti-imperfecciones 100 ml,Bioderma,239.0,250.0,290.0,299.0,1,no,ROJO,Dermaexpress,299,363
+3401395461082,Bioderma Sébium Pain Barra limpiadora para piel mixta a grasa 100 gr,Bioderma,183.0,135.0,156.6,229.0,1,no,ROJO,Bioinstrumental,229,196
+3401397163618,Bioderma ABCDerm Gel Moussant Limpiador para bebé 1 L,Bioderma,535.0,500.0,580.0,669.0,1,no,ROJO,Dermaexpress,669,725
+3466320012838,Cetaphil Crema hidratante para piel sensible 453 gr,Cetaphil,420.0,370.0,429.2,560.0,1,no,AMARILLO,empate,525,537
+3499320001328,Galderma Benzac AC Gel 5% tratamiento anti acné 60 gr,Galderma,282.0,295.0,342.2,403.0,1,no,AMARILLO,Dermaexpress,353,428
+3499320002394,Galderma Benzac AC Gel 2.5% Tratamiento para pieles con acné 60 gr,Galderma,266.0,285.0,330.6,380.0,1,no,AMARILLO,Dermaexpress,333,414
+3499320004497,Cetaphil PRO AC Dermacontrol Espuma limpiadora facial para piel grasa 236 ml,Cetaphil,552.0,420.0,487.2,,1,no,SIN_REF,Bioinstrumental,690,609
+3499320008341,Cetaphil Barra limpiadora profunda para piel sensible 127 gr,Cetaphil,216.0,180.0,208.8,,1,no,SIN_REF,Bioinstrumental,270,261
+3499320009775,Cetaphil Espuma limpiadora facial suave 236 ml,Cetaphil,376.0,370.0,429.2,502.0,1,no,AMARILLO,Dermaexpress,470,537
+3499320012485,Cetaphil PRO AR Espuma limpiadora facial para piel con enrojecimiento 236 ml,Cetaphil,552.0,480.0,556.8,,1,no,SIN_REF,empate,690,696
+3499320012508,Cetaphil PRO AR Crema hidratante facial de noche para piel con enrojecimiento 50 ml,Cetaphil,620.0,465.0,539.4,,1,no,SIN_REF,Bioinstrumental,775,675
+3499320012850,Cetaphil Loción limpiadora para piel sensible 473 ml,Cetaphil,401.0,450.0,522.0,574.0,1,no,AMARILLO,Dermaexpress,502,653
+3499320015530,Cetaphil Gel limpiador facial para piel grasa 473 ml,Cetaphil,424.0,410.0,475.6,606.0,1,no,AMARILLO,Dermaexpress,530,595
+3499320016575,Galderma Benzacare Power Patch para imperfecciones 36 piezas,Galderma,217.0,180.0,208.8,272.0,1,no,ROJO,Bioinstrumental,272,261
+3504105025816,Mustela Crema para Rozaduras 50 ml,MUSTELA,125.0,115.0,133.4,,0,no,SIN_REF,Dermaexpress,157,167
+3504105025878,Mustela Crema para Rozaduras 100 ml,MUSTELA,190.0,160.0,185.6,,1,no,SIN_REF,empate,238,232
+3504105032937,Mustela Cicastela Crema Reparadora 40 ml,MUSTELA,235.0,191.82,222.51,,0,no,SIN_REF,Bioinstrumental,294,279
+3504105033637,Mustela Stelatopia Gel Lavante 200 ml,MUSTELA,392.0,320.4,371.66,,1,no,SIN_REF,Bioinstrumental,490,465
+3504105033828,Mustela Crema Prevención de Estrías 150 ml,MUSTELA,417.0,440.0,510.4,,0,no,SIN_REF,Dermaexpress,522,638
+3504105034382,Mustela Shampoo Recién Nacido 150 ml,MUSTELA,259.0,185.0,214.6,,0,no,SIN_REF,Bioinstrumental,324,269
+3504105034535,Mustela Aceite Prevención de Estrías 105 ml,MUSTELA,280.0,239.29,277.58,,0,no,SIN_REF,empate,350,347
+3504105035501,Mustela Hydrabebé Loción Corporal 500ml.,MUSTELA,347.0,288.0,334.08,,1,no,SIN_REF,Bioinstrumental,434,418
+3504105035532,Mustela Loción Corporal Cold Cream 200 ml,MUSTELA,226.0,211.5,245.34,,1,no,SIN_REF,Dermaexpress,283,307
+3504105035617,Mustela Gel de Baño Suave 500 ml,MUSTELA,258.0,249.0,288.84,,1,no,SIN_REF,Dermaexpress,323,362
+3504105035648,Mustela Crema Facial Cold Cream 40 ml,MUSTELA,157.0,140.0,162.4,,0,no,SIN_REF,Dermaexpress,197,203
+3504105035815,Mustela Solución Limpiadora Sin Enjuague 300 ml,MUSTELA,220.0,185.0,214.6,,1,no,SIN_REF,empate,275,269
+3504105035891,Mustela Hydrabebé Loción Corporal 300ml.,MUSTELA,247.0,206.96,240.07,,1,no,SIN_REF,empate,309,301
+3504105036027,Mustela agua para peinar refrescante 200ml.,MUSTELA,200.0,180.0,208.8,,1,no,SIN_REF,Dermaexpress,250,261
+3504105036102,Mustela Jabón Nutriprotector Cold Cream 100 gr,MUSTELA,135.0,140.0,162.4,,0,no,SIN_REF,Dermaexpress,169,203
+3504105036126,Mustela Shampoo Suave 200 ml,MUSTELA,155.0,155.0,179.8,,0,no,SIN_REF,Dermaexpress,194,225
+3504105036133,Mustela Shampoo Suave 500 ml,MUSTELA,258.0,190.0,220.4,,1,no,SIN_REF,Bioinstrumental,323,276
+3504105036751,Mustela Protector Solar en Spray 200ml.,MUSTELA,810.0,727.55,843.96,,1,no,SIN_REF,Dermaexpress,1013,1055
+3504105036768,Mustela Protector Solar Facial SPF50+ 40 ml,MUSTELA,399.0,320.0,371.2,,1,no,SIN_REF,Bioinstrumental,499,464
+3504105037185,Mustela Bálsamo Universal 75 ml,MUSTELA,283.0,210.0,243.6,,0,no,SIN_REF,Bioinstrumental,354,305
+3504105037772,Mustela Protector Solar Stick SPF50+ 9 ml,MUSTELA,323.0,270.0,313.2,,0,no,SIN_REF,Bioinstrumental,404,392
+3504105037956,Mustela Bio Orgánico Gel de Baño 400 ml,MUSTELA,444.0,466.0,540.56,,0,no,SIN_REF,Dermaexpress,555,676
+3504105038724,Mustela Bio Orgánico Gel de Baño Refill 400 ml,MUSTELA,412.0,405.0,469.8,,0,no,SIN_REF,Dermaexpress,515,588
+3504105039844,Mustela Stelatopia Crema Relipidizante Corporal 150 ml,MUSTELA,451.0,460.0,533.6,,1,no,SIN_REF,Dermaexpress,564,667
+3504105039875,Mustela Stelatopia Crema Relipidizante Corporal 300 ml,MUSTELA,680.0,630.0,730.8,,1,no,SIN_REF,Dermaexpress,850,914
+3504105041458,Mustela Toallitas Húmedas Compostables 60 pz,MUSTELA,209.0,215.5,249.98,,1,no,SIN_REF,Dermaexpress,262,313
+3504105043452,Mustela Shampoo en crema Desenredante y Nutritivo 200ml.,MUSTELA,195.0,196.1,227.48,,0,no,SIN_REF,Dermaexpress,244,285
+3504108090743,Mustela Jabón en Barra para Piel Normal 100 gr,MUSTELA,83.0,70.0,81.2,,1,no,SIN_REF,empate,104,102
+3592610002156,Dexeryl dermolimpiador en aceite 500 ml,Avene,399.0,380.0,440.8,499.0,1,no,ROJO,Dermaexpress,499,551
+3592619321609,Ducray Dexeryl Crema hidratante para piel seca 500 gr,Ducray,359.0,340.0,394.4,449.0,1,no,ROJO,Dermaexpress,449,493
+3701129800850,Bioderma Sensibio Gel Moussant gel micelar limpiador 100 ml,Bioderma,239.0,260.0,301.6,299.0,1,no,ROJO,Dermaexpress,299,377
+3701129803431,Bioderma Photoderm Cover Touch FPS50+ con color tono dorado 40 ml,Bioderma,591.0,680.0,788.8,739.0,1,no,ROJO,Dermaexpress,739,986
+3701129803714,Bioderma Photoderm M FPS50+ Protector solar facial contra el melasma tono Dorado 40 ml,Bioderma,639.0,710.0,823.6,799.0,1,no,ROJO,Dermaexpress,799,1030
+3701129804193,Bioderma Atoderm Crema reparadora para manos y uñas 50 ml,Bioderma,132.0,133.12,154.42,165.0,1,no,ROJO,Dermaexpress,165,194
+3760095250199,ACM Novophane K Shampoo anticaspa 125 ml,ACM,290.0,260.0,301.6,,1,no,SIN_REF,Dermaexpress,363,377
+3760095252551,ACM Molutrex Tratamiento para afecciones cutáneas 3 ml,ACM,487.0,360.0,417.6,,0,no,SIN_REF,Bioinstrumental,609,522
+4005800066061,Eucerin Sun Protector solar corporal textura extra ligera FPS50+ 150 ml,Eucerin,514.0,500.0,580.0,735.0,0,no,AMARILLO,Dermaexpress,643,725
+4005800346583,Eucerin Anti-Pigment Gel limpiador facial 200 ml,Eucerin,426.0,400.0,464.0,609.0,1,no,AMARILLO,Dermaexpress,533,580
+4005800631702,Eucerin pH5 Protector labial para piel seca y sensible FPS20 4.8 gr,Eucerin,107.0,145.67,168.98,153.0,1,no,AMARILLO,Dermaexpress,134,212
+4005900559524,Eucerin Anti-Pigment Spot Corrector anti-hiperpigmentación 5 ml,Eucerin,405.0,390.0,452.4,579.0,1,no,AMARILLO,Dermaexpress,507,566
+4005900994776,Eucerin Sun Hydro Fluid FPS50+ Protector Solar Facial Ligero 50 ml,Eucerin,467.0,430.0,498.8,668.0,1,no,AMARILLO,Dermaexpress,584,624
+4005900998385,Eucerin Anti-Pigment Crema Facial Anti-ojeras 15 ml,Eucerin,720.0,680.0,788.8,1029.0,1,no,AMARILLO,Dermaexpress,900,986
+4006000014395,Eucerin Anti-Pigment Crema Corporal Exfoliante Anti-manchas 200 ml,Eucerin,524.0,530.0,614.8,749.0,1,no,AMARILLO,Dermaexpress,655,769
+4006000014401,Eucerin Anti-Pigment Sérum Corporal para Áreas Sensibles 75 ml,Eucerin,598.0,580.0,672.8,855.0,1,no,AMARILLO,Dermaexpress,748,841
+4006000045832,Eucerin Crema anti-enrojecimiento calmante 50 ml,Eucerin,467.0,600.0,696.0,668.0,1,no,AMARILLO,Dermaexpress,584,870
+4006000136516,Eucerin Aquaphor Pomada reparadora 88 ml,Eucerin,360.0,480.0,556.8,515.0,1,no,AMARILLO,Dermaexpress,450,696
+689076362153,DS Revita Shampoo anticaída 205 ml,D.S.,549.0,460.0,533.6,687.0,1,no,ROJO,empate,687,667
+705105299372,DS Revita COR Acondicionador anticaída 205 ml,D.S.,549.0,654.33,759.02,687.0,1,no,ROJO,Dermaexpress,687,949
+736211284860,DS Spectral DNC Loción capilar anticaída 60 ml,D.S.,749.0,854.67,991.42,937.0,1,no,ROJO,Dermaexpress,937,1240
+7501089804389,Armstrong LETI AT4 Crema corporal hidratante 200 ml,Armstrong,906.0,585.0,678.6,,1,no,SIN_REF,Bioinstrumental,1133,849
+7501089804525,Armstrong LETI AT4 Leche corporal 250 ml,Armstrong,901.0,630.0,730.8,,1,no,SIN_REF,Bioinstrumental,1127,914
+7501124185091,Panalab Complidermol 5α plus 60 caps,Panalab,1498.0,890.0,1032.4,,1,no,SIN_REF,Bioinstrumental,1873,1291
+7501390914074,Italmex Derpil para la caída de el cabello c/32 caps.,Italmex,921.0,900.0,1044.0,1152.0,1,no,ROJO,Dermaexpress,1152,1305
+7501390916320,Polaris Research NR11 Foam Espuma Capilar Anticaída con Minoxidil 100 g,D.S.,876.0,810.0,939.6,1096.0,1,no,ROJO,Dermaexpress,1095,1175
+7502002461290,Farmapiel Bpollen Gel 2.5% antiimperfecciones 60 gr,Farmapiel,280.0,195.0,226.2,,1,no,SIN_REF,Bioinstrumental,350,283
+7502002461306,Farmapiel Bpollen Gel 5% antiimperfecciones 60 gr,Farmapiel,275.0,195.0,226.2,,1,no,SIN_REF,Bioinstrumental,344,283
+7502002462174,Farmapiel Optigel Pen Gel contorno ocular 15 gr,Farmapiel,729.0,240.0,278.4,,1,no,SIN_REF,Bioinstrumental,912,348
+7502002462297,Farmapiel Sérum facial Ácido Hialurónico hidratante antiedad 30 ml,Farmapiel,590.0,250.0,290.0,,1,no,SIN_REF,Bioinstrumental,738,363
+7502002462525,Farmapiel Skindry Sens 20ml,Farmapiel,490.0,260.0,301.6,,1,no,SIN_REF,Bioinstrumental,613,377
+7502003560527,Cetaphil Barra antibacterial dermolimpiadora para piel sensible 127 gr,Cetaphil,216.0,165.0,191.4,,1,no,SIN_REF,Bioinstrumental,270,240
+7502224220002,Cell Pharma Triclean Mousse limpiador 120 ml,Cell Pharma,495.0,370.0,429.2,,1,no,SIN_REF,Bioinstrumental,619,537
+7508006182506,Panalab Aminoter max Shampoo anticaída 300 ml,Panalab,1155.0,760.0,881.6,,1,no,SIN_REF,Bioinstrumental,1444,1102
+7508006182667,Panalab Aminoter Cápsulas c/30,Panalab,1318.0,810.0,939.6,,1,no,SIN_REF,Bioinstrumental,1648,1175
+7508006183305,Panalab Aminoter D Cápsulas c/30,Panalab,1548.0,840.0,974.4,,1,no,SIN_REF,Bioinstrumental,1935,1218
+7508006183657,Panalab Proavenal shampoo limpiador capilar 150ml.,Panalab,381.0,220.0,255.2,,0,no,SIN_REF,Bioinstrumental,477,319
+7508006184500,Panalab Lera-co Suplemento alimenticio 30 caps,Panalab,1505.0,990.0,1148.4,,1,no,SIN_REF,Bioinstrumental,1882,1436
+7509552966718,Vichy Kit Liftactiv Supreme Vit C Skin Corrector (20 ml) + Liftactiv Specialist B3 Serum (5 ml) + Capital Soleil UV Age Daily SPF 50+ (15 ml),Vichy,786.0,610.0,707.6,1049.0,1,no,AMARILLO,Bioinstrumental,983,885
+7509552966725,Vichy Kit Liftactiv Specialist B3 Serum (30 ml) + Liftactiv Collagen Specialist Crema (15 ml) + Capital Soleil UV Age Daily SPF 50+ (15 ml),Vichy,809.0,450.0,522.0,1079.0,1,no,AMARILLO,Bioinstrumental,1012,653
+7509552966749,Vichy Kit Normaderm Tratamiento anti-imperfecciones,Vichy,614.0,480.0,556.8,819.0,1,no,AMARILLO,Bioinstrumental,768,696
+7509552972122,Vichy Kit Mineral 89 50 ml + Normaderm Probio-BHA (5 ml) + Dercos Anticaspa Rutina Fortalecedora y Purificante (30 ml),Vichy,636.0,849.0,984.84,849.0,0,no,AMARILLO,Dermaexpress,795,1232
+7703281001447,Italmex Umbrella Plus Fotoprotector en spray para todo tipo de piel 120 gr,Italmex,724.0,635.0,736.6,905.0,1,no,ROJO,empate,905,921
+7703281001454,Italmex Umbrella FPS50+ Fotoprotector en gel para piel grasa 60 gr,Italmex,651.0,700.0,812.0,814.0,1,no,ROJO,Dermaexpress,814,1015
+7703281002352,Italmex Umbrella SPF50+ Fotoprotector compacto tono miel 11 gr,Italmex,651.0,675.0,783.0,814.0,1,no,ROJO,Dermaexpress,814,979
+7703281002451,Italmex Umbrella Urban SPF50 Fotoprotector antioxidante y antipolución 50 gr,Italmex,627.0,658.0,763.28,784.0,0,no,ROJO,Dermaexpress,784,955
+7703281002475,Italmex Umbrella Perfect Skin SPF50+ Tono oscuro Para todo tipo de piel 50 gr,Italmex,651.0,640.0,742.4,814.0,1,no,ROJO,Dermaexpress,814,928
+7703333007700,Italmex Betagranulos Crema limpiadora para pieles grasas 60 gr,Italmex,466.0,450.0,522.0,583.0,1,no,ROJO,Dermaexpress,583,653
+7897473206632,Glenmark Acni Pop Barra dermolimpiadora 90 gr,Glenmark,274.0,200.0,232.0,,0,no,SIN_REF,Bioinstrumental,343,290
+7897930776616,Cetaphil Sun Oil Control Gel protector solar con color FPS50+ para piel grasa 50 ml,Cetaphil,424.0,355.41,412.28,530.0,1,no,ROJO,empate,530,516
+797698113333,DS Spectral Lash Estimulante para pestañas 2.4 ml,D.S.,1167.0,980.0,1136.8,1459.0,1,no,ROJO,empate,1459,1421
+8163780225642,D.S Revita suplemento anti-caída c/60 gummies.,D.S.,651.0,720.0,835.2,814.0,0,no,ROJO,Dermaexpress,814,1044
+8163780226946,DS Revita Extra Strength Shampoo densidad capilar anticaída 205 ml,D.S.,610.0,540.0,626.4,763.0,0,no,ROJO,empate,763,783
+8429420050921,Isdin Niogermox 8% Solución antimicótica en laca 3.3 ml,Isdin,583.8,610.0,707.6,834.0,1,no,AMARILLO,Dermaexpress,730,885
+8429420084520,Isdin Bexident Post Tratamiento Colutorio Cuidado Bucal 250 ml,Isdin,500.5,640.0,742.4,715.0,1,no,AMARILLO,Dermaexpress,626,928
+8429420084674,Isdin Bexident Post Tratamiento Gel Tópico Coadyuvante Reparador 25 ml,Isdin,315.0,285.0,330.6,450.0,1,no,AMARILLO,Dermaexpress,394,414
+8429420096967,Isdin Niogermox 8% Solución antimicótica en laca 6.6 ml,Isdin,884.1,870.0,1009.2,1263.0,1,no,AMARILLO,Dermaexpress,1106,1262
+8429420109445,Isdin Woman Crema hidratante vulvar 30 gr,Isdin,224.7,280.0,324.8,321.0,1,no,AMARILLO,Dermaexpress,281,406
+8429420144835,Isdin Woman Lubricante vaginal 30 ml,Isdin,185.5,220.0,255.2,265.0,1,no,AMARILLO,Dermaexpress,232,319
+8429420152120,Isdin Ureadin Crema de manos reparadora 50 ml,Isdin,126.0,140.0,162.4,180.0,1,no,AMARILLO,Dermaexpress,158,203
+8429420156982,Isdin Lambdacaps Suplemento alimenticio 30 caps,Isdin,730.1,680.0,788.8,1043.0,1,no,AMARILLO,Dermaexpress,913,986
+8429420161214,Isdin Fotoprotector FPS50+ Gel crema Alta protección solar familiar 250 ml,Isdin,569.1,550.0,638.0,813.0,1,no,AMARILLO,Dermaexpress,712,798
+8429420164994,Isdin Woman Gel de limpieza íntima 200 ml,Isdin,233.8,300.0,348.0,334.0,1,no,AMARILLO,Dermaexpress,293,435
+8429420166547,Isdin Nutratopic Pro-AMP Loción emoliente Hidrata y calma la piel atópica 400 ml,Isdin,492.8,550.0,638.0,704.0,1,no,AMARILLO,Dermaexpress,616,798
+8429420171763,"Isdin Bexident Aftas Colutorio, alivio rápido y duradero 120 ml",Isdin,247.8,220.0,255.2,354.0,0,no,AMARILLO,empate,310,319
+8429420184527,Isdin Woman Crema antiestrías 250 ml,Isdin,443.1,505.0,585.8,633.0,1,no,AMARILLO,Dermaexpress,554,733
+8429420184558,Isdin Woman Crema Reafirmante 200 ml,Isdin,401.8,430.0,498.8,574.0,1,no,AMARILLO,Dermaexpress,503,624
+8429420203082,Isdin Isdinceutics Vital Eyes Crema reparadora antiarrugas 15 gr,Isdin,786.1,750.0,870.0,1123.0,1,no,AMARILLO,Dermaexpress,983,1088
+8429420220591,Isdin Bexident Encías Uso Diario Colutorio CPC + Cymenol Protección y Cuidado Gingival 250 ml,Isdin,277.9,330.0,382.8,397.0,1,no,AMARILLO,Dermaexpress,348,479
+8429420220607,Isdin Bexident Encías Uso Diario Pasta Dentífrica CPC + Dymenol Protección y Cuidado Gingival 75 ml,Isdin,229.6,260.0,301.6,328.0,1,no,AMARILLO,Dermaexpress,287,377
+8429420222465,Isdin Nutradeica Gel-crema facial Para dermatitis seborreica 50 ml,Isdin,395.5,420.0,487.2,565.0,1,no,AMARILLO,Dermaexpress,495,609
+8429420222472,Isdin Nutradeica Shampoo Anticaspa grasa 200 ml,Isdin,392.0,370.0,429.2,560.0,1,no,AMARILLO,Dermaexpress,490,537
+8429420227606,Isdin Acniben Gel matificante Limpiador para piel grasa con tendencia acnéica 200 ml,Isdin,361.2,400.0,464.0,516.0,1,no,AMARILLO,Dermaexpress,452,580
+8429420230514,Isdin Bexident Dientes Sensibles Pasta Dentífrica CPC + Cymenol Alivio y Protección 75 ml,Isdin,198.8,220.0,255.2,284.0,1,no,AMARILLO,Dermaexpress,249,319
+8429420245341,Isdin Fotoultra Redness Protector solar para piel con rosácea FPS50 50 ml,Isdin,500.5,480.0,556.8,715.0,1,no,AMARILLO,Dermaexpress,626,696
+8429420256309,Isdin Bexident Encías Intensivo Colutorio Cuidado Gingival Antiséptico 250 ml,Isdin,413.0,375.0,435.0,590.0,1,no,AMARILLO,Dermaexpress,517,544
+8429420256330,Isdin Bexident Encías Tratamiento Coadyuvante Gel Dentífrico Antiséptico y Reparador 75 ml,Isdin,263.9,310.0,359.6,377.0,1,no,AMARILLO,Dermaexpress,330,450
+8429420256354,Isdin Bexident Encías Tratamiento Coadyuvante Gel Tópico Gingival Antiséptico y Reparador 50 ml,Isdin,322.0,350.0,406.0,460.0,1,no,AMARILLO,Dermaexpress,403,508
+8429420256361,Isdin Bexident Encías Tratamiento Coadyuvante Spray Antiséptico y Reparador 40 ml,Isdin,435.4,430.0,498.8,622.0,1,no,AMARILLO,Dermaexpress,545,624
+8429420268296,Isdin Protector Solar Labial SPF 30 Hidratante y Protector 4 g,Isdin,117.6,125.0,145.0,168.0,1,no,AMARILLO,Dermaexpress,147,182
+8429420268302,Isdin Protector Labial SPF 50 Hidratante y Protector 14 g,Isdin,117.6,120.0,139.2,168.0,1,no,AMARILLO,Dermaexpress,147,174
+8429420280885,Isdin Fotoprotector Invisible Stick SPF50 Barra 10 gr,Isdin,351.4,315.0,365.4,502.0,1,no,AMARILLO,Dermaexpress,440,457
+8429420292871,Isdin Reparador Labial Stick Rosa Hidratación y Color 4 g,Isdin,117.6,125.0,145.0,168.0,1,no,AMARILLO,Dermaexpress,147,182
+8429420292888,Isdin Reparador Labial Stick Rojo Hidratación y Color 4 g,isdin,117.6,120.0,139.2,168.0,1,no,AMARILLO,Dermaexpress,147,174
+8429420292901,Isdin Reparador Labial Stick Granate Hidratación y Color 4 g,Isdin,117.6,120.0,139.2,168.0,1,no,AMARILLO,Dermaexpress,147,174
+8429420306936,ISDIN Compact Light SPF50 10 g,Isdin,541.8,550.0,638.0,774.0,1,no,AMARILLO,Dermaexpress,678,798
+8429420307988,Isdin FP Stick Pediatrics SPF 50 Protección Solar en Stick 20 g,Isdin,350.0,390.0,452.4,500.0,1,no,AMARILLO,Dermaexpress,438,566
+8430340038432,"Armstrong pilexil shampoo anticaspa , caspa seca 300ml.",Armstrong,818.0,600.0,696.0,,1,no,SIN_REF,Bioinstrumental,1023,870
+8431166260106,Leti SR Serum anti-rojeces 30ml.,Armstrong,1171.0,950.0,1102.0,,1,no,SIN_REF,Bioinstrumental,1464,1378
+8436574360523,Cantabria Labs Iraltone DS Shampoo anticaspa 200 ml,Cantabria Labs,480.0,480.0,556.8,565.0,1,no,ROJO,Dermaexpress,600,696
+8436574363388,Cantabria Labs Heliocare 360° Mattifying Brush Polvo protector solar FPS50+ 3 gr,Cantabria Labs,565.0,490.0,568.4,665.0,1,no,ROJO,empate,707,711
+8436574363654,Cantabria Labs Neoretin DC Sensitive Areas Loción aclarante corporal 100 ml,Cantabria Labs,688.0,595.0,690.2,810.0,1,no,ROJO,empate,860,863
+8436574364460,Cantabria Labs Heliocare 360° Acnimat Crema FPS50+ 50 ml,Cantabria Labs,620.0,615.0,713.4,730.0,1,no,ROJO,Dermaexpress,775,892
+8470001527349,Isdin Ureadin Podos Gel Oil Hidratante para pies secos 75 ml,Isdin,290.5,305.0,353.8,415.0,1,no,AMARILLO,Dermaexpress,364,443
+8470001585066,Isdin Fotoprotector Fusion Fluid FPS50+ Con color para piel sensible 50 ml,Isdin,517.3,580.0,672.8,739.0,1,no,AMARILLO,Dermaexpress,647,841
+8470001625069,Isdin Germisdin Intim Calm Higiene íntima 250 ml,Isdin,177.1,210.0,243.6,253.0,1,no,AMARILLO,Dermaexpress,222,305
+8470001806475,Isdin Acniben Body Spray Renovador para piel grasa 150 ml,Isdin,702.1,580.0,672.8,1003.0,1,no,AMARILLO,Bioinstrumental,878,841
+8470001855107,Isdin Acniben On the Spot Corrector de granos 15 ml,Isdin,295.4,315.0,365.4,422.0,1,no,AMARILLO,Dermaexpress,370,457
+8470001870483,Cantabria Labs Heliocare 360° AK Emulsión Protector solar FPS50+ 50 ml,Cantabria Labs,748.0,780.0,904.8,880.0,1,no,ROJO,Dermaexpress,935,1131
+8470001894342,Cantabria Labs Neoretin DC Ultra Emulsión despigmentante 30 ml,Cantabria Labs,960.0,810.0,939.6,1130.0,1,no,ROJO,empate,1200,1175
+8470001915528,Isdin Si-Nails Fortalecedor de uñas 2.5 ml,Isdin,419.3,390.0,452.4,599.0,1,no,AMARILLO,Dermaexpress,525,566
+8470001939456,Cantabria Labs Iraltone Shampoo fortificante 200 ml,Cantabria Labs,476.0,440.0,510.4,560.0,1,no,ROJO,Dermaexpress,595,638
+8470001945761,Cantabria Labs Biretix Tri-Active Spray corporal antiacné 100 ml,Cantabria Labs,799.0,720.0,835.2,940.0,1,no,ROJO,Dermaexpress,999,1044
+8470001997302,Cantabria Labs Endocare Radiance Contorno de ojos antiedad 15 ml,Cantabria Labs,1015.0,830.0,962.8,1195.0,1,no,ROJO,Bioinstrumental,1269,1204
+8470002063754,Armstrong Pilexil Shampoo anticaída 300 ml,Armstrong,819.0,560.0,649.6,,1,no,SIN_REF,Bioinstrumental,1024,812
+8470002111363,Cantabria Labs Neoretin DC Pigment Neutralizer Sérum despigmentante 30 ml,Cantabria Labs,926.0,830.0,962.8,1090.0,1,no,ROJO,Dermaexpress,1158,1204
+8470002129856,Isdin Ureadin Ultra 30 Crema exfoliante 50 ml,Isdin,308.0,280.0,324.8,440.0,1,no,AMARILLO,Dermaexpress,385,406
+8470002141469,Cantabria Labs Heliocare 360° Compacto protector solar beige FPS50+ 10 gr,Cantabria Labs,531.0,600.0,696.0,625.0,1,no,ROJO,Dermaexpress,664,870
+8470002147102,Cantabria Labs Heliocare 360° Sensation Protector solar FPS50+ 50 ml,Cantabria Labs,620.0,595.0,690.2,730.0,1,no,ROJO,Dermaexpress,775,863
+8470003233941,Isdin PS After Sun Spray Hidratante y Refrescante 200 ml,Isdin,308.0,380.0,440.8,440.0,0,no,AMARILLO,Dermaexpress,385,551
+8470003310338,Cantabria Labs Endocare Gel-crema reparadora antiedad 30 ml,Cantabria Labs,794.0,790.0,916.4,935.0,0,no,ROJO,Dermaexpress,993,1146
+8470003808996,Isdin PS After Sun Lotion Hidratación y Refrescante 200 ml,Isdin,308.0,350.0,406.0,440.0,0,no,AMARILLO,Dermaexpress,385,508
+850019136333,Lullage Splendor Sérum Elasticidad y Firmeza 30 ml,LULLAGE,639.0,410.0,475.6,,1,no,SIN_REF,Bioinstrumental,799,595
