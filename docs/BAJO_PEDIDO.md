@@ -68,4 +68,4 @@ Se combina con un conflicto trivial de `import` en `Tienda.jsx`. «Avísame cuan
 6. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
 7. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.
 8. `sql/patch_fuentes_bajo_pedido_20260917.sql` — Dermaexpress, Birdman, Ewafra, Promexsa, Mepiel.
-9. `sql/patch_alta_catalogo_bajo_pedido_20260917.sql` — vitrina derma / proteína / dispositivos (stock 0). Regenerar con `node scripts/generar-alta-bajo-pedido.js`.
+9. `sql/alta_bajo_pedido_partes/` (`00` → filas → `99`) — vitrina derma / proteína / dispositivos. No pegar el stub de 900 KB. Regenerar con `node scripts/generar-alta-bajo-pedido.js`.

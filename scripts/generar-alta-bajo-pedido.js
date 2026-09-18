@@ -207,14 +207,14 @@ function main() {
     ).join("\n"),
   );
 
-  const sqlPath = path.join(SQL_DIR, "patch_alta_catalogo_bajo_pedido_20260917.sql");
-  const parts = [];
-  parts.push(`-- FARMA CAPITAL — catálogo bajo pedido 2026-09-17
--- Dermaexpress + Birdman (sin merch) + Ewafra/DIS (sin lab/controlados).
--- Promexsa solo como techo / foto / nombre. precio=0 → Cotizar.
--- Idempotente: no inserta si el EAN ya existe; no marca bajo_pedido si hay stock.
--- Fotos: espejar a catalogo-propia/ con scripts/espejar-imagenes-bajo-pedido.js
--- luego reescribir imagen_url a farmacapital.mx (este SQL usa origen si aún no hay propia).
+  const partsDir = path.join(SQL_DIR, "alta_bajo_pedido_partes");
+  fs.mkdirSync(partsDir, { recursive: true });
+  for (const old of fs.readdirSync(partsDir)) {
+    if (old.endsWith(".sql")) fs.unlinkSync(path.join(partsDir, old));
+  }
+
+  const header00 = `-- 00/N — crea staging (NO es temp: cada parte se pega en una query del SQL Editor).
+-- Orden: 00, luego 01.., luego 99. Primero: patch_fuentes_bajo_pedido_20260917.sql
 
 begin;
 
@@ -229,7 +229,7 @@ begin
 end
 $$;
 
-create temp table _fc_cat_bp (
+create table if not exists public._fc_cat_bp_stg (
   sku text not null,
   ean text,
   nombre text not null,
@@ -245,14 +245,31 @@ create temp table _fc_cat_bp (
   sku_externo text,
   techo numeric(12,2),
   disponible boolean not null default true
-) on commit drop;
-`);
+);
 
-  for (const group of chunk(productos, 80)) {
-    parts.push("insert into _fc_cat_bp values\n" + group.map(sqlTuple).join(",\n") + ";\n");
-  }
+truncate public._fc_cat_bp_stg;
+commit;
 
-  parts.push(`
+select 'staging lista' as ok;
+`;
+  fs.writeFileSync(path.join(partsDir, "00_staging.sql"), header00);
+
+  const groups = chunk(productos, 120);
+  groups.forEach((group, i) => {
+    const n = String(i + 1).padStart(2, "0");
+    const body = `-- ${n}/${String(groups.length).padStart(2, "0")} — ${group.length} filas a _fc_cat_bp_stg
+begin;
+insert into public._fc_cat_bp_stg values
+${group.map(sqlTuple).join(",\n")};
+commit;
+`;
+    fs.writeFileSync(path.join(partsDir, `${n}_filas.sql`), body);
+  });
+
+  const lastN = String(groups.length + 1).padStart(2, "0");
+  const merge = `-- ${lastN} — pasa staging a productos + referencias. Idempotente.
+begin;
+
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -275,7 +292,7 @@ select
   t.precio,
   0, 1, true, false,
   t.marca, t.presentacion, t.subcategoria, t.imagen_url, true
-from _fc_cat_bp t
+from public._fc_cat_bp_stg t
 where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
   and not exists (
     select 1 from public.productos p
@@ -295,7 +312,7 @@ update public.productos p
        marca = coalesce(nullif(trim(p.marca), ''), t.marca),
        presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
        imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url)
-  from _fc_cat_bp t
+  from public._fc_cat_bp_stg t
  where coalesce(p.stock, 0) = 0
    and (
      (t.ean is not null and (p.codigo_barras = t.ean or p.id = public.fc_buscar_producto_escaneo(t.ean)))
@@ -306,7 +323,7 @@ insert into public.producto_precios_referencia
   (producto_id, fuente, tipo, precio, sku_externo, origen, notas)
 select p.id, t.fuente, 'compra', t.costo, t.sku_externo, 'import_csv',
        'mayoreo ' || t.fuente
-  from _fc_cat_bp t
+  from public._fc_cat_bp_stg t
   join public.productos p
     on p.sku = t.sku
     or (t.ean is not null and (p.codigo_barras = t.ean or p.id = public.fc_buscar_producto_escaneo(t.ean)))
@@ -321,7 +338,7 @@ insert into public.producto_precios_referencia
   (producto_id, fuente, tipo, precio, sku_externo, origen, notas)
 select p.id, 'promexsa', 'compra', t.techo, t.sku_externo, 'import_csv',
        'techo web Promexsa — no es mayoreo'
-  from _fc_cat_bp t
+  from public._fc_cat_bp_stg t
   join public.productos p
     on p.sku = t.sku
     or (t.ean is not null and p.codigo_barras = t.ean)
@@ -332,19 +349,33 @@ select p.id, 'promexsa', 'compra', t.techo, t.sku_externo, 'import_csv',
         and r.fecha = current_date
    );
 
+drop table if exists public._fc_cat_bp_stg;
 commit;
 
-select t.fuente, count(*) as filas,
-       count(*) filter (where t.precio > 0.01) as encargar,
-       count(*) filter (where t.precio <= 0.01) as cotizar
-  from _fc_cat_bp t
- group by 1
- order by 1;
-`);
+select
+  count(*) filter (where coalesce(bajo_pedido, false)) as bajo_pedido,
+  count(*) filter (where coalesce(bajo_pedido, false) and coalesce(precio, 0) > 0.01) as encargar,
+  count(*) filter (where coalesce(bajo_pedido, false) and coalesce(precio, 0) <= 0.01) as cotizar
+from public.productos;
+`;
+  fs.writeFileSync(path.join(partsDir, "99_aplicar.sql"), merge);
 
-  fs.writeFileSync(sqlPath, parts.join("\n"));
+  const stub = `-- NO PEGAR ESTE ARCHIVO en el SQL Editor (pesa ~900 KB y el editor lo corta).
+-- En farmacapital.mx/conseguir siguen ~111 encargos viejos si solo corriste este archivo.
+--
+-- Corre EN ORDEN los trozos de sql/alta_bajo_pedido_partes/:
+--   00_staging.sql
+--   01_filas.sql … NN_filas.sql
+--   99_aplicar.sql
+-- Al final 99 debe devolver bajo_pedido ≈ 3300 (no 111).
+--
+-- Regenerar: node scripts/generar-alta-bajo-pedido.js
+`;
+  fs.writeFileSync(path.join(SQL_DIR, "patch_alta_catalogo_bajo_pedido_20260917.sql"), stub);
+
+  const nParts = fs.readdirSync(partsDir).filter((f) => f.endsWith(".sql")).length;
   console.log(JSON.stringify(manifest.conteos, null, 2));
-  console.log(`SQL → ${sqlPath} (${Math.round(fs.statSync(sqlPath).size / 1024)} KB)`);
+  console.log(`Partes → ${partsDir} (${nParts} archivos)`);
 }
 
 main();
