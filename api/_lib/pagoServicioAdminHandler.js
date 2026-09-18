@@ -45,6 +45,54 @@ function recargoCategoriaValido(comision, categoria) {
 
 const RECIBO_IDS = ['cfe', 'telmex', 'totalplay', 'izzi', 'sky', 'agua', 'gas', 'otro'];
 const RECARGO_RECIBO_MAX = 200;
+const RECARGO_DEFAULT = { cfe: 8, telmex: 8, totalplay: 8, izzi: 10, sky: 10, agua: 8, gas: 8, otro: 10 };
+
+function recargoIdDeProveedor(proveedor) {
+  const k = String(proveedor || '').trim().toLowerCase();
+  if (!k) return null;
+  if (RECIBO_IDS.includes(k)) return k;
+  if (k.includes('izzi')) return 'izzi';
+  if (k.includes('cfe')) return 'cfe';
+  if (k.includes('telmex')) return 'telmex';
+  if (k.includes('totalplay')) return 'totalplay';
+  if (k.includes('sky')) return 'sky';
+  if (k.includes('agua')) return 'agua';
+  if (k.includes('gas')) return 'gas';
+  if (k.includes('otro')) return 'otro';
+  return null;
+}
+
+async function recargosGuardados(supabaseUrl, headers) {
+  try {
+    const resp = await fetch(
+      `${supabaseUrl}/rest/v1/configuracion?clave=eq.servicios_recargos&select=valor`,
+      { headers }
+    );
+    const rows = await resp.json().catch(() => []);
+    const raw = Array.isArray(rows) ? rows[0]?.valor : rows?.valor;
+    if (!raw) return {};
+    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!obj || typeof obj !== 'object') return {};
+    const out = {};
+    for (const id of RECIBO_IDS) {
+      const n = roundMoney(obj[id]);
+      if (n > 0) out[id] = n;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function recargoVigente(proveedor, categoria, comisionCliente, cfg) {
+  if (String(categoria || '').toLowerCase() === 'recarga') return 0;
+  const id = recargoIdDeProveedor(proveedor);
+  if (id) {
+    const n = roundMoney(cfg?.[id] ?? RECARGO_DEFAULT[id]);
+    if (n > 0) return n;
+  }
+  return roundMoney(comisionCliente);
+}
 
 function recargosReciboValidos(raw) {
   const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
@@ -108,7 +156,8 @@ async function pagoServicioAdminHandler(req, res) {
       const categoria = String(body.categoria || '').trim().toLowerCase();
       const metodo = String(body.metodo_pago || '').trim().toLowerCase();
       const monto = roundMoney(body.monto_servicio);
-      const comision = roundMoney(body.comision);
+      const cfgRecargos = await recargosGuardados(supabaseUrl, headers);
+      const comision = recargoVigente(proveedor, categoria, body.comision, cfgRecargos);
       if (!proveedor) return res.status(400).json({ ok: false, error: 'Proveedor requerido' });
       if (!categoria) return res.status(400).json({ ok: false, error: 'Categoría requerida' });
       if (!(monto > 0)) return res.status(400).json({ ok: false, error: 'Monto del servicio debe ser mayor a 0' });

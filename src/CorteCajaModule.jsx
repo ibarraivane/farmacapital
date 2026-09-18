@@ -19,6 +19,7 @@ import {
   uploadCorteTicketPdf,
   abrirOCrearTicketCorte,
   cargarVentasDetalleTurno,
+  recargoServiciosPorMetodo,
 } from "./utils/corteTicket";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
@@ -1054,6 +1055,9 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
   const etiquetaDetalle = nServicios
     ? `${nVentas} venta(s) · ${nServicios} recarga(s) · ${fmt(totalZ)}`
     : `${nVentas} venta(s) · ${fmt(totalZ)}`;
+  const recargoZ = recargoServiciosPorMetodo(zTransac);
+  const recargoEfectivo = parseFloat(detalle?.efectivo_comision ?? recargoZ.efectivo ?? 0);
+  const recargoTarjeta = parseFloat(detalle?.tarjeta_comision ?? recargoZ.tarjeta ?? 0);
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:820}}>
@@ -1095,7 +1099,8 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
           ))}
           {detalle && parseFloat(detalle.efectivo_servicios || 0) > 0 && (
             <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
-              De las ventas en efectivo, {fmt(detalle.efectivo_servicios)} son recargas / pagos de servicio.
+              De las ventas en efectivo, {fmt(detalle.efectivo_servicios)} son recargas / pagos de servicio
+              {recargoEfectivo > 0 ? ` · de eso, ${fmt(recargoEfectivo)} son recargo de farmacia (Izzi, CFE…)` : ""}.
             </div>
           )}
           {detalle && parseFloat(detalle.efectivo_ya_en_fondo || 0) > 0 && (
@@ -1106,7 +1111,8 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
           )}
           {detalle && (detalle.tarjeta_servicios > 0) && (
             <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
-              De la tarjeta, {fmt(detalle.tarjeta_servicios)} son pagos de servicio.
+              De la tarjeta, {fmt(detalle.tarjeta_servicios)} son pagos de servicio
+              {recargoTarjeta > 0 ? ` · de eso, ${fmt(recargoTarjeta)} son recargo de farmacia` : ""}.
             </div>
           )}
           <div style={{display:"flex",justifyContent:"space-between",paddingTop:8,marginTop:6,

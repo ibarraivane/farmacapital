@@ -1,4 +1,4 @@
-import { catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, desgloseCobroServicios, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, normalizarMetodoServicio, parseRecargosOverrides, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, recargosReciboParaGuardar, resumenPagosServicioDia, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
+import { catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, desgloseCobroServicios, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, normalizarMetodoServicio, parseRecargosOverrides, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, recargoVigenteDe, recargosReciboParaGuardar, resumenPagosServicioDia, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
 
 describe("pagoServicio", () => {
   test("compensación MP es 1% redondeado a centavos", () => {
@@ -59,6 +59,9 @@ describe("pagoServicio", () => {
     });
     expect(ok.ok).toBe(true);
     expect(ok.recargos.izzi).toBe(10);
+    expect(recargoVigenteDe({ proveedor: "Izzi", categoria: "telefonia" })).toBe(10);
+    expect(recargoVigenteDe({ proveedor: "Izzi", categoria: "telefonia", overrides: { izzi: 8 } })).toBe(8);
+    expect(recargoVigenteDe({ proveedor: "Izzi", categoria: "recarga" })).toBe(0);
   });
 
   test("saldo de recargas avisa solo si ya lo cargó el admin y está bajo el mínimo", () => {

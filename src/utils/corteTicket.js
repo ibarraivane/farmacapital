@@ -80,6 +80,7 @@ function mapVenta(t) {
 /** Recarga / CFE / etc. El efectivo del sistema las suma; el detalle no las listaba. */
 export function mapPagoServicio(s) {
   const total = parseFloat(s.total_cobrado || 0);
+  const comision = parseFloat(s.comision || 0);
   const nombre = [s.proveedor, s.categoria].filter(Boolean).join(" · ") || "Pago de servicio";
   const folio = s.folio || (s.id != null ? `SRV-${s.id}` : "SRV");
   return {
@@ -87,6 +88,7 @@ export function mapPagoServicio(s) {
     created_at: s.created_at,
     metodo_pago: etiquetaMetodo(s.metodo_pago),
     total,
+    comision,
     estado: "servicio",
     tipo: "servicio",
     notas: s.notas || "",
@@ -101,6 +103,21 @@ export function mapPagoServicio(s) {
       caducidad: "",
     }],
   };
+}
+
+export function recargoServiciosPorMetodo(tickets) {
+  return (Array.isArray(tickets) ? tickets : []).reduce(
+    (acc, t) => {
+      if (t?.tipo !== "servicio") return acc;
+      const recargo = parseFloat(t.comision || 0);
+      const metodo = String(t.metodo_pago || "").toLowerCase();
+      if (metodo === "efectivo") acc.efectivo = Math.round((acc.efectivo + recargo) * 100) / 100;
+      else if (metodo === "tarjeta") acc.tarjeta = Math.round((acc.tarjeta + recargo) * 100) / 100;
+      acc.total = Math.round((acc.total + recargo) * 100) / 100;
+      return acc;
+    },
+    { efectivo: 0, tarjeta: 0, total: 0 },
+  );
 }
 
 export function mergeDetalleTurno(ventas, servicios) {

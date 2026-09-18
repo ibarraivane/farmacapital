@@ -87,6 +87,14 @@ export function draftRecargosDe(catalogo = CATALOGO_SERVICIOS) {
   );
 }
 
+export function claveServicioDe(idOrProveedor) {
+  const key = String(idOrProveedor || "").trim().toLowerCase();
+  const hit = CATALOGO_SERVICIOS.find(
+    (s) => s.id === key || String(s.proveedor).toLowerCase() === key
+  );
+  return hit?.id || null;
+}
+
 /** Recargo del catálogo (defaults o el que ya mergeó el admin). El piso no lo teclea. */
 export function recargoCatalogoDe(idOrProveedor, catalogo = CATALOGO_SERVICIOS) {
   const key = String(idOrProveedor || "").trim().toLowerCase();
@@ -95,6 +103,13 @@ export function recargoCatalogoDe(idOrProveedor, catalogo = CATALOGO_SERVICIOS) 
     (s) => s.id === key || String(s.proveedor).toLowerCase() === key
   );
   return money2(hit?.comision ?? 0);
+}
+
+/** Recargo que debe quedar guardado. Recibos usan el catálogo/config, no lo que mande un POS viejo. */
+export function recargoVigenteDe({ id, proveedor, categoria, overrides } = {}) {
+  if (esServicioRecarga(categoria)) return 0;
+  const catalogo = catalogoServiciosConRecargos(overrides);
+  return recargoCatalogoDe(id || proveedor, catalogo);
 }
 
 export function recargosReciboParaGuardar(draft, catalogo = CATALOGO_SERVICIOS) {
