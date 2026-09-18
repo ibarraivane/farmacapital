@@ -86,6 +86,8 @@ export const tokenMatchesInNormalizedHaystack = (needle, haystack) => {
       if (/[a-z]/.test(before)) { i += 1; continue; }
       if (!/[a-z]/.test(after)) return true;
       if (/^(s|es)(?![a-z])/.test(rest)) return true;
+      // Misma palabra a medias: "levofloxaci" → "levofloxacino". No "loro" (corto).
+      if (n.length >= 6) return true;
     }
     i += 1;
   }

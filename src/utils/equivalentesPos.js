@@ -52,13 +52,28 @@ function viaDe(producto) {
 // Si falta un atributo en uno de los dos, no afirmamos compatibilidad.
 // Dos valores vacíos sí son iguales; vacío frente a un dato declarado, no.
 function igualSiDeclarado(a, b) { return a === b; }
-function concentracionDe(p) { return norm(p?.concentracion); }
+function concentracionDe(p) {
+  const s = norm(p?.concentracion).replace(/\s+/g, "");
+  return s.replace(/miligramos?/g, "mg");
+}
 function presentacionDe(p) { return norm(p?.contenido || p?.presentacion); }
+
+/** 7 tabletas vs "caja con 7 tabletas" / C/20 es el mismo empaque. */
+export function empaqueComparable(producto) {
+  const upc = Number(producto?.unidades_por_caja);
+  const s = norm(`${producto?.contenido || ""} ${producto?.presentacion || ""} ${producto?.nombre || ""}`);
+  const m =
+    s.match(/\b(?:c\/\s*|caja\s+(?:con\s+|c\/\s*))(\d+)\b/) ||
+    s.match(/\b(\d+)\s*(tabletas?|tabs?|capsulas?|caps?|comprimidos?|grageas?)\b/);
+  if (m) return `${m[1]}-${formaDe(producto)}`;
+  if (Number.isFinite(upc) && upc > 0) return `${upc}-${formaDe(producto)}`;
+  return presentacionDe(producto);
+}
 
 export function clasificarRelacionProducto(producto, ancla) {
   if (claveSustancia(producto) !== claveSustancia(ancla)) return "ninguna";
   if (!igualSiDeclarado(formaDe(producto), formaDe(ancla)) || !igualSiDeclarado(viaDe(producto), viaDe(ancla)) || !igualSiDeclarado(concentracionDe(producto), concentracionDe(ancla))) return "otra_forma";
-  return igualSiDeclarado(presentacionDe(producto), presentacionDe(ancla)) ? "misma_configuracion" : "otro_contenido";
+  return igualSiDeclarado(empaqueComparable(producto), empaqueComparable(ancla)) ? "misma_configuracion" : "otro_contenido";
 }
 
 function precioNum(p) { const n = parseFloat(p?.precio); return Number.isFinite(n) ? n : Infinity; }
@@ -129,20 +144,29 @@ function tokensDeClave(clave) {
   return String(clave || "").split("+").filter(Boolean);
 }
 
+function tokenCubreSustancia(token, sustancia) {
+  if (!token || !sustancia) return false;
+  if (token === sustancia) return true;
+  // Prefijo largo: "levofloxaci" (11) abre levofloxacino. "neomici" (7) no.
+  if (token.length >= 8 && (sustancia.startsWith(token) || token.startsWith(sustancia))) return true;
+  if (token.length >= 8 && normalizedTextFuzzyMatch(token, sustancia)) return true;
+  return false;
+}
+
 /** Si la consulta nombra la sustancia del ancla (loratadina, árnica…), expandimos a claves que la contengan. */
 function tokensSustanciaBuscada(query, claveAncla) {
   const qTokens = norm(query).split(" ").filter((t) => t.length >= 4);
   if (!qTokens.length || !claveAncla) return [];
-  const anclaSet = new Set(tokensDeClave(claveAncla));
-  const exactos = qTokens.filter((t) => anclaSet.has(t));
-  // Solo si escribió la sustancia completa ("loratadina"), no un prefijo ("neomici").
-  return exactos.length === qTokens.length ? exactos : [];
+  const anclaTokens = tokensDeClave(claveAncla);
+  const cubiertos = qTokens.filter((t) => anclaTokens.some((s) => tokenCubreSustancia(t, s)));
+  // Sustancia completa o prefijo largo ("levofloxaci"). "neomici" (7) no.
+  return cubiertos.length === qTokens.length ? cubiertos : [];
 }
 
 function claveContieneSustancia(clave, tokensSustancia) {
   if (!tokensSustancia.length) return false;
-  const set = new Set(tokensDeClave(clave));
-  return tokensSustancia.every((t) => set.has(t));
+  const claveTokens = tokensDeClave(clave);
+  return tokensSustancia.every((t) => claveTokens.some((s) => tokenCubreSustancia(t, s) || tokenCubreSustancia(s, t)));
 }
 
 function ordenarProductos(opciones, query) {

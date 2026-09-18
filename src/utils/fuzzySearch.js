@@ -502,11 +502,13 @@ export function levenshtein(a, b) {
 }
 
 /** "loratadina" dentro de "desloratadina" no es typo: es otra molécula. */
-function isAffixedSubstanceCollision(a, b) {
+export function isAffixedSubstanceCollision(a, b) {
   if (!a || !b || a === b) return false;
   // Solo tokens sueltos: "desloratadina" vs "loratadina".
   // "loratadina ambroxol" sí debe poder coincidir con "loratadina".
   if (a.includes(" ") || b.includes(" ")) return false;
+  // Prefijo de la misma palabra ("levofloxaci" → "levofloxacino") no es otra molécula.
+  if (a.startsWith(b) || b.startsWith(a)) return false;
   return a.includes(b) || b.includes(a);
 }
 
