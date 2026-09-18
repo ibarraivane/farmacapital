@@ -17,6 +17,7 @@ describe("pedidosTiendaWeb gate pickup", async () => {
     fusionarColaOnline,
     hidratarPagoDesdeTransacciones,
     fetchPedidosOnlineMostrador,
+    countPedidosTiendaPendientesHead,
     esErrorColumnaCostoEnvio,
     etiquetaPagoPedidoOnline,
     METODO_PENDIENTE_TIENDA,
@@ -224,6 +225,30 @@ describe("pedidosTiendaWeb gate pickup", async () => {
     assert.equal(cola[0].id, 333);
     assert.equal(hist[0].payment_status, "approved");
     assert.equal(etiquetaPagoPedidoOnline(hist[0]).kind, "approved_mp");
+  });
+
+  it("badge cuenta domicilio por cotizar aunque el RPC de count no lo traiga", async () => {
+    const supabase = {
+      async rpc(name) {
+        if (name === "empleado_listar_pedidos_tienda_web_pendientes") return { data: [], error: null };
+        if (name === "empleado_listar_pedidos_transacciones") {
+          return {
+            data: [{
+              id: 333,
+              estado: "pendiente",
+              tipo: "online",
+              metodo_pago: "mercadopago",
+              tipo_entrega: "envio",
+              payment_status: null,
+            }],
+            error: null,
+          };
+        }
+        return { data: 0, error: null };
+      },
+    };
+    const { count } = await countPedidosTiendaPendientesHead(supabase, "tok");
+    assert.equal(count, 1);
   });
 
   it("detecta el error de POS cuando falta pedidos.costo_envio", () => {

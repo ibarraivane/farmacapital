@@ -82,6 +82,8 @@ export default function useSidebarBadges(currentPage) {
         cof:  cofeprisCount,
       };
       const nextCritical = {
+        pos: pend > 0,
+        ped_online: pend > 0,
         ped_mostrador: (Number.isFinite(mostradorAbiertas) ? mostradorAbiertas : 0) > 0,
         inv:  (Number.isFinite(bajoStock) ? bajoStock : 0) > 0,
         caja: (Number.isFinite(cortesDif) ? cortesDif : 0) > 0,
