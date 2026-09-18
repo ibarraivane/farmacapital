@@ -347,7 +347,7 @@ describe("GS1 / DataMatrix en Recibir", () => {
   });
 
   test("beep GS1 largo contiene el EAN aunque AI 01 no parsee", () => {
-    expect(beepContieneCodigo("XX7501349023369YY", "7501349023369")).toBe(true);
+    expect(beepContieneCodigo("01075013490233691728031110U26J016", "7501349023369")).toBe(true);
     const item = {
       confirmado: false,
       codigo_escaneado: "EQ-AMS160",
