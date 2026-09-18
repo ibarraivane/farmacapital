@@ -12,6 +12,11 @@ describe("pedidosTiendaWeb gate pickup", async () => {
   const {
     esPedidoPickupPendienteCobro,
     esPedidoTiendaWebPendiente,
+    esPedidoEnvioPorCotizar,
+    pedidoEnColaOnline,
+    fusionarColaOnline,
+    hidratarPagoDesdeTransacciones,
+    fetchPedidosOnlineMostrador,
     esErrorColumnaCostoEnvio,
     etiquetaPagoPedidoOnline,
     METODO_PENDIENTE_TIENDA,
@@ -82,6 +87,19 @@ describe("pedidosTiendaWeb gate pickup", async () => {
     );
   });
 
+  it("envio pendiente sin pago entra a la cola para cotizar", () => {
+    const p = {
+      estado: "pendiente",
+      tipo: "online",
+      metodo_pago: "mercadopago",
+      payment_status: null,
+      tipo_entrega: "envio",
+    };
+    assert.equal(esPedidoTiendaWebPendiente(p), false);
+    assert.equal(esPedidoEnvioPorCotizar(p), true);
+    assert.equal(pedidoEnColaOnline(p), true);
+  });
+
   it("esPedidoTiendaWebPendiente pickup ok", () => {
     assert.equal(
       esPedidoTiendaWebPendiente({
@@ -138,6 +156,74 @@ describe("pedidosTiendaWeb gate pickup", async () => {
       logistics_meta: { envio: { estado: "cotizado" } },
     });
     assert.equal(ready.kind, "ready_to_pay");
+
+    const histSinStatus = etiquetaPagoPedidoOnline({
+      estado: "completado",
+      tipo: "online",
+      metodo_pago: "mercadopago",
+      tipo_entrega: "recoger",
+    });
+    assert.equal(histSinStatus.kind, "approved_mp");
+    assert.match(histSinStatus.label, /Pagado/i);
+  });
+
+  it("fusiona domicilio sin pago que el RPC viejo omite", () => {
+    const escalante = {
+      id: 333,
+      estado: "pendiente",
+      tipo: "online",
+      metodo_pago: "mercadopago",
+      payment_status: null,
+      tipo_entrega: "envio",
+      created_at: "2026-09-15T15:33:00Z",
+    };
+    const merged = fusionarColaOnline([], [escalante]);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0].id, 333);
+  });
+
+  it("hidrata payment_status del historial desde transacciones", () => {
+    const hist = [{ id: 335, estado: "completado", metodo_pago: "mercadopago", total: 10 }];
+    const tx = [{ id: 335, payment_status: "approved", payment_provider: "mercadopago", paid_at: "2026-09-15T18:00:00Z" }];
+    const [row] = hidratarPagoDesdeTransacciones(hist, tx);
+    assert.equal(row.payment_status, "approved");
+    assert.equal(etiquetaPagoPedidoOnline(row).kind, "approved_mp");
+  });
+
+  it("mostrador rescata domicilio omitido y pago del historial", async () => {
+    const supabase = {
+      async rpc(name) {
+        if (name === "empleado_listar_pedidos_tienda_web_pendientes") {
+          return { data: [], error: { message: "pago no confirmado" } };
+        }
+        if (name === "empleado_listar_pedidos_online_historial") {
+          return { data: [{ id: 335, estado: "completado", metodo_pago: "mercadopago" }], error: null };
+        }
+        if (name === "empleado_listar_pedidos_transacciones") {
+          return {
+            data: [
+              {
+                id: 333,
+                estado: "pendiente",
+                tipo: "online",
+                metodo_pago: "mercadopago",
+                tipo_entrega: "envio",
+                payment_status: null,
+                created_at: "2026-09-15T15:33:00Z",
+              },
+              { id: 335, payment_status: "approved", payment_provider: "mercadopago" },
+            ],
+            error: null,
+          };
+        }
+        return { data: [], error: null };
+      },
+    };
+    const { cola, hist } = await fetchPedidosOnlineMostrador(supabase, "tok");
+    assert.equal(cola.length, 1);
+    assert.equal(cola[0].id, 333);
+    assert.equal(hist[0].payment_status, "approved");
+    assert.equal(etiquetaPagoPedidoOnline(hist[0]).kind, "approved_mp");
   });
 
   it("detecta el error de POS cuando falta pedidos.costo_envio", () => {

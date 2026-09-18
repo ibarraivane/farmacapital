@@ -9,7 +9,7 @@ import { Logo, Box, Tag, Btn, Inp, KPI, KPI_ROW, Modal, NotificacionesToast, sho
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
 import { ymdMexico, rangoDiaFarmacia, inicioDiaFarmacia, inicioMesFarmaciaYmd } from "./lib/ventasVsMeta";
 import { lunesISODe } from "./lib/fecha";
-import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
+import { pedidoEnColaOnline, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import RecepcionModule from "./RecepcionModule";
@@ -618,7 +618,7 @@ function Dashboard({negocio,alertas,setPage}){
         if (pedsRes?.error) console.error("[Dashboard] Pedidos:", pedsRes.error);
         if (homeRes?.error) console.error("[Dashboard] Home snapshot:", homeRes.error);
 
-        setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
+        setPedOn((pedsRes?.data || []).filter(pedidoEnColaOnline));
         const H = homeRes?.data || {};
         setCitasH(H.citas_agenda_hoy || []);
 
@@ -2116,7 +2116,7 @@ export default function FarmaCapitalAdmin(){
       const pendPedidos = snap?.pend_pedidos || [];
       setAlr({
         stock: typeof snap?.stock_bajo === "number" ? snap.stock_bajo : 0,
-        pedidos: pendPedidos.filter(esPedidoTiendaWebPendiente).length,
+        pedidos: pendPedidos.filter(pedidoEnColaOnline).length,
         citas: typeof snap?.citas_web_hoy === "number" ? snap.citas_web_hoy : 0,
       });
     };

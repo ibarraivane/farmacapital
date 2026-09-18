@@ -1,4 +1,4 @@
-import { parseRpcJsonArray } from "./rpcJson";
+import { parseRpcJsonArray } from "./rpcJson.js";
 
 /**
  * Pedidos creados desde la tienda en línea (checkout) que siguen pendientes de surtir.
@@ -61,7 +61,18 @@ export function etiquetaPagoPedidoOnline(p, colors = {}) {
   const provider = String(p?.payment_provider || "").toLowerCase().trim();
   const metodo = String(p?.metodo_pago || "").toLowerCase().trim();
 
-  if (status === "approved") {
+  const estado = String(p?.estado || "").toLowerCase().trim();
+  const surtido = estado === "listo" || estado === "completado";
+  const pagado = status === "approved" || Boolean(p?.paid_at);
+
+  if (pagado) {
+    if (provider === "bbva" || metodo === "tarjeta") {
+      return { label: "Pagado · BBVA", col: accent, kind: "approved_bbva" };
+    }
+    return { label: "Pagado · Mercado Pago", col: accent, kind: "approved_mp" };
+  }
+  // Historial RPC viejo no manda payment_status: un surtido no es «pago por confirmar».
+  if (surtido && !status && (metodo === "mercadopago" || metodo === "tarjeta")) {
     if (provider === "bbva" || metodo === "tarjeta") {
       return { label: "Pagado · BBVA", col: accent, kind: "approved_bbva" };
     }
@@ -105,11 +116,63 @@ export function esPedidoTiendaWebPendiente(p) {
   return m === "tarjeta" || m === "mercadopago" || m === METODO_PENDIENTE_TIENDA;
 }
 
+/** Cola POS / dashboard: pagados por surtir + domicilio aún sin cobro (para cotizar). */
+export function pedidoEnColaOnline(p) {
+  return esPedidoTiendaWebPendiente(p) || esPedidoEnvioPorCotizar(p);
+}
+
 function sessionTokenEmpleado(explicit) {
   return (
     explicit ??
     (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("farmacapital_session_token") : null)
   );
+}
+
+export function fusionarColaOnline(primario, extra) {
+  const rows = Array.isArray(primario) ? primario.filter(pedidoEnColaOnline) : [];
+  const seen = new Set(rows.map((r) => r?.id).filter((id) => id != null));
+  for (const r of extra || []) {
+    if (r?.id == null || seen.has(r.id) || !pedidoEnColaOnline(r)) continue;
+    rows.push(r);
+    seen.add(r.id);
+  }
+  rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  return rows;
+}
+
+export function hidratarPagoDesdeTransacciones(histRows, txRows) {
+  const byId = new Map((txRows || []).map((p) => [p.id, p]));
+  return (histRows || []).map((r) => {
+    const full = byId.get(r.id);
+    if (!full) return r;
+    return {
+      ...r,
+      payment_status: r.payment_status ?? full.payment_status ?? null,
+      payment_provider: r.payment_provider ?? full.payment_provider ?? null,
+      paid_at: r.paid_at ?? full.paid_at ?? null,
+      metodo_pago: r.metodo_pago ?? full.metodo_pago,
+      tipo_entrega: r.tipo_entrega ?? full.tipo_entrega,
+      logistics_meta: r.logistics_meta ?? full.logistics_meta,
+    };
+  });
+}
+
+function rangoColaOnline(dias = 45) {
+  return {
+    p_created_desde: new Date(Date.now() - dias * 86400000).toISOString(),
+    p_created_hasta: new Date().toISOString(),
+  };
+}
+
+async function fetchPedidosTransaccionesCola(supabase, tok, opts = {}) {
+  const rango = rangoColaOnline(opts.dias ?? 45);
+  const { data, error } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
+    p_session_token: tok,
+    ...rango,
+    p_limite: opts.limite ?? 300,
+  });
+  if (error) return { data: [], error };
+  return { data: parseRpcJsonArray(data), error: null };
 }
 
 /** HEAD count exact para badges / KPIs (requiere sesión empleado). */
@@ -133,13 +196,36 @@ export async function fetchPedidosTiendaPendientesMerged(supabase, _selectSpecUn
   const tok = sessionTokenEmpleado(opts.sessionToken);
   const maxRows = opts.maxRows ?? 250;
   if (!tok) return { data: [], error: null };
-  const { data, error } = await supabase.rpc("empleado_listar_pedidos_tienda_web_pendientes", {
-    p_session_token: tok,
-    p_limit: maxRows,
-  });
-  if (error) return { data: [], error };
-  let rows = parseRpcJsonArray(data);
-  rows = rows.filter(esPedidoTiendaWebPendiente);
-  rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  return { data: rows, error: null };
+  const [colaRes, txRes] = await Promise.all([
+    supabase.rpc("empleado_listar_pedidos_tienda_web_pendientes", {
+      p_session_token: tok,
+      p_limit: maxRows,
+    }),
+    fetchPedidosTransaccionesCola(supabase, tok, { limite: maxRows }),
+  ]);
+  const rows = fusionarColaOnline(parseRpcJsonArray(colaRes.data), txRes.data);
+  const error = rows.length ? null : (colaRes.error || txRes.error || null);
+  return { data: rows, error };
+}
+
+/** Cola + historial POS. Transacciones cubre domicilio sin pago si el RPC viejo lo omite. */
+export async function fetchPedidosOnlineMostrador(supabase, sessionToken, opts = {}) {
+  const tok = sessionTokenEmpleado(sessionToken);
+  if (!tok) return { cola: [], hist: [], error: null, colaError: null, histError: null };
+  const maxRows = opts.maxRows ?? 300;
+  const [colaRes, histRes, txRes] = await Promise.all([
+    supabase.rpc("empleado_listar_pedidos_tienda_web_pendientes", {
+      p_session_token: tok,
+      p_limit: maxRows,
+    }),
+    supabase.rpc("empleado_listar_pedidos_online_historial", {
+      p_session_token: tok,
+      p_limite: opts.histLimit ?? 20,
+    }),
+    fetchPedidosTransaccionesCola(supabase, tok, { limite: maxRows }),
+  ]);
+  const cola = fusionarColaOnline(parseRpcJsonArray(colaRes.data), txRes.data);
+  const hist = hidratarPagoDesdeTransacciones(parseRpcJsonArray(histRes.data), txRes.data);
+  const colaError = cola.length ? null : colaRes.error || null;
+  return { cola, hist, error: colaError || histRes.error || null, colaError, histError: histRes.error || null };
 }

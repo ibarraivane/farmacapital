@@ -48,8 +48,7 @@ import {
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
-import { esPedidoTiendaWebPendiente, esPedidoEnvioPorCotizar, esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosTiendaPendientesMerged, esErrorColumnaCostoEnvio } from "../../../utils/pedidosTiendaWeb";
-import { parseRpcJsonArray } from "../../../utils/rpcJson";
+import { esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosOnlineMostrador, esErrorColumnaCostoEnvio } from "../../../utils/pedidosTiendaWeb";
 import {
   telefonoClientePedido,
   payloadMarcarPedidoListo,
@@ -80,13 +79,6 @@ import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import EnvioCotizacionPanel from "../../../components/EnvioCotizacionPanel";
 import { despacharEnvioPedido } from "../../../lib/envioDomicilioClient";
-
-const PEDIDOS_TIENDA_SELECT_POS = `
-            id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
-            guest_nombre,guest_telefono,guest_email,logistics_meta,costo_envio,
-            clientes(nombre,telefono),
-            pedido_items(cantidad,precio_unitario,productos(nombre,sku,ubicacion_texto))
-          `;
 
 function ubicacionPedidoItem(item) {
   const raw = item?.productos?.ubicacion_texto;
@@ -925,29 +917,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const recargarPedidosOnline = useCallback(async () => {
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      const [pedsRes, histRes] = await Promise.all([
-        fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
-          perBranchLimit: 100,
-          maxRows: 300,
-          sessionToken: tok,
-        }),
-        tok
-          ? supabase.rpc("empleado_listar_pedidos_online_historial", {
-              p_session_token: tok,
-              p_limite: 20,
-            })
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-      if (pedsRes?.error) {
-        console.warn("[POS] Pedidos online:", pedsRes.error.message);
-      } else {
-        setPedOn((pedsRes?.data || []).filter((p) => esPedidoTiendaWebPendiente(p) || esPedidoEnvioPorCotizar(p)));
+      const shown = await fetchPedidosOnlineMostrador(supabase, tok, { maxRows: 300, histLimit: 20 });
+      if (shown.colaError && !esErrorColumnaCostoEnvio(shown.colaError)) {
+        console.warn("[POS] Pedidos online:", shown.colaError.message);
+      } else if (shown.colaError) {
+        console.warn("[POS] Pedidos online: falta pedidos.costo_envio. Corre sql/patch_pedidos_costo_envio_col_20260916.sql");
       }
-      if (histRes?.error) {
-        console.warn("[POS] Historial online:", histRes.error.message);
-      } else {
-        setPedOnHist(parseRpcJsonArray(histRes?.data));
+      setPedOn(shown.cola || []);
+      if (shown.histError) {
+        console.warn("[POS] Historial online:", shown.histError.message);
       }
+      setPedOnHist(shown.hist || []);
     } catch (e) {
       console.warn("[POS] recargarPedidosOnline:", e);
     }
@@ -1062,21 +1042,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
         const tok = sessionStorage.getItem("farmacapital_session_token");
-        const [prodsRes, pedsRes, histRes, lotesMap, especialesMap] = await Promise.all([
+        const [prodsRes, shown, lotesMap, especialesMap] = await Promise.all([
           tok
             ? fetchProductosCatalogoPos(tok)
             : Promise.resolve({ data: [], error: { message: "Sin sesión" } }),
-          fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
-            perBranchLimit: 100,
-            maxRows: 300,
-            sessionToken: tok,
-          }),
-          tok
-            ? supabase.rpc("empleado_listar_pedidos_online_historial", {
-                p_session_token: tok,
-                p_limite: 20,
-              })
-            : Promise.resolve({ data: [], error: null }),
+          fetchPedidosOnlineMostrador(supabase, tok, { maxRows: 300, histLimit: 20 }),
           fetchLotesMapPos(tok),
           fetchEspecialesCaducidadPos(tok),
         ]);
@@ -1084,22 +1054,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
         const errs = [];
         if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
-        if (pedsRes?.error && !esErrorColumnaCostoEnvio(pedsRes.error)) {
-          errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
-        } else if (pedsRes?.error) {
+        if (shown.colaError && !esErrorColumnaCostoEnvio(shown.colaError)) {
+          errs.push(`Pedidos online: ${shown.colaError.message}`);
+        } else if (shown.colaError) {
           console.warn("[POS] Pedidos online: falta pedidos.costo_envio. Corre sql/patch_pedidos_costo_envio_col_20260916.sql");
         }
-        if (histRes?.error)  errs.push(`Historial online (${histRes.status||"?"}): ${histRes.error.message}`);
+        if (shown.histError) errs.push(`Historial online: ${shown.histError.message}`);
 
         if (errs.length) {
-          console.error("[POS] Errores de carga:", { prodsRes, pedsRes });
+          console.error("[POS] Errores de carga:", { prodsRes, shown });
           if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
         }
 
         const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
         setProds(enrichPosProductosConLotes(prodsRaw, lotesMap));
-        setPedOn((pedsRes?.data || []).filter((p) => esPedidoTiendaWebPendiente(p) || esPedidoEnvioPorCotizar(p)));
-        setPedOnHist(parseRpcJsonArray(histRes?.data));
+        setPedOn(shown.cola || []);
+        setPedOnHist(shown.hist || []);
 
       } catch (e) {
         console.error("[POS] Excepción cargando datos:", e);
@@ -3695,7 +3665,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {tab==="online"&&(
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
-            <strong>Operación:</strong> aparecen pedidos listos para surtir: domicilio con <strong>pago Mercado Pago aprobado</strong>, y pick-up <strong>confirmado (cobro en tienda con BBVA)</strong>. En domicilio el cliente ya pagó el envío en checkout: abre DiDi (o propio) y marca en ruta.
+            <strong>Operación:</strong> pick-up confirmado (cobro en tienda con BBVA) y domicilio. En domicilio el pedido entra <strong>sin pago</strong> para que cotices DiDi/Uber, avises por WhatsApp y el cliente pague productos + envío. Cuando Mercado Pago marque aprobado, surtes y marcas en ruta.
           </div>
           {loading ? <SkeletonTable rows={3} cols={4}/> : (
             <>
