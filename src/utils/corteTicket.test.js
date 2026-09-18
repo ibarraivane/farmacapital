@@ -1,4 +1,4 @@
-import { mapPagoServicio, mergeDetalleTurno, snapshotFromCorte } from "./corteTicket";
+import { mapPagoServicio, mergeDetalleTurno, recargoServiciosPorMetodo, snapshotFromCorte } from "./corteTicket";
 
 describe("detalle de corte: recargas + ventas", () => {
   test("mapPagoServicio arma un renglón con folio SRV y el cobrado", () => {
@@ -18,6 +18,22 @@ describe("detalle de corte: recargas + ventas", () => {
     expect(row.metodo_pago).toBe("efectivo");
     expect(row.items[0].nombre).toBe("Telcel · recarga");
     expect(row.items[0].subtotal).toBe(80);
+  });
+
+  test("el recargo de Izzi en efectivo cuenta aparte del recibo", () => {
+    const izzi = mapPagoServicio({
+      folio: "SRV-20260917-000010",
+      proveedor: "Izzi",
+      categoria: "telefonia",
+      comision: 10,
+      total_cobrado: 510,
+      metodo_pago: "efectivo",
+    });
+    expect(izzi.comision).toBe(10);
+    expect(recargoServiciosPorMetodo([
+      izzi,
+      mapPagoServicio({ proveedor: "AT&T", categoria: "recarga", comision: 0, total_cobrado: 100, metodo_pago: "efectivo" }),
+    ])).toEqual({ efectivo: 10, tarjeta: 0, total: 10 });
   });
 
   test("mergeDetalleTurno junta ventas y recargas y ordena por hora", () => {
