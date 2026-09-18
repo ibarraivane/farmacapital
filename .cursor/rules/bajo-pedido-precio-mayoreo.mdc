@@ -8,7 +8,8 @@ alwaysApply: true
 En la vitrina `/conseguir` (**bajo pedido**):
 
 1. **`precio`** = costo del **mayorista** (DermaPharma, Birdman, Nadro, etc.) + ganancia FarmaCapital (marca **+25%** / genérico **+60%** sobre costo).
-2. **Sin costo usable** → `precio = 0` → CTA **Cotizar**. Nunca «Encargar» con precio inventado.
+2. **Sin revisión del dueño** → `precio = 0` en toda la vitrina (dermatología, vitaminas, suplementos, proteína, dispositivos). CTA **Ordenar** (no «Encargar»). El costo de mayoreo se guarda; no se publica.
 3. **Prohibido** pegar lista / PVP de Del Ahorro, Similares u otra farmacia como `productos.precio`.
 
 Caso 2026-09-17: se cargó ancla Fahorro; se corrigió con `sql/patch_bajo_pedido_cotizar_sin_costo_20260917.sql`.
+Caso 2026-09-18: el dueño aún no cierra precios. `sql/patch_vitrina_ordenar_sin_precio_20260918.sql` pone `precio = 0`. No volver a publicar Encargar hasta que lo pida.

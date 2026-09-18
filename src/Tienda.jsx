@@ -56,10 +56,10 @@ import {
   CANTIDAD_MAX_BAJO_PEDIDO,
   CONSEGUIR_UI,
   cantidadMaximaLinea,
-  colorCtaEncargar,
   ctaBajoPedido,
   esBajoPedido,
   estiloRecuadroConseguir,
+  ETIQUETA_CTA_ORDENAR,
   motivoNoMezclar,
   pedidoEsBajoPedido,
   prepararListaTienda,
@@ -166,7 +166,7 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
   return Math.max(col, fromLotes);
 }
 
-// Bajo pedido no es «Agotado»: no está en anaquel a propósito (vitrina /conseguir, CTA Encargar/Cotizar).
+// Bajo pedido no es «Agotado»: no está en anaquel a propósito (vitrina /conseguir, CTA Ordenar, sin precio).
 const productoAgotadoTienda = (p) => Number(p?.stock) <= 0 && !esBajoPedido(p);
 
 /** Catálogo tienda: activos en línea (incluye agotados, como POS). */
@@ -379,7 +379,7 @@ const FAQ_ITEMS = [
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
   { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos» o entra a /conseguir. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
-    { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos, proteína y dispositivos médicos). Si tienen precio, tocas «Encargar» y apartas el total con tarjeta de crédito: no se cobra hasta que lo tengamos listo. Si no lo conseguimos en 5 días, cancelamos la reserva y tu banco libera el monto sin cargo. Si no tienen precio, tocas «Cotizar» y te mandamos el costo." },
+    { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos, proteína y dispositivos médicos). Toca «Ordenar»: todavía no publicamos el precio, te lo cotizamos por WhatsApp o correo." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -1838,7 +1838,7 @@ function ProductCard({prod,addToCart,onClick}){
   const promosProd = usePromosProducto(prod?.id);
   const oferta = ofertaDeProducto(prod, promosProd);
   const agotado = productoAgotadoTienda(prod);
-  const cta = ctaBajoPedido(prod); // "encargar" | "cotizar" | null
+  const cta = ctaBajoPedido(prod); // "ordenar" | null
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const urlsFotoDe = useUrlsImagenesProducto();
@@ -1850,7 +1850,7 @@ function ProductCard({prod,addToCart,onClick}){
   const handleDetailClick = () => { onClick?.(); };
   const handleAddClick = (e) => {
     e.stopPropagation();
-    if(cta==="cotizar"){ handleDetailClick(); return; }
+    if(cta==="ordenar"){ handleDetailClick(); return; }
     if(agotado)return;
     if(!productoPermitidoEnTiendaFarmaciaWeb(prod)){
       alert(razonBloqueoProductoTiendaFarmacia(prod));
@@ -1942,8 +1942,8 @@ function ProductCard({prod,addToCart,onClick}){
         <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
         <div style={{marginBottom:10}}>
-          {cta==="cotizar"
-            ? <div style={{color:C.mid,fontWeight:700,fontSize:14}}>Precio por cotizar</div>
+          {cta
+            ? null
             : <PrecioOferta prod={prod} promos={promosProd} size="sm" />}
           {!oferta.hayOferta && prod.precio_marca ? (
             <div style={{display:"flex",alignItems:"baseline",gap:8,marginTop:4}}>
@@ -1952,11 +1952,11 @@ function ProductCard({prod,addToCart,onClick}){
           ) : null}
           {!oferta.hayOferta && prod.tipo==="generico"&&prod.precio_marca&&<div style={{color:BRAND.accent,fontSize:11,fontWeight:600}}>Ahorras {$peso(prod.precio_marca-prod.precio)} vs marca</div>}
         </div>
-        <div style={{color:C.dim,fontSize:10,marginBottom:10}}>{cta==="cotizar" ? "\u00a0" : `+${labelPts(ptsGana(oferta.oferta))}`}</div>
+        <div style={{color:C.dim,fontSize:10,marginBottom:10}}>{cta ? "\u00a0" : `+${labelPts(ptsGana(oferta.oferta))}`}</div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={handleDetailClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
           {cta ? (
-            <Btn onClick={handleAddClick} col={cta==="cotizar"?BRAND.primary:colorCtaEncargar(added)} sm style={{flex:1}}>{cta==="cotizar"?"Cotizar":added?"✓ Listo":"Encargar"}</Btn>
+            <Btn onClick={handleAddClick} col={BRAND.primary} sm style={{flex:1}}>{ETIQUETA_CTA_ORDENAR}</Btn>
           ) : (
           <Btn onClick={handleAddClick} col={agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#9A9184":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{agotado?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
           )}
@@ -2005,7 +2005,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     </div>
   );
   const agotado = productoAgotadoTienda(prod);
-  const cta = ctaBajoPedido(prod); // bajo pedido: "encargar" | "cotizar"
+  const cta = ctaBajoPedido(prod); // bajo pedido: "ordenar"
   const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
   const irACotizar = () => {
     try {
@@ -2081,8 +2081,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{prod.nombre}</h1>
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
           <div style={{marginBottom:20}}>
-            {cta==="cotizar"
-              ? <div style={{color:C.mid,fontWeight:800,fontSize:20}}>Precio por cotizar</div>
+            {cta
+              ? null
               : <PrecioOferta prod={prod} promos={promosProd} size="lg" />}
             {!oferta.hayOferta && prod.precio_marca ? (
               <div style={{color:C.dim,fontSize:16,textDecoration:"line-through",marginTop:6}}>{$peso(prod.precio_marca)} marca</div>
@@ -2093,7 +2093,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               </div>
             )}
           </div>
-          {cta!=="cotizar" && (
+          {cta ? null : (
           <div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:10,padding:"10px 14px",marginBottom:20}}>
             <div style={{color:"#92400e",fontWeight:700}}>Ganas {labelPts(ptsGana(oferta.oferta))} con esta compra</div>
           </div>
@@ -2102,9 +2102,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             <div style={{background:CONSEGUIR_UI.cream,border:`2px solid ${CONSEGUIR_UI.border}`,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
               <div style={{color:CONSEGUIR_UI.text,fontWeight:800,fontSize:14,marginBottom:4}}>Bajo pedido · 24-48 hrs</div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.55}}>
-                {cta==="encargar"
-                  ? "Disponible bajo pedido en 24-48 hrs. Al encargarlo apartas el total en tu tarjeta de crédito y se cobra solo cuando lo tengamos listo. Si no lo conseguimos, cancelamos la reserva sin cargo."
-                  : "Disponible bajo pedido. Te cotizamos el precio y te lo mandamos por WhatsApp o correo."}
+                Disponible bajo pedido en 24-48 hrs. Toca Ordenar y te cotizamos el precio por WhatsApp o correo.
               </div>
             </div>
           )}
@@ -2128,14 +2126,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           )}
           {cta ? (
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            {cta==="cotizar" ? (
-              <Btn onClick={irACotizar} col={BRAND.primary} style={{flex:"1 1 min(100%,240px)",minWidth:0}}>Cotizar</Btn>
-            ) : (
-              <>
-                <Btn onClick={()=>{ if(addToCart(prod)===false) return; setAdded(true); setTimeout(()=>setAdded(false),1500); }} col={colorCtaEncargar(added)} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{added?"✓ Encargado":"Encargar"}</Btn>
-                <Btn onClick={()=>{ if(addToCart(prod)===false) return; setPage("carrito"); }} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Encargar y apartar</Btn>
-              </>
-            )}
+            <Btn onClick={irACotizar} col={BRAND.primary} style={{flex:"1 1 min(100%,240px)",minWidth:0}}>{ETIQUETA_CTA_ORDENAR}</Btn>
           </div>
           ) : (
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
@@ -3837,7 +3828,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         }
         if (esBajoPedido(live)) {
           if (ctaBajoPedido(live) !== "encargar") {
-            msgs.push(`"${line.nombre}" ahora es por cotización.`);
+            msgs.push(`"${line.nombre}" ahora se ordena; te cotizamos el precio.`);
             changed = true;
             continue;
           }
@@ -6834,7 +6825,7 @@ export default function TiendaFarmaCapital(){
     const bajoPedido = esBajoPedido(prod);
     if (!prod || !prod.activo) return false;
     if (!bajoPedido && Number(prod.stock||0) <= 0) return false;
-    if (bajoPedido && ctaBajoPedido(prod) !== "encargar") return false; // sin precio → Cotizar
+    if (bajoPedido && ctaBajoPedido(prod) !== "encargar") return false; // vitrina → Ordenar, sin precio
     if (!productoEsVendible(prod)) {
       alert("Este producto aún no tiene precio de venta. Disponible en sucursal cuando esté capturado.");
       return false;

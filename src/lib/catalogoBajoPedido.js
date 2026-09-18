@@ -1,7 +1,7 @@
 /**
  * Catálogo bajo pedido (Dermaexpress, Birdman, Ewafra/DIS, Promexsa techo).
- * Precio = recargo sobre costo mayoreo (+25% marca / +60% genérico),
- * techo de mercado si existe. Sin costo → precio 0 (Cotizar).
+ * El costo de mayoreo se guarda. El precio público va en 0 (botón Ordenar)
+ * hasta que el dueño revise las cifras. `precioBajoPedido` queda para ese día.
  * CJS para que el script de alta (`scripts/generar-alta-bajo-pedido.js`) lo requiera.
  */
 function tipoAltaNormalizado(tipo) {
@@ -240,7 +240,7 @@ function filaDermaexpress(row) {
     ...cats,
     tipo: "marca",
     costo: costoOk ? costo : null,
-    precio: disponible && costoOk ? precioBajoPedido(costo, "marca", techo) : 0,
+    precio: 0,
     techo: Number.isFinite(techo) && techo > 0 ? techo : null,
     imagen_url: imagenCatalogoSegura(row.imagen_url),
     fuente: FUENTE_DERMAEXPRESS,
@@ -267,7 +267,7 @@ function filaBirdman(row) {
     ...cats,
     tipo: "marca",
     costo: costoOk ? costo : null,
-    precio: disponible && costoOk ? precioBajoPedido(costo, "marca", techo) : 0,
+    precio: 0,
     techo: Number.isFinite(techo) && techo > 0 ? techo : null,
     imagen_url: imagenCatalogoSegura(row.imagen_url),
     fuente: FUENTE_BIRDMAN,
@@ -298,7 +298,7 @@ function filaEwafra(row, promexsaMatch) {
     ...cats,
     tipo: "marca",
     costo,
-    precio: precioBajoPedido(costo, "marca", techo),
+    precio: 0,
     techo: Number.isFinite(techo) && techo > 0 ? techo : null,
     imagen_url: imagen,
     fuente: FUENTE_EWAFRA,

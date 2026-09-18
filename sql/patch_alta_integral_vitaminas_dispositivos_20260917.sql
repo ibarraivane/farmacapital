@@ -4,7 +4,8 @@
 --
 -- Fuente: https://farmacia-integral.odoo.com/shop (fichas públicas, no el slug).
 -- 125 SKU(s) con packshot. Stock 0. Sin lote ni caducidad.
--- Precio shop > $1.50 = ancla Encargar; $0.01 = Cotizar (Integral no publica precio).
+-- Precio público = 0 (botón Ordenar). El shop de Integral no es PVP FarmaCapital.
+-- Excepción: Softclix 25/100 (EAN 4015630018277 / 4015630018284) conserva el PVP que fijó el dueño.
 -- Si el EAN ya existe CON stock de anaquel: no se marca bajo_pedido.
 --
 -- ANTES: sql/patch_bajo_pedido_20260916.sql
@@ -190,7 +191,7 @@ select
   'marca',
   t.descripcion,
   null,
-  t.precio,
+  0,
   0,
   1,
   true,
@@ -218,7 +219,10 @@ update public.productos p
          when coalesce(nullif(trim(p.categoria), ''), '') in ('', 'Otro', 'General')
            then t.categoria else p.categoria end,
        subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
-       precio = case when coalesce(p.precio, 0) <= 0.01 then t.precio else p.precio end
+       precio = case
+         when t.ean in ('4015630018277', '4015630018284') then p.precio
+         else 0
+       end
   from _fc_vitrina_bp t
  where (p.codigo_barras = t.ean or p.id = public.fc_buscar_producto_escaneo(t.ean))
    and coalesce(p.stock, 0) = 0;

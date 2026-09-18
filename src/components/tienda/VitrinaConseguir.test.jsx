@@ -18,6 +18,13 @@ function renderVitrina(items = productos) {
   );
 }
 
+it("explica que se ordena sin publicar precio", () => {
+  renderVitrina();
+  expect(screen.getByText(/Ordenar/)).toBeInTheDocument();
+  expect(screen.queryByText(/Encargar/)).not.toBeInTheDocument();
+  expect(screen.getByText(/todavía no publicamos el precio/i)).toBeInTheDocument();
+});
+
 it("tiene bandas propias de Vitaminas y Dispositivos médicos, no las tira a Otros encargos", () => {
   renderVitrina();
   expect(screen.getByRole("heading", { name: "Vitaminas" })).toBeInTheDocument();

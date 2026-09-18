@@ -52,7 +52,7 @@ test("DIS excluye laboratorio, anticipo y sin costo", () => {
   expect(excluirFilaDis({ descripcion: "GASA ESTERIL 10 X 10 DIBAR", costo: 97.5 })).toBeNull();
 });
 
-test("Dermaexpress: Encargar si hay costo y está disponible; si no, Cotizar", () => {
+test("Dermaexpress: sin precio público aunque haya costo", () => {
   const ok = filaDermaexpress({
     sku: "3282771000787",
     nombre: "Ducray Kelual DS 100 ml",
@@ -65,8 +65,8 @@ test("Dermaexpress: Encargar si hay costo y está disponible; si no, Cotizar", (
   expect(ok.sku).toBe("FC-71000787");
   expect(ok.categoria).toBe("Cuidado personal");
   expect(ok.subcategoria).toBe("Dermatología");
-  expect(ok.precio).toBe(precioBajoPedido(619, "marca", 0));
-  expect(ok.precio).toBeGreaterThan(0);
+  expect(ok.precio).toBe(0);
+  expect(ok.costo).toBe(619);
 
   const agotado = filaDermaexpress({
     sku: "3337875902823",
@@ -113,7 +113,8 @@ test("Birdman merch fuera; proteína entra", () => {
   expect(fit.categoria).toBe("Suplemento");
   expect(fit.subcategoria).toBe("Proteína");
   expect(fit.sku).toMatch(/^FC-\d{8}$/);
-  expect(fit.precio).toBeGreaterThan(0);
+  expect(fit.precio).toBe(0);
+  expect(fit.costo).toBe(399);
 });
 
 test("Ewafra toma nombre/foto Promexsa si el match es fuerte", () => {
@@ -139,6 +140,6 @@ test("Ewafra toma nombre/foto Promexsa si el match es fuerte", () => {
   }, { ...hit.row, score: hit.score });
   expect(fila.nombre).toMatch(/Gasa/i);
   expect(fila.imagen_url).toContain("mitiendanube");
-  expect(fila.precio).toBe(precioBajoPedido(97.5, "marca", 154));
-  expect(fila.precio).toBeLessThan(154);
+  expect(fila.precio).toBe(0);
+  expect(fila.costo).toBe(97.5);
 });

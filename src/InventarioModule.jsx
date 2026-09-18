@@ -1388,7 +1388,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               </div>
               {form.bajo_pedido && (
                 <div style={{fontSize:11,color:C.textDim,marginTop:4,lineHeight:1.45}}>
-                  Stock 0, sin lote ni caducidad. Precio = ancla de mostrador (la web suma Mercado Pago). Sin precio (≤ $0.01) sale como «Cotizar».
+                  Stock 0, sin lote ni caducidad. En la vitrina no se publica precio: el cliente toca «Ordenar» y se cotiza. El costo de mayoreo se guarda aparte.
                   {(Number(form.stock)||0) > 0 ? <strong style={{color:C.red}}> Tiene existencia: si está en anaquel, no lo marques.</strong> : null}
                 </div>
               )}

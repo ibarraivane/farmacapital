@@ -289,7 +289,7 @@ select
   t.tipo,
   'Bajo pedido · ' || t.fuente || coalesce(' · ' || t.sku_externo, ''),
   t.costo,
-  t.precio,
+  0,
   0, 1, true, false,
   t.marca, t.presentacion, t.subcategoria, t.imagen_url, true
 from public._fc_cat_bp_stg t
@@ -304,11 +304,7 @@ update public.productos p
    set bajo_pedido = true,
        activo = true,
        costo = coalesce(t.costo, p.costo),
-       precio = case
-         when coalesce(p.stock, 0) > 0 then p.precio
-         when coalesce(t.precio, 0) > 0.01 then t.precio
-         else p.precio
-       end,
+       precio = 0,
        marca = coalesce(nullif(trim(p.marca), ''), t.marca),
        presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
        imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url)
@@ -354,8 +350,8 @@ commit;
 
 select
   count(*) filter (where coalesce(bajo_pedido, false)) as bajo_pedido,
-  count(*) filter (where coalesce(bajo_pedido, false) and coalesce(precio, 0) > 0.01) as encargar,
-  count(*) filter (where coalesce(bajo_pedido, false) and coalesce(precio, 0) <= 0.01) as cotizar
+  count(*) filter (where coalesce(bajo_pedido, false) and coalesce(precio, 0) > 0.01) as con_precio,
+  count(*) filter (where coalesce(bajo_pedido, false) and coalesce(precio, 0) <= 0.01) as ordenar
 from public.productos;
 `;
   fs.writeFileSync(path.join(partsDir, "99_aplicar.sql"), merge);
