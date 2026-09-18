@@ -15,7 +15,7 @@ Producto que **no está en anaquel** y se consigue con mayorista en 24-48 hrs.
 | `precio` | **Ancla de mostrador** = costo mayoreo + ganancia FarmaCapital (marca +25% / genérico +60% sobre costo). Nunca lista de Del Ahorro / Similares / otra farmacia. Nunca con Mercado Pago incluido |
 | `precio <= 0.01` o sin costo | Sale en vitrina con **Cotizar**; no se puede pagar en línea. Mejor Cotizar que Encargar con precio ajeno |
 | `stock` | 0. No inventar lote/caducidad |
-| `categoria` / `subcategoria` | Dermatología = `Cuidado personal` + `Dermatología` · Vitaminas = `Vitaminas` · Suplementos = `Suplemento` · Proteína = `Suplemento` + `Proteína` · Dispositivos = `Dispositivo médico`. **No** hay categoría nueva |
+| `categoria` / `subcategoria` | Dermatología = `Cuidado personal` + `Dermatología` · Vitaminas = `Vitaminas` · Suplementos = `Suplemento` · Proteína = `Suplemento` + `Proteína` · Dispositivos = `Dispositivo médico` o `Botiquín`. **No** hay categoría nueva |
 | nombre, marca, foto, SKU | Nombre de mostrador, marca real, foto obligatoria, `FC-` + últimos 8 del EAN |
 | Anaquel | Si hay stock real de góndola, **no** se marca (el RPC de Inventario lo rechaza) |
 
@@ -30,7 +30,7 @@ Tarjeta: solo 3.49% + IVA. Skittles $10 → **$11**.
 - SQL: `sql/patch_servicio_5_pedido_20260916.sql`.
 
 ## Tienda
-- `/conseguir`: vitrina por rubro (Todos · Dermatología · Vitaminas · Suplementos · Proteína · Dispositivos médicos) + formulario «Levantar pedido». CTA **Encargar** en terracota (`#C9451F`), no el navy de Ver detalle.
+- `/conseguir`: vitrina por rubro (Todos · Dermatología · Vitaminas · Suplementos · Proteína · Dispositivos médicos) + formulario «Levantar pedido». Recuadro ámbar/crema, distinto del anaquel. CTA **Encargar** en terracota (`#C9451F`), no el navy de Ver detalle.
 - Buscador de home/catálogo/ficha: tercer botón «Te lo conseguimos» (celular: «Conseguir»). El header no lo lleva.
 - Tarjeta y ficha: badges **Bajo pedido** + **24-48 hrs**, nunca «Agotado». CTA **Encargar** (con precio) o **Cotizar** (sin precio → formulario prellenado).
 - Carrito: máx. 12 por línea; **no mezcla** encargos con productos de anaquel.
@@ -67,3 +67,5 @@ Se combina con un conflicto trivial de `import` en `Tienda.jsx`. «Avísame cuan
 5. `sql/patch_envio_cotiza_vendedor_20260916.sql` — POS ve pedidos de envío para cotizar; misma función de precio.
 6. `sql/verificar_cliente_crear_pedido_online_receta.sql` — solo lectura.
 7. En Mercado Pago: habilitar reservar y cobrar después; sandbox con tarjeta de **crédito**.
+8. `sql/patch_fuentes_bajo_pedido_20260917.sql` — Dermaexpress, Birdman, Ewafra, Promexsa, Mepiel.
+9. `sql/alta_bajo_pedido_partes/` (`00` → filas → `99`) — vitrina derma / proteína / dispositivos. No pegar el stub de 900 KB. Regenerar con `node scripts/generar-alta-bajo-pedido.js`.

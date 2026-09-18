@@ -2,11 +2,14 @@ import {
   CANTIDAD_MAX_BAJO_PEDIDO,
   COLOR_CTA_ENCARGADO,
   COLOR_CTA_ENCARGAR,
+  CONSEGUIR_UI,
   RUBROS_BAJO_PEDIDO,
+  STRIP_TOPE_CONSEGUIR,
   cantidadMaximaLinea,
   colorCtaEncargar,
   ctaBajoPedido,
   estadoReserva,
+  estiloRecuadroConseguir,
   filtrarVitrina,
   horasRestantesReserva,
   motivoNoMezclar,
@@ -22,6 +25,8 @@ const omega = { id: 3, nombre: "Omega 3", precio: 199, stock: 0, activo: true, b
 const vitC = { id: 4, nombre: "Vitamina C", precio: 80, stock: 0, activo: true, bajo_pedido: true, categoria: "Vitaminas" };
 const paracetamol = { id: 5, nombre: "Paracetamol", precio: 25, stock: 20, activo: true, categoria: "Analgésico" };
 const omron = { id: 6, nombre: "Omron Monitor de Presión Automático", precio: 847, stock: 0, activo: true, bajo_pedido: true, categoria: "Dispositivo médico", subcategoria: "Diagnóstico" };
+const nebucor = { id: 8, nombre: "Nebucor nebulizador P-103", precio: 890, stock: 0, activo: true, bajo_pedido: true, categoria: "Dispositivo médico", subcategoria: "Respiratorio" };
+const gasa = { id: 7, nombre: "Gasa estéril 10x10 Dibar", precio: 122, stock: 0, activo: true, bajo_pedido: true, categoria: "Botiquín", subcategoria: "Material de curación" };
 
 test("precio web con MP en todo el catálogo, una vez; bajo pedido sin descuentos", () => {
   const web = prepararProductoTienda(anthelios);
@@ -61,12 +66,14 @@ test("rubros por categoria/subcategoria (con alias canónicos)", () => {
   expect(rubroDeProducto(omega)).toBe("suplementos");
   expect(rubroDeProducto(vitC)).toBe("vitaminas");
   expect(rubroDeProducto(omron)).toBe("dispositivos");
+  expect(rubroDeProducto(nebucor)).toBe("dispositivos");
+  expect(rubroDeProducto(gasa)).toBe("dispositivos");
   expect(rubroDeProducto(paracetamol)).toBe("");
   expect(RUBROS_BAJO_PEDIDO.find((r) => r.id === "dispositivos")?.label).toBe("Dispositivos médicos");
-  const todos = [paracetamol, whey, anthelios, omega, vitC, omron];
-  expect(filtrarVitrina(todos).map((p) => p.id)).toEqual([1, 3, 6, 4, 2]);
+  const todos = [paracetamol, whey, anthelios, omega, vitC, omron, nebucor, gasa];
+  expect(filtrarVitrina(todos).map((p) => p.id)).toEqual([1, 7, 8, 3, 6, 4, 2]);
   expect(filtrarVitrina(todos, "proteina").map((p) => p.id)).toEqual([2]);
-  expect(filtrarVitrina(todos, "dispositivos").map((p) => p.id)).toEqual([6]);
+  expect(filtrarVitrina(todos, "dispositivos").map((p) => p.id)).toEqual([7, 8, 6]);
   expect(filtrarVitrina(todos, "vitaminas").map((p) => p.id)).toEqual([4]);
   expect(filtrarVitrina(todos).filter((p) => !rubroDeProducto(p))).toEqual([]);
 });
@@ -76,6 +83,14 @@ test("Encargar usa terracota, no el navy de Ver detalle", () => {
   expect(COLOR_CTA_ENCARGADO).toBe("#02A158");
   expect(colorCtaEncargar(false)).toBe("#C9451F");
   expect(colorCtaEncargar(true)).toBe("#02A158");
+});
+
+test("recuadro de conseguir es ámbar/crema, distinto del anaquel", () => {
+  expect(CONSEGUIR_UI.cream).toBe("#fffbeb");
+  expect(STRIP_TOPE_CONSEGUIR).toBe(12);
+  const rec = estiloRecuadroConseguir();
+  expect(rec.background).toBe(CONSEGUIR_UI.cream);
+  expect(rec.border).toMatch(CONSEGUIR_UI.border);
 });
 
 test("carrito no mezcla encargo con anaquel y tope de 12", () => {

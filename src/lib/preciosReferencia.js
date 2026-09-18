@@ -9,7 +9,10 @@ import { coherenciaSugeridosPorTamano, proponerPreciosVentaPorTamano } from "./p
 /** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
 export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "farmacity"];
 /** Entran a «Comprar en» / mejor precio, sin columna propia. */
-export const FUENTES_COMPRA_EXTRA = ["scorpion", "abarrotero", "mayoreototal", "otros_compra"];
+export const FUENTES_COMPRA_EXTRA = [
+  "scorpion", "abarrotero", "mayoreototal", "otros_compra",
+  "dermaexpress", "birdman", "ewafra", "promexsa", "mepiel",
+];
 export const FUENTES_COMPRA = [...FUENTES_COMPRA_TABLA, ...FUENTES_COMPRA_EXTRA];
 export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
 /** Referencias: percentil 40, al mercado, piso sí manda. */
@@ -145,6 +148,36 @@ export const FUENTE_META = {
     tipo: "compra",
     listaDistribuidor: false,
     hint: "Otro abarrotero barato o lista de representante. No uses esto para City Club/Sam's: no son el mismo piso que Zorro.",
+  },
+  dermaexpress: {
+    label: "Dermaexpress",
+    tipo: "compra",
+    listaDistribuidor: true,
+    hint: "Mayoreo dermo. Costo de portal; no es PVP de farmacia.",
+  },
+  birdman: {
+    label: "Birdman",
+    tipo: "compra",
+    listaDistribuidor: true,
+    hint: "Mayoreo proteína / wellness. Usar costo_base (escalón chico) salvo otro volumen.",
+  },
+  ewafra: {
+    label: "Ewafra (DIS)",
+    tipo: "compra",
+    listaDistribuidor: true,
+    hint: "Lista 6 −20% de Julio César Sánchez Santos. Costo mayoreo de insumos.",
+  },
+  promexsa: {
+    label: "Promexsa",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Precio web ≈ PVP. Sirve de techo, no de costo. No Encargar con este número.",
+  },
+  mepiel: {
+    label: "Mepiel",
+    tipo: "compra",
+    listaDistribuidor: true,
+    hint: "Mayoreo dermo / médico. Reservada hasta cargar la lista.",
   },
   similares: {
     label: "Similares",

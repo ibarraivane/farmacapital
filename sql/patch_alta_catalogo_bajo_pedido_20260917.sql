@@ -1,0 +1,10 @@
+-- NO PEGAR ESTE ARCHIVO en el SQL Editor (pesa ~900 KB y el editor lo corta).
+-- En farmacapital.mx/conseguir siguen ~111 encargos viejos si solo corriste este archivo.
+--
+-- Corre EN ORDEN los trozos de sql/alta_bajo_pedido_partes/:
+--   00_staging.sql
+--   01_filas.sql … NN_filas.sql
+--   99_aplicar.sql
+-- Al final 99 debe devolver bajo_pedido ≈ 3300 (no 111).
+--
+-- Regenerar: node scripts/generar-alta-bajo-pedido.js
