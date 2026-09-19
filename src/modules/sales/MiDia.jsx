@@ -8,7 +8,7 @@ import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { idEmpleadoUsuarios } from "../../utils/usuarioId";
 import { saludoUsuario } from "../../utils";
-import { etiquetaDiaDescanso, rangoDiaCalendario } from "../../constants/turnos";
+import { rangoDiaCalendario } from "../../constants/turnos";
 import {
   claveMetaTurno,
   calcularMultiplicador, cargarConfigMetas, escalonBono, bonosActivos,
@@ -584,9 +584,7 @@ export default function MiDia({ usuario, setPage }) {
   }, [data, pctPuntos]);
 
   const saludo = saludoUsuario(usuario?.nombre);
-  const turnoLabel = jornada?.es_descanso
-    ? `descansas (${etiquetaDiaDescanso(jornada.dia_descanso) || "hoy"})`
-    : (estadoTurno.cubreAmbos || jornada?.cubre_ambos)
+  const turnoLabel = (estadoTurno.cubreAmbos || jornada?.cubre_ambos)
       ? "hoy cubres ambos turnos"
       : estadoTurno.turno === "matutino"
         ? (estadoTurno.fuente === "caja" || estadoTurno.fuente === "cobertura"
