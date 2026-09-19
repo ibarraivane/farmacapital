@@ -40,10 +40,12 @@ describe("ficha desde la página del proveedor", () => {
 
   test("Anthelios UV Air: marca La Roche, 40 ml, protector solar, no FRABEL", () => {
     const ficha = fichaCatalogoDesdeNadro(antheliosNadro);
-    expect(ficha.nombre).toMatch(/La Roche-Posay Anthelios UV Air/i);
+    expect(ficha.nombre).toMatch(/Anthelios UV Air/i);
     expect(ficha.nombre).not.toMatch(/BLOQ ANTHE/i);
+    expect(ficha.nombre).not.toMatch(/40\s*ml/i);
     expect(ficha.marca).toBe("La Roche-Posay");
     expect(ficha.presentacion).toBe("40 ml");
+    expect(ficha.concentracion).toMatch(/FPS\s*50/i);
     expect(ficha.categoria).toBe("Cuidado personal");
     expect(ficha.subcategoria).toBe("Protector solar");
     expect(ficha.forma_farmaceutica).toBe("Fluido");
@@ -61,7 +63,7 @@ describe("ficha desde la página del proveedor", () => {
       categories: ["/Cuidado Personal y belleza/"],
     });
     expect(ficha.marca).toBe("CeraVe");
-    expect(ficha.nombre).toMatch(/CeraVe/i);
+    expect(ficha.nombre).toMatch(/Gel Limpiador/i);
   });
 
   test("sin meta y con nombre de mostrador se respeta la ficha", () => {
@@ -69,7 +71,10 @@ describe("ficha desde la página del proveedor", () => {
       nombre: "Adel 250 mg Suspensión 60 ml",
       marca: "SENOSIAIN",
     });
-    expect(ficha.nombre).toBe("Adel 250 mg Suspensión 60 ml");
+    expect(ficha.nombre).toBe("Adel 250 mg");
+    expect(ficha.presentacion).toBe("60 ml");
+    expect(ficha.forma_farmaceutica).toBe("Suspensión");
+    expect(ficha.concentracion).toBe("250 mg");
     expect(ficha.marca).toBe("SENOSIAIN");
     expect(fichaListaParaAlta(ficha)).toBe(true);
   });

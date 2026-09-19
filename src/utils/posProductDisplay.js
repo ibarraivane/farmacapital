@@ -99,6 +99,30 @@ function mismaMarca(texto, marca) {
   return Boolean(a && b && a === b);
 }
 
+function concentracionVisible(p) {
+  return String(p?.concentracion || "").trim();
+}
+
+function tituloYaTraeConcentracion(titulo, conc) {
+  const t = String(titulo || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const c = String(conc || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return Boolean(t && c && t.includes(c));
+}
+
+/** Título de mostrador/tienda: nombre comercial + dosis si no está ya. */
+export function tituloPublicoProducto(p) {
+  const base = posTituloProducto(p);
+  const conc = concentracionVisible(p);
+  if (!conc || tituloYaTraeConcentracion(base, conc)) return base;
+  return `${base} · ${conc}`;
+}
+
 /** Título principal en ficha, resultados y carrito. */
 export function posTituloProducto(p) {
   if (!p) return "";

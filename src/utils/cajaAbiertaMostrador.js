@@ -140,7 +140,27 @@ export function presentacionPublicaTienda(p) {
   return d;
 }
 
-/** Subtítulo de tarjeta: ficha pública o presentación, nunca la nota de compra. */
+/** Subtítulo de tarjeta: marca · presentación · concentración · forma. Nunca la nota de compra. */
 export function subtituloPublicoTienda(p) {
-  return descripcionPublicaTienda(p) || presentacionPublicaTienda(p);
+  if (!p) return "";
+  const titulo = String(p.nombre || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const partes = [];
+  const marca = String(p.marca || "").trim();
+  const pres = presentacionPublicaTienda(p);
+  const conc = String(p.concentracion || "").trim();
+  const forma = String(p.forma_farmaceutica || "").trim();
+
+  if (marca && !/gen[eé]rico/i.test(marca) && !titulo.includes(marca.toLowerCase())) {
+    partes.push(marca);
+  }
+  if (pres) partes.push(pres);
+  if (conc && !titulo.includes(conc.toLowerCase())) partes.push(conc);
+  if (forma && !partes.some((x) => x.toLowerCase() === forma.toLowerCase())) {
+    partes.push(forma);
+  }
+  if (partes.length) return partes.join(" · ");
+  return "";
 }

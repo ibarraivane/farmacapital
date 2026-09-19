@@ -11,7 +11,7 @@ import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearc
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
-import { posTituloProducto, posSubtituloProducto, posEtiquetaVariante } from "../../../utils/posProductDisplay";
+import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
@@ -445,7 +445,7 @@ function PosProductoFichaPanel({
           >
             <GaleriaProducto
               imagenes={galeria}
-              alt={posTituloProducto(item)}
+              alt={tituloPublicoProducto(item)}
               maxAlto={stack ? 200 : 252}
               onImagenClick={() => setFotoAbierta(true)}
               imagenRef={fotoBtnRef}
@@ -488,7 +488,7 @@ function PosProductoFichaPanel({
               {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockVisible} en stock</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
-              {posTituloProducto(item)}
+              {tituloPublicoProducto(item)}
             </h2>
             {posSubtituloProducto(item) && (
               <div style={{ fontSize: 12, color: C.textMid, marginTop: 6, lineHeight: 1.4 }}>
@@ -694,10 +694,10 @@ function PosProductoFichaPanel({
         </div>
       </div>
     </div>
-    <Modal open={Boolean(fotoAbierta && galeria.length)} onClose={cerrarFoto} title={posTituloProducto(item)}>
+    <Modal open={Boolean(fotoAbierta && galeria.length)} onClose={cerrarFoto} title={tituloPublicoProducto(item)}>
       <GaleriaProducto
         imagenes={galeria}
-        alt={posTituloProducto(item)}
+        alt={tituloPublicoProducto(item)}
         maxAlto={520}
         style={{ borderRadius: 12, background: "#fff" }}
         mostrarPuntos={false}
@@ -1400,7 +1400,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         }
         return ex
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${posTituloProducto(item)} (unidad)`}];
+          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
       });
       return added;
     }
@@ -1430,7 +1430,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         qty:1,
         rxI:null,
         esUnidad:false,
-        nombre:posTituloProducto(item),
+        nombre:tituloPublicoProducto(item),
         ...precioCajaDesdeProducto(item, 1, especialesRef.current),
       }];
     });
@@ -1507,7 +1507,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 qty,
                 rxI,
                 esUnidad: false,
-                nombre: posTituloProducto(producto),
+                nombre: tituloPublicoProducto(producto),
                 ...precioCajaDesdeProducto(producto, qty, especialesRef.current),
               },
             ];
@@ -3587,7 +3587,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   {productos.filter(p=>favs.includes(p.id)&&p.activo).map(p=>(
                     <button key={p.id} onClick={()=>setFichaProd(p)}
                       style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${C.amber}`,background:C.amberDim,color:"#92400e",fontSize:11,fontWeight:700,cursor:"pointer",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      ⭐ {posTituloProducto(p)}
+                      ⭐ {tituloPublicoProducto(p)}
                     </button>
                   ))}
                 </div>

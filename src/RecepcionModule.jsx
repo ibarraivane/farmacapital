@@ -18,6 +18,7 @@ import {
   payloadAltaRecepcion,
   precioSugeridoAltaRecepcion,
 } from "./lib/recepcionAlta";
+import { partirNombreMostrador } from "./lib/nombreMostrador";
 import { fmtPrecioVenta } from "./lib/preciosReferencia";
 import { costoSugeridoRecepcion, mensajeErrorRecepcion } from "./lib/recepcionCosto";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
@@ -86,6 +87,15 @@ const inpBase = (C, extra = {}) => ({
   color: C.text,
   fontSize: 16,
   outline: "none",
+  ...extra,
+});
+
+const inpAlta = (C, extra = {}) => inpBase(C, {
+  background: "#ffffff",
+  color: "#0f172a",
+  colorScheme: "light",
+  WebkitTextFillColor: "#0f172a",
+  caretColor: "#0f172a",
   ...extra,
 });
 
@@ -236,6 +246,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [cad, setCad] = useState("");
   const [costo, setCosto] = useState("");
   const [altaNombre, setAltaNombre] = useState("");
+  const [altaMarca, setAltaMarca] = useState("");
+  const [altaPresentacion, setAltaPresentacion] = useState("");
+  const [altaPrincipio, setAltaPrincipio] = useState("");
   const [altaTipo, setAltaTipo] = useState("generico");
   const [pendiente, setPendiente] = useState(null);
   const [errorLinea, setErrorLinea] = useState("");
@@ -527,6 +540,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setCad("");
     setCosto("");
     setAltaNombre("");
+    setAltaMarca("");
+    setAltaPresentacion("");
+    setAltaPrincipio("");
     setAltaTipo("generico");
     setPendiente(null);
     setErrorLinea("");
@@ -635,7 +651,18 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setCosto(costoAuto != null ? String(costoAuto) : "");
     // Ticket PDF/CSV ya trae descripción en nombre_snapshot: precargar el alta.
     // Antes el input quedaba vacío y parecía que "no llenamos el nombre".
-    setAltaNombre(it.pendiente_alta ? nombreSnap : "");
+    if (it.pendiente_alta && nombreSnap) {
+      const parted = partirNombreMostrador(nombreSnap);
+      setAltaNombre(parted.nombre || nombreSnap);
+      setAltaPresentacion(parted.presentacion || "");
+      setAltaMarca("");
+      setAltaPrincipio("");
+    } else {
+      setAltaNombre("");
+      setAltaPresentacion("");
+      setAltaMarca("");
+      setAltaPrincipio("");
+    }
     setTimeout(() => {
       if (it.pendiente_alta && !nombreSnap) altaNombreRef.current?.focus();
       else cadRef.current?.focus();
@@ -686,7 +713,19 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setScan(r.codigo);
     const costoAuto = costoSugeridoRecepcion({ producto: r.producto });
     setCosto(costoAuto != null ? String(costoAuto) : "");
-    setAltaNombre(r.pendienteAlta ? String(r.producto?.nombre || "").trim() : "");
+    if (r.pendienteAlta) {
+      const snap = String(r.producto?.nombre || "").trim();
+      const parted = partirNombreMostrador(snap);
+      setAltaNombre(parted.nombre || snap);
+      setAltaPresentacion(parted.presentacion || "");
+      setAltaMarca(String(r.producto?.marca || "").trim());
+      setAltaPrincipio(String(r.producto?.principio_activo || "").trim());
+    } else {
+      setAltaNombre("");
+      setAltaPresentacion("");
+      setAltaMarca("");
+      setAltaPrincipio("");
+    }
     setTimeout(() => {
       if (r.pendienteAlta && !String(r.producto?.nombre || "").trim()) {
         altaNombreRef.current?.focus();
@@ -794,6 +833,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         codigo: codigoAlta,
         tipo: altaTipo,
         costo: costoN,
+        marca: altaMarca,
+        presentacion: altaPresentacion,
+        principio_activo: altaPrincipio,
       });
       if (!pdata.precio || !pdata.costo) {
         setSaving(false);
@@ -1266,27 +1308,70 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                       Este producto NO está registrado
                     </div>
                     <div style={{ color: C.text, fontSize: 13, lineHeight: 1.45, marginTop: 8 }}>
-                      Pon nombre, si es patente o genérico, cantidad y caducidad de la caja. El stock entra aquí, no en Catálogo.
+                      Nombre de mostrador (sin C/24 ni ml), marca o principio, cantidad y caducidad de la caja. El stock entra aquí, no en Catálogo.
                     </div>
                     <div style={{ marginTop: 10 }}>
                       <label style={labelS(C)} htmlFor="rc-alta-nombre">Nombre</label>
                       <input
                         id="rc-alta-nombre"
+                        className="farmacapital-field-input"
                         ref={altaNombreRef}
                         value={altaNombre}
                         onChange={(e) => setAltaNombre(e.target.value)}
-                        placeholder="Como dice la caja"
+                        onBlur={() => {
+                          const parted = partirNombreMostrador(altaNombre, { presentacion: altaPresentacion });
+                          if (parted.nombre && parted.nombre !== altaNombre) setAltaNombre(parted.nombre);
+                          if (!altaPresentacion && parted.presentacion) setAltaPresentacion(parted.presentacion);
+                        }}
+                        placeholder="Antiflu-Des · Ibuprofeno 400 mg"
                         autoComplete="off"
-                        style={inpBase(C)}
+                        style={inpAlta(C)}
+                      />
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <label style={labelS(C)} htmlFor="rc-alta-marca">Marca</label>
+                      <input
+                        id="rc-alta-marca"
+                        className="farmacapital-field-input"
+                        value={altaMarca}
+                        onChange={(e) => setAltaMarca(e.target.value)}
+                        placeholder="Como en la caja"
+                        autoComplete="off"
+                        style={inpAlta(C)}
+                      />
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <label style={labelS(C)} htmlFor="rc-alta-pres">Presentación</label>
+                      <input
+                        id="rc-alta-pres"
+                        className="farmacapital-field-input"
+                        value={altaPresentacion}
+                        onChange={(e) => setAltaPresentacion(e.target.value)}
+                        placeholder="24 cápsulas · 40 ml"
+                        autoComplete="off"
+                        style={inpAlta(C)}
+                      />
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <label style={labelS(C)} htmlFor="rc-alta-principio">Principio activo</label>
+                      <input
+                        id="rc-alta-principio"
+                        className="farmacapital-field-input"
+                        value={altaPrincipio}
+                        onChange={(e) => setAltaPrincipio(e.target.value)}
+                        placeholder="Si es genérico o lo dice la caja"
+                        autoComplete="off"
+                        style={inpAlta(C)}
                       />
                     </div>
                     <div style={{ marginTop: 10 }}>
                       <label style={labelS(C)} htmlFor="rc-alta-tipo">Tipo</label>
                       <select
                         id="rc-alta-tipo"
+                        className="farmacapital-field-select"
                         value={altaTipo}
                         onChange={(e) => setAltaTipo(e.target.value)}
-                        style={inpBase(C)}
+                        style={inpAlta(C)}
                       >
                         <option value="generico">Genérico · +60% al costo</option>
                         <option value="marca">Patente · +25% al costo</option>
