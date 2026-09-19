@@ -186,6 +186,21 @@ where i.recepcion_id = r.id
     )
   );
 
+-- El alta dejó el ticket en pendiente_alta. Recibir solo guarda MMAA en borrador.
+update public.recepciones r
+set
+  estado = 'borrador',
+  cerrado_en = null,
+  updated_at = now()
+where coalesce(r.proveedor, '') ilike '%farmalive%'
+  and regexp_replace(coalesce(r.folio, ''), '\D', '', 'g') in ('12790', '127790', '127900')
+  and r.estado is distinct from 'borrador'
+  and exists (
+    select 1 from public.recepcion_items i
+    where i.recepcion_id = r.id
+      and not coalesce(i.confirmado, false)
+  );
+
 select
   t.ticket,
   t.nombre,
