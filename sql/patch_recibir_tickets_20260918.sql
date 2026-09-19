@@ -224,26 +224,36 @@ where public.fc_buscar_producto_escaneo('7501082780246') is null
        or p.sku in ('FC-082780246', 'FC-ND-082780246')
   );
 
+-- fuente tiene que existir en fuentes_precio. El slug del proveedor
+-- (equilibrio / surtidor / farmamayoreo) no está. El costo del ticket
+-- se guarda como ultima_compra; el proveedor va en nombre_fuente.
+insert into public.fuentes_precio (id, nombre, tipo, metodo, notas)
+values (
+  'ultima_compra', 'Costo de compra', 'compra', 'manual',
+  'Primera compra (quién + precio). Recibir solo lo pisa si el ticket es más barato.'
+)
+on conflict (id) do nothing;
+
 insert into public.producto_precios_referencia (
   producto_id, fuente, tipo, precio, fecha, nombre_fuente, confianza, origen, notas
 )
-select p.id, v.fuente, 'compra', v.costo, v.fecha, v.nombre_fuente, 100, 'manual', v.notas
+select p.id, 'ultima_compra', 'compra', v.costo, v.fecha, v.nombre_fuente, 100, 'manual', v.notas
 from (
   values
-    ('7502216803657'::text, 'equilibrio'::text, 12.45::numeric, date '2026-09-18', 'Equilibrio'::text,
+    ('7502216803657'::text, 12.45::numeric, date '2026-09-18', 'Equilibrio'::text,
      'Equilibrio 444851 · ULT178 · 10 × $12.45'),
-    ('7501537179045', 'surtidor', 28.80, date '2026-09-18', 'El Surtidor',
+    ('7501537179045', 28.80, date '2026-09-18', 'El Surtidor',
      'El Surtidor 131164 · 3 × $28.80 (lista $96 − 70%)'),
-    ('7506313000513', 'farmamayoreo', 30.90, date '2026-09-18', 'Farma Mayoreo',
+    ('7506313000513', 30.90, date '2026-09-18', 'Farma Mayoreo',
      'Farma Mayoreo 305016 · P.U. $30.90 con IVA · lote 2712-017'),
-    ('7501082780246', 'farmamayoreo', 33.96, date '2026-09-18', 'Farma Mayoreo',
+    ('7501082780246', 33.96, date '2026-09-18', 'Farma Mayoreo',
      'Farma Mayoreo 305016 · P.U. $33.96 con IVA · lote 2712-017')
-) as v(ean, fuente, costo, fecha, nombre_fuente, notas)
+) as v(ean, costo, fecha, nombre_fuente, notas)
 join public.productos p on p.codigo_barras = v.ean
 where not exists (
   select 1 from public.producto_precios_referencia r
   where r.producto_id = p.id
-    and r.fuente = v.fuente
+    and r.fuente = 'ultima_compra'
     and r.precio = v.costo
     and r.fecha = v.fecha
 );
