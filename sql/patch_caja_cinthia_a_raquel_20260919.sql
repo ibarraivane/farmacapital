@@ -192,7 +192,7 @@ select actor.id,
          'turno', c.turno,
          'empleado_corte', c.empleado_id,
          'fecha', '2026-09-19'
-       )::text
+       )
   from public.cortes_caja c
   join (
     select id, nombre
