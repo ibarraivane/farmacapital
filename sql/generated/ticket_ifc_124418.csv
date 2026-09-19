@@ -1,0 +1,8 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,124418,2026-09-18,IFC F8 Tienda,,Aceite de almendras dulces Flor de Aire 125 ml,1,24.00,24.00,,,FC-24163265,200.50,sin_ean
+2,124418,2026-09-18,IFC F8 Tienda,,Mascarilla facial vitamina E 30 ml,1,3.50,3.50,,,FC-24163275,200.50,sin_ean
+3,124418,2026-09-18,IFC F8 Tienda,8809541280269,Mascarilla Jigott Aloe Real ampolleta 27 ml,1,4.00,4.00,,,FC-54128026,200.50,ean
+4,124418,2026-09-18,IFC F8 Tienda,8809541280221,Mascarilla Jigott Pearl Real ampolleta 27 ml,1,4.00,4.00,,,FC-54128022,200.50,ean
+5,124418,2026-09-18,IFC F8 Tienda,,Parches para acné FIGS hidrocoloide,2,16.50,33.00,,,FC-24163285,200.50,sin_ean
+6,124418,2026-09-18,IFC F8 Tienda,7501022109786,Jabón de azufre Grisi 100 g,2,51.00,102.00,,,FC-02109786,200.50,ean
+7,124418,2026-09-18,IFC F8 Tienda,,Jabón de azufre Geli 80 g,2,15.00,30.00,,,FC-IFC-83886,200.50,sin_ean
