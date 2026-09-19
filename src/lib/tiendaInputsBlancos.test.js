@@ -19,6 +19,13 @@ describe("inputs tienda fondo blanco", () => {
     expect(css).toMatch(/color-scheme:\s*light/);
   });
 
+  test("buscador de tienda (nombre / catálogo) usa clase + fondo blanco", () => {
+    const tienda = fs.readFileSync(path.join(__dirname, "../Tienda.jsx"), "utf8");
+    expect(tienda).toMatch(/className="farmacapital-field-input"/);
+    expect(tienda).toMatch(/background:\s*["']#ffffff["']/);
+    expect(tienda).toMatch(/colorScheme:\s*["']light["']/);
+  });
+
   test("formulario Conseguir usa clase + fondo blanco explícito", () => {
     expect(form).toMatch(/farmacapital-field-input/);
     expect(form).toMatch(/background:\s*[\"']#ffffff[\"']/);
