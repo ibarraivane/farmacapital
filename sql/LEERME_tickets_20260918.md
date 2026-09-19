@@ -9,6 +9,7 @@ Cinco compras del mismo día en Central de Abasto. Pegar **cada** SQL (en cualqu
 | Pedido | Archivo | Renglones | Piezas | Total |
 |--------|---------|-----------|--------|-------|
 | Equilibrio 444836 | `patch_carga_equilibrio_444836.sql` | 20 | 57 | $1,303.20 |
+| Equilibrio 444871 | `patch_carga_equilibrio_444871.sql` | 2 | 12 | $220.94 |
 | PerfuMax 550937 | `patch_carga_abasto_f48_550937.sql` | 15 | 23 | $1,466.50 |
 | Cityfarma S323594 | `patch_carga_cityfarma_s323594.sql` | 1 | 3 | $546.54 pendiente |
 | Farmalive 12949 | `patch_carga_farmalive_12949.sql` | 13 | 40 | $1,730.09 |
@@ -18,7 +19,8 @@ Regenerar: `python3 scripts/generar_carga_tickets_20260918.py`
 
 ## Cómo escanear
 
-- **Equilibrio:** lote de fábrica sí (el del papel). Caducidad no: MMAA de la caja. Aktyzar C/14 (`EQ-SOF066`), cánula pediátrica (`EQ-JAY253`) y puntas adulto (`EQ-JAY267`) no traen EAN confirmado: toca el renglón gris, no esperes el beep.
+- **Equilibrio 444871** (12:33, $220.94): mismo cliente. Pistola `75050764` (ungüento oftálmico Exakta) y `7502240450070` (Punab C/30). Lote del papel; caducidad de la caja.
+- **Equilibrio 444836:** lote de fábrica sí (el del papel). Caducidad no: MMAA de la caja. Aktyzar C/14 (`EQ-SOF066`), cánula pediátrica (`EQ-JAY253`) y puntas adulto (`EQ-JAY267`) no traen EAN confirmado: toca el renglón gris, no esperes el beep.
 - **PerfuMax:** el local es pasillo F48 A (RFC PMM211209B57, tel 55 7261-7572). En Recibir sale **PerfuMax**. Si ya se cargó como F-48 Abasto, el mismo SQL le cambia el nombre. Hinds 90 ml y Rexona Efficient 100 g sí pegan con pistola. El resto se toca.
 - **Cityfarma:** orden S323594, pendiente de pago. El EAN `7501058715555` es Tempra Fen infantil (ibuprofeno), no el Tempra de paracetamol.
 - **Farmalive:** el papel no trae lote. Costo = precio ya con descuento.
