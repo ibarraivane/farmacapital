@@ -6,6 +6,8 @@
 
 "use strict";
 
+const { aplicarFichaMostrador, fichaTieneIdentidad } = require("./nombreMostrador");
+
 const MARCAS_CASA_NADRO = new Set([
   "frabel",
   "frabel 2",
@@ -82,13 +84,6 @@ function marcaDesdeTexto(...textos) {
   return null;
 }
 
-function presentacionDesdeNombre(nombre) {
-  const m = String(nombre || "").match(/(\d+(?:[.,]\d+)?)\s*(ml|mL|ML|g|G|mg|l|L|tab|tabs|caps)\b/);
-  if (!m) return null;
-  const unit = m[2].toLowerCase();
-  return `${m[1].replace(",", ".")} ${unit}`;
-}
-
 function rubrosDesdeCategorias(categories) {
   const paths = (categories || []).map((c) => norm(c));
   const blob = paths.join(" ");
@@ -143,13 +138,12 @@ function fichaCatalogoDesdeNadro(hit) {
   const marca = marcaReal || (!marcaCasa && marcaTicket ? marcaTicket : null);
 
   const rubros = rubrosDesdeCategorias(categorias);
-  const presentacion = presentacionDesdeNombre(nombre) || presentacionDesdeNombre(nombreTicket);
   const imagenes = hit.imagenes || [];
 
-  return {
+  const ficha = aplicarFichaMostrador({
     nombre,
     marca,
-    presentacion,
+    presentacion: null,
     categoria: rubros.categoria,
     subcategoria: rubros.subcategoria,
     forma_farmaceutica: formaDesdeFicha({ nombre, nombreTicket, categorias }),
@@ -157,14 +151,21 @@ function fichaCatalogoDesdeNadro(hit) {
     imagen_url: imagenes[0] || null,
     nombre_ticket: nombreTicket || null,
     precio_publico: hit.precioPublico != null ? hit.precioPublico : null,
-  };
+  });
+  if (!ficha.forma_farmaceutica) {
+    ficha.forma_farmaceutica = formaDesdeFicha({
+      nombre: ficha.nombre,
+      nombreTicket,
+      categorias,
+    });
+  }
+  return ficha;
 }
 
 function fichaListaParaAlta(ficha) {
   if (!ficha || !ficha.nombre) return false;
   if (esNombreTicketProveedor(ficha.nombre)) return false;
-  if (!ficha.marca) return false;
-  return true;
+  return fichaTieneIdentidad(ficha);
 }
 
 module.exports = {

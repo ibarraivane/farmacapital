@@ -648,3 +648,51 @@ describe("vernáculo bidireccional fármaco", () => {
     expect(tiendaProductMatchesBusqueda(clarityne, "loratadina")).toBe(true);
   });
 });
+
+describe("ficha partida: búsqueda no depende de meter todo en el nombre", () => {
+  const ibuprofenoCorto = {
+    id: 801,
+    activo: true,
+    nombre: "Ibuprofeno 400 mg",
+    marca: "Genérico",
+    principio_activo: "Ibuprofeno",
+    presentacion: "20 tabletas",
+    concentracion: "400 mg",
+    forma_farmaceutica: "Tabletas",
+  };
+  const niveaGel = {
+    id: 802,
+    activo: true,
+    nombre: "Gel facial hidratante hialurónico",
+    marca: "Nivea",
+    presentacion: "200 ml",
+    forma_farmaceutica: "Gel",
+  };
+
+  test("ibuprofeno 20 tabletas pega aunque el conteo esté solo en presentación", () => {
+    expect(tiendaProductMatchesBusqueda(ibuprofenoCorto, "ibuprofeno 20 tabletas")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(ibuprofenoCorto, "20 tabletas")).toBe(true);
+    expect(tiendaSearchRelevanceRank(ibuprofenoCorto, "ibuprofeno 20 tabletas")).toBeLessThan(60);
+  });
+
+  test("nivea pega por marca aunque el nombre no la repita", () => {
+    expect(tiendaProductMatchesBusqueda(niveaGel, "nivea")).toBe(true);
+    expect(tiendaSearchRelevanceRank(niveaGel, "nivea")).toBeLessThan(
+      tiendaSearchRelevanceRank(ibuprofenoCorto, "nivea")
+    );
+  });
+
+  test("clarityne y loratadina siguen siendo bidireccionales", () => {
+    const clarityne = { id: 803, activo: true, nombre: "Clarityne", marca: "Clarityne", principio_activo: "" };
+    const loro = {
+      id: 804,
+      activo: true,
+      nombre: "Loratadina 10 mg",
+      marca: "Genérico",
+      principio_activo: "Loratadina",
+      presentacion: "20 tabletas",
+    };
+    expect(tiendaProductMatchesBusqueda(clarityne, "loratadina")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(loro, "clarityne")).toBe(true);
+  });
+});

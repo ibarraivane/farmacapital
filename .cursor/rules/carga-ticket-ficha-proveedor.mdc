@@ -14,7 +14,7 @@ Cuando armes un ticket, un alta o un SQL de Recibir, **no copies el nombre del P
 3. En Nadro el `productName` suele ser el mismo código. El nombre bueno está en `metaTagDescription` o en el slug (`linkText`). Usa `fichaCatalogoDesdeNadro` en `src/lib/fichaProveedor.js`.
 4. No uses marcas casa del mayorista (`FRABEL 2`, `LGEN`) como `marca`. Anthelios → La Roche-Posay; CeraVe → CeraVe.
 5. Si un rubro no está en la página, déjalo vacío. No inventes FPS, gramaje, lote ni caducidad.
-6. El SQL de alta tiene que llevar: `nombre`, `marca`, `presentacion`, `categoria`, `subcategoria`, `forma_farmaceutica`, `imagen_url`.
+6. El SQL de alta tiene que llevar: `nombre`, `marca`, `presentacion`, `categoria`, `subcategoria`, `forma_farmaceutica`, `imagen_url`. El `nombre` es de mostrador (dosis sí, `C/24` / `40 ml` no: eso va en `presentacion`). Ver `nombre-ficha-partida.mdc`.
 7. Antes de commitear: busca «bloqueador» / la marca y tiene que salir. Un nombre `BLOQ ANTHE…` no pasa.
 
 ## Foto: no dejar alta sin imagen
