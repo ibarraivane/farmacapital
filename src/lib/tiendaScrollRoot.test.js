@@ -51,4 +51,12 @@ describe("tienda scroll root (shell)", () => {
     expect(tienda).toMatch(/className="hero-carousel"[\s\S]*?overflow:"clip"/);
     expect(tienda).toMatch(/heroShellSx[\s\S]*?overflow:\s*"clip"/);
   });
+
+  test("volver al catálogo desde un producto restaura scroll (no siempre top)", () => {
+    expect(tienda).toMatch(/aplicarPosicionCatalogo/);
+    expect(tienda).toMatch(/intentScrollCatalogo/);
+    expect(tienda).toMatch(/hayRestoreCatalogo/);
+    expect(tienda).toMatch(/leerVisiblesCatalogo/);
+    expect(tienda).not.toMatch(/requestAnimationFrame\(\(\)=>\{ window\.scrollTo\(0, 0\); \}\)/);
+  });
 });

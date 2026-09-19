@@ -76,6 +76,35 @@ test.describe("tienda — scroll al cambiar de página", () => {
     expect(top, "rueda del mouse no bajó la página en escritorio").toBeGreaterThan(80);
   });
 
+  test("catálogo: al volver de un producto restaura el scroll", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => {
+      try {
+        sessionStorage.setItem("farmacapital_catalogo_scroll", "900");
+        sessionStorage.setItem("farmacapital_catalogo_restore", "1");
+      } catch (_) { /* noop */ }
+      const addPad = () => {
+        if (document.getElementById("e2e-catalogo-pad")) return;
+        const host = document.querySelector("main") || document.body;
+        if (!host) return;
+        const pad = document.createElement("div");
+        pad.id = "e2e-catalogo-pad";
+        pad.style.height = "3200px";
+        host.appendChild(pad);
+      };
+      const start = () => {
+        addPad();
+        new MutationObserver(addPad).observe(document.documentElement, { childList: true, subtree: true });
+      };
+      if (document.body) start();
+      else document.addEventListener("DOMContentLoaded", start);
+    });
+    await page.goto("/catalogo", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await page.waitForTimeout(700);
+    const top = await page.evaluate(() => window.scrollY);
+    expect(top, "debía volver al tramo del catálogo, no al inicio").toBeGreaterThan(400);
+  });
+
   test("escritorio: carrito deja la vista arriba", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 60_000 });

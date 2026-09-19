@@ -104,6 +104,18 @@ import {
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
 import { bandasCatalogoPorCategoria, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
+import {
+  aplicarPosicionCatalogo,
+  guardarVisiblesCatalogo,
+  hayRestoreCatalogo,
+  intentScrollCatalogo,
+  leerProductoCatalogo,
+  leerScrollCatalogo,
+  leerVisiblesCatalogo,
+  limpiarRestoreCatalogo,
+  marcarRestoreCatalogo,
+  snapshotSalidaCatalogo,
+} from "./lib/tiendaCatalogoPosicion";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -1655,7 +1667,7 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
     const q = String(busqHero || "").trim();
     setBusqFocus(false);
     try { if (q) sessionStorage.setItem("farmacapital_busq", q); } catch (_) { /* noop */ }
-    setPage("catalogo");
+    setPage("catalogo", { catalogoScroll: "results" });
     requestAnimationFrame(() => {
       document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -1864,7 +1876,9 @@ function ProductCard({prod,addToCart,onClick}){
   // Nunca quitar el wrapper fijo de RecompraStrip: sin él la banda se ve como 1 tarjeta a todo el ancho.
   const recuadroEncargo = cta ? estiloRecuadroConseguir() : null;
   return(
-    <div style={{
+    <div
+      data-catalogo-producto={prod?.id != null ? String(prod.id) : undefined}
+      style={{
       background: recuadroEncargo ? recuadroEncargo.background : C.white,
       borderRadius:12,
       border: recuadroEncargo ? recuadroEncargo.border : `1px solid ${C.border}`,
@@ -1874,6 +1888,7 @@ function ProductCard({prod,addToCart,onClick}){
       width:"100%",
       maxWidth:"100%",
       minWidth:0,
+      scrollMarginTop:80,
       cursor:narrow?"default":"pointer",
       opacity:agotado ? 0.42 : 1,
       transition:"border-color .2s, transform .15s, opacity .15s",
@@ -1987,7 +2002,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     const q = String(busqHero||"").trim();
     setBusqFocus(false);
     try { if (q) sessionStorage.setItem("farmacapital_busq", q); } catch (err) { /* ignore */ }
-    setPage("catalogo");
+    setPage("catalogo", { catalogoScroll: "results" });
     requestAnimationFrame(()=>{
       document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -3227,13 +3242,21 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmacapital_tipo")||"todos");
   const [openCategorias, setOpenCategorias] = useState(false);
   const [busqFocus,setBusqFocus]=useState(false);
-  const [visibles, setVisibles] = useState(CATALOGO_PAGE_SIZE);
+  const [visibles, setVisibles] = useState(() => leerVisiblesCatalogo(CATALOGO_PAGE_SIZE));
   const [vista, setVista] = useState(() => leerVistaCatalogo());
   const setVistaCatalogo = (v) => setVista(guardarVistaCatalogo(v));
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
-  useEffect(() => { setVisibles(CATALOGO_PAGE_SIZE); }, [cat, tipo, busq, filtroRx]);
+  const filtrosCatalogoKey = `${cat}|${tipo}|${String(busq || "").trim()}|${filtroRx ? "1" : "0"}`;
+  const filtrosCatalogoKeyRef = useRef(filtrosCatalogoKey);
+  useEffect(() => {
+    if (filtrosCatalogoKeyRef.current === filtrosCatalogoKey) return;
+    filtrosCatalogoKeyRef.current = filtrosCatalogoKey;
+    setVisibles(CATALOGO_PAGE_SIZE);
+    guardarVisiblesCatalogo(CATALOGO_PAGE_SIZE, CATALOGO_PAGE_SIZE);
+  }, [filtrosCatalogoKey]);
+  useEffect(() => { guardarVisiblesCatalogo(visibles, CATALOGO_PAGE_SIZE); }, [visibles]);
   useEffect(()=>{
     const t = busqHero != null && String(busqHero).trim();
     if (t) {
@@ -6511,6 +6534,9 @@ export default function TiendaFarmaCapital(){
     if (initialResetToken) return "reset-password";
     return tiendaPathnameToPageId(window.location.pathname) || "home";
   });
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const catalogoScrollIntentRef = useRef("top");
   const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "" } = {}) => {
     const path = pageIdToTiendaPath(target, {
       rx: target === "catalogo" && rx,
@@ -6539,6 +6565,22 @@ export default function TiendaFarmaCapital(){
       if (nextRx) sessionStorage.setItem("farmacapital_rx", "1");
       else sessionStorage.removeItem("farmacapital_rx");
     } catch (_) { /* noop */ }
+    const fromPage = pageRef.current;
+    if (fromPage === "catalogo" && target === "detalle") {
+      snapshotSalidaCatalogo({
+        scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+        productId: opts.productId,
+      });
+      marcarRestoreCatalogo();
+    }
+    if (target === "catalogo") {
+      const intent = intentScrollCatalogo({ fromPage, catalogoScroll: opts.catalogoScroll });
+      catalogoScrollIntentRef.current = intent;
+      if (intent === "restore") marcarRestoreCatalogo();
+      else limpiarRestoreCatalogo();
+    } else if (target !== "detalle") {
+      catalogoScrollIntentRef.current = "top";
+    }
     try {
       writeTiendaHistory(target, {
         rx: nextRx,
@@ -6565,6 +6607,22 @@ export default function TiendaFarmaCapital(){
           || sessionStorage.getItem("farmacapital_rx") === "1";
         setFiltroRx(Boolean(rx && p === "catalogo"));
       } catch (_) { /* noop */ }
+      if (pageRef.current === "catalogo" && p === "detalle") {
+        snapshotSalidaCatalogo({
+          scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+          productId: e.state?.productId,
+        });
+        marcarRestoreCatalogo();
+      }
+      if (p === "catalogo" && (pageRef.current === "detalle" || hayRestoreCatalogo())) {
+        catalogoScrollIntentRef.current = "restore";
+        marcarRestoreCatalogo();
+      } else if (p === "catalogo") {
+        catalogoScrollIntentRef.current = "top";
+        limpiarRestoreCatalogo();
+      } else {
+        catalogoScrollIntentRef.current = "top";
+      }
       setPageRaw(p);
     };
     window.addEventListener("popstate",h);
@@ -6609,8 +6667,29 @@ export default function TiendaFarmaCapital(){
   },[]);
   useEffect(() => attachTiendaHorizontalStripWheel(), []);
   useEffect(()=>{
-    const id = window.requestAnimationFrame(()=>{ window.scrollTo(0, 0); });
-    return ()=>window.cancelAnimationFrame(id);
+    const intent = catalogoScrollIntentRef.current;
+    const restore = page === "catalogo" && (intent === "restore" || hayRestoreCatalogo());
+    if (page === "catalogo" && intent === "results" && !restore) return undefined;
+    let cancelled = false;
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        if (restore) {
+          aplicarPosicionCatalogo({
+            y: leerScrollCatalogo(),
+            productId: leerProductoCatalogo(),
+          });
+          return;
+        }
+        window.scrollTo(0, 0);
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
   },[page]);
   const [cart,setCart]           = useState(() => loadStoredCart(getClienteUser()));
   const [user,setUser]           = useState(()=> getClienteUser());
