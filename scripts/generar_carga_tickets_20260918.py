@@ -588,6 +588,8 @@ DV_ROWS = [
         "nombre": "Turin Conejo foco chocolate 600 g",
         "marca": "Turin",
         "presentacion": "Conejo 600 g (caja mayoreo 4)",
+        "categoria": "Chocolates",
+        "subcategoria": "Chocolates",
         "cajas": 1,
         "pzas_por_caja": 4,
         "costo_caja": 304.59,
@@ -596,9 +598,11 @@ DV_ROWS = [
     {
         "sku": "FC-LV-KITKAT22",
         "snap": "NESTLE KITKAT EXTRA MILK & COCOA 22/9PZ",
-        "nombre": "KitKat Extra Milk & Cocoa",
+        "nombre": "KitKat Extra Milk & Cocoa chocolate",
         "marca": "KitKat",
         "presentacion": "Pack 9 piezas (exhibidor 22)",
+        "categoria": "Chocolates",
+        "subcategoria": "Chocolates",
         "cajas": 1,
         "pzas_por_caja": 22,
         "costo_caja": 140.75,
@@ -925,7 +929,8 @@ def write_dulceria(rows: list[dict]) -> None:
     for i, r in enumerate(expanded, start=1):
         vals.append(
             f"  ({i}, {q(r['sku'])}, {q(r['snap'])}, {q(r['nombre'])}, "
-            f"{q(r['marca'])}, {q(r['presentacion'])}, 'Impulso', 'marca', "
+            f"{q(r['marca'])}, {q(r['presentacion'])}, "
+            f"{q(r.get('categoria') or 'Impulso')}, {q(r.get('subcategoria'))}, 'marca', "
             f"{r['qty']}, {r['costo']:.4f}, {r['precio']:.2f})"
         )
     notas = (
@@ -939,6 +944,8 @@ def write_dulceria(rows: list[dict]) -> None:
 -- (correo quejas_ysug@dulcerialavictoria.com).
 -- Total tarjeta ${total:.2f}. Mayoreo → piezas de mostrador.
 -- Turin 4/600GR ×1 → 4 conejos de 600 g. KitKat 22/9PZ ×1 → 22 packs.
+-- Turin y KitKat salen al buscar «chocolate» o «chocolates» (categoría Chocolates).
+-- Halls y Skittles se quedan en Impulso.
 --
 -- SIN EAN en el ticket: no se inventan códigos. codigo_barras queda null
 -- hasta escanear la caja. Stock al confirmar en Recibir + MMAA de la caja.
@@ -965,6 +972,7 @@ create temp table _fc_lv_t270040861 (
   marca text not null,
   presentacion text not null,
   categoria text not null,
+  subcategoria text,
   tipo text not null,
   qty integer not null,
   costo numeric(12,4) not null,
@@ -972,12 +980,12 @@ create temp table _fc_lv_t270040861 (
 ) on commit drop;
 
 insert into _fc_lv_t270040861
-  (linea, sku, snap, nombre, marca, presentacion, categoria, tipo, qty, costo, precio)
+  (linea, sku, snap, nombre, marca, presentacion, categoria, subcategoria, tipo, qty, costo, precio)
 values
 {",".join(chr(10) + v for v in vals)};
 
 insert into public.productos (
-  nombre, sku, codigo_barras, categoria, tipo, descripcion,
+  nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   marca, presentacion, costo, precio, stock, stock_minimo,
   activo, requiere_receta
 )
@@ -986,6 +994,7 @@ select
   t.sku,
   null,
   t.categoria,
+  t.subcategoria,
   t.tipo,
   'Alta Dulcería La Victoria {folio} · {fecha} · EAN pendiente de caja · ticket decía La Famosa',
   t.marca,
@@ -1003,11 +1012,13 @@ where not exists (
 
 update public.productos p
 set
+  nombre = t.nombre,
   costo = t.costo,
   precio = case when coalesce(p.precio, 0) <= 0 then t.precio else p.precio end,
   marca = coalesce(nullif(btrim(p.marca), ''), t.marca),
   presentacion = coalesce(nullif(btrim(p.presentacion), ''), t.presentacion),
-  categoria = t.categoria
+  categoria = t.categoria,
+  subcategoria = coalesce(t.subcategoria, p.subcategoria)
 from _fc_lv_t270040861 t
 where p.sku = t.sku;
 
@@ -1079,6 +1090,39 @@ group by r.id, r.folio, r.estado, r.total_ticket;
 commit;
 """
     (SQL / "patch_carga_dulceria_victoria_T270040861.sql").write_text(sql, encoding="utf-8")
+    choco = [r for r in expanded if r.get("subcategoria") == "Chocolates"]
+    choco_vals = ",\n".join(
+        f"  ({q(r['sku'])}::text, {q(r['nombre'])}::text, {q(r['categoria'])}::text, {q(r['subcategoria'])}::text)"
+        for r in choco
+    )
+    (SQL / "patch_dulceria_turin_kitkat_chocolates.sql").write_text(
+        f"""-- Turin y KitKat: que «chocolate» y «chocolates» los encuentren en POS y tienda.
+-- El ticket T270040861 ya está cargado. Este archivo solo cambia nombre y categoría.
+-- Pegar TODO este archivo en Supabase → SQL Editor → Run.
+-- No toca el borrador ni el stock.
+
+begin;
+
+update public.productos p
+set
+  nombre = t.nombre,
+  categoria = t.categoria,
+  subcategoria = t.subcategoria
+from (
+  values
+{choco_vals}
+) as t(sku, nombre, categoria, subcategoria)
+where p.sku = t.sku;
+
+select sku, nombre, categoria, subcategoria
+from public.productos
+where sku in ('FC-LV-TURIN600', 'FC-LV-KITKAT22')
+order by sku;
+
+commit;
+""",
+        encoding="utf-8",
+    )
     return expanded
 
 
