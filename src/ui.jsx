@@ -646,6 +646,11 @@ export function SearchDropdown({
   rankFn=null,
   /** "catalog" = tienda/POS · "inventario" = catálogo admin · null = genérico */
   searchMode=null,
+  /**
+   * overlay = flota encima (POS, clientes).
+   * push = ocupa su lugar y empuja lo de abajo (Inventario: no tapar «Todas las categorías»).
+   */
+  panelMode="overlay",
   style={}, maxResults=8, emptyMsg="Sin resultados"
 }) {
   const C = C_LIGHT;
@@ -721,28 +726,44 @@ export function SearchDropdown({
     if (e.key === "ArrowUp") { e.preventDefault(); setIdx(i => Math.max(i - 1, 0)); }
   };
 
-  const panelStyle = {
-    position: "absolute",
-    top: "calc(100% + 4px)",
-    left: 0,
-    zIndex: 6000,
-    width: panelW > 0 ? panelW : "100%",
-    minWidth: panelW > 0 ? panelW : "min(100%, 100vw - 32px)",
-    maxWidth: "min(100vw - 24px, 560px)",
-    boxSizing: "border-box",
-    background: C.card,
-    borderRadius: 10,
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 8px 32px rgba(15,45,110,.12)",
-    overflow: "hidden",
-    maxHeight: 320,
-    overflowY: "auto",
-  };
+  const pushPanel = panelMode === "push";
+  const panelStyle = pushPanel
+    ? {
+        position: "relative",
+        marginTop: 6,
+        width: "100%",
+        boxSizing: "border-box",
+        background: "#ffffff",
+        borderRadius: 10,
+        border: "1px solid #c7d4f5",
+        boxShadow: "0 4px 16px rgba(15,45,110,.08)",
+        overflow: "hidden",
+        maxHeight: 320,
+        overflowY: "auto",
+      }
+    : {
+        position: "absolute",
+        top: "calc(100% + 4px)",
+        left: 0,
+        zIndex: 6000,
+        width: panelW > 0 ? panelW : "100%",
+        minWidth: panelW > 0 ? panelW : "min(100%, 100vw - 32px)",
+        maxWidth: "min(100vw - 24px, 560px)",
+        boxSizing: "border-box",
+        background: C.card,
+        borderRadius: 10,
+        border: "1px solid #e2e8f0",
+        boxShadow: "0 8px 32px rgba(15,45,110,.12)",
+        overflow: "hidden",
+        maxHeight: 320,
+        overflowY: "auto",
+      };
 
   return (
-    <div ref={ref} style={{position:"relative",minWidth:0,...style}}>
+    <div ref={ref} data-search-dropdown={pushPanel ? "push" : "overlay"} style={{position:"relative",minWidth:0,...style}}>
       <input
         ref={inputRef}
+        className="farmacapital-field-input"
         value={value}
         inputMode="search"
         enterKeyHint="search"
@@ -756,14 +777,14 @@ export function SearchDropdown({
         onFocus={(e)=>{ unlockInputForTouchKeyboard(e.currentTarget); setOpen(!!value?.trim()); measurePanel(); }}
         onKeyDown={handleKey}
         placeholder={placeholder}
-        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation"}}
+        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #c7d4f5",background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation",boxShadow:"0 1px 2px rgba(15,23,42,.04)"}}
         onBlur={e=>{
           lockInputAfterTouchKeyboard(e.currentTarget);
           if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150);
         }}
       />
       {open&&filtered.length>0&&(
-        <div style={panelStyle}>
+        <div data-search-panel={pushPanel ? "push" : "overlay"} style={panelStyle}>
           {filtered.map((item,i)=>(
             <div key={i} onMouseDown={()=>{ onSelect(item); setOpen(false); setIdx(-1); }}
               style={{padding:"10px 14px",cursor:"pointer",background:i===idx?"#eff6ff":C.card,borderBottom:"1px solid #f0f4f9",display:"flex",alignItems:"center",gap:10,transition:"background .1s"}}
@@ -782,7 +803,7 @@ export function SearchDropdown({
         </div>
       )}
       {open&&value&&filtered.length===0&&(
-        <div style={{...panelStyle,padding:"16px 14px",textAlign:"center",color:"#94a3b8",fontSize:12,maxHeight:"none",overflowY:"visible"}}>
+        <div data-search-panel={pushPanel ? "push" : "overlay"} style={{...panelStyle,padding:"16px 14px",textAlign:"center",color:"#94a3b8",fontSize:12,maxHeight:"none",overflowY:"visible"}}>
           {emptyMsg}
         </div>
       )}

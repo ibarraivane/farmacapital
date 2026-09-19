@@ -4067,7 +4067,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:0}}>
-        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" searchMode="inventario" badgeKey="stock" badgeCol="#1E3ABA" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
+        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" searchMode="inventario" panelMode="push" badgeKey="stock" badgeCol="#1E3ABA" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todas">Todas las categorías</option>
