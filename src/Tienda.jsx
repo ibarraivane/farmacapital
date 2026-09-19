@@ -1633,12 +1633,39 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
 
 // ── HEADER ────────────────────────────────────────────────────
 
+/** Publica la altura de un nodo como variable CSS (header / buscador sticky). */
+function useCssVarHeight(ref, cssVar, enabled = true) {
+  useEffect(() => {
+    if (!enabled) {
+      document.documentElement.style.removeProperty(cssVar);
+      return undefined;
+    }
+    const el = ref.current;
+    if (!el) return undefined;
+    const apply = () => {
+      const h = Math.round(el.getBoundingClientRect().height);
+      if (h > 0) document.documentElement.style.setProperty(cssVar, `${h}px`);
+    };
+    apply();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    window.addEventListener("resize", apply);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", apply);
+      document.documentElement.style.removeProperty(cssVar);
+    };
+  }, [cssVar, enabled]);
+}
+
 function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,setProdDetalle}){
   const C = useTheme();
   const stackHeader = useMediaQuery("(max-width: 768px)");
   const [menuOpen, setMenuOpen] = useState(false);
   const [busqFocus, setBusqFocus] = useState(false);
   const searchInputRef = useRef(null);
+  const headerStickyRef = useRef(null);
+  useCssVarHeight(headerStickyRef, "--fc-header-h");
   const n=cart.reduce((a,c)=>a+c.qty,0);
   const mostrarBuscador = page === "carrito";
   const poolHeader = useMemo(() => poolCatalogoTienda(productos || []), [productos]);
@@ -1677,7 +1704,7 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
 
   return(
     <>
-      <div style={{position:"sticky",top:0,zIndex:50}}>
+      <div ref={headerStickyRef} className="farmacapital-header-sticky" style={{position:"sticky",top:0,zIndex:50}}>
       <header data-brand-surface="dark" style={{
         background:BRAND.primary,
         borderBottom:"none",
@@ -2802,6 +2829,7 @@ function TiendaBusquedaBar({
         <input
           ref={inputRef}
           type="search"
+          className="farmacapital-field-input"
           value={value}
           onChange={onChange}
           onFocus={onFocus}
@@ -2820,7 +2848,7 @@ function TiendaBusquedaBar({
             lineHeight: 1.25,
             fontFamily: "var(--fc-body)",
             outline: "none",
-            background: C.white,
+            background: "#ffffff",
             color: C.text,
             WebkitTextFillColor: C.text,
             caretColor: BRAND.primary,
@@ -3213,8 +3241,8 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHero,loadingProductos,filtroRx,onClearRx}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
-  /** Safari iOS: sticky lateral + scroll del documento suele causar rebote/“lock”; solo usar sticky en escritorio ancho. */
-  const categoriasStickyDesktop = useMediaQuery("(min-width: 1025px)");
+  const busqStickyRef = useRef(null);
+  useCssVarHeight(busqStickyRef, "--fc-catalogo-busq-h");
   const [cat,setCat]=useState(()=>{
     try {
       const saved = sessionStorage.getItem("farmacapital_cat") || "Todos";
@@ -3225,7 +3253,6 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   });
   const [busq,setBusq]=useState(busqHero||sessionStorage.getItem("farmacapital_busq")||"");
   const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmacapital_tipo")||"todos");
-  const [openCategorias, setOpenCategorias] = useState(false);
   const [busqFocus,setBusqFocus]=useState(false);
   const [visibles, setVisibles] = useState(CATALOGO_PAGE_SIZE);
   const [vista, setVista] = useState(() => leerVistaCatalogo());
@@ -3285,8 +3312,24 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
     setCat("Todos"); setTipo("todos");
   };
   const busqActiva = busq.trim().length > 0;
+  const catBtnStyle = (c) => ({
+    width: stack ? "auto" : "100%",
+    flexShrink: 0,
+    textAlign: "left",
+    padding: stack ? "6px 12px" : "8px 10px",
+    borderRadius: stack ? 20 : 8,
+    border: stack ? `1px solid ${cat === c ? BRAND.primary : C.border}` : "none",
+    background: cat === c ? BRAND.primary + "18" : "transparent",
+    color: cat === c ? BRAND.primary : C.mid,
+    fontSize: 13,
+    fontWeight: cat === c ? 700 : 400,
+    cursor: "pointer",
+    marginBottom: stack ? 0 : 2,
+    whiteSpace: "nowrap",
+    fontFamily: "var(--fc-body)",
+  });
   return(
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh",overflowX:"clip"}}>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>
         {filtroRx ? "Surtir receta" : "Catálogo FarmaCapital"}
       </h1>
@@ -3349,7 +3392,21 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           </button>
         </div>
       </div>
-      <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
+      <div
+        ref={busqStickyRef}
+        id="farmacapital-catalogo-busqueda"
+        className="farmacapital-catalogo-busqueda-sticky"
+        style={{
+          background: C.bg,
+          marginLeft: -16,
+          marginRight: -16,
+          paddingLeft: 16,
+          paddingRight: 16,
+          paddingTop: 8,
+          paddingBottom: 12,
+        }}
+      >
+      <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20}}>
         <TiendaBusquedaBar
           compact
           value={busq}
@@ -3412,22 +3469,45 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             <button key={v} onClick={()=>setTipo(v)} style={{padding:"5px 12px",borderRadius:20,border:`1px solid ${tipo===v?BRAND.primary:C.border}`,background:tipo===v?BRAND.primary+"18":"transparent",color:tipo===v?BRAND.primary:C.mid,fontSize:12,cursor:"pointer",fontWeight:600}}>{l}</button>
           ))}
         </div>
+        {stack && (
+          <div
+            className="farmacapital-catalogo-cats-scroll"
+            role="listbox"
+            aria-label="Categorías"
+            style={{
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              marginTop: 10,
+              paddingTop: 10,
+              borderTop: `1px solid ${C.border}`,
+            }}
+          >
+            {cats.map((c) => (
+              <button key={c} type="button" onClick={() => setCat(c)} style={catBtnStyle(c)}>{c}</button>
+            ))}
+          </div>
+        )}
+      </div>
       </div>
       <div style={{
         display: "grid",
         gap: 20,
         alignItems: "start",
         gridTemplateColumns: stack ? "1fr" : "180px 1fr",
-        gridTemplateAreas: stack ? '"resultados" "categorias"' : '"categorias resultados"',
+        gridTemplateAreas: stack ? '"resultados"' : '"categorias resultados"',
         width: "100%",
       }}>
         <div
           id="farmacapital-catalogo-resultados"
           style={{
+            gridArea: "resultados",
             width: "100%",
+            minWidth: 0,
             height: "auto",
             overflow: "visible",
             position: "relative",
+            scrollMarginTop: "calc(var(--fc-header-h, 60px) + var(--fc-catalogo-busq-h, 120px) + 8px)",
             display: vista === "bandas" ? "block" : "grid",
             gap: stack ? 16 : 18,
             /** Móvil: una columna; laptop/desktop: rejilla tipo “antes”, varias tarjetas por fila */
@@ -3503,63 +3583,21 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             </div>
           )}
         </div>
-        {stack && busqActiva ? (
+        {!stack && (
           <div
+            className="farmacapital-catalogo-categorias"
             style={{
               gridArea: "categorias",
-              width: "100%",
               background: C.white,
               borderRadius: 14,
               border: `1px solid ${C.border}`,
-              padding: "8px 12px 12px",
-              boxSizing: "border-box",
+              padding: 16,
+              height: "fit-content",
             }}
           >
-            <button
-              type="button"
-              onClick={() => setOpenCategorias(v => !v)}
-              style={{
-                width: "100%",
-                cursor: "pointer",
-                color: C.dark,
-                fontWeight: 700,
-                fontSize: 14,
-                padding: "8px 4px",
-                border: "none",
-                background: "transparent",
-                textAlign: "left",
-              }}
-            >
-              Categorías {cat !== "Todos" ? `· ${cat}` : ""} <span style={{ color: C.dim, fontWeight: 600, fontSize: 12 }}>(tocá para filtrar)</span>
-            </button>
-            {openCategorias && (
-              <div style={{ marginTop: 8, maxHeight: "min(50vh, 320px)", overflowY: "visible" }}>
-                {cats.map((c) => (
-                  <button key={c} type="button" onClick={() => setCat(c)} style={{
-                    width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
-                    background: cat === c ? BRAND.primary + "18" : "transparent", color: cat === c ? BRAND.primary : C.mid, fontSize: 13, fontWeight: cat === c ? 700 : 400, cursor: "pointer", marginBottom: 2,
-                  }}>{c}</button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{
-            gridArea: "categorias",
-            background: C.white,
-            borderRadius: 14,
-            border: `1px solid ${C.border}`,
-            padding: 16,
-            height: "fit-content",
-            position: categoriasStickyDesktop ? "sticky" : "relative",
-            top: categoriasStickyDesktop ? "calc(env(safe-area-inset-top, 0px) + 100px)" : undefined,
-          }}>
             <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, marginBottom: 12 }}>Categorías</div>
             {cats.map((c) => (
-              <button key={c} type="button" onClick={() => setCat(c)} style={{
-                width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
-                background: cat === c ? BRAND.primary + "18" : "transparent", color: cat === c ? BRAND.primary : C.mid, fontSize: 13, fontWeight: cat === c ? 700 : 400, cursor: "pointer", marginBottom: 2,
-              }}>{c}</button>
+              <button key={c} type="button" onClick={() => setCat(c)} style={catBtnStyle(c)}>{c}</button>
             ))}
           </div>
         )}
