@@ -293,3 +293,33 @@ test("descripcionPublicaTienda oculta cruce Fahorro / precio lista (no es ficha 
     }),
   ).toBe("");
 });
+
+test("descripcionPublicaTienda oculta notas de mayoreo y recargo", () => {
+  const madrid = {
+    nombre: "Aceite Madrid",
+    descripcion:
+      "Farma Mayoreo 305016 · térmico «MADRID ACEITE DE» EAN 7506313000513 · el nombre viene cortado: no se inventa tipo ni ml · foto pendiente · P.U. $30.90 ya con IVA · recargo marca +25%",
+    presentacion: "Frasco",
+  };
+  expect(esNotaInternaCompra(madrid.descripcion)).toBe(true);
+  expect(descripcionPublicaTienda(madrid)).toBe("");
+  expect(subtituloPublicoTienda(madrid)).toBe("Frasco");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Aceite de almendras dulces Flor de Aire 125 ml",
+      descripcion: "IFC 124418. EAN de la botella 7502280170501. Recargo marca +25%.",
+    }),
+  ).toBe("");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Grenobil mascarilla",
+      descripcion: "Farmalive 127790 · ticket Aspirina · foto pendiente",
+    }),
+  ).toBe("");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Aceite de almendras",
+      descripcion: "Humecta piel y cabello. Uso tópico.",
+    }),
+  ).toBe("Humecta piel y cabello. Uso tópico.");
+});

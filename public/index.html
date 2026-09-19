@@ -171,7 +171,9 @@
       /* Intro FarmaCapital — HTML/CSS, logo oficial PNG.
          Cruz 0–21.072%, centro 10.505%, wordmark desde 25.570%.
          Las L copian el GIF: dos escuadras en los hombros de la cruz,
-         verticales primero, estela que palidece, cruz oficial sin deformar. */
+         verticales primero, estela que palidece, cruz oficial sin deformar.
+         El reloj es linear. La cruz camina sola; las letras se destapan
+         a su derecha mientras avanza, sin montarse encima. */
       #splash {
         --fc-gutter: max(22px, env(safe-area-inset-left), env(safe-area-inset-right));
         --fc-logo-w: min(calc(100vw - 2 * var(--fc-gutter)), clamp(300px, 62vw, 680px));
@@ -183,6 +185,10 @@
         --fc-text-x: 25.57%;
         --fc-text-n: 0.2557;
         --fc-wake: 0.60567;
+        /* Hueco del logo (cruz → wordmark). La ventana no besa la cruz. */
+        --fc-seam: calc((var(--fc-text-n) - var(--fc-cross-w)) * var(--fc-logo-w));
+        /* Solo en el tramo que se mueve. En el shorthand aplasta el reloj. */
+        --fc-glide: cubic-bezier(0.4, 0, 0.2, 1);
         --fc-cw: calc(var(--fc-logo-w) * var(--fc-cross-w));
         --fc-ch: var(--fc-logo-h);
         --fc-lnx: calc(50% - var(--fc-cw) * 0.161);
@@ -217,14 +223,8 @@
       @media (max-width: 480px) {
         #splash { --fc-logo-w: calc(100vw - 2 * var(--fc-gutter)); }
       }
-      #splash.fc-intro-out .fc-intro-logo,
-      #splash.fc-intro-out .fc-intro-sub,
-      #splash.fc-intro-out .fc-intro-word-window,
-      #splash.fc-intro-out .fc-intro-cross-clip {
-        opacity: 0 !important;
-        animation: none !important;
-        transition: opacity 0.18s ease !important;
-      }
+      /* El desvanecido es del splash entero. animation:none aquí devolvía
+         la cruz al centro y la cortinilla a la derecha: el logo se partía al salir. */
       #splash.hide { opacity: 0; pointer-events: none; }
       .fc-intro-cluster {
         position: relative;
@@ -254,23 +254,26 @@
         object-fit: contain;
         backface-visibility: hidden;
       }
-      /* Cortinilla en GPU: overflow + translate3d (misma distancia).
-         Nada de clip-path animado: en móvil rasterizaba borroso. */
+      /* Ventana pegada al borde derecho de la cruz. Ancho 0 hasta que
+         la cruz camina; ahí se abre y las letras salen en su sitio. */
       .fc-intro-word-window {
         position: absolute;
-        inset: 0;
+        left: 0;
+        top: 0;
         z-index: 1;
+        height: 100%;
+        width: 0;
         overflow: hidden;
         pointer-events: none;
-        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w)), 0, 0);
-        will-change: transform;
+        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-seam)), 0, 0);
+        will-change: transform, width;
         backface-visibility: hidden;
       }
       .fc-intro-word-slide {
         position: relative;
-        width: 100%;
+        width: var(--fc-logo-w);
         height: 100%;
-        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1), 0, 0);
+        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1 - var(--fc-seam)), 0, 0);
         will-change: transform;
         backface-visibility: hidden;
       }
@@ -310,35 +313,64 @@
         height: 100%;
       }
       #splash.fc-intro-play .fc-intro-cross-clip {
-        animation: fc-intro-cross 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: fc-intro-cross 2.6s linear both;
       }
       #splash.fc-intro-play .fc-intro-word-window {
-        animation: fc-word-window 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: fc-word-window 2.6s linear both;
       }
       #splash.fc-intro-play .fc-intro-word-slide {
-        animation: fc-word-slide 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: fc-word-slide 2.6s linear both;
       }
       #splash.fc-intro-play .fc-intro-word {
-        animation: fc-word-fade 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: fc-word-fade 2.6s linear both;
       }
-      /* Misma coreografía que #112: L → cruz al centro → luego el nombre. */
+      /* Mismo tramo (46–74%) y el mismo ease que la cruz.
+         La ventana nace en su borde derecho y se abre: las letras
+         aparecen mientras la cruz avanza, no antes. */
       @keyframes fc-intro-cross {
-        0%, 26% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        30%, 46% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        62% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * 0.42 * var(--fc-logo-w)), 0, 0); }
-        72%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        0%, 30% {
+          opacity: 0;
+          transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0);
+          animation-timing-function: var(--fc-glide);
+        }
+        38% {
+          opacity: 1;
+          transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0);
+          animation-timing-function: linear;
+        }
+        46% {
+          opacity: 1;
+          transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0);
+          animation-timing-function: var(--fc-glide);
+        }
+        74%, 100% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
       }
       @keyframes fc-word-window {
-        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w)), 0, 0); }
-        62%, 100% { transform: translate3d(0, 0, 0); }
+        0%, 46% {
+          width: 0;
+          transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-seam)), 0, 0);
+          animation-timing-function: var(--fc-glide);
+        }
+        74%, 100% {
+          width: calc(var(--fc-logo-w) - var(--fc-cross-w) * var(--fc-logo-w) - var(--fc-seam));
+          transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-seam)), 0, 0);
+        }
       }
       @keyframes fc-word-slide {
-        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1), 0, 0); }
-        62%, 100% { transform: translate3d(0, 0, 0); }
+        0%, 46% {
+          transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1 - var(--fc-seam)), 0, 0);
+          animation-timing-function: var(--fc-glide);
+        }
+        74%, 100% {
+          transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) * -1 - var(--fc-seam)), 0, 0);
+        }
       }
       @keyframes fc-word-fade {
-        0%, 46% { opacity: 0; }
-        52%, 100% { opacity: 1; }
+        0%, 45% { opacity: 0; }
+        46%, 100% { opacity: 1; }
       }
       .fc-intro-sub {
         position: relative;
@@ -358,11 +390,11 @@
         pointer-events: none;
       }
       #splash.fc-intro-play .fc-intro-sub {
-        animation: fc-intro-sub 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: fc-intro-sub 2.6s linear both;
       }
       @keyframes fc-intro-sub {
-        0%, 70% { opacity: 0; transform: translateY(4px); }
-        80%, 100% { opacity: 1; transform: translateY(0); }
+        0%, 76% { opacity: 0; transform: translateY(4px); animation-timing-function: var(--fc-glide); }
+        88%, 100% { opacity: 1; transform: translateY(0); }
       }
       .fc-intro-lines {
         position: absolute;
@@ -375,7 +407,7 @@
         transform: translate(-50%, -50%);
         overflow: hidden;
         pointer-events: none;
-        z-index: 4;
+        z-index: 0;
       }
       .fc-hair {
         position: absolute;
@@ -439,41 +471,41 @@
         transform: scaleY(1);
       }
       #splash.fc-intro-play .fc-hair-left {
-        animation: fc-navy-h 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-navy-h 1.15s linear both;
       }
       #splash.fc-intro-play .fc-hair-top {
-        animation: fc-navy-v 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-navy-v 1.15s linear both;
       }
       #splash.fc-intro-play .fc-hair-right {
-        animation: fc-blue-h 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-blue-h 1.15s linear both;
       }
       #splash.fc-intro-play .fc-hair-bot {
-        animation: fc-jade-v 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-jade-v 1.15s linear both;
       }
       #splash.fc-intro-play .fc-hair::after {
-        animation: fc-sat 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-sat 1.15s linear both;
       }
       @keyframes fc-navy-h {
-        0%, 32% { transform: scaleX(1); opacity: 1; }
-        68%, 86% { transform: scaleX(var(--fc-sx)); opacity: 1; }
-        100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
+        0%, 32% { transform: scaleX(1); opacity: 1; animation-timing-function: var(--fc-glide); }
+        68% { transform: scaleX(var(--fc-sx)); opacity: 1; animation-timing-function: linear; }
+        86%, 100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-navy-v {
-        0%, 18% { transform: scaleY(1); opacity: 1; }
-        32% { transform: scaleY(0.72); opacity: 1; }
-        68%, 86% { transform: scaleY(var(--fc-sy)); opacity: 1; }
-        100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
+        0%, 18% { transform: scaleY(1); opacity: 1; animation-timing-function: var(--fc-glide); }
+        32% { transform: scaleY(0.72); opacity: 1; animation-timing-function: var(--fc-glide); }
+        68% { transform: scaleY(var(--fc-sy)); opacity: 1; animation-timing-function: linear; }
+        86%, 100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-blue-h {
-        0%, 32% { transform: scaleX(1); opacity: 1; }
-        68%, 86% { transform: scaleX(var(--fc-sx)); opacity: 1; }
-        100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
+        0%, 32% { transform: scaleX(1); opacity: 1; animation-timing-function: var(--fc-glide); }
+        68% { transform: scaleX(var(--fc-sx)); opacity: 1; animation-timing-function: linear; }
+        86%, 100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-jade-v {
-        0%, 18% { transform: scaleY(1); opacity: 1; }
-        32% { transform: scaleY(0.72); opacity: 1; }
-        68%, 86% { transform: scaleY(var(--fc-sy)); opacity: 1; }
-        100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
+        0%, 18% { transform: scaleY(1); opacity: 1; animation-timing-function: var(--fc-glide); }
+        32% { transform: scaleY(0.72); opacity: 1; animation-timing-function: var(--fc-glide); }
+        68% { transform: scaleY(var(--fc-sy)); opacity: 1; animation-timing-function: linear; }
+        86%, 100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-sat {
         0% { opacity: 0; }
@@ -517,7 +549,7 @@
   </head>
   <body>
     <!-- Intro FarmaCapital: líneas → cruz oficial → cortinilla del wordmark -->
-    <div id="splash" class="fc-intro-play" role="img" aria-label="FarmaCapital" aria-busy="true">
+    <div id="splash" role="img" aria-label="FarmaCapital" aria-busy="true">
       <div class="fc-intro-cluster">
         <div class="fc-intro-stage">
           <div class="fc-intro-lines" aria-hidden="true">
@@ -595,14 +627,11 @@
           if (!appReady) return;
           hiding = true;
           splash.setAttribute('aria-busy', 'false');
-          soltarCapas();
-          splash.classList.add('fc-intro-out');
+          splash.classList.add('hide');
           setTimeout(function () {
-            splash.classList.add('hide');
-            setTimeout(function () {
-              if (splash && splash.parentNode) splash.remove();
-            }, 340);
-          }, 180);
+            soltarCapas();
+            if (splash && splash.parentNode) splash.remove();
+          }, 380);
         }
 
         window.__fcOcultarSplash = function () {
@@ -615,13 +644,46 @@
           ocultar();
         }
 
+        /* 2.6s = duración de fc-intro-cross / fc-word-* / fc-intro-sub. */
+        var INTRO_MS = 2620;
+
+        function arrancarIntro() {
+          if (!splash) return;
+          splash.classList.add('fc-intro-play');
+          setTimeout(terminarSecuencia, INTRO_MS);
+        }
+
         if (reduced) {
           splash && splash.classList.add('fc-intro-reduced');
           setTimeout(terminarSecuencia, 280);
         } else {
-          var logoEl = splash && splash.querySelector('.fc-intro-cross');
-          if (logoEl && logoEl.decode) logoEl.decode().catch(function () {});
-          setTimeout(terminarSecuencia, 2620);
+          var started = false;
+          function startOnce() {
+            if (started) return;
+            started = true;
+            arrancarIntro();
+          }
+          var imgs = splash ? splash.querySelectorAll('img.fc-intro-logo') : [];
+          var pending = imgs.length;
+          function one() {
+            if (--pending <= 0) startOnce();
+          }
+          if (!pending) startOnce();
+          else {
+            setTimeout(startOnce, 500);
+            for (var i = 0; i < imgs.length; i++) {
+              (function (img) {
+                if (img.decode) {
+                  img.decode().then(one, one);
+                } else if (img.complete && img.naturalWidth) {
+                  one();
+                } else {
+                  img.addEventListener('load', one, { once: true });
+                  img.addEventListener('error', one, { once: true });
+                }
+              })(imgs[i]);
+            }
+          }
         }
 
         window.addEventListener('load', function () {
