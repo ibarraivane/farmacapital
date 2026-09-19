@@ -96,7 +96,15 @@ export function esNotaInternaCompra(texto) {
   if (low.includes("falta codigo de barras")) return true;
   if (low.includes("codigo de proveedor") || low.includes("clave de proveedor")) return true;
   if (low.includes("listo para pistola")) return true;
+  if (low.includes("foto pendiente")) return true;
+  if (low.includes("no se inventa")) return true;
+  if (low.includes("nombre viene cortado") || low.includes("nombre cortado")) return true;
+  if (low.includes("falta ean")) return true;
   if (low.includes("por definir") && /costo|pvp|precio/.test(low)) return true;
+  // Nota de alta: "recargo marca +25%" / "P.U. $30.90 ya con IVA"
+  if (/\brecargo\b/.test(low) && /\b(marca|generico|patente)\b/.test(low)) return true;
+  if (/\bp\.?\s*u\.?\b/.test(low) && /\b(iva|costo)\b/.test(low)) return true;
+  if (/\bya con iva\b/.test(low)) return true;
   // Cruce de precios / import: "Fahorro SKU=EAN … · precio lista $801"
   if (/\bsku\s*=\s*ean\b/.test(low)) return true;
   if (/\bprecio\s+lista\b/.test(low) && /\b(ean|sku|\$)\b/.test(low)) return true;
@@ -107,7 +115,7 @@ export function esNotaInternaCompra(texto) {
     return true;
   }
   if (
-    /\b(nadro|levic|visoti|exprezo|scorpion|farmalive|farma city|farma mx|dulceria|la victoria|la famosa)\b/.test(low) &&
+    /\b(nadro|levic|visoti|exprezo|scorpion|farmalive|farma city|farma mx|farma mayoreo|farma centre|ifc|equilibrio|cityfarma|dulceria|la victoria|la famosa)\b/.test(low) &&
     /\b(alta|factura|nota|proveedor|ean|folio|t\d{6,})\b/.test(low)
   ) {
     return true;
