@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """Tickets 18-sep-2026 → CSV + SQL cola Recibir (borrador, stock 0).
 
-Cuatro fotos de Central de Abasto, mismo día:
+Cinco compras de Central de Abasto, mismo día:
 
   Equilibrio 444836     pedido online 10:27  total $1,303.20
-  F-48 Abasto 550937    cuidado personal 11:02  total $1,466.50
-                        (el voucher Banorte tapa el nombre; tel 55 7261-7572)
+  PerfuMax 550937       cuidado personal 11:02  total $1,466.50
+                        (pasillo F48 A; antes el voucher tapaba el nombre)
+  Cityfarma S323594     orden 10:49  pendiente de pago $546.54
   Farmalive 12949       Club Iztapalapa 1 11:08  total $1,730.09
   Dulcería La Victoria  nota T270040861 12:17  total $445.34
                         (el papel dice DULCERIA LA FAMOSA)
 
 Equilibrio: lote de fábrica sí. Caducidad NO (MMAA de la caja).
-Farmalive / F-48 / Victoria: el papel no trae lote. No inventar 0000.
+Farmalive / PerfuMax / Cityfarma / Victoria: el papel no trae lote. No inventar 0000.
 Nombres de ficha, no el recorte del térmico.
 Costo = precio neto pagado (Equilibrio: P.U.; cánulas con IVA incluido).
 """
@@ -426,11 +427,13 @@ FL_ROWS = [
     },
 ]
 
-# ── F-48 Abasto 550937 ──────────────────────────────────────────────
-# Nombre comercial tapado por el voucher Banorte (#TuBancoTuTiempo).
-# Encabezado visible: ABASTO, IZTAPALAPA · F48 A · CP 09040
+# ── PerfuMax 550937 ─────────────────────────────────────────────────
+# Comercializadora PerfuMax · RFC PMM211209B57 · pasillo F48 A
+# Canal Río Churubusco S/N, Central de Abasto, Iztapalapa, CP 09040
 # Tel 55 7261-7572 · WhatsApp 5534027357 · folio 550,937 · 11:02
+# El primer papel tenía el voucher Banorte encima; el nombre es PerfuMax.
 # EAN solo donde ya estaba en un ticket anterior de la misma pieza.
+# SKU FC-F48-* se queda: es la clave de las piezas sin código, no el proveedor.
 F48_ROWS = [
     {
         "ean": None, "sku": "FC-F48-LUB750",
@@ -554,6 +557,27 @@ F48_ROWS = [
     },
 ]
 
+# ── Cityfarma S323594 ───────────────────────────────────────────────
+# Order S323594 · 18-09-2026 10:49 · vendedor Jonathan Moreno
+# Cliente LUIS ANGEL PALILLERO VENTURA · Pasillo E-F 44A
+# Pendiente de pago $546.54. IVA 0. 3 × $182.18 = $546.54.
+# EAN 7501058715555 = Tempra Fen infantil ibuprofeno 200 mg/5 ml, 100 ml
+# (Family Medic SKU + ficha Tempra). No es Tempra paracetamol ni TempraFen 400 mg.
+CF_ROWS = [
+    {
+        "ean": "7501058715555", "sku": sku_fc("7501058715555"),
+        "snap": "TEMPRA FEN INF 100ML",
+        "nombre": "Tempra Fen infantil ibuprofeno 200 mg/5 ml suspensión 100 ml",
+        "qty": 3, "pu": 182.18,
+        "tipo": "marca", "categoria": "Analgésico", "subcategoria": "Infantil",
+        "forma": "Suspensión", "marca": "Tempra", "laboratorio": "RB Health",
+        "presentacion": "Caja con frasco 100 ml sabor fresa",
+        "principio": "Ibuprofeno", "concentracion": "200 mg/5 ml",
+        "receta": False, "ya": False,
+    },
+]
+
+
 # ── Dulcería ────────────────────────────────────────────────────────
 # 4/600GR = caja de 4 conejos de 600 g (se vende el conejo).
 # 22/9PZ = exhibidor de 22 packs de 9 piezas (se vende el pack).
@@ -621,6 +645,7 @@ def write_sql_ean(
     rows: list[dict],
     con_lote: bool,
     tmp: str,
+    match_tpl: str | None = None,
 ) -> None:
     cols = [
         "linea", "ean", "sku", "nombre", "snap", "qty", "costo", "precio",
@@ -662,6 +687,14 @@ def write_sql_ean(
     folio_s = q(folio)
     prov_s = q(proveedor)
     ilike = q("%" + proveedor_ilike + "%")
+
+    def col_match(col: str) -> str:
+        if match_tpl:
+            return match_tpl.format(col=col)
+        return f"coalesce({col}, '') ilike {ilike}"
+
+    m_prov = col_match("proveedor")
+    m_r = col_match("r.proveedor")
     altas = sum(1 for r in rows if not r.get("ya"))
     body = f"""{header}
 -- {altas} alta(s) con stock 0 si el EAN no está. El resto solo costo (PVP si estaba en 0).
@@ -784,7 +817,7 @@ select
 where not exists (
   select 1 from public.recepciones
   where folio = {folio_s}
-    and coalesce(proveedor, '') ilike {ilike}
+    and {m_prov}
 );
 
 update public.recepciones
@@ -795,14 +828,14 @@ set
   notas = {q(notas)},
   updated_at = now()
 where folio = {folio_s}
-  and coalesce(proveedor, '') ilike {ilike}
+  and {m_prov}
   and estado = 'borrador';
 
 delete from public.recepcion_items i
 using public.recepciones r
 where i.recepcion_id = r.id
   and r.folio = {folio_s}
-  and coalesce(r.proveedor, '') ilike {ilike}
+  and {m_r}
   and r.estado = 'borrador';
 
 insert into public.recepcion_items (
@@ -833,7 +866,7 @@ select
 from {tmp} t
 join public.recepciones r
   on r.folio = {folio_s}
- and coalesce(r.proveedor, '') ilike {ilike}
+ and {m_r}
  and r.estado = 'borrador'
 left join lateral (
   select coalesce(
@@ -855,7 +888,7 @@ select
 from public.recepciones r
 left join public.recepcion_items i on i.recepcion_id = r.id
 where r.folio = {folio_s}
-  and coalesce(r.proveedor, '') ilike {ilike}
+  and {m_r}
 group by r.id, r.folio, r.proveedor, r.estado, r.total_ticket;
 
 commit;
@@ -1053,19 +1086,24 @@ def main() -> None:
     eq = with_precio(EQ_ROWS)
     fl = with_precio(FL_ROWS)
     f48 = with_precio(F48_ROWS)
+    cf = with_precio(CF_ROWS)
 
     eq_sum = round(sum(r["sub"] for r in eq), 2)
     fl_sum = round(sum(r["qty"] * r["pu"] for r in fl), 2)
     f48_sum = round(sum(r["sub"] for r in f48), 2)
+    cf_sum = round(sum(r["sub"] for r in cf), 2)
     if abs(eq_sum - 1303.20) > 0.02:
         raise SystemExit(f"Equilibrio no cuadra: {eq_sum} vs 1303.20")
+    if abs(cf_sum - 546.54) > 0.02:
+        raise SystemExit(f"Cityfarma no cuadra: {cf_sum} vs 546.54")
     print("Equilibrio", report(
         [{"qty": r["qty"], "sub": r["sub"], "ean": r.get("ean")} for r in eq], 1303.20
     ))
     print(f"Farmalive suma renglones ${fl_sum:.2f} vs ticket $1730.09 (centavos de redondeo del P.U.)")
-    print(f"F-48 suma renglones ${f48_sum:.2f} vs ticket $1466.50")
+    print(f"PerfuMax suma renglones ${f48_sum:.2f} vs ticket $1466.50")
     if abs(f48_sum - 1466.50) > 1:
-        raise SystemExit("F-48 se fue por más de $1")
+        raise SystemExit("PerfuMax se fue por más de $1")
+    print(f"Cityfarma S323594 ${cf_sum:.2f} · {sum(r['qty'] for r in cf)} pzas · PVP {cf[0]['precio']}")
 
     write_csv_ean(
         GEN / "ticket_equilibrio_444836.csv",
@@ -1079,8 +1117,13 @@ def main() -> None:
     )
     write_csv_ean(
         GEN / "ticket_abasto_f48_550937.csv",
-        folio="550937", fecha="2026-09-18", proveedor="F-48 Abasto",
+        folio="550937", fecha="2026-09-18", proveedor="PerfuMax",
         total=1466.50, rows=f48,
+    )
+    write_csv_ean(
+        GEN / "ticket_cityfarma_s323594.csv",
+        folio="S323594", fecha="2026-09-18", proveedor="Cityfarma Iztapalapa",
+        total=546.54, rows=cf,
     )
 
     write_sql_ean(
@@ -1129,27 +1172,52 @@ def main() -> None:
     )
     write_sql_ean(
         SQL / "patch_carga_abasto_f48_550937.sql",
-        folio="550937", proveedor="F-48 Abasto", proveedor_ilike="f-48",
+        folio="550937", proveedor="PerfuMax", proveedor_ilike="perfumax",
         fecha="2026-09-18", total=1466.50,
+        match_tpl=(
+            "(coalesce({col}, '') ilike '%perfumax%' "
+            "or coalesce({col}, '') ilike '%f-48%')"
+        ),
         notas=(
-            "Ticket folio 550937 · 18-sep-2026 11:02 · efectivo $1,466.50 · "
-            "ABASTO IZTAPALAPA local F48 A · tel 55 7261-7572 · WhatsApp 5534027357 · "
-            "el voucher Banorte tapa el nombre comercial · "
+            "Ticket PerfuMax folio 550937 · 18-sep-2026 11:02 · efectivo $1,466.50 · "
+            "RFC PMM211209B57 · pasillo F48 A Central de Abasto Iztapalapa · "
+            "tel 55 7261-7572 · WhatsApp 5534027357 · "
             "Hinds y Rexona Efficient sí tienen EAN; el resto se toca en el renglón"
         ),
         header=(
-            "-- Cuidado personal · folio 550937 · 18-sep-2026 11:02 · efectivo $1,466.50\n"
-            "-- El voucher Banorte (#TuBancoTuTiempo) tapa el nombre del local.\n"
-            "-- Lo que sí se lee: ABASTO, IZTAPALAPA · código F48 A · CP 09040\n"
+            "-- PerfuMax · folio 550937 · 2026-09-18 11:02 · efectivo $1,466.50\n"
+            "-- Comercializadora PerfuMax · RFC PMM211209B57.\n"
+            "-- Canal Rio Churubusco S/N, pasillo F48 A, Central de Abasto, Iztapalapa, CP 09040.\n"
             "-- Tel 55 7261-7572 · WhatsApp 5534027357 · vendedor ADMIN · 23 piezas.\n"
-            "-- Proveedor en Recibir: «F-48 Abasto» hasta que se vea el nombre.\n"
+            "-- Si el borrador ya existe como F-48 Abasto, este SQL le pone PerfuMax.\n"
             "-- EAN solo en piezas que ya estaban (Hinds 90 ml, Rexona Efficient 100 g).\n"
             "-- El resto: alta por SKU FC-F48-* sin código inventado. Toca el renglón.\n"
-            "-- TODO foto en las altas nuevas. No usar placeholder de otra cadena.\n"
             "-- La suma de renglones leídos es $1,466.04; el papel dice $1,466.50.\n"
             "-- Se respeta el total impreso. No se inventó un centavo en los P.U."
         ),
         rows=f48, con_lote=False, tmp="_fc_f48_550937",
+    )
+    write_sql_ean(
+        SQL / "patch_carga_cityfarma_s323594.sql",
+        folio="S323594", proveedor="Cityfarma Iztapalapa", proveedor_ilike="cityfarma",
+        fecha="2026-09-18", total=546.54,
+        notas=(
+            "Ticket Cityfarma S323594 · 18-sep-2026 10:49 · Jonathan Moreno · "
+            "cliente Luis Angel Palillero Ventura · Pasillo E-F 44A · "
+            "Pendiente de pago $546.54 · Tempra Fen infantil 100 ml ×3 · "
+            "cola Recibir; stock al confirmar pistola"
+        ),
+        header=(
+            "-- Cityfarma Iztapalapa · orden S323594 · 2026-09-18 10:49:23\n"
+            "-- Pasillo E-F 44A · vendedor Jonathan Moreno.\n"
+            "-- Cliente LUIS ANGEL PALILLERO VENTURA.\n"
+            "-- Pendiente de pago $546.54. IVA 0. 3 x $182.18.\n"
+            "-- EAN 7501058715555: Tempra Fen infantil ibuprofeno 200 mg/5 ml, frasco 100 ml.\n"
+            "-- No es Tempra paracetamol 80 mg ni TempraFen 400 mg (7506460101002).\n"
+            "-- El papel no trae lote. No inventar MMAA ni 0000.\n"
+            "-- TODO foto: packshot del frasco. No usar placeholder de otra cadena."
+        ),
+        rows=cf, con_lote=False, tmp="_fc_cf_s323594",
     )
     dv = write_dulceria(DV_ROWS)
     dv_sum = round(sum(r["sub"] for r in dv), 2)

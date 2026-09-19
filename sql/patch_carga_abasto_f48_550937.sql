@@ -1,11 +1,10 @@
--- Cuidado personal · folio 550937 · 18-sep-2026 11:02 · efectivo $1,466.50
--- El voucher Banorte (#TuBancoTuTiempo) tapa el nombre del local.
--- Lo que sí se lee: ABASTO, IZTAPALAPA · código F48 A · CP 09040
+-- PerfuMax · folio 550937 · 2026-09-18 11:02 · efectivo $1,466.50
+-- Comercializadora PerfuMax · RFC PMM211209B57.
+-- Canal Rio Churubusco S/N, pasillo F48 A, Central de Abasto, Iztapalapa, CP 09040.
 -- Tel 55 7261-7572 · WhatsApp 5534027357 · vendedor ADMIN · 23 piezas.
--- Proveedor en Recibir: «F-48 Abasto» hasta que se vea el nombre.
+-- Si el borrador ya existe como F-48 Abasto, este SQL le pone PerfuMax.
 -- EAN solo en piezas que ya estaban (Hinds 90 ml, Rexona Efficient 100 g).
 -- El resto: alta por SKU FC-F48-* sin código inventado. Toca el renglón.
--- TODO foto en las altas nuevas. No usar placeholder de otra cadena.
 -- La suma de renglones leídos es $1,466.04; el papel dice $1,466.50.
 -- Se respeta el total impreso. No se inventó un centavo en los P.U.
 -- 12 alta(s) con stock 0 si el EAN no está. El resto solo costo (PVP si estaba en 0).
@@ -76,7 +75,7 @@ select
   t.categoria,
   t.subcategoria,
   t.tipo,
-  'Alta F-48 Abasto 550937 · 2026-09-18 · listo para pistola',
+  'Alta PerfuMax 550937 · 2026-09-18 · listo para pistola',
   t.costo,
   t.precio,
   0,
@@ -134,34 +133,34 @@ where p.id = coalesce(
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
-  'F-48 Abasto',
+  'PerfuMax',
   '550937',
   '2026-09-18',
   1466.50,
   'borrador',
-  'Ticket folio 550937 · 18-sep-2026 11:02 · efectivo $1,466.50 · ABASTO IZTAPALAPA local F48 A · tel 55 7261-7572 · WhatsApp 5534027357 · el voucher Banorte tapa el nombre comercial · Hinds y Rexona Efficient sí tienen EAN; el resto se toca en el renglón'
+  'Ticket PerfuMax folio 550937 · 18-sep-2026 11:02 · efectivo $1,466.50 · RFC PMM211209B57 · pasillo F48 A Central de Abasto Iztapalapa · tel 55 7261-7572 · WhatsApp 5534027357 · Hinds y Rexona Efficient sí tienen EAN; el resto se toca en el renglón'
 where not exists (
   select 1 from public.recepciones
   where folio = '550937'
-    and coalesce(proveedor, '') ilike '%f-48%'
+    and (coalesce(proveedor, '') ilike '%perfumax%' or coalesce(proveedor, '') ilike '%f-48%')
 );
 
 update public.recepciones
 set
   total_ticket = 1466.50,
   fecha = '2026-09-18',
-  proveedor = 'F-48 Abasto',
-  notas = 'Ticket folio 550937 · 18-sep-2026 11:02 · efectivo $1,466.50 · ABASTO IZTAPALAPA local F48 A · tel 55 7261-7572 · WhatsApp 5534027357 · el voucher Banorte tapa el nombre comercial · Hinds y Rexona Efficient sí tienen EAN; el resto se toca en el renglón',
+  proveedor = 'PerfuMax',
+  notas = 'Ticket PerfuMax folio 550937 · 18-sep-2026 11:02 · efectivo $1,466.50 · RFC PMM211209B57 · pasillo F48 A Central de Abasto Iztapalapa · tel 55 7261-7572 · WhatsApp 5534027357 · Hinds y Rexona Efficient sí tienen EAN; el resto se toca en el renglón',
   updated_at = now()
 where folio = '550937'
-  and coalesce(proveedor, '') ilike '%f-48%'
+  and (coalesce(proveedor, '') ilike '%perfumax%' or coalesce(proveedor, '') ilike '%f-48%')
   and estado = 'borrador';
 
 delete from public.recepcion_items i
 using public.recepciones r
 where i.recepcion_id = r.id
   and r.folio = '550937'
-  and coalesce(r.proveedor, '') ilike '%f-48%'
+  and (coalesce(r.proveedor, '') ilike '%perfumax%' or coalesce(r.proveedor, '') ilike '%f-48%')
   and r.estado = 'borrador';
 
 insert into public.recepcion_items (
@@ -193,7 +192,7 @@ select
 from _fc_f48_550937 t
 join public.recepciones r
   on r.folio = '550937'
- and coalesce(r.proveedor, '') ilike '%f-48%'
+ and (coalesce(r.proveedor, '') ilike '%perfumax%' or coalesce(r.proveedor, '') ilike '%f-48%')
  and r.estado = 'borrador'
 left join lateral (
   select coalesce(
@@ -215,7 +214,7 @@ select
 from public.recepciones r
 left join public.recepcion_items i on i.recepcion_id = r.id
 where r.folio = '550937'
-  and coalesce(r.proveedor, '') ilike '%f-48%'
+  and (coalesce(r.proveedor, '') ilike '%perfumax%' or coalesce(r.proveedor, '') ilike '%f-48%')
 group by r.id, r.folio, r.proveedor, r.estado, r.total_ticket;
 
 commit;
