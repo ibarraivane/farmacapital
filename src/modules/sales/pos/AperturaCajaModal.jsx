@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT, BRAND } from "../../../constants";
-import { etiquetaTurno, turnoDePerfil, etiquetaDiaDescanso } from "../../../constants/turnos";
+import { etiquetaTurno, turnoDePerfil } from "../../../constants/turnos";
 import { hayPiezasDenominacion } from "../../../constants/caja";
 import ArqueoDenominaciones from "../../../components/ArqueoDenominaciones";
 import { abrirSesionCaja, fetchJornadaHoy } from "../../../utils/cajaSesion";
@@ -45,7 +45,7 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
   const turnoAbrir = jornadaListo ? (jornada?.turno_abrir || null) : null;
   const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
   const ocupadaPor = jornadaListo ? (jornada?.caja_ocupada_por || null) : null;
-  const noPuedeAbrir = jornadaListo && !jornada?.es_descanso && !turnoAbrir && !!turnoAsignado;
+  const noPuedeAbrir = jornadaListo && !turnoAbrir && !!turnoAsignado;
 
   const cargarJornada = useCallback(async () => {
     const { jornada: j, error } = await fetchJornadaHoy();
@@ -104,10 +104,6 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
       );
       return;
     }
-    if (jornada?.es_descanso) {
-      showToast("Hoy es tu día de descanso.", "warning");
-      return;
-    }
     if (!hayPiezasDenominacion(denoms) && !nota.trim()) {
       showToast("Cuenta el efectivo que te entregaron, o deja una nota si abres en ceros.", "warning");
       return;
@@ -127,33 +123,6 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
     showToast(sesion?.reanudada ? "Caja reanudada. Ya puedes vender." : "Caja abierta. Ya puedes vender.", "success");
     onAbierta?.(sesion);
   };
-
-  if (jornada?.es_descanso) {
-    const dia = etiquetaDiaDescanso(jornada.dia_descanso) || "hoy";
-    return (
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 2000, background: C.bg,
-        overflowY: "auto", fontFamily: "var(--fc-body)",
-      }}>
-        <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px" }}>
-          <div style={{
-            fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
-            textTransform: "uppercase", color: BRAND.primary, marginBottom: 8,
-          }}>
-            Día de descanso
-          </div>
-          <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
-            Hoy descansas, {nombre}
-          </h1>
-          <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
-            Tu día libre es el <strong>{dia}</strong>. La compañera cubre matutino y vespertino.
-            No abras caja hoy.
-          </p>
-          <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />
-        </div>
-      </div>
-    );
-  }
 
   if (noPuedeAbrir) {
     const habitual = etiquetaTurno(turnoAsignado);
