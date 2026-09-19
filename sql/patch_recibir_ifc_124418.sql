@@ -20,7 +20,11 @@ update public.productos set
   descripcion = 'IFC 124418. EAN de la botella 7502280170501. Recargo marca +25%.',
   imagen_url = coalesce(nullif(btrim(imagen_url), ''), 'https://www.farmacapital.mx/catalogo-propia/flor-de-aire-aceite-almendras-125ml.jpg'),
   imagen_mobile_url = coalesce(nullif(btrim(imagen_mobile_url), ''), 'https://www.farmacapital.mx/catalogo-propia/flor-de-aire-aceite-almendras-125ml.jpg')
-where sku in ('FC-24163265', 'FC-28017051') or codigo_barras = '7502280170501';
+where (sku in ('FC-24163265', 'FC-28017051') or codigo_barras = '7502280170501')
+  and not exists (
+    select 1 from public.productos o
+    where o.codigo_barras = '7502280170501' and o.id <> productos.id
+  );
 
 -- Million Pauline. Digitos impresos 6972038406885. La caja dice 30 ml.
 update public.productos set
@@ -37,7 +41,11 @@ update public.productos set
   descripcion = 'IFC 124418. NO.M0152. EAN 6972038406885. Recargo marca +25%.',
   imagen_url = 'https://www.farmacapital.mx/catalogo-propia/million-pauline-vitamin-e-velvet-30ml.jpg',
   imagen_mobile_url = 'https://www.farmacapital.mx/catalogo-propia/million-pauline-vitamin-e-velvet-30ml.jpg'
-where sku in ('FC-24163275', 'FC-03840685') or codigo_barras = '6972038406885';
+where (sku in ('FC-24163275', 'FC-03840685') or codigo_barras = '6972038406885')
+  and not exists (
+    select 1 from public.productos o
+    where o.codigo_barras = '6972038406885' and o.id <> productos.id
+  );
 
 -- A352 en el ticket. La caja es Grenobil, no Jigott. EAN 6973345468900.
 update public.productos set
@@ -54,8 +62,12 @@ update public.productos set
   descripcion = 'IFC 124418. Codigo de caja XIERMEI-A352. EAN 6973345468900. No es Jigott. Recargo marca +25%.',
   imagen_url = 'https://www.farmacapital.mx/catalogo-propia/grenobil-aloe-mascarilla-27ml.jpg',
   imagen_mobile_url = 'https://www.farmacapital.mx/catalogo-propia/grenobil-aloe-mascarilla-27ml.jpg'
-where sku in ('FC-54128026', 'FC-34546890')
-   or codigo_barras in ('8809541280269', '6973345468900');
+where (sku in ('FC-54128026', 'FC-34546890')
+   or codigo_barras in ('8809541280269', '6973345468900'))
+  and not exists (
+    select 1 from public.productos o
+    where o.codigo_barras = '6973345468900' and o.id <> productos.id
+  );
 
 -- A358. Grenobil perla. EAN 6973345468870.
 update public.productos set
@@ -72,8 +84,12 @@ update public.productos set
   descripcion = 'IFC 124418. Codigo de caja XIERMEI-A358. EAN 6973345468870. No es Jigott. Recargo marca +25%.',
   imagen_url = 'https://www.farmacapital.mx/catalogo-propia/grenobil-perla-mascarilla-27ml.jpg',
   imagen_mobile_url = 'https://www.farmacapital.mx/catalogo-propia/grenobil-perla-mascarilla-27ml.jpg'
-where sku in ('FC-54128022', 'FC-34546870')
-   or codigo_barras in ('8809541280221', '6973345468870');
+where (sku in ('FC-54128022', 'FC-34546870')
+   or codigo_barras in ('8809541280221', '6973345468870'))
+  and not exists (
+    select 1 from public.productos o
+    where o.codigo_barras = '6973345468870' and o.id <> productos.id
+  );
 
 -- El ticket decia FIGS × 2. Llegaron dos cajas distintas.
 update public.productos set
@@ -90,7 +106,11 @@ update public.productos set
   descripcion = 'IFC 124418. Caja verde. Codigo de barras 20250702003. La caja no dice FIGS. No se inventa cuantos parches. Recargo generico +60%.',
   imagen_url = 'https://www.farmacapital.mx/catalogo-propia/parches-acne-hidrocoloide-702003.jpg',
   imagen_mobile_url = 'https://www.farmacapital.mx/catalogo-propia/parches-acne-hidrocoloide-702003.jpg'
-where sku in ('FC-24163285', 'FC-07020003') or codigo_barras = '20250702003';
+where (sku in ('FC-24163285', 'FC-07020003') or codigo_barras = '20250702003')
+  and not exists (
+    select 1 from public.productos o
+    where o.codigo_barras = '20250702003' and o.id <> productos.id
+  );
 
 -- Geli 83886 / lote Ja041026 es el Gelimedic de la foto. EAN 7503014119032.
 update public.productos set
@@ -184,8 +204,26 @@ where public.fc_buscar_producto_escaneo(v.ean) is null
     where p.sku = v.sku or p.codigo_barras = v.ean
   );
 
+-- Si la galería ya tiene la foto de Jigott, se cambia la URL. No se inserta otra en la posición 0.
+update public.producto_imagenes i
+set url = v.url,
+    storage_path = v.path,
+    origen = 'propia'
+from (
+  values
+    ('6973345468900'::text, 'https://www.farmacapital.mx/catalogo-propia/grenobil-aloe-mascarilla-27ml.jpg', 'catalogo-propia/grenobil-aloe-mascarilla-27ml.jpg'),
+    ('6973345468870', 'https://www.farmacapital.mx/catalogo-propia/grenobil-perla-mascarilla-27ml.jpg', 'catalogo-propia/grenobil-perla-mascarilla-27ml.jpg')
+) as v(ean, url, path)
+join public.productos p on p.codigo_barras = v.ean
+where i.producto_id = p.id
+  and i.url like '%jigott-%'
+  and i.url is distinct from v.url;
+
 insert into public.producto_imagenes (producto_id, url, storage_path, posicion, es_principal, origen)
-select p.id, v.url, v.path, 0, true, 'propia'
+select p.id, v.url, v.path,
+  coalesce((select max(i.posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
+  false,
+  'propia'
 from (
   values
     ('7502280170501'::text, 'https://www.farmacapital.mx/catalogo-propia/flor-de-aire-aceite-almendras-125ml.jpg', 'catalogo-propia/flor-de-aire-aceite-almendras-125ml.jpg'),
@@ -225,7 +263,7 @@ from (
 join public.productos p on p.codigo_barras = v.ean
 where not exists (
   select 1 from public.producto_precios_referencia r
-  where r.producto_id = p.id and r.fuente = 'ultima_compra' and r.precio = v.costo and r.fecha = date '2026-09-18'
+  where r.producto_id = p.id and r.fuente = 'ultima_compra' and r.fecha = date '2026-09-18'
 );
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
