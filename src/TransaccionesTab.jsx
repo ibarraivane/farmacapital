@@ -16,6 +16,14 @@ import { telefonoMxValido, $ } from "./utils";
 import { rolEsAdmin } from "./utils/permissions";
 import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
 import { recargoEsValido } from "./lib/pagoServicio";
+import {
+  buildVentasAnalisisCsv,
+  descargarCsvVentas,
+  filtrarLineasExport,
+  mensajeErrorExportVentas,
+  nombreArchivoVentasAnalisis,
+  paginarLineasVentas,
+} from "./lib/exportarVentasAnalisis";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -136,6 +144,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [vendedores, setVendedores] = useState([]);
   const [editandoVendedor, setEditandoVendedor] = useState(null);
   const [guardandoVendedor, setGuardandoVendedor] = useState(null);
+  const [exportando, setExportando] = useState(false);
+  const [exportProgreso, setExportProgreso] = useState(0);
 
   useEffect(() => {
     if (usuario?.rol !== "admin") return;
@@ -157,6 +167,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const getRango = () => {
     const h = new Date(), y = h.getFullYear(), m = h.getMonth(), d = h.getDate();
+    if (filtroFecha === "todo") return null;
     if (filtroFecha === "hoy") return { desde: new Date(y, m, d, 0, 0, 0).toISOString(), hasta: new Date(y, m, d, 23, 59, 59).toISOString() };
     if (filtroFecha === "semana") return { desde: new Date(Date.now() - 7 * 86400000).toISOString(), hasta: h.toISOString() };
     if (filtroFecha === "mes") return { desde: new Date(y, m, 1).toISOString(), hasta: h.toISOString() };
@@ -205,6 +216,46 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   }, [filtroFecha, fechaDesde, fechaHasta]);
 
   useEffect(() => { fetchPedidos(); }, [fetchPedidos]);
+
+  const exportarCsvAnalisis = async () => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada", "error"); return; }
+    setExportando(true);
+    setExportProgreso(0);
+    try {
+      const rango = getRango();
+      const { rows, truncated } = await paginarLineasVentas(
+        async ({ offset, limit }) => {
+          const { data, error } = await supabase.rpc("empleado_exportar_ventas_lineas", {
+            p_session_token: tok,
+            p_created_desde: rango?.desde ?? null,
+            p_created_hasta: rango?.hasta ?? null,
+            p_offset: offset,
+            p_limite: limit,
+          });
+          if (error) throw error;
+          return parseRpcJsonArray(data);
+        },
+        { onProgress: setExportProgreso },
+      );
+      const filtradas = filtrarLineasExport(rows, { tipo: filtroTipo, estado: filtroEstado });
+      if (!filtradas.length) {
+        showToast("No hay ventas en este período para exportar.", "warning");
+        return;
+      }
+      descargarCsvVentas(buildVentasAnalisisCsv(filtradas), nombreArchivoVentasAnalisis());
+      showToast(
+        truncated
+          ? `CSV incompleto: se cortó en ${filtradas.length} filas.`
+          : `CSV listo: ${filtradas.length} filas.`,
+        truncated ? "warning" : "success",
+      );
+    } catch (err) {
+      showToast(mensajeErrorExportVentas(err), "error");
+    } finally {
+      setExportando(false);
+    }
+  };
 
   const eliminarPedidoCompleto = async (p) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -583,6 +634,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           <option value="hoy">Hoy</option>
           <option value="semana">Esta semana</option>
           <option value="mes">Este mes</option>
+          <option value="todo">Todo</option>
           <option value="custom">Rango custom</option>
         </select>
         {filtroFecha === "custom" && <>
@@ -603,9 +655,33 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           <option value="cancelado">Cancelado</option>
         </select>
         <span className="fc-toolbar-count" style={{ color: C.textMid, fontSize: 11, marginLeft: "auto" }}>{filtradosTodos.length} transacciones</span>
+        <button
+          type="button"
+          onClick={exportarCsvAnalisis}
+          disabled={exportando}
+          title="Baja un CSV con cada producto: vendedor, fecha, hora y método de pago"
+          style={{
+            padding: "7px 12px",
+            borderRadius: 7,
+            border: `1px solid ${C.border}`,
+            background: exportando ? "#f8fafc" : "#fff",
+            color: C.text,
+            cursor: exportando ? "wait" : "pointer",
+            fontSize: 11,
+            fontWeight: 700,
+            opacity: exportando ? 0.75 : 1,
+          }}
+        >
+          {exportando ? `Exportando… ${exportProgreso}` : "⬇ Exportar CSV"}
+        </button>
         <button type="button" className="fc-toolbar-refresh" onClick={fetchPedidos} style={{ padding: "7px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🔄 Actualizar</button>
       </div>
 
+      {filtroFecha === "todo" && (
+        <div style={{ fontSize: 11, color: C.textMid, marginBottom: 10, lineHeight: 1.45 }}>
+          La tabla muestra los últimos 300 tickets. <strong>Exportar CSV</strong> baja todo el historial (una fila por producto).
+        </div>
+      )}
       <div className="fc-wa-note" style={{ fontSize: 11, color: C.textMid, marginBottom: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: `1px solid ${C.border}`, lineHeight: 1.45 }}>
         📱 <strong>WhatsApp (Meta — modo prueba):</strong> usa el 📱 en Acciones.
         El mensaje llega al celular del cliente desde el <strong>número de prueba Meta (+1 555…)</strong>, no desde +52 FarmaCapital.
