@@ -13,7 +13,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { saludoUsuario, $ } from "./utils";
-import { AyudaDesplegable, SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, KPI_ROW, Box, Tag, Btn } from "./ui";
+import { AyudaDesplegable, SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, KPI_ROW, Box, Tag, Btn, showToast } from "./ui";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
@@ -43,6 +43,7 @@ import {
 import { cargarConfigMetas, invalidarCacheMetas, mezclarCfgMetas } from "./utils/turnosMetas";
 import { metasDelPeriodo } from "./lib/metasDelPeriodo";
 import { acumularServiciosEnMapaEmpleado } from "./lib/serviciosEnMetas";
+import { ejecutarExportVentasAnalisis, mensajeErrorExportVentas } from "./lib/exportarVentasAnalisis";
 
 function rpcBundleRows(bundle, key) {
   return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
@@ -398,6 +399,36 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   const [capexLineas, setCapexLineas] = useState(loadCapexLineas);
   const inversionTotal = useMemo(() => sumCapexMontos(capexLineas), [capexLineas]);
   const puedeEditarCapex = rolEsAdmin(usuario?.rol);
+  const [exportandoVentas, setExportandoVentas] = useState(false);
+  const [exportProgresoVentas, setExportProgresoVentas] = useState(0);
+
+  const exportarVentasCsv = async () => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada", "error"); return; }
+    setExportandoVentas(true);
+    setExportProgresoVentas(0);
+    try {
+      const res = await ejecutarExportVentasAnalisis({
+        rpc: (name, args) => supabase.rpc(name, args),
+        sessionToken: tok,
+        onProgress: setExportProgresoVentas,
+      });
+      if (res.empty) {
+        showToast("No hay ventas para exportar.", "warning");
+        return;
+      }
+      showToast(
+        res.truncated
+          ? `CSV incompleto: se cortó en ${res.count} filas.`
+          : `CSV listo: ${res.count} filas.`,
+        res.truncated ? "warning" : "success",
+      );
+    } catch (err) {
+      showToast(mensajeErrorExportVentas(err), "error");
+    } finally {
+      setExportandoVentas(false);
+    }
+  };
 
   useEffect(() => {
     saveCapexLineas(capexLineas);
@@ -962,6 +993,28 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
           <div className="fc-dash-greet" style={{color:C.textMid,fontSize:12}}><strong style={{color:C.text}}>{saludoUsuario(usuario?.nombre)}</strong> 👋</div>
+          <button
+            type="button"
+            className="fc-btn-export-ventas"
+            onClick={exportarVentasCsv}
+            disabled={exportandoVentas}
+            title="Baja todas las ventas: vendedor, fecha, hora y productos"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "9px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: exportandoVentas ? "#93c5fd" : C.blue,
+              color: "#fff",
+              cursor: exportandoVentas ? "wait" : "pointer",
+              fontWeight: 800,
+              fontSize: 12,
+            }}
+          >
+            {exportandoVentas ? `Exportando… ${exportProgresoVentas}` : "⬇ Exportar ventas CSV"}
+          </button>
           <button type="button" onClick={()=>{ fetchAll(); if(panelTab==="resumen"||panelTab==="margen") fetchRep(); }} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>
             <RefreshCw size={13} strokeWidth={2.1} aria-hidden />
             Actualizar
