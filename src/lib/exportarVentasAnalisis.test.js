@@ -1,6 +1,7 @@
 import {
   buildVentasAnalisisCsv,
   csvEscape,
+  ejecutarExportVentasAnalisis,
   filaPasaFiltrosExport,
   filtrarLineasExport,
   mensajeErrorExportVentas,
@@ -147,4 +148,36 @@ test("nombre de archivo y error si falta el RPC en Supabase", () => {
   );
   expect(mensajeErrorExportVentas({ message: "Could not find the function public.empleado_exportar_ventas_lineas" }))
     .toMatch(/patch_exportar_ventas_analisis/);
+});
+
+test("ejecutarExportVentasAnalisis pagina el RPC y avisa si no hay filas", async () => {
+  const created = [];
+  const orig = global.URL.createObjectURL;
+  const rev = global.URL.revokeObjectURL;
+  global.URL.createObjectURL = jest.fn(() => {
+    created.push(1);
+    return "blob:test";
+  });
+  global.URL.revokeObjectURL = jest.fn();
+  try {
+    const rpc = jest.fn().mockResolvedValue({ data: [ventaTardeViernes], error: null });
+    const ok = await ejecutarExportVentasAnalisis({
+      rpc,
+      sessionToken: "tok",
+      now: new Date("2026-09-20T18:00:00.000Z"),
+    });
+    expect(ok).toMatchObject({ ok: true, count: 1, filename: "ventas_farmacapital_2026-09-20.csv" });
+    expect(rpc).toHaveBeenCalledWith("empleado_exportar_ventas_lineas", expect.objectContaining({
+      p_session_token: "tok",
+      p_offset: 0,
+    }));
+    expect(created.length).toBe(1);
+
+    const vacio = jest.fn().mockResolvedValue({ data: [], error: null });
+    const empty = await ejecutarExportVentasAnalisis({ rpc: vacio, sessionToken: "tok" });
+    expect(empty).toMatchObject({ ok: false, empty: true, count: 0 });
+  } finally {
+    global.URL.createObjectURL = orig;
+    global.URL.revokeObjectURL = rev;
+  }
 });

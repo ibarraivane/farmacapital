@@ -2,6 +2,7 @@
 
 import { TZ_FARMACIA, ymdMexico } from "./fecha";
 import { pedidoCoincideFiltroTipo } from "../utils/orderChannels";
+import { parseRpcJsonArray } from "../utils/rpcJson";
 
 export const VENTAS_CSV_PAGE_SIZE = 1000;
 export const VENTAS_CSV_MAX_PAGES = 200;
@@ -158,4 +159,43 @@ export function mensajeErrorExportVentas(err) {
     return "Falta aplicar el SQL en Supabase (patch_exportar_ventas_analisis).";
   }
   return msg ? `No se pudo exportar: ${msg}` : "No se pudo exportar.";
+}
+
+/** Baja el CSV (todas las páginas del RPC). Usado en Dashboard y Transacciones. */
+export async function ejecutarExportVentasAnalisis({
+  rpc,
+  sessionToken,
+  desde = null,
+  hasta = null,
+  tipo = "todos",
+  estado = "todos",
+  onProgress,
+  now,
+} = {}) {
+  if (!sessionToken) {
+    const err = new Error("Sesión expirada");
+    err.code = "no_session";
+    throw err;
+  }
+  const { rows, truncated } = await paginarLineasVentas(
+    async ({ offset, limit }) => {
+      const { data, error } = await rpc("empleado_exportar_ventas_lineas", {
+        p_session_token: sessionToken,
+        p_created_desde: desde,
+        p_created_hasta: hasta,
+        p_offset: offset,
+        p_limite: limit,
+      });
+      if (error) throw error;
+      return parseRpcJsonArray(data);
+    },
+    { onProgress },
+  );
+  const filtradas = filtrarLineasExport(rows, { tipo, estado });
+  if (!filtradas.length) {
+    return { ok: false, empty: true, count: 0, truncated };
+  }
+  const filename = nombreArchivoVentasAnalisis(now);
+  descargarCsvVentas(buildVentasAnalisisCsv(filtradas), filename);
+  return { ok: true, empty: false, count: filtradas.length, truncated, filename };
 }

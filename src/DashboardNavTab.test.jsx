@@ -15,6 +15,12 @@ const ITEMS = [
   { id: "c", label: "Tres" },
 ];
 
+test("Dashboard encabezado tiene Exportar ventas CSV", () => {
+  const src = readFileSync(join(__dirname, "DashboardModule.jsx"), "utf8");
+  expect(src).toContain("Exportar ventas CSV");
+  expect(src).toContain("ejecutarExportVentasAnalisis");
+});
+
 test("Flujo de caja usa Banknote, no una gota", () => {
   const { container } = render(<DashboardNavTab id="flujo" active onClick={() => {}} isMobile={false} />);
   expect(screen.getByRole("tab", { name: /flujo de caja/i })).toBeInTheDocument();

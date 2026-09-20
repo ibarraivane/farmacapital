@@ -17,12 +17,8 @@ import { rolEsAdmin } from "./utils/permissions";
 import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
 import { recargoEsValido } from "./lib/pagoServicio";
 import {
-  buildVentasAnalisisCsv,
-  descargarCsvVentas,
-  filtrarLineasExport,
+  ejecutarExportVentasAnalisis,
   mensajeErrorExportVentas,
-  nombreArchivoVentasAnalisis,
-  paginarLineasVentas,
 } from "./lib/exportarVentasAnalisis";
 
 function esPagoServicio(p) {
@@ -224,31 +220,24 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     setExportProgreso(0);
     try {
       const rango = getRango();
-      const { rows, truncated } = await paginarLineasVentas(
-        async ({ offset, limit }) => {
-          const { data, error } = await supabase.rpc("empleado_exportar_ventas_lineas", {
-            p_session_token: tok,
-            p_created_desde: rango?.desde ?? null,
-            p_created_hasta: rango?.hasta ?? null,
-            p_offset: offset,
-            p_limite: limit,
-          });
-          if (error) throw error;
-          return parseRpcJsonArray(data);
-        },
-        { onProgress: setExportProgreso },
-      );
-      const filtradas = filtrarLineasExport(rows, { tipo: filtroTipo, estado: filtroEstado });
-      if (!filtradas.length) {
+      const res = await ejecutarExportVentasAnalisis({
+        rpc: (name, args) => supabase.rpc(name, args),
+        sessionToken: tok,
+        desde: rango?.desde ?? null,
+        hasta: rango?.hasta ?? null,
+        tipo: filtroTipo,
+        estado: filtroEstado,
+        onProgress: setExportProgreso,
+      });
+      if (res.empty) {
         showToast("No hay ventas en este período para exportar.", "warning");
         return;
       }
-      descargarCsvVentas(buildVentasAnalisisCsv(filtradas), nombreArchivoVentasAnalisis());
       showToast(
-        truncated
-          ? `CSV incompleto: se cortó en ${filtradas.length} filas.`
-          : `CSV listo: ${filtradas.length} filas.`,
-        truncated ? "warning" : "success",
+        res.truncated
+          ? `CSV incompleto: se cortó en ${res.count} filas.`
+          : `CSV listo: ${res.count} filas.`,
+        res.truncated ? "warning" : "success",
       );
     } catch (err) {
       showToast(mensajeErrorExportVentas(err), "error");
@@ -628,6 +617,29 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   return (
     <div style={{ colorScheme: "light" }}>
+      <button
+        type="button"
+        className="fc-btn-export-ventas"
+        onClick={exportarCsvAnalisis}
+        disabled={exportando}
+        title="Baja un CSV con cada producto: vendedor, fecha, hora y método de pago"
+        style={{
+          display: "block",
+          width: "100%",
+          marginBottom: 12,
+          padding: "12px 16px",
+          borderRadius: 10,
+          border: "none",
+          background: exportando ? "#93c5fd" : C.blue,
+          color: "#fff",
+          cursor: exportando ? "wait" : "pointer",
+          fontSize: 14,
+          fontWeight: 800,
+          letterSpacing: 0.2,
+        }}
+      >
+        {exportando ? `Exportando… ${exportProgreso} filas` : "⬇ Exportar ventas CSV"}
+      </button>
       <div className="fc-toolbar-filters" style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
         <select value={filtroFecha} onChange={(e) => setFiltroF(e.target.value)} style={inpS}>
@@ -655,25 +667,6 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           <option value="cancelado">Cancelado</option>
         </select>
         <span className="fc-toolbar-count" style={{ color: C.textMid, fontSize: 11, marginLeft: "auto" }}>{filtradosTodos.length} transacciones</span>
-        <button
-          type="button"
-          onClick={exportarCsvAnalisis}
-          disabled={exportando}
-          title="Baja un CSV con cada producto: vendedor, fecha, hora y método de pago"
-          style={{
-            padding: "7px 12px",
-            borderRadius: 7,
-            border: `1px solid ${C.border}`,
-            background: exportando ? "#f8fafc" : "#fff",
-            color: C.text,
-            cursor: exportando ? "wait" : "pointer",
-            fontSize: 11,
-            fontWeight: 700,
-            opacity: exportando ? 0.75 : 1,
-          }}
-        >
-          {exportando ? `Exportando… ${exportProgreso}` : "⬇ Exportar CSV"}
-        </button>
         <button type="button" className="fc-toolbar-refresh" onClick={fetchPedidos} style={{ padding: "7px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🔄 Actualizar</button>
       </div>
 
