@@ -1,5 +1,6 @@
 import { productoPermitidoEnTiendaWeb } from "./orderChannels";
 import { productoEsCajaAbiertaMostrador } from "./cajaAbiertaMostrador";
+import { politicaProducto, TIPO } from "../config/politicaMedicamentos";
 
 export {
   descripcionPublicaTienda,
@@ -54,6 +55,10 @@ export function razonBloqueoProductoTiendaFarmacia(row) {
   }
   if (productoEsCajaAbiertaMostrador(row)) {
     return "Se vende por pieza en la farmacia, no por caja en línea.";
+  }
+  const pol = politicaProducto(row);
+  if (!pol.ventaEnLinea && pol.tipo === TIPO.ANTIBIOTICO) {
+    return "Antibiótico: se surte solo en farmacia, con receta médica vigente.";
   }
   return "No disponible en tienda en línea (controlado u oculto).";
 }
