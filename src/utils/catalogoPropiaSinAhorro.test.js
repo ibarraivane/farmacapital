@@ -7,6 +7,8 @@ import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { PLACEHOLDER_FAHORRO_MD5 } from "../lib/imagenCompetencia";
 
+const SQL_VIVAS = join(process.cwd(), "sql", "patch_fotos_faltantes_urls_vivas_20260920.sql");
+
 const LOTE_FALTANTES_20260919 = [
   "alcohol-etilico-dibar-azul-71-5-500-ml-7501868901124.jpg",
   "levofloxacino-amsa-500-mg-c-7-tabletas-7501349021419.jpg",
@@ -69,5 +71,17 @@ describe("catalogo-propia sin logo Del Ahorro", () => {
       if (md5 === PLACEHOLDER_FAHORRO_MD5) hits.push(name);
     }
     expect(hits).toEqual([]);
+  });
+
+  test("SQL vivas 20-sep fuerza jsDelivr (no catalogo-propia de producción)", () => {
+    const sql = readFileSync(SQL_VIVAS, "utf8");
+    const urls = [...sql.matchAll(/'(https:[^']+)'/g)].map((m) => m[1]);
+    expect(urls.length).toBeGreaterThanOrEqual(17);
+    expect(urls.every((u) => u.includes("cdn.jsdelivr.net/gh/ibarraivane/farmacapital@7576424/"))).toBe(true);
+    expect(urls.some((u) => u.includes("farmacapital.mx"))).toBe(false);
+    expect(sql).toMatch(/FORZAR/);
+    for (const name of LOTE_FALTANTES_20260919) {
+      expect(sql).toContain(name);
+    }
   });
 });

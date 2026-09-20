@@ -2,9 +2,15 @@
 
 Ligas del dueño (Flor de Aire, Chedraui, Guadalajara, PLM, Sufarmed, iFarma, Promexsa, Mercado Libre) y las tarjetas de vitrina que salían cortadas, oscuras, de espaldas o con marca de agua.
 
-## Qué hacer
+## STOP — si ya corriste este SQL y no ves fotos
 
-1. Esperar el deploy de este PR (`public/catalogo-propia/…` en farmacapital.mx).
+Producción **no** tiene estos JPG (el PR no está en `main`). Vercel responde HTML y la tarjeta queda vacía.
+
+**Pegar ahora:** `sql/patch_fotos_faltantes_urls_vivas_20260920.sql`
+
+## Qué hacer (solo si el PR ya está mergeado en farmacapital.mx)
+
+1. Confirmar que `https://www.farmacapital.mx/catalogo-propia/<archivo>.jpg` es `image/jpeg` (no `index.html`).
 2. Pegar **todo** `sql/patch_fotos_faltantes_urls_20260919.sql` en Supabase → Run.
 3. Recargar la tienda.
 
