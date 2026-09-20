@@ -109,10 +109,10 @@ select
     else 'mostrador'
   end                                   as canal,
   lower(coalesce(p.metodo_pago, ''))    as metodo_pago,
-  coalesce(p.subtotal_productos, p.total)::numeric as subtotal,
+  p.total::numeric                      as subtotal,
   0::numeric                            as descuento,
   p.total::numeric                      as total,
-  coalesce(cl.nombre, p.guest_nombre, '') as cliente_id
+  coalesce(cl.nombre, '')               as cliente_id
 from public.pedidos p
 left join public.usuarios u on u.id = p.atendido_por
 left join public.clientes cl on cl.id = p.cliente_id
