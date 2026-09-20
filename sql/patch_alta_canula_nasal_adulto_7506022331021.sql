@@ -14,8 +14,8 @@
 -- stock 0, sin inventar lote ni caducidad.
 --
 -- Foto: public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg
---       packshot Promexsa Sensi Medical (2 mm × 1.80 m). Correr DESPUÉS
---       del deploy, o la URL jsDelivr del commit de esta rama.
+--       packshot Promexsa Sensi Medical (2 mm × 1.80 m).
+--       jsDelivr del commit 9d62a6b (inmediato) + /catalogo-propia/ tras deploy.
 -- Pegar TODO en Supabase → SQL Editor → Run.
 -- ============================================================================
 
@@ -41,11 +41,11 @@ set
   ),
   imagen_url = coalesce(
     nullif(btrim(p.imagen_url), ''),
-    'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg'
+    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg'
   ),
   imagen_mobile_url = coalesce(
     nullif(btrim(p.imagen_mobile_url), ''),
-    'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg'
+    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg'
   )
 where p.sku = 'EQ-JAY267'
   and (p.codigo_barras is null or btrim(p.codigo_barras) = '')
@@ -77,8 +77,8 @@ select
   'Dispositivo',
   coalesce(inf.costo, 17.54),
   coalesce(inf.precio, 25),
-  'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
-  'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
   0,
   1,
   true,
@@ -121,8 +121,8 @@ select
   'Dispositivo',
   17.54,
   25,
-  'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
-  'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
   0,
   1,
   true,
@@ -152,11 +152,11 @@ set
   disponible = coalesce(nullif(btrim(p.disponible), ''), 'inmediato'),
   imagen_url = coalesce(
     nullif(btrim(p.imagen_url), ''),
-    'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg'
+    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg'
   ),
   imagen_mobile_url = coalesce(
     nullif(btrim(p.imagen_mobile_url), ''),
-    'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg'
+    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg'
   )
 where p.codigo_barras = '7506022331021'
    or p.sku in ('EQ-JAY267', 'FC-23331021');
@@ -166,7 +166,7 @@ insert into public.producto_imagenes (
 )
 select
   p.id,
-  'https://www.farmacapital.mx/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@9d62a6b/public/catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
   'catalogo-propia/canula-nasal-adulto-2-mm-x-1-80-m-sensi-medical.jpg',
   1,
   true,
