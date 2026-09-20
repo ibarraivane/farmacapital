@@ -57,6 +57,36 @@ describe("Dibar rojo 500 ml: bote vs ticket OCR", () => {
   });
 });
 
+describe("Estomaquil C/20 vs C/10: ficha no debe robar el EAN", () => {
+  const c20 = {
+    id: 637,
+    activo: true,
+    sku: "FC-69200016",
+    nombre: "Estomaquil Polvo C/20",
+    codigo_barras: "7501369200016",
+    descripcion: "Estomaquil Polvo C/20 sobres 3 g — Higia.",
+  };
+  const c10 = {
+    id: 1400,
+    activo: true,
+    sku: "FC-69200085",
+    nombre: "Estomaquil polvo 3 g C/10 sobres",
+    codigo_barras: "7501369200085",
+    // Bug: citaba el EAN del C/20; el POS lo trataba como código alterno.
+    descripcion:
+      "Farmalive 127790 · Fahorro Estomaquil C/10 EAN 7501369200085 · distinto de C/20 7501369200016",
+  };
+
+  test("escanear 7501369200016 abre C/20 aunque el C/10 lo mencione en descripción", () => {
+    expect(codigosBarrasDeProducto(c10)).toEqual(
+      expect.arrayContaining(["7501369200085", "7501369200016"])
+    );
+    expect(findProductExactScan([c10, c20], "7501369200016")?.sku).toBe("FC-69200016");
+    expect(findProductExactScan([c20, c10], "7501369200016")?.sku).toBe("FC-69200016");
+    expect(findProductExactScan([c10, c20], "7501369200085")?.sku).toBe("FC-69200085");
+  });
+});
+
 describe("Broncolin paleta: bote y pieza", () => {
   const paleta = {
     id: 702,

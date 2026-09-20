@@ -82,8 +82,12 @@ export function eansAliasDe(ean) {
   return extra;
 }
 
-/** Código principal, pares conocidos y EANs escritos en la ficha. */
-export function codigosBarrasDeProducto(product) {
+/**
+ * Código principal, pares conocidos y (opcional) EANs en la ficha.
+ * La descripción a veces cita el EAN de *otro* SKU (“distinto de C/20 …”);
+ * en el match de pistola priorizamos código/SKU y solo después la ficha.
+ */
+export function codigosBarrasDeProducto(product, { includeDescripcion = true } = {}) {
   const out = [];
   const push = (v) => {
     const d = digitsOnly(v);
@@ -92,8 +96,10 @@ export function codigosBarrasDeProducto(product) {
   };
   push(product?.codigo_barras);
   for (const a of eansAliasDe(product?.codigo_barras)) push(a);
-  const desc = String(product?.descripcion || "");
-  for (const m of desc.match(/\d{12,14}/g) || []) push(m);
+  if (includeDescripcion) {
+    const desc = String(product?.descripcion || "");
+    for (const m of desc.match(/\d{12,14}/g) || []) push(m);
+  }
   return out;
 }
 
@@ -152,16 +158,33 @@ export function splitBarcodeCandidates(raw) {
   return out;
 }
 
-function productMatchesScan(product, candidate, qN, matchOpts) {
+function productMatchesScan(product, candidate, qN, matchOpts, { includeDescripcion = true } = {}) {
   if (!product) return false;
-  if (codigosBarrasDeProducto(product).some((cb) => barcodeDigitsMatch(candidate, cb, matchOpts))) return true;
+  if (
+    codigosBarrasDeProducto(product, { includeDescripcion }).some((cb) =>
+      barcodeDigitsMatch(candidate, cb, matchOpts)
+    )
+  ) {
+    return true;
+  }
   if (product.sku && normalizeForSearch(product.sku) === qN) return true;
   return false;
+}
+
+function findFirstScanHit(products, candidate, qN, matchOpts, { activeOnly, includeDescripcion }) {
+  return (
+    products.find((p) => {
+      if (activeOnly && p?.activo === false) return false;
+      return productMatchesScan(p, candidate, qN, matchOpts, { includeDescripcion });
+    }) || null
+  );
 }
 
 /**
  * Coincidencia exacta por código de barras (EAN/UPC) o SKU interno.
  * Tolera EAN-13 vs 14 dígitos en BD y doble escaneo concatenado.
+ * Prioridad: codigo_barras / pares conocidos / SKU; luego EANs en descripción
+ * (Dibar bote, Broncolin vitrolero). Así un texto “distinto de EAN …” no roba el beep.
  */
 export function findProductExactScan(products, raw, { activeOnly = true, allowNearPrefix = true } = {}) {
   const trimmed = normalizeBarcodeRaw(raw);
@@ -170,20 +193,22 @@ export function findProductExactScan(products, raw, { activeOnly = true, allowNe
   const qN = normalizeForSearch(trimmed);
   const matchOpts = { allowNearPrefix };
 
-  for (const cand of candidates) {
-    const hit = products.find((p) => {
-      if (activeOnly && p?.activo === false) return false;
-      return productMatchesScan(p, cand, normalizeForSearch(cand), matchOpts);
+  for (const includeDescripcion of [false, true]) {
+    for (const cand of candidates) {
+      const hit = findFirstScanHit(products, cand, normalizeForSearch(cand), matchOpts, {
+        activeOnly,
+        includeDescripcion,
+      });
+      if (hit) return hit;
+    }
+    const hit = findFirstScanHit(products, trimmed, qN, matchOpts, {
+      activeOnly,
+      includeDescripcion,
     });
     if (hit) return hit;
   }
 
-  return (
-    products.find((p) => {
-      if (activeOnly && p?.activo === false) return false;
-      return productMatchesScan(p, trimmed, qN, matchOpts);
-    }) || null
-  );
+  return null;
 }
 
 /** Clave estable del escaneo (para evitar doble agregado). */
