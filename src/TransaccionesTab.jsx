@@ -16,10 +16,7 @@ import { telefonoMxValido, $ } from "./utils";
 import { rolEsAdmin } from "./utils/permissions";
 import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
 import { recargoEsValido } from "./lib/pagoServicio";
-import {
-  ejecutarExportVentasAnalisis,
-  mensajeErrorExportVentas,
-} from "./lib/exportarVentasAnalisis";
+import BotonesReporte from "./reportes/BotonesReporte";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -140,8 +137,6 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [vendedores, setVendedores] = useState([]);
   const [editandoVendedor, setEditandoVendedor] = useState(null);
   const [guardandoVendedor, setGuardandoVendedor] = useState(null);
-  const [exportando, setExportando] = useState(false);
-  const [exportProgreso, setExportProgreso] = useState(0);
 
   useEffect(() => {
     if (usuario?.rol !== "admin") return;
@@ -212,39 +207,6 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   }, [filtroFecha, fechaDesde, fechaHasta]);
 
   useEffect(() => { fetchPedidos(); }, [fetchPedidos]);
-
-  const exportarCsvAnalisis = async () => {
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { showToast("Sesión expirada", "error"); return; }
-    setExportando(true);
-    setExportProgreso(0);
-    try {
-      const rango = getRango();
-      const res = await ejecutarExportVentasAnalisis({
-        rpc: (name, args) => supabase.rpc(name, args),
-        sessionToken: tok,
-        desde: rango?.desde ?? null,
-        hasta: rango?.hasta ?? null,
-        tipo: filtroTipo,
-        estado: filtroEstado,
-        onProgress: setExportProgreso,
-      });
-      if (res.empty) {
-        showToast("No hay ventas en este período para exportar.", "warning");
-        return;
-      }
-      showToast(
-        res.truncated
-          ? `CSV incompleto: se cortó en ${res.count} filas.`
-          : `CSV listo: ${res.count} filas.`,
-        res.truncated ? "warning" : "success",
-      );
-    } catch (err) {
-      showToast(mensajeErrorExportVentas(err), "error");
-    } finally {
-      setExportando(false);
-    }
-  };
 
   const eliminarPedidoCompleto = async (p) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -617,29 +579,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   return (
     <div style={{ colorScheme: "light" }}>
-      <button
-        type="button"
-        className="fc-btn-export-ventas"
-        onClick={exportarCsvAnalisis}
-        disabled={exportando}
-        title="Baja un CSV con cada producto: vendedor, fecha, hora y método de pago"
-        style={{
-          display: "block",
-          width: "100%",
-          marginBottom: 12,
-          padding: "12px 16px",
-          borderRadius: 10,
-          border: "none",
-          background: exportando ? "#93c5fd" : C.blue,
-          color: "#fff",
-          cursor: exportando ? "wait" : "pointer",
-          fontSize: 14,
-          fontWeight: 800,
-          letterSpacing: 0.2,
-        }}
-      >
-        {exportando ? `Exportando… ${exportProgreso} filas` : "⬇ Exportar ventas CSV"}
-      </button>
+      <div style={{ marginBottom: 12 }}>
+        <BotonesReporte rol={usuario?.rol} />
+      </div>
       <div className="fc-toolbar-filters" style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
         <select value={filtroFecha} onChange={(e) => setFiltroF(e.target.value)} style={inpS}>
@@ -672,7 +614,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
       {filtroFecha === "todo" && (
         <div style={{ fontSize: 11, color: C.textMid, marginBottom: 10, lineHeight: 1.45 }}>
-          La tabla muestra los últimos 300 tickets. <strong>Exportar CSV</strong> baja todo el historial (una fila por producto).
+          La tabla muestra los últimos 300 tickets. El Excel del mes baja todo el periodo.
         </div>
       )}
       <div className="fc-wa-note" style={{ fontSize: 11, color: C.textMid, marginBottom: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: `1px solid ${C.border}`, lineHeight: 1.45 }}>
