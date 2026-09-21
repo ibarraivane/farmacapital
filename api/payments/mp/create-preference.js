@@ -3,6 +3,7 @@
 const { isAllowedReturnBase } = require('../../_lib/allowedOrigins');
 const { crearReserva } = require('../../_lib/reservaBajoPedido');
 const { CONCEPTO_CARGO_PLATAFORMA } = require('../../_lib/precioOnlineMp');
+const { itemsPreferenciaPedido } = require('../../_lib/preferenciaPedidoItems');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -166,15 +167,25 @@ module.exports = async function handler(req, res) {
     const cargoMeta = Number(pedido.logistics_meta?.cargo_plataforma_mxn);
     const cargo = Number.isFinite(cargoMeta) && cargoMeta > 0 ? Math.round(cargoMeta * 100) / 100 : 0;
     const productsTotal = Math.round((totalDb - envioFee - cargo) * 100) / 100;
-    const items = [
-      { title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: productsTotal },
-    ];
-    if (cargo > 0) {
-      items.push({ title: CONCEPTO_CARGO_PLATAFORMA, quantity: 1, currency_id: 'MXN', unit_price: cargo });
+    let lineasPedido = [];
+    try {
+      const itemsResp = await fetch(
+        `${SUPABASE_URL}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+        { headers: serviceHeaders }
+      );
+      const rows = await itemsResp.json().catch(() => []);
+      if (itemsResp.ok && Array.isArray(rows)) lineasPedido = rows;
+    } catch (_) {
+      lineasPedido = [];
     }
-    if (envioFee > 0) {
-      items.push({ title: 'Envío a domicilio', quantity: 1, currency_id: 'MXN', unit_price: envioFee });
-    }
+    const items = itemsPreferenciaPedido({
+      pedidoId,
+      lineas: lineasPedido,
+      productsTotal,
+      envioFee,
+      cargo,
+      conceptoCargo: CONCEPTO_CARGO_PLATAFORMA,
+    });
     const mpPayload = {
       external_reference: externalReference,
       notification_url: `${safeBase}/api/payments/mp/webhook`,

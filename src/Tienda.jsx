@@ -78,13 +78,13 @@ import {
   estimarEnvioDesdeCoords,
   etiquetaEstadoEnvioCliente,
   feeEnvioEnCheckout,
-  desgloseEnvioCheckout,
   pedidosConEnvioPorPagar,
   formatEnvioMoney,
   getEnvioConfigCliente,
 } from "./lib/envioDomicilio";
 import DestinationPicker from "./components/DestinationPicker";
 import AvisoEnvioPorPagar from "./components/AvisoEnvioPorPagar";
+import DesglosePedidoPorPagar from "./components/DesglosePedidoPorPagar";
 import PagarPedidoInvitado from "./components/PagarPedidoInvitado";
 import RecompraStrip, { ProductosStripStyles } from "./components/RecompraStrip";
 import { attachTiendaHorizontalStripWheel } from "./lib/forwardVerticalWheel";
@@ -3662,21 +3662,14 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
   };
   const bloquePorPagar = porPagar.length > 0 ? (
     <div style={{maxWidth:600,margin:"0 auto 20px",textAlign:"left"}}>
-      {porPagar.map((p) => {
-        const fee = feeEnvioEnCheckout(p);
-        const partes = desgloseEnvioCheckout(p.total, fee);
-        return (
-          <div key={p.id} style={{background:C.white,border:"1px solid #fcd34d",borderRadius:14,padding:16,marginBottom:12}}>
-            <div style={{color:C.dark,fontWeight:800,fontSize:16}}>Pedido #{p.id} · precio final {$(p.total)}</div>
-            <div style={{color:"#92400e",fontSize:13,lineHeight:1.45,marginTop:6}}>
-              Productos {$(partes.productos)} + envío {formatEnvioMoney(partes.envio)}
-            </div>
-            <Btn onClick={() => pagarPedidoEnCarrito(p)} col={BRAND.primary} sm disabled={pagandoId===p.id} style={{marginTop:12}}>
-              {pagandoId===p.id ? "Abriendo pago..." : `Pagar ahora ${$(p.total)}`}
-            </Btn>
-          </div>
-        );
-      })}
+      {porPagar.map((p) => (
+        <DesglosePedidoPorPagar
+          key={p.id}
+          pedido={p}
+          busy={pagandoId===p.id}
+          onPagar={pagarPedidoEnCarrito}
+        />
+      ))}
     </div>
   ) : null;
   const rm=id=>setCart(p=>p.filter(c=>c.id!==id));
