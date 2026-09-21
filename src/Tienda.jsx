@@ -32,7 +32,7 @@ import {
   subtituloPublicoTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
-import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
+import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, categoriaVitrinaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -2047,7 +2047,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     setBusqHero?.(String(prod.nombre || ""));
     setPage("conseguir", { search: String(prod.nombre || "") });
   };
-  const similares=productos.filter(p=>categoriasCoinciden(p.categoria, prod.categoria)&&p.id!==prod.id).slice(0,4);
+  const similares=productos.filter(p=>categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod))&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
@@ -3288,11 +3288,11 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   },[busqHero]);
   const cats = useMemo(() => {
     const pool = poolCatalogoTienda(productos);
-    const presentes = new Set(pool.map((p) => categoriaCanon(p.categoria)).filter(Boolean));
+    const presentes = new Set(pool.map((p) => categoriaVitrina(p)).filter(Boolean));
     return ["Todos", ...CATEGORIAS_PRODUCTO.filter((c) => presentes.has(c))];
   }, [productos]);
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
-    .filter(p=>categoriaPasaFiltro(p.categoria, cat))
+    .filter(p=>categoriaVitrinaPasaFiltro(p, cat))
     .filter(p=>tipo==="todos"||p.tipo===tipo)
     .filter(p=>!filtroRx || p.requiere_receta || esCategoriaAntibiotico(p.categoria)),
   [productos,cat,tipo,filtroRx]);

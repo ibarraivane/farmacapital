@@ -14,6 +14,7 @@ describe("bandasCatalogoPorCategoria", () => {
     { id: 4, nombre: "Paracetamol", categoria: "analgesico", stock: 2, activo: true },
     { id: 5, nombre: "Inactivo", categoria: "Gastro", stock: 9, activo: false },
     { id: 6, nombre: "Agua", categoria: "Hidratación", stock: 20, activo: true },
+    { id: 9, nombre: "Electrolit Uva", marca: "Electrolit", categoria: "Higiene", stock: 8, activo: true },
     { id: 7, nombre: "Rareza", categoria: "Dermatología", stock: 3, activo: true },
     { id: 8, nombre: "Misc", categoria: "Otro", stock: 1, activo: true },
   ];
@@ -27,6 +28,8 @@ describe("bandasCatalogoPorCategoria", () => {
       "Dermatología",
       "Otro",
     ]);
+    const hidra = bandas.find((b) => b.categoria === "Hidratación");
+    expect(hidra.productos.map((p) => p.nombre)).toEqual(["Agua", "Electrolit Uva"]);
   });
 
   test("pone disponibles antes que agotados dentro de la banda", () => {

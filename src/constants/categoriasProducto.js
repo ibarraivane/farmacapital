@@ -82,6 +82,37 @@ export function categoriasCoinciden(a, b) {
   return Boolean(ca) && ca === cb;
 }
 
+function blobCategoriaProducto(p) {
+  return `${p?.nombre || ""} ${p?.marca || ""} ${p?.forma_farmaceutica || ""} ${p?.principio_activo || ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/**
+ * Suero oral / electrolitos de mostrador. El parser de ticket los metió
+ * en Higiene o GENERAL; en vitrina van a Hidratación.
+ */
+export function esProductoHidratacionOral(p) {
+  const t = blobCategoriaProducto(p);
+  if (!t.trim()) return false;
+  if (/\b(electrolit|electrolid|pedialyte|suerox|oralit|voldratol)\b/.test(t)) return true;
+  if (/\bsuero oral\b/.test(t)) return true;
+  if (/\belectrolitos\b/.test(t)) return true;
+  return false;
+}
+
+/** Categoría que ve el cliente (corrige sueros mal etiquetados). */
+export function categoriaVitrina(p) {
+  if (esProductoHidratacionOral(p)) return "Hidratación";
+  return categoriaCanon(p?.categoria);
+}
+
+export function categoriaVitrinaPasaFiltro(p, filtro) {
+  if (!filtro || filtro === "todas" || filtro === "Todos") return true;
+  return categoriasCoinciden(categoriaVitrina(p), filtro);
+}
+
 export function esCategoriaAntibiotico(raw) {
   return categoriaCanon(raw) === "Antibiótico";
 }
