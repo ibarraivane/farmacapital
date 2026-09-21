@@ -804,9 +804,9 @@ details.fc-fold summary:focus-visible {
 .farmacapital-pedido-hist-row {
   display: grid;
   grid-template-columns:
-    minmax(0, 1.5fr)
+    minmax(0, 1fr)
     6.75rem
-    minmax(10.5rem, 1.15fr)
+    13rem
     9.5rem
     6.25rem
     9.75rem;
@@ -842,6 +842,11 @@ details.fc-fold summary:focus-visible {
 }
 .farmacapital-pedido-hist-row__estado { grid-area: estado; }
 .farmacapital-pedido-hist-row__pago { grid-area: pago; }
+.farmacapital-pedido-hist-row__pago > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .farmacapital-pedido-hist-row__tiempo { grid-area: tiempo; }
 .farmacapital-pedido-hist-row__precio {
   grid-area: precio;
