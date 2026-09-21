@@ -87,13 +87,14 @@ describe('envioDomicilio cotización en checkout', () => {
       total: 540,
     });
     assert.match(texto, /Pagar ahora/);
-    assert.match(texto, /\/carrito/);
-    assert.doesNotMatch(texto, /\/pagar\?/);
+    assert.match(texto, /\/pagar\?pedido=333/);
+    assert.match(texto, /Todavía no está pagado/);
+    assert.doesNotMatch(texto, /\/carrito/);
     assert.match(texto, /envío \$60\.00/);
     assert.match(texto, /\$540\.00/);
   });
 
-  it('el correo sale de contacto y abre el carrito', () => {
+  it('el correo sale de contacto y abre la liga para pagar', () => {
     const { correoAvisoEnvioCotizado } = require('./envioDomicilio');
     const mail = correoAvisoEnvioCotizado({
       pedidoId: 333,
@@ -112,11 +113,13 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.match(mail.text, /ticket de compra se crea cuando terminas el pago/);
     assert.doesNotMatch(mail.text, /va adjunto/);
     assert.equal(mail.filename, undefined);
-    assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/carrito/);
-    assert.match(mail.html, /href="https:\/\/www\.farmacapital\.mx\/carrito"/);
-    assert.match(mail.html, /Abrir mi carrito/);
-    assert.doesNotMatch(mail.text, /\/pagar\?/);
-    assert.doesNotMatch(mail.html, /\/pagar\?/);
+    assert.match(mail.text, /Todavía no está pagado/);
+    assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/pagar\?pedido=333/);
+    assert.match(mail.html, /href="https:\/\/www\.farmacapital\.mx\/pagar\?pedido=333"/);
+    assert.match(mail.html, /Pagar ahora/);
+    assert.doesNotMatch(mail.text, /ya está confirmado/);
+    assert.doesNotMatch(mail.text, /\/carrito/);
+    assert.doesNotMatch(mail.html, /\/carrito/);
   });
   it('haversine de la sucursal a ~0 km', () => {
     const d = haversineKm(19.3714047, -99.0526916, 19.3714047, -99.0526916);

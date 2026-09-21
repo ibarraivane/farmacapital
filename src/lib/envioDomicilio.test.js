@@ -13,6 +13,8 @@ import {
   proveedorSugerido,
   textoClienteEnvioEnCheckout,
   mensajeCorreoEnvioCotizado,
+  copyConfirmacionPedido,
+  linkPagarPedido,
 } from "./envioDomicilio";
 
 describe("envioDomicilio cliente", () => {
@@ -76,9 +78,10 @@ describe("envioDomicilio cliente", () => {
       itemsTotal: 480,
       total: 540,
     });
-    expect(texto).toContain("https://www.farmacapital.mx/carrito");
+    expect(texto).toContain("https://www.farmacapital.mx/pagar?pedido=333");
     expect(texto).toContain("Pagar ahora");
-    expect(texto).not.toMatch(/\/pagar\?/);
+    expect(texto).toContain("Todavía no está pagado");
+    expect(texto).not.toMatch(/\/carrito/);
     expect(pedidosConEnvioPorPagar([
       pedido,
       { id: 1, tipo_entrega: "envio", estado: "pendiente", payment_status: "pending", logistics_meta: { envio: { estado: "pendiente_cotizacion" } } },
@@ -99,5 +102,17 @@ describe("envioDomicilio cliente", () => {
       detail: { message: "The farmacapital.mx domain is not verified." },
     })).toMatch(/verifica el dominio/);
     expect(mensajeCorreoEnvioCotizado({ sent: true, costo: 100 })).toMatch(/contacto@farmacapital\.mx/);
+    expect(mensajeCorreoEnvioCotizado({ sent: true, costo: 100 })).toMatch(/liga para pagar/);
+  });
+
+  test("domicilio sin cobro no dice pedido confirmado ni total pagado", () => {
+    expect(copyConfirmacionPedido({ envioPendienteCotizacion: true })).toEqual({
+      titulo: "¡Pedido recibido!",
+      totalLabel: "Total de productos",
+      pagado: false,
+      pie: "Todavía no está pagado. Cuando cotizamos el envío te llega un correo y WhatsApp para pagar productos + transporte.",
+    });
+    expect(copyConfirmacionPedido({}).titulo).toBe("¡Pedido confirmado!");
+    expect(linkPagarPedido(4533)).toBe("https://www.farmacapital.mx/pagar?pedido=4533");
   });
 });

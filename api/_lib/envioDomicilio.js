@@ -266,9 +266,11 @@ function folioCorreo(pedidoId) {
   return `#FC-${String(pedidoId).padStart(4, '0')}`;
 }
 
-function linkCarritoCorreo(origen) {
+function linkPagarPedidoCorreo(origen, pedidoId) {
   const base = String(origen || 'https://www.farmacapital.mx').replace(/\/+$/, '');
-  return `${base}/carrito`;
+  const id = Number(pedidoId);
+  if (!Number.isFinite(id) || id <= 0) return `${base}/pagar`;
+  return `${base}/pagar?pedido=${id}`;
 }
 
 function escapeHtmlCorreo(value) {
@@ -314,21 +316,20 @@ function correoAvisoEnvioCotizado({
   const productos = dineroCorreo(itemsTotal);
   const envio = dineroCorreo(costo);
   const totalTxt = dineroCorreo(total);
-  const link = linkCarritoCorreo(origen);
+  const link = linkPagarPedidoCorreo(origen, pedidoId);
   const lineas = lineasTicketCorreo(items);
   const detalle = lineas.length
     ? `${lineas.map((l) => `- ${l.nombre} ×${l.qty}: ${dineroCorreo(l.importe)}`).join('\n')}\n`
     : '';
   const text =
     `${saludo}\n\n` +
-    `Ya cotizamos el envío de tu pedido ${folio}. El precio final es un solo cargo:\n\n` +
+    `Ya cotizamos el envío de tu pedido ${folio}. Todavía no está pagado. El precio final es un solo cargo:\n\n` +
     `${detalle}` +
     `Productos: ${productos}\n` +
     `Envío a domicilio: ${envio}\n` +
     `Total a pagar: ${totalTxt}\n\n` +
     `El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.\n\n` +
-    `Para liquidarlo, abre tu carrito y toca Pagar ahora:\n${link}\n\n` +
-    `Entra con el teléfono que usaste al hacer el pedido. Si el carrito se ve vacío, es porque este pedido ya está confirmado: al entrar aparece el total de arriba.\n\n` +
+    `Para liquidarlo, abre esta liga, escribe el teléfono del pedido y toca Pagar ahora:\n${link}\n\n` +
     `FarmaCapital\n` +
     `Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa\n` +
     `contacto@farmacapital.mx`;
@@ -348,8 +349,8 @@ function correoAvisoEnvioCotizado({
     `<tr><td style="padding:8px 0 0;font-weight:800;">Total a pagar</td><td style="padding:8px 0 0;text-align:right;font-weight:800;font-size:18px;">${totalTxt}</td></tr>` +
     `</table>` +
     `<p style="margin:16px 0 8px;">El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.</p>` +
-    `<p style="margin:0 0 16px;">Para liquidarlo, abre tu carrito y toca <strong>Pagar ahora</strong>. Entra con el teléfono que usaste al hacer el pedido.</p>` +
-    `<p style="margin:0 0 20px;"><a href="${escapeHtmlCorreo(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;padding:12px 18px;border-radius:8px;">Abrir mi carrito</a></p>` +
+    `<p style="margin:0 0 16px;">Para liquidarlo, abre esta liga, escribe el teléfono del pedido y toca <strong>Pagar ahora</strong>.</p>` +
+    `<p style="margin:0 0 20px;"><a href="${escapeHtmlCorreo(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;padding:12px 18px;border-radius:8px;">Pagar ahora</a></p>` +
     `<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;"><a href="${escapeHtmlCorreo(link)}" style="color:#0f766e;">${escapeHtmlCorreo(link)}</a></p>` +
     `<p style="margin:16px 0 0;color:#64748b;font-family:Arial,sans-serif;font-size:12px;">FarmaCapital · Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa<br>contacto@farmacapital.mx</p>` +
     `</div>`;
@@ -370,13 +371,12 @@ function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, orige
   const envioTxt = Number(costo).toFixed(2);
   const prodTxt = Number(itemsTotal).toFixed(2);
   const totalTxt = Number(total).toFixed(2);
-  const base = String(origen || 'https://www.farmacapital.mx').replace(/\/+$/, '');
-  const link = `${base}/carrito`;
+  const link = linkPagarPedidoCorreo(origen, pedidoId);
   return (
     `🏥 FarmaCapital\n\n` +
-    `Tu pedido ${folio} ya tiene el precio final.\n` +
+    `Tu pedido ${folio} ya tiene el precio final. Todavía no está pagado.\n` +
     `Productos $${prodTxt} + envío $${envioTxt} = $${totalTxt}.\n\n` +
-    `Ábrelo en tu carrito y toca Pagar ahora. Es un solo cargo:\n${link}`
+    `Ábrelo y toca Pagar ahora. Es un solo cargo:\n${link}`
   );
 }
 
