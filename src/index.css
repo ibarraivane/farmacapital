@@ -664,3 +664,137 @@ details.fc-fold summary:focus-visible {
     transition: none !important;
   }
 }
+
+/* ── Ficha enriquecida ── */
+.farmacapital-ficha-layout {
+  display: grid;
+  gap: 28px;
+}
+@media (min-width: 900px) {
+  .farmacapital-ficha-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    align-items: start;
+  }
+}
+.farmacapital-ficha-resumen { margin: 0 0 12px; font-size: 15px; line-height: 1.55; color: #3A4B63; }
+.farmacapital-ficha-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.farmacapital-ficha-chips span {
+  background: #F3F5F8; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600;
+}
+.farmacapital-ficha-h2 { margin: 0 0 6px; font-size: 20px; font-weight: 720; color: #001534; }
+.farmacapital-ficha-legal { margin: 0 0 10px; font-size: 12px; color: #4A5A70; line-height: 1.5; }
+.farmacapital-ficha-acc { border-bottom: 1px solid #DCE2EA; }
+.farmacapital-ficha-acc:first-of-type { border-top: 1px solid #DCE2EA; }
+.farmacapital-ficha-acc summary {
+  list-style: none; display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; padding: 16px 0; font-weight: 680; font-size: 16px; cursor: pointer; min-height: 44px;
+}
+.farmacapital-ficha-acc summary::-webkit-details-marker { display: none; }
+.farmacapital-ficha-chev {
+  width: 10px; height: 10px; border-right: 2px solid #001534; border-bottom: 2px solid #001534;
+  transform: rotate(45deg); margin-right: 4px; flex-shrink: 0;
+}
+.farmacapital-ficha-acc[open] .farmacapital-ficha-chev { transform: rotate(-135deg); }
+.farmacapital-ficha-accb { padding: 0 0 16px; font-size: 15px; line-height: 1.55; color: #3A4B63; }
+.farmacapital-ficha-accb p { margin: 0 0 8px; }
+.farmacapital-ficha-sub { font-weight: 680; color: #001534; margin-top: 10px; }
+.farmacapital-ficha-fine { font-size: 13px; color: #4A5A70; }
+.farmacapital-ficha-ul { margin: 0 0 8px; padding-left: 20px; }
+.farmacapital-ficha-ul li { margin: 4px 0; }
+.farmacapital-ficha-spec { border: 1px solid #DCE2EA; border-radius: 10px; overflow: hidden; }
+.farmacapital-ficha-spec .r {
+  display: flex; justify-content: space-between; gap: 16px; padding: 12px 14px;
+  border-bottom: 1px solid #DCE2EA; font-size: 14px;
+}
+.farmacapital-ficha-spec .r:last-child { border-bottom: none; }
+.farmacapital-ficha-spec .r span:first-child { color: #4A5A70; }
+.farmacapital-ficha-spec .r span:last-child { font-weight: 650; text-align: right; }
+.farmacapital-ficha-doc { font-weight: 650; color: #054ABC; }
+.farmacapital-ficha-wa {
+  margin-top: 22px; border-radius: 12px; background: #F3F5F8; padding: 16px;
+}
+.farmacapital-ficha-wa .t { font-weight: 700; }
+.farmacapital-ficha-wa .d { font-size: 14px; color: #3A4B63; margin-top: 2px; }
+.farmacapital-ficha-wa a { display: inline-block; margin-top: 8px; font-weight: 650; color: #054ABC; }
+
+/* ── Esta semana ── */
+.farmacapital-esta-semana { max-width: 1200px; margin: 0 auto; padding: 28px 0 8px; }
+.farmacapital-esta-semana-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 0 16px 10px;
+}
+.farmacapital-esta-semana-head h2 { margin: 0; font-size: 22px; font-weight: 740; }
+.farmacapital-esta-semana-head span { font-size: 12px; color: #4A5A70; }
+.farmacapital-bnr-row {
+  display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: 0 16px 6px; scrollbar-width: none;
+}
+.farmacapital-bnr-row::-webkit-scrollbar { display: none; }
+.farmacapital-bnr-cell { flex: 0 0 88%; scroll-snap-align: center; }
+.farmacapital-bnr {
+  width: 100%; border: none; border-radius: 14px; display: flex;
+  align-items: center; justify-content: space-between; gap: 10px;
+  padding: 18px; text-align: left; cursor: pointer; color: #001534;
+  background: #EAF0FB; overflow: hidden;
+}
+.farmacapital-bnr-servicio { background: #001534; color: #fff; }
+.farmacapital-bnr-servicio .farmacapital-bnr-s { color: #C9D6EA; }
+.farmacapital-bnr-cat { background: #E4F5EC; }
+.farmacapital-bnr-txt { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.farmacapital-bnr-tag {
+  align-self: flex-start; border-radius: 999px; padding: 4px 10px;
+  font-size: 12px; font-weight: 800;
+  background: rgba(5, 74, 188, .12); color: #054ABC;
+}
+.farmacapital-bnr-t { font-weight: 760; line-height: 1.08; }
+.farmacapital-bnr-s { font-size: 13px; color: #3A4B63; line-height: 1.4; }
+.farmacapital-bnr-price { display: flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.farmacapital-bnr-price s { color: #4A5A70; font-size: 13px; }
+.farmacapital-bnr-img img, .farmacapital-bnr-imgs img {
+  width: 88px; height: 88px; object-fit: contain;
+}
+.farmacapital-bnr-imgs { display: flex; gap: 4px; }
+@media (min-width: 900px) {
+  .farmacapital-esta-semana-head span { display: none; }
+  .farmacapital-bnr-row {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible; scroll-snap-type: none;
+  }
+  .farmacapital-bnr-cell { flex: none; }
+}
+
+/* ── Animación de entrada ── */
+.farmacapital-intro {
+  position: fixed; inset: 0; z-index: 80; background: #001534;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 22px;
+  transition: transform .65s cubic-bezier(.7, 0, .2, 1), opacity .65s;
+  pointer-events: none;
+}
+.farmacapital-intro.out { transform: translateY(-100%); opacity: 0; }
+.farmacapital-intro-mark { display: flex; align-items: center; }
+.farmacapital-intro-v { transform-origin: 32px 32px; transform: scaleY(0); animation: fc-ibv .45s .15s cubic-bezier(.3, 1.4, .4, 1) forwards; }
+.farmacapital-intro-h { transform-origin: 32px 32px; transform: scaleX(0); animation: fc-ibh .45s .38s cubic-bezier(.3, 1.4, .4, 1) forwards; }
+.farmacapital-intro-arc { stroke-dasharray: 30; stroke-dashoffset: 30; animation: fc-iba .5s .7s ease-out forwards; }
+@keyframes fc-ibv { to { transform: scaleY(1); } }
+@keyframes fc-ibh { to { transform: scaleX(1); } }
+@keyframes fc-iba { to { stroke-dashoffset: 0; } }
+.farmacapital-intro-mark svg { overflow: visible; animation: fc-ishift .5s 1.05s cubic-bezier(.6, 0, .2, 1) forwards; transform-origin: 100% 50%; }
+@keyframes fc-ishift { to { transform: translateX(6px) scale(.55); } }
+.farmacapital-intro-word { display: block; height: 40px; width: 0; opacity: 0; overflow: hidden; animation: fc-iword .55s 1.15s cubic-bezier(.2, .7, .2, 1) forwards; }
+.farmacapital-intro-word img { height: 40px; width: auto; margin-left: -42px; display: block; }
+@keyframes fc-iword { to { width: 160px; opacity: 1; } }
+.farmacapital-intro-line { color: #9FB0C6; font-size: 13px; letter-spacing: .04em; opacity: 0; animation: fc-iline .5s 1.35s ease forwards; text-align: center; padding: 0 24px; }
+@keyframes fc-iline { to { opacity: 1; } }
+.farmacapital-intro-skip {
+  pointer-events: auto; position: absolute; bottom: 22px; right: 18px;
+  background: transparent; border: 1px solid rgba(255, 255, 255, .25);
+  color: #C9D6EA; border-radius: 999px; padding: 8px 14px; font-size: 13px; cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .farmacapital-intro { display: none; }
+  .farmacapital-intro-v, .farmacapital-intro-h, .farmacapital-intro-arc,
+  .farmacapital-intro-mark svg, .farmacapital-intro-word, .farmacapital-intro-line {
+    animation: none;
+  }
+}

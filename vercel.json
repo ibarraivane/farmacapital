@@ -146,6 +146,10 @@
       "destination": "/api/backup?job=monitor-precios"
     },
     {
+      "source": "/api/catalog/enrich",
+      "destination": "/api/backup?job=catalog-enrich"
+    },
+    {
       "source": "/api/precios/buscar",
       "destination": "/api/inventarioProcesarPdf?type=buscar-similares"
     },
@@ -206,6 +210,10 @@
     {
       "path": "/api/monitor-precios/job",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/catalog/enrich",
+      "schedule": "0 14 * * *"
     }
   ]
 }

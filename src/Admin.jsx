@@ -21,6 +21,8 @@ import { initBillingListeners } from "./modules/billing/core/initBillingListener
 import { canAccessRoute } from "./core/security/routeGuard";
 import { CLAVES_SALDO_MP, fechaLocalMexico, parseSaldoConfig } from "./lib/pagoServicio";
 import ImageUploader from "./components/ImageUploader";
+import FichasRevisionAdmin from "./components/admin/FichasRevisionAdmin";
+import { puedeCrearBannerProducto } from "./lib/bannersPlantilla";
 import GestionUsuariosTabla from "./components/GestionUsuariosTabla";
 import { GRID_STACK_2COL } from "./constants/layout";
 import { UserPlus } from "lucide-react";
@@ -715,7 +717,12 @@ function BannersAdmin(){
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
-  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});
+  const emptyBanner = ()=>({
+    titulo:"",subtitulo:"",descripcion:"",emoji:"",bg:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo",
+    plantilla:"imagen_propia",producto_ids:[],descuento_pct:"",destino:"",vigente_desde:"",vigente_hasta:"",ocultar_sin_stock:true,producto_busca:"",
+  });
+  const [form,setForm]      = useState(emptyBanner);
+  const [prodHits,setProdHits] = useState([]);
   const [saving,setSaving]  = useState(false);
 
   const fetch = async()=>{
@@ -743,7 +750,29 @@ function BannersAdmin(){
       pagina: resolveTiendaPage(form.pagina) || "catalogo",
       imagen_mobile_url: form.imagen_url_mobile || "",
       imagen_url_mobile: form.imagen_url_mobile || "",
+      plantilla: form.plantilla || "imagen_propia",
+      producto_ids: Array.isArray(form.producto_ids) ? form.producto_ids : [],
+      descuento_pct: form.descuento_pct === "" ? null : form.descuento_pct,
+      destino: form.destino || "",
+      vigente_desde: form.vigente_desde || "",
+      vigente_hasta: form.vigente_hasta || "",
+      ocultar_sin_stock: form.ocultar_sin_stock !== false,
     };
+    if (payload.plantilla === "producto") {
+      const rx = prodHits.find((p) => payload.producto_ids.includes(p.id))
+        || { requiere_receta: false, id: payload.producto_ids[0] };
+      const check = puedeCrearBannerProducto(rx.id ? rx : { requiere_receta: false });
+      if (payload.producto_ids.length && rx.requiere_receta) {
+        setSaving(false);
+        showToast("No se puede promocionar un medicamento que requiere receta.", "error");
+        return;
+      }
+      if (!payload.producto_ids.length) {
+        setSaving(false);
+        showToast(check.motivo || "Elige un producto.", "error");
+        return;
+      }
+    }
     const { error } = await supabase.rpc("admin_upsert_banner", {
       p_session_token: tok,
       p_id:            modal === "new" ? null : modal.id,
@@ -784,7 +813,7 @@ function BannersAdmin(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🖼️ Banners de la tienda</h1>
-        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});setModal("new");}}>+ Nuevo banner</Btn>
+        <Btn col={BRAND.primary} onClick={()=>{setForm({...emptyBanner(),orden:banners.length+1,pagina:"promo"});setModal("new");}}>+ Nuevo banner</Btn>
       </div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
         💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda) · <em>Popup</em> (ventana de bienvenida al entrar).
@@ -812,7 +841,7 @@ function BannersAdmin(){
               </div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
                 <button onClick={()=>toggleActivo(b)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${b.activo?C.green:C.border}`,background:b.activo?C.greenDim:"transparent",color:b.activo?C.green:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{b.activo?"✓ Activo":"○ Inactivo"}</button>
-                <button onClick={()=>{setForm({...b,imagen_url:b.imagen_url||"",imagen_url_mobile:(b.imagen_url_mobile||b.imagen_mobile_url)||"",video_url:b.video_url||"",modo_visualizacion:b.modo_visualizacion||"imagen_fondo"});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
+                <button onClick={()=>{setForm({...emptyBanner(),...b,imagen_url:b.imagen_url||"",imagen_url_mobile:(b.imagen_url_mobile||b.imagen_mobile_url)||"",video_url:b.video_url||"",modo_visualizacion:b.modo_visualizacion||"imagen_fondo",plantilla:b.plantilla||"imagen_propia",producto_ids:b.producto_ids||[],descuento_pct:b.descuento_pct??"",destino:b.destino||"",vigente_desde:b.vigente_desde||"",vigente_hasta:b.vigente_hasta||"",ocultar_sin_stock:b.ocultar_sin_stock!==false});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
                 <button onClick={()=>eliminar(b.id)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}`,background:C.redDim,color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
             </div>
@@ -826,7 +855,7 @@ function BannersAdmin(){
               <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{modal==="new"?"➕ Nuevo":"✏️ Editar"} Banner</h3>
               <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12,marginBottom:16}}>
+            {(!form.plantilla || form.plantilla==="imagen_propia") && <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12,marginBottom:16}}>
               <div style={{padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
                 <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>
                   IMAGEN DESKTOP (1920×600px · ratio ~16:5)
@@ -881,8 +910,8 @@ function BannersAdmin(){
                   Cuadrada para celular. Si no subís una, la tienda usa la desktop.
                 </div>
               </div>
-            </div>
-            <div style={{marginBottom:16,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+            </div>}
+            {(!form.plantilla || form.plantilla==="imagen_propia") && <div style={{marginBottom:16,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
               <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>
                 ▶ VIDEO CORTO (OPCIONAL)
               </label>
@@ -900,6 +929,95 @@ function BannersAdmin(){
                 en Storage y pegar el enlace. Si hay video, la tienda lo muestra en lugar de la imagen; la imagen puede servir de <strong>poster</strong> mientras carga.
                 {" "}GIF animados o WebP animados seguís usándolos como imagen normal (sin este campo).
               </div>
+            </div>}
+            <div style={{marginBottom:14,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+              <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>PLANTILLA</label>
+              <select className="farmacapital-field-select" style={inpS} value={form.plantilla||"imagen_propia"} onChange={e=>setForm(p=>({...p,plantilla:e.target.value,slot:e.target.value==="imagen_propia"?p.slot:"semana"}))}>
+                <option value="imagen_propia">Imagen propia (flujo actual)</option>
+                <option value="producto">Producto (precio y foto del catálogo)</option>
+                <option value="servicio">Servicio (cotizar / consultorio)</option>
+                <option value="categoria">Categoría (hasta 3 productos)</option>
+              </select>
+              {form.plantilla!=="imagen_propia" && (
+                <>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div>
+                      <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>VIGENTE DESDE</label>
+                      <input className="farmacapital-field-input" type="date" style={inpS} value={form.vigente_desde||""} onChange={e=>setForm(p=>({...p,vigente_desde:e.target.value}))}/>
+                    </div>
+                    <div>
+                      <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>VIGENTE HASTA</label>
+                      <input className="farmacapital-field-input" type="date" style={inpS} value={form.vigente_hasta||""} onChange={e=>setForm(p=>({...p,vigente_hasta:e.target.value}))}/>
+                    </div>
+                  </div>
+                  <label className="check" style={{display:"flex",gap:8,alignItems:"center",fontSize:13,color:C.textMid,marginBottom:10}}>
+                    <input type="checkbox" checked={form.ocultar_sin_stock!==false} onChange={e=>setForm(p=>({...p,ocultar_sin_stock:e.target.checked}))}/>
+                    Ocultar si el producto se agota
+                  </label>
+                </>
+              )}
+              {(form.plantilla==="producto"||form.plantilla==="categoria") && (
+                <div>
+                  <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>BUSCAR PRODUCTO</label>
+                  <input
+                    className="farmacapital-field-input"
+                    style={inpS}
+                    value={form.producto_busca||""}
+                    placeholder="Nombre o SKU"
+                    onChange={async(e)=>{
+                      const q=e.target.value;
+                      setForm(p=>({...p,producto_busca:q}));
+                      if(q.trim().length<2){ setProdHits([]); return; }
+                      const { data } = await supabase.from("productos").select("id,nombre,sku,requiere_receta,precio,stock,imagen_url,presentacion").ilike("nombre",`%${q.trim()}%`).eq("activo",true).limit(8);
+                      setProdHits(data||[]);
+                    }}
+                  />
+                  {prodHits.map(p=>(
+                    <button key={p.id} type="button" onClick={()=>{
+                      if(form.plantilla==="producto"){
+                        const chk=puedeCrearBannerProducto(p);
+                        if(!chk.ok){ showToast(chk.motivo,"error"); return; }
+                        setForm(f=>({...f,producto_ids:[p.id],titulo:p.nombre}));
+                      } else {
+                        setForm(f=>({...f,producto_ids:[...new Set([...(f.producto_ids||[]),p.id])].slice(0,3)}));
+                      }
+                    }} style={{display:"block",width:"100%",textAlign:"left",padding:"6px 8px",border:`1px solid ${C.border}`,borderRadius:6,background:"#fff",marginBottom:4,cursor:"pointer",fontSize:12}}>
+                      {p.nombre} {p.requiere_receta?"· Rx":""} · ${p.precio}
+                    </button>
+                  ))}
+                  {(form.producto_ids||[]).length>0 && <div style={{fontSize:11,color:C.textMid,marginBottom:8}}>IDs: {(form.producto_ids||[]).join(", ")}</div>}
+                  {form.plantilla==="producto" && (
+                    <div>
+                      <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>% DESCUENTO (opcional)</label>
+                      <input className="farmacapital-field-input" type="number" min="0" max="90" style={inpS} value={form.descuento_pct||""} onChange={e=>setForm(p=>({...p,descuento_pct:e.target.value}))}/>
+                    </div>
+                  )}
+                </div>
+              )}
+              {form.plantilla==="servicio" && (
+                <div>
+                  <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>DESTINO</label>
+                  <select className="farmacapital-field-select" style={inpS} value={form.destino||"cotizar"} onChange={e=>setForm(p=>({...p,destino:e.target.value,pagina:e.target.value==="consultorio"?"cita":"conseguir"}))}>
+                    <option value="cotizar">Cotizar especializado</option>
+                    <option value="consultorio">Consultorio</option>
+                  </select>
+                </div>
+              )}
+              {form.plantilla && form.plantilla!=="imagen_propia" && (
+                <div style={{marginTop:8,padding:10,background:"#fff",border:`1px dashed ${C.border}`,borderRadius:8}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.textMid,marginBottom:6}}>VISTA PREVIA (celular / tableta / escritorio)</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                    {[["Cel",120],["Tablet",160],["Desk",200]].map(([lab,w])=>(
+                      <div key={lab} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:8,minHeight:72,fontSize:11}}>
+                        <div style={{color:C.textDim,marginBottom:4}}>{lab} · {w}px</div>
+                        <div style={{fontWeight:800,color:C.text}}>{form.titulo||"Título"}</div>
+                        <div style={{color:C.textMid}}>{form.subtitulo||form.descripcion||"Texto"}</div>
+                        {form.plantilla==="producto" && <div style={{marginTop:4,fontWeight:700}}>{form.descuento_pct?`−${form.descuento_pct}%`: "Precio del catálogo"}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div style={{marginBottom:14,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
               <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>
@@ -944,6 +1062,7 @@ function BannersAdmin(){
                 <option value="strip">▤ Franja (bajo iconos de servicio)</option>
                 <option value="tile">▦ Mosaico (bajo la barra de búsqueda)</option>
                 <option value="popup">◉ Popup de bienvenida (al entrar)</option>
+                <option value="semana">▣ Esta semana (plantillas, sin carrusel)</option>
               </select>
             </div>
             <div><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>COLOR DE FONDO (CSS gradient)</label><input style={inpS} value={form.bg||""} onChange={e=>setForm(p=>({...p,bg:e.target.value}))} placeholder="linear-gradient(...)"/></div>
@@ -2250,6 +2369,7 @@ export default function FarmaCapitalAdmin(){
       case "ped_mostrador": return <PedidosMostradorModule usuario={usuario}/>;
       case "fact":     return <FacturacionModule/>;
       case "banners": return <BannersAdmin/>;
+      case "fichas": return <FichasRevisionAdmin/>;
       case "bot":      return <AsistenteIA/>;
       case "cli":   return <ClientesModule/>;
       case "pwa":       return <InstalarPWA/>;

@@ -1,0 +1,367 @@
+{
+  "_leeme": "Borradores de monografías por sustancia activa y vía. Son la base de la sección 'Información del medicamento' de la ficha. ESTADO: borrador_ia. Antes de publicar, cada una debe cotejarse con el instructivo autorizado del producto concreto (marca, concentración y forma) y aprobarla el responsable sanitario. No incluyen dosis específicas en medicamentos con receta: la dosis la indica el médico. Generadas el 2026-09-21 por Claude a partir de conocimiento farmacológico general, sin fuente por producto; por eso 'fuentes' está vacío.",
+  "version_esquema": 1,
+  "estado": "borrador_ia",
+  "nota": "10 monografías de control de calidad del zip oficial. Formato §4 (contenido + fuentes). No publicar sin revisión humana ni fuente por sección.",
+  "consultado": "2026-09-21",
+  "monografias": [
+    {
+      "clave": "paracetamol",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Analgésico y antipirético. Alivia el dolor leve a moderado y baja la fiebre.",
+        "para_que_sirve": "Alivio del dolor leve a moderado (de cabeza, muscular, dental, menstrual) y de la fiebre.",
+        "como_se_usa": [
+          "Sigue la dosis del empaque o la que indique tu médico, según la concentración del producto.",
+          "Respeta el tiempo mínimo entre tomas que indica el instructivo.",
+          "No tomes al mismo tiempo otros productos que contengan paracetamol."
+        ],
+        "no_usar_si": [
+          "Eres alérgico al paracetamol.",
+          "Tienes enfermedad grave del hígado."
+        ],
+        "consulta_si": [
+          "Tomas alcohol con frecuencia.",
+          "Tienes enfermedad del hígado o de los riñones.",
+          "El dolor dura más de 5 días o la fiebre más de 3 días.",
+          "Estás embarazada o amamantando."
+        ],
+        "interacciones": "Muchos antigripales y analgésicos combinados ya contienen paracetamol: sumarlos puede exceder la dosis máxima. El uso frecuente puede modificar el efecto de la warfarina.",
+        "efectos": [
+          "Poco frecuentes a dosis adecuadas.",
+          "Reacciones en la piel (raras)."
+        ],
+        "alarma": "Tomar más de la dosis máxima puede dañar el hígado aunque no haya síntomas al inicio. Si tomaste de más, busca atención médica de inmediato.",
+        "conservacion": [
+          "No más de 30 °C, en lugar seco.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": false
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "ibuprofeno",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Antiinflamatorio no esteroideo (AINE). Alivia el dolor, la inflamación y la fiebre.",
+        "para_que_sirve": "Alivio del dolor leve a moderado (dental, muscular, menstrual, de cabeza), de la inflamación y de la fiebre.",
+        "como_se_usa": [
+          "Sigue la dosis del empaque o la que indique tu médico, según la concentración.",
+          "Tómalo con alimentos o leche.",
+          "Usa la dosis más baja y por el menor tiempo posible."
+        ],
+        "no_usar_si": [
+          "Tienes úlcera o sangrado en el estómago.",
+          "Eres alérgico al ibuprofeno, a la aspirina o a otros antiinflamatorios.",
+          "Estás en el último trimestre del embarazo."
+        ],
+        "consulta_si": [
+          "Tienes gastritis o enfermedad de los riñones, del hígado o del corazón.",
+          "Tienes presión alta.",
+          "Tomas anticoagulantes o corticoides."
+        ],
+        "interacciones": "No lo combines con otros antiinflamatorios. Puede interactuar con anticoagulantes, algunos medicamentos para la presión, diuréticos y corticoides.",
+        "efectos": [
+          "Malestar estomacal, agruras o náusea.",
+          "Mareo."
+        ],
+        "alarma": "Suspende y busca atención si tienes heces negras, vómito con sangre o una reacción alérgica.",
+        "conservacion": [
+          "No más de 30 °C, en lugar seco.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": false
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "acido acetilsalicilico",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Analgésico, antipirético y antiinflamatorio. En dosis bajas, algunos médicos lo indican para prevenir problemas del corazón.",
+        "para_que_sirve": "Alivio del dolor leve a moderado y de la fiebre en adultos. El uso preventivo en dosis bajas es solo por indicación médica.",
+        "como_se_usa": [
+          "Sigue la dosis del empaque o la que indique tu médico.",
+          "Tómalo con alimentos."
+        ],
+        "no_usar_si": [
+          "Tienes úlcera o sangrado en el estómago, o problemas de coagulación.",
+          "Eres alérgico a la aspirina o a otros antiinflamatorios.",
+          "Es para un menor de 16 años con fiebre o síntomas de gripe o varicela, salvo indicación médica.",
+          "Estás en el último trimestre del embarazo."
+        ],
+        "consulta_si": [
+          "Tomas anticoagulantes.",
+          "Tienes asma, gota o enfermedad de los riñones.",
+          "Te harán una cirugía o un procedimiento dental."
+        ],
+        "interacciones": "Aumenta el riesgo de sangrado con anticoagulantes y otros antiinflamatorios. Puede interactuar con metotrexato y algunos medicamentos para la presión.",
+        "efectos": [
+          "Malestar estomacal o agruras.",
+          "Moretones con más facilidad."
+        ],
+        "alarma": "Suspende y busca atención si tienes heces negras, vómito con sangre, zumbido de oídos o una reacción alérgica.",
+        "conservacion": [
+          "No más de 30 °C, en lugar seco.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": false
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "omeprazol",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Inhibidor de la bomba de protones: disminuye la producción de ácido en el estómago.",
+        "para_que_sirve": "Tratamiento a corto plazo de los síntomas de reflujo, como acidez y agruras, en adultos. El médico puede indicarlo para otros padecimientos del estómago.",
+        "como_se_usa": [
+          "Sigue la dosis del empaque o la que indique tu médico; normalmente una vez al día antes del desayuno.",
+          "Trágalo entero con agua; no lo mastiques ni lo abras.",
+          "Si los síntomas no mejoran en 14 días, consulta a tu médico."
+        ],
+        "no_usar_si": [
+          "Eres alérgico al omeprazol o a medicamentos similares (esomeprazol, pantoprazol, lansoprazol).",
+          "Tomas medicamentos para el VIH que contengan nelfinavir."
+        ],
+        "consulta_si": [
+          "Estás embarazada o amamantando.",
+          "Tienes dificultad para tragar, vómito con sangre o heces negras.",
+          "Bajas de peso sin explicación.",
+          "Tienes enfermedad del hígado."
+        ],
+        "interacciones": "Puede cambiar el efecto de clopidogrel, warfarina, diazepam, fenitoína y algunos antimicóticos.",
+        "efectos": [
+          "Dolor de cabeza.",
+          "Diarrea, estreñimiento o náusea.",
+          "Dolor abdominal o gases."
+        ],
+        "alarma": "Si tienes una reacción alérgica (hinchazón de cara o garganta, dificultad para respirar), suspéndelo y busca atención médica de inmediato.",
+        "conservacion": [
+          "No más de 30 °C, en lugar seco.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": false
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "amoxicilina",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Antibiótico de la familia de las penicilinas. Trata infecciones causadas por bacterias.",
+        "para_que_sirve": "Infecciones bacterianas que tu médico diagnostique, por ejemplo de vías respiratorias, oído, garganta o vías urinarias. No sirve para gripe ni resfriado, que son causados por virus.",
+        "como_se_usa": [
+          "La dosis y la duración las indica tu médico.",
+          "Termina todo el tratamiento aunque te sientas mejor.",
+          "Las suspensiones se preparan con agua según el instructivo y se agitan antes de cada toma."
+        ],
+        "no_usar_si": [
+          "Eres alérgico a la penicilina o a otros antibióticos betalactámicos."
+        ],
+        "consulta_si": [
+          "Has tenido reacciones a cualquier antibiótico.",
+          "Tienes enfermedad de los riñones.",
+          "Tienes mononucleosis.",
+          "Estás embarazada o amamantando."
+        ],
+        "interacciones": "Puede interactuar con metotrexato, alopurinol y anticoagulantes. Informa a tu médico de lo que tomas.",
+        "efectos": [
+          "Diarrea o náusea.",
+          "Salpullido."
+        ],
+        "alarma": "Suspende y busca atención de inmediato si tienes ronchas, hinchazón de cara o garganta, dificultad para respirar o diarrea intensa con sangre.",
+        "conservacion": [
+          "Tabletas y cápsulas: no más de 30 °C, en lugar seco.",
+          "Suspensión preparada: sigue el instructivo sobre refrigeración y días de uso.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": true
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "amoxicilina + acido clavulanico",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Antibiótico combinado: la amoxicilina con ácido clavulánico, que amplía su acción contra ciertas bacterias.",
+        "para_que_sirve": "Infecciones bacterianas que tu médico diagnostique, por ejemplo de vías respiratorias, oído, senos paranasales, piel o vías urinarias.",
+        "como_se_usa": [
+          "La dosis y la duración las indica tu médico.",
+          "Tómalo al inicio de una comida para reducir las molestias estomacales.",
+          "Termina todo el tratamiento aunque te sientas mejor."
+        ],
+        "no_usar_si": [
+          "Eres alérgico a la penicilina o a otros antibióticos betalactámicos.",
+          "Tuviste problemas del hígado con este medicamento antes."
+        ],
+        "consulta_si": [
+          "Tienes enfermedad del hígado o de los riñones.",
+          "Tienes mononucleosis.",
+          "Estás embarazada o amamantando."
+        ],
+        "interacciones": "Puede interactuar con anticoagulantes, metotrexato y alopurinol.",
+        "efectos": [
+          "Diarrea, náusea o vómito.",
+          "Salpullido.",
+          "Infección por hongos (candidiasis)."
+        ],
+        "alarma": "Suspende y busca atención si tienes ronchas, hinchazón, dificultad para respirar, coloración amarilla de piel u ojos, o diarrea intensa con sangre.",
+        "conservacion": [
+          "No más de 25–30 °C, en lugar seco (según instructivo).",
+          "Suspensión preparada: en refrigeración y por los días que indique el instructivo.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": true
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "ampicilina",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Antibiótico de la familia de las penicilinas. Trata infecciones causadas por bacterias.",
+        "para_que_sirve": "Infecciones bacterianas que tu médico diagnostique. No sirve para infecciones causadas por virus, como gripe o resfriado.",
+        "como_se_usa": [
+          "La dosis y la duración las indica tu médico.",
+          "Tómala con el estómago vacío (1 hora antes o 2 horas después de comer), salvo otra indicación.",
+          "Termina todo el tratamiento aunque te sientas mejor."
+        ],
+        "no_usar_si": [
+          "Eres alérgico a la penicilina o a otros antibióticos betalactámicos."
+        ],
+        "consulta_si": [
+          "Has tenido reacciones a antibióticos.",
+          "Tienes enfermedad de los riñones o mononucleosis.",
+          "Estás embarazada o amamantando."
+        ],
+        "interacciones": "Puede interactuar con alopurinol, metotrexato y anticoagulantes.",
+        "efectos": [
+          "Diarrea o náusea.",
+          "Salpullido."
+        ],
+        "alarma": "Suspende y busca atención si tienes ronchas, hinchazón de cara o garganta, dificultad para respirar o diarrea intensa con sangre.",
+        "conservacion": [
+          "No más de 30 °C, en lugar seco.",
+          "Suspensión preparada: según el instructivo.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": true
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "cefalexina",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Antibiótico de la familia de las cefalosporinas. Trata infecciones causadas por bacterias.",
+        "para_que_sirve": "Infecciones bacterianas que tu médico diagnostique, por ejemplo de piel, garganta, oído o vías urinarias.",
+        "como_se_usa": [
+          "La dosis y la duración las indica tu médico.",
+          "Puede tomarse con o sin alimentos.",
+          "Termina todo el tratamiento aunque te sientas mejor."
+        ],
+        "no_usar_si": [
+          "Eres alérgico a las cefalosporinas."
+        ],
+        "consulta_si": [
+          "Eres alérgico a la penicilina.",
+          "Tienes enfermedad de los riñones.",
+          "Estás embarazada o amamantando."
+        ],
+        "interacciones": "Puede interactuar con metformina y probenecid. Informa a tu médico de lo que tomas.",
+        "efectos": [
+          "Diarrea, náusea o dolor abdominal.",
+          "Salpullido."
+        ],
+        "alarma": "Suspende y busca atención si tienes ronchas, hinchazón, dificultad para respirar o diarrea intensa con sangre.",
+        "conservacion": [
+          "No más de 30 °C, en lugar seco.",
+          "Suspensión preparada: según el instructivo.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": true
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "clindamicina",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Antibiótico. Trata ciertas infecciones causadas por bacterias.",
+        "para_que_sirve": "Infecciones bacterianas que tu médico diagnostique, por ejemplo de piel, huesos, dientes o vías respiratorias.",
+        "como_se_usa": [
+          "La dosis y la duración las indica tu médico.",
+          "Tómala con un vaso completo de agua.",
+          "Termina todo el tratamiento aunque te sientas mejor."
+        ],
+        "no_usar_si": [
+          "Eres alérgico a la clindamicina o a la lincomicina."
+        ],
+        "consulta_si": [
+          "Has tenido colitis o diarrea intensa con antibióticos.",
+          "Tienes enfermedad del hígado o de los riñones.",
+          "Estás embarazada o amamantando."
+        ],
+        "interacciones": "Puede interactuar con eritromicina y con algunos relajantes musculares usados en cirugía.",
+        "efectos": [
+          "Diarrea, náusea o dolor abdominal.",
+          "Sabor metálico."
+        ],
+        "alarma": "La diarrea intensa o con sangre, incluso semanas después del tratamiento, requiere atención médica inmediata.",
+        "conservacion": [
+          "No más de 30 °C, en lugar seco.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": true
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    },
+    {
+      "clave": "diclofenaco",
+      "via": "oral",
+      "contenido": {
+        "resumen": "Antiinflamatorio no esteroideo (AINE). Alivia el dolor y la inflamación.",
+        "para_que_sirve": "Dolor e inflamación de músculos, articulaciones, golpes, torceduras o dolor menstrual, según indicación.",
+        "como_se_usa": [
+          "Sigue la dosis del empaque o la que indique tu médico.",
+          "Tómalo con alimentos.",
+          "Úsalo por el menor tiempo posible."
+        ],
+        "no_usar_si": [
+          "Tienes úlcera o sangrado en el estómago.",
+          "Eres alérgico al diclofenaco, a la aspirina o a otros antiinflamatorios.",
+          "Tienes enfermedad grave del corazón, del hígado o de los riñones.",
+          "Estás en el último trimestre del embarazo."
+        ],
+        "consulta_si": [
+          "Tienes presión alta, gastritis o antecedentes de infarto o embolia.",
+          "Tomas anticoagulantes o diuréticos."
+        ],
+        "interacciones": "No lo combines con otros antiinflamatorios. Puede interactuar con anticoagulantes, litio, diuréticos y medicamentos para la presión.",
+        "efectos": [
+          "Malestar estomacal, agruras o náusea.",
+          "Dolor de cabeza o mareo."
+        ],
+        "alarma": "Suspende y busca atención si tienes heces negras, vómito con sangre, dolor en el pecho o una reacción alérgica.",
+        "conservacion": [
+          "No más de 30 °C, en lugar seco.",
+          "Fuera del alcance de los niños."
+        ],
+        "requiere_receta_habitual": false
+      },
+      "fuentes": [],
+      "estado": "borrador_ia"
+    }
+  ]
+}

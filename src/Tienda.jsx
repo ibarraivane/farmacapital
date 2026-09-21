@@ -46,6 +46,9 @@ import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPa
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
+import FichaProductoEnriquecida from "./components/tienda/FichaProductoEnriquecida";
+import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
+import IntroAnimacion from "./components/tienda/IntroAnimacion";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
   CANTIDAD_MAX_BAJO_PEDIDO,
@@ -245,7 +248,7 @@ function bannerTxt(v){
 /** Normaliza fila Supabase → props de UI; slot: hero | strip | tile | popup */
 function mapBannerFromRow(b){
   const s = String(b.slot||"hero").toLowerCase();
-  const slot = s==="strip"||s==="tile"||s==="popup" ? s : "hero";
+  const slot = s==="strip"||s==="tile"||s==="popup"||s==="semana" ? s : "hero";
   const em = b.emoji != null ? String(b.emoji).trim() : "";
   const modoRaw = String(b.modo_visualizacion || "").trim().toLowerCase();
   const modo_visualizacion = modoRaw === "imagen_fondo" ? "imagen_fondo" : "imagen_completa";
@@ -267,6 +270,15 @@ function mapBannerFromRow(b){
     imagen_mobile_url: b.imagen_mobile_url || "",
     video_url: (b.video_url != null && String(b.video_url).trim()) ? String(b.video_url).trim() : "",
     modo_visualizacion,
+    plantilla: b.plantilla || "imagen_propia",
+    producto_ids: Array.isArray(b.producto_ids) ? b.producto_ids : [],
+    descuento_pct: b.descuento_pct,
+    destino: b.destino || "",
+    vigente_desde: b.vigente_desde || "",
+    vigente_hasta: b.vigente_hasta || "",
+    ocultar_sin_stock: b.ocultar_sin_stock !== false,
+    activo: b.activo !== false,
+    orden: b.orden,
   };
 }
 
@@ -1999,6 +2011,23 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   const { imagenes: galeria } = useProductoImagenes(prod?.id, imgSrc);
   const promosProd = usePromosProducto(prod?.id);
   const oferta = ofertaDeProducto(prod, promosProd);
+  const [fichaPub, setFichaPub] = useState(null);
+  useEffect(() => {
+    if (!prod?.id) {
+      setFichaPub(null);
+      return undefined;
+    }
+    let cancelled = false;
+    supabase.rpc("tienda_ficha_producto", { p_producto_id: prod.id }).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        setFichaPub(null);
+        return;
+      }
+      setFichaPub(data || null);
+    });
+    return () => { cancelled = true; };
+  }, [prod?.id]);
   if(!prod) return (
     <div style={{maxWidth:560,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
       <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Producto no disponible</h2>
@@ -2058,7 +2087,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
         </div>
       </div>
       <button type="button" onClick={()=>{ setProdDetalle(null); setPage("catalogo"); }} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
-      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48,opacity:agotado?0.85:1}}>
+      <div className="farmacapital-ficha-layout" style={{marginBottom:48,opacity:agotado?0.85:1}}>
+        <div>
         <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20,opacity:agotado?0.42:1}}>
           <GaleriaProducto
             imagenes={galeria}
@@ -2068,7 +2098,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             style={{padding:galeria.length?0:(stack?32:48)}}
           />
         </div>
-        <div>
+        <div style={{marginTop:20}}>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             {cta
               ? <><Tag col={BRAND.secondary}>Bajo pedido</Tag><Tag col="#f59e0b">24-48 hrs</Tag></>
@@ -2108,12 +2138,6 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               </div>
             </div>
           )}
-          {descripcionPublicaTienda(prod)&&(
-            <div style={{background:C.cardDark,borderRadius:12,padding:16,marginBottom:20}}>
-              <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:6}}>Descripción</div>
-              <div style={{color:C.mid,fontSize:14,lineHeight:1.7}}>{descripcionPublicaTienda(prod)}</div>
-            </div>
-          )}
           {prod.requiere_receta&&(
             <div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:10,padding:"10px 14px",marginBottom:16}}>
               <div style={{color:C.red,fontWeight:700,fontSize:13}}>
@@ -2147,6 +2171,13 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           </div>
           )}
         </div>
+        </div>
+        <FichaProductoEnriquecida
+          producto={prod}
+          ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
+          monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
+          whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${prod.nombre || "un producto"}`)}`}
+        />
       </div>
       {similares.length>0&&(
         <div>
@@ -3018,6 +3049,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   const stack = useMediaQuery("(max-width: 768px)");
   const [promos, setPromos] = useState([]);
   const [bannerZones, setBannerZones] = useState({hero:[], strip:[], tile:[]});
+  const [bannersAll, setBannersAll] = useState([]);
   const [bannerMeta, setBannerMeta] = useState({ status: "loading", total: 0 });
   const [heroBusqFocus, setHeroBusqFocus] = useState(false);
   const poolHeroStock = useMemo(
@@ -3049,10 +3081,12 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
           console.warn("[Tienda] banners:", error.message);
           setBannerMeta({ status: "error", total: 0 });
           setBannerZones({hero:[], strip:[], tile:[]});
+          setBannersAll([]);
           return;
         }
         const rows = (data||[]).map(mapBannerFromRow);
         setBannerMeta({ status: "ok", total: rows.length });
+        setBannersAll(rows);
         setBannerZones({
           hero: rows.filter(r=>r.slot==="hero"),
           strip: rows.filter(r=>r.slot==="strip"),
@@ -3079,6 +3113,13 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       />
 
       <HomeServices setPage={setPage}/>
+
+      <BannersEstaSemana
+        banners={bannersAll}
+        productos={productos}
+        setPage={setPage}
+        setProdDetalle={setProdDetalle}
+      />
 
       <HomeBannersStrip setPage={setPage} items={bannerZones.strip}/>
 
@@ -7088,6 +7129,7 @@ export default function TiendaFarmaCapital(){
         button,select{font-family:var(--fc-body);}
       `}</style>
 
+      <IntroAnimacion />
       {/* Popup bienvenida */}
       {showPopup&&<PopupBienvenida onClose={()=>{ setShowPopup(false); try { sessionStorage.setItem("farmacapital_popup_visto","1"); } catch (_) { /* noop */ } }} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
 

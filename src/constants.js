@@ -5,7 +5,7 @@ import {
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, HeartPulse,
   SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe, BookOpen, ScanLine,
-  ClipboardList,
+  ClipboardList, FileText,
 } from "lucide-react";
 
 export const C_LIGHT = {
@@ -54,7 +54,7 @@ export const NAV_ADMIN = [
   "recibir", "inv",
   "agenda", "cons", "exp_dr",
   "cof", "dev", "fact",
-  "promo", "banners", "bot", "config_cons",
+  "promo", "banners", "fichas", "bot", "config_cons",
   "usuarios", "rrhh",
   "ayuda", "pwa",
 ];
@@ -65,7 +65,7 @@ export const ADMIN_NAV_SECTIONS = [
   { title: "Inventario", ids: ["recibir", "inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
-  { title: "Comercial y crecimiento", ids: ["promo", "banners", "bot", "config_cons"] },
+  { title: "Comercial y crecimiento", ids: ["promo", "banners", "fichas", "bot", "config_cons"] },
   { title: "Administración interna", ids: ["usuarios", "rrhh"] },
   { title: "Sistema", ids: ["ayuda", "pwa"] },
 ];
@@ -101,6 +101,7 @@ export const NAV_ITEMS = [
   {id:"fact",       icon: Receipt,         label:"Facturación"},
   // ══ SISTEMA ═══════════════════════════════
   {id:"banners",    icon: ImageIcon,       label:"Banners"},
+  {id:"fichas",     icon: FileText,        label:"Fichas"},
   {id:"bot",        icon: Sparkles,        label:"Asistente IA"},
   {id:"pwa",        icon: Download,        label:"Instalar app"},
   {id:"ayuda",      icon: BookOpen,        label:"Manual"},
