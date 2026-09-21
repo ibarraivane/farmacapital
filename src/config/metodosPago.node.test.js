@@ -16,9 +16,11 @@ describe("metodosPago config", async () => {
     recargoCatalogoOnline,
   } = mod;
 
-  it("defaults 150 y 8%", () => {
-    assert.equal(montoMinimoPedidoOnline(), 150);
+  it("defaults sin mínimo de domicilio y recargo 8%", () => {
+    assert.equal(montoMinimoPedidoOnline(), 0);
     assert.equal(recargoCatalogoOnline(), 0.08);
+    assert.equal(cumpleMontoMinimoEnvio(20), true);
+    assert.equal(cumpleMontoMinimoEnvio(1), true);
   });
 
   it("bordes de mínimo", () => {

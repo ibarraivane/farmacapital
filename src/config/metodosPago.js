@@ -13,11 +13,14 @@ function numEnv(keys, fallback) {
   return fallback;
 }
 
-/** Mínimo de productos (antes de envío) para domicilio / prepago online. Pickup sin mínimo. */
+/**
+ * Mínimo de productos para domicilio. 0 = sin mínimo.
+ * El envío se cotiza después (DiDi/Uber) y se liquida en Mi cuenta.
+ */
 export function montoMinimoPedidoOnline() {
   return numEnv(
     ["REACT_APP_MONTO_MINIMO_PEDIDO_ONLINE", "MONTO_MINIMO_PEDIDO_ONLINE"],
-    150
+    0
   );
 }
 
@@ -31,7 +34,7 @@ export function recargoCatalogoOnline() {
 
 export function mensajeMontoMinimoPedidoOnline(min = montoMinimoPedidoOnline()) {
   const m = Number(min);
-  const pretty = Number.isFinite(m) ? m.toFixed(m % 1 ? 2 : 0) : "150";
+  const pretty = Number.isFinite(m) ? m.toFixed(m % 1 ? 2 : 0) : "0";
   return `El pedido a domicilio tiene un mínimo de $${pretty} en productos (antes de envío). Agrega algo más al carrito o recógelo en farmacia sin mínimo.`;
 }
 
