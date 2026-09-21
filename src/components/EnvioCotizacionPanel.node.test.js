@@ -17,5 +17,8 @@ describe("EnvioCotizacionPanel campos claros", () => {
       src,
       /<input[\s\S]{0,180}style=\{\{\s*width:\s*80/
     );
+    assert.doesNotMatch(src, /liga de pago/);
+    assert.match(src, /Copiar mensaje/);
+    assert.match(src, /textoClienteEnvioEnCheckout/);
   });
 });

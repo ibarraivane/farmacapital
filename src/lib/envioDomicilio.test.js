@@ -1,12 +1,17 @@
 import {
   calcularCostoEnvio,
   checkoutPuedePedirEnvio,
+  clientePuedePagarPedidoEnvio,
+  desgloseEnvioCheckout,
   estimarEnvioDesdeCoords,
   etiquetaEstadoEnvioCliente,
+  feeEnvioEnCheckout,
   getEnvioConfigCliente,
   haversineKm,
   minutosRestantesCotizacion,
+  pedidosConEnvioPorPagar,
   proveedorSugerido,
+  textoClienteEnvioEnCheckout,
 } from "./envioDomicilio";
 
 describe("envioDomicilio cliente", () => {
@@ -47,5 +52,36 @@ describe("envioDomicilio cliente", () => {
     expect(etiquetaEstadoEnvioCliente({ estado: "cotizado", cobrado_en_checkout: true }, "pending")).toBe("Envío en el total");
     expect(etiquetaEstadoEnvioCliente({ estado: "link_enviado" }, "approved")).toBe("Listo para pagar envío");
     expect(etiquetaEstadoEnvioCliente({ estado: "en_ruta" })).toBe("En ruta");
+  });
+
+  test("el transporte cotizado se suma al checkout del cliente", () => {
+    const pedido = {
+      id: 333,
+      tipo_entrega: "envio",
+      total: 540,
+      costo_envio: 60,
+      logistics_meta: { envio: { estado: "cotizado", costo_cotizado: 60, cobrado_en_checkout: true } },
+    };
+    expect(feeEnvioEnCheckout(pedido)).toBe(60);
+    expect(clientePuedePagarPedidoEnvio(pedido)).toBe(true);
+    expect(clientePuedePagarPedidoEnvio({
+      tipo_entrega: "envio",
+      logistics_meta: { envio: { estado: "pendiente_cotizacion" } },
+    })).toBe(false);
+    expect(desgloseEnvioCheckout(540, 60)).toEqual({ productos: 480, envio: 60, total: 540 });
+    const texto = textoClienteEnvioEnCheckout({
+      pedidoId: 333,
+      costo: 60,
+      itemsTotal: 480,
+      total: 540,
+    });
+    expect(texto).toContain("https://www.farmacapital.mx/carrito");
+    expect(texto).toContain("Pagar ahora");
+    expect(texto).not.toMatch(/\/pagar\?/);
+    expect(pedidosConEnvioPorPagar([
+      pedido,
+      { id: 1, tipo_entrega: "envio", estado: "pendiente", payment_status: "pending", logistics_meta: { envio: { estado: "pendiente_cotizacion" } } },
+      { id: 2, tipo_entrega: "recoger", total: 80 },
+    ]).map((p) => p.id)).toEqual([333]);
   });
 });

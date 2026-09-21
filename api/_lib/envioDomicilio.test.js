@@ -14,6 +14,9 @@ const {
   cotizacionVencida,
   puedeDespacharEnvio,
   DEFAULT_TARIFAS,
+  totalPedidoConCostoEnvio,
+  cotizacionEnvioMeta,
+  textoClienteEnvioEnCheckout,
 } = require('./envioDomicilio');
 
 describe('envioDomicilio tarifas y radio', () => {
@@ -60,7 +63,60 @@ describe('envioDomicilio tarifas y radio', () => {
   });
 });
 
-describe('envioDomicilio distancia', () => {
+describe('envioDomicilio cotización en checkout', () => {
+  it('cotización del vendedor entra al total del checkout', () => {
+    const { itemsTotal, total } = totalPedidoConCostoEnvio(480, null, 60);
+    assert.equal(itemsTotal, 480);
+    assert.equal(total, 540);
+    const otra = totalPedidoConCostoEnvio(540, 60, 75);
+    assert.equal(otra.itemsTotal, 480);
+    assert.equal(otra.total, 555);
+    const meta = cotizacionEnvioMeta(
+      { calle: 'Río Grijalva 37' },
+      { costo: 60, proveedor: 'didi', distanciaKm: null, now: new Date('2026-09-21T00:00:00Z') },
+    );
+    assert.equal(meta.cobrado_en_checkout, true);
+    assert.equal(meta.estado, 'cotizado');
+    assert.equal(meta.costo_cotizado, 60);
+    assert.equal(meta.distancia_km, null);
+    assert.equal(meta.calle, 'Río Grijalva 37');
+    const texto = textoClienteEnvioEnCheckout({
+      pedidoId: 333,
+      costo: 60,
+      itemsTotal: 480,
+      total: 540,
+    });
+    assert.match(texto, /Pagar ahora/);
+    assert.match(texto, /\/carrito/);
+    assert.doesNotMatch(texto, /\/pagar\?/);
+    assert.match(texto, /envío \$60\.00/);
+    assert.match(texto, /\$540\.00/);
+  });
+
+  it('el correo sale de contacto y abre el carrito', () => {
+    const { correoAvisoEnvioCotizado } = require('./envioDomicilio');
+    const mail = correoAvisoEnvioCotizado({
+      pedidoId: 333,
+      costo: 60,
+      itemsTotal: 480,
+      total: 540,
+      nombre: 'Ivan Ibarra',
+    });
+    assert.equal(mail.from, 'FarmaCapital <contacto@farmacapital.mx>');
+    assert.equal(mail.replyTo, 'contacto@farmacapital.mx');
+    assert.match(mail.subject, /#FC-0333/);
+    assert.match(mail.subject, /listo para pagar/);
+    assert.match(mail.text, /Hola Ivan Ibarra/);
+    assert.match(mail.text, /Envío a domicilio: \$60\.00/);
+    assert.match(mail.text, /Total a pagar: \$540\.00/);
+    assert.match(mail.text, /ticket de compra va adjunto/);
+    assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/carrito/);
+    assert.match(mail.html, /href="https:\/\/www\.farmacapital\.mx\/carrito"/);
+    assert.match(mail.html, /Abrir mi carrito/);
+    assert.equal(mail.filename, 'ticket-FC-0333.pdf');
+    assert.doesNotMatch(mail.text, /\/pagar\?/);
+    assert.doesNotMatch(mail.html, /\/pagar\?/);
+  });
   it('haversine de la sucursal a ~0 km', () => {
     const d = haversineKm(19.3714047, -99.0526916, 19.3714047, -99.0526916);
     assert.equal(d, 0);

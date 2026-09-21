@@ -24,6 +24,7 @@ export const TIENDA_PAGE_IDS = [
   "terminos-puntos",
   "tarjeta",
   "conseguir",
+  "pagar",
 ];
 
 /** Destinos válidos para banners (CTA). detalle/checkout/reset no se eligen a mano. */
@@ -67,6 +68,7 @@ const PAGE_TO_SLUG = {
   "terminos-puntos": "terminos-puntos",
   tarjeta: "tarjeta",
   conseguir: "conseguir",
+  pagar: "pagar",
 };
 
 const SLUG_TO_PAGE = {
@@ -105,6 +107,7 @@ const SLUG_TO_PAGE = {
   hola: "tarjeta",
   conseguir: "conseguir",
   "te-lo-conseguimos": "conseguir",
+  pagar: "pagar",
 };
 
 /**

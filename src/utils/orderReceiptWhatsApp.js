@@ -1,6 +1,7 @@
 /** WhatsApp y folios para pedidos online — FarmaCapital */
 
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
+import { feeEnvioEnCheckout } from "../lib/envioDomicilio";
 
 export const FARMACIA_WHATSAPP = FARMACIA_FISCAL.telefono;
 export const FARMACIA_WHATSAPP_DISPLAY = FARMACIA_FISCAL.telefono_display;
@@ -10,6 +11,20 @@ export const FARMACIA_MAPS_URL = FARMACIA_FISCAL.maps_url;
 export function formatFolioOnline(pedidoId) {
   if (pedidoId == null) return null;
   return `#FC-${String(pedidoId).padStart(4, "0")}`;
+}
+
+/** Renglones del recibo: productos del pedido y, si ya hay cotización, el transporte. */
+export function lineasReciboPedidoOnline(pedido) {
+  const lineas = (pedido?.pedido_items || []).map((item) => ({
+    nombre: item?.productos?.nombre || item?.nombre || "Producto",
+    qty: Number(item?.cantidad ?? item?.qty) || 1,
+    precio: Number(item?.precio_unitario ?? item?.precio) || 0,
+  }));
+  const envio = feeEnvioEnCheckout(pedido);
+  if (envio != null && envio > 0) {
+    lineas.push({ nombre: "Envío a domicilio", qty: 1, precio: envio });
+  }
+  return lineas;
 }
 
 export function formatFolioPOS(pedidoId) {

@@ -24,11 +24,6 @@ import {
   METODO_PENDIENTE_TIENDA,
 } from "./utils/pedidosTiendaWeb";
 import {
-  cumpleMontoMinimoEnvio,
-  mensajeMontoMinimoPedidoOnline,
-  montoMinimoPedidoOnline,
-} from "./config/metodosPago";
-import {
   productoPermitidoEnTiendaFarmaciaWeb,
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
@@ -79,12 +74,18 @@ import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "
 import { attachEnvioPedido } from "./lib/envioDomicilioClient";
 import {
   checkoutPuedePedirEnvio,
+  clientePuedePagarPedidoEnvio,
   estimarEnvioDesdeCoords,
   etiquetaEstadoEnvioCliente,
+  feeEnvioEnCheckout,
+  desgloseEnvioCheckout,
+  pedidosConEnvioPorPagar,
   formatEnvioMoney,
   getEnvioConfigCliente,
 } from "./lib/envioDomicilio";
 import DestinationPicker from "./components/DestinationPicker";
+import AvisoEnvioPorPagar from "./components/AvisoEnvioPorPagar";
+import PagarPedidoInvitado from "./components/PagarPedidoInvitado";
 import RecompraStrip, { ProductosStripStyles } from "./components/RecompraStrip";
 import { attachTiendaHorizontalStripWheel } from "./lib/forwardVerticalWheel";
 import SocialLoginButtons from "./components/SocialLoginButtons";
@@ -371,7 +372,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber, te escribe por WhatsApp el costo y en Mi cuenta confirmas y pagas productos + envío. Rappi es otra app." },
+  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, abres el pedido y pagas productos + envío juntos con Pagar ahora. Rappi es otra app." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
@@ -1765,6 +1766,7 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
           </button>
         </div>
       </header>
+      <AvisoEnvioPorPagar user={user} setPage={setPage} />
       {mostrarBuscador && (
         <div style={{
           background:"#fff",
@@ -2289,7 +2291,7 @@ function ContenidoCDMX({ color }){
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Pides, el vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, confirmas y pagas productos + transporte. Rappi no entrega pedidos de esta tienda.
+        Pides, el vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, abres el pedido y pagas productos + transporte juntos. Rappi no entrega pedidos de esta tienda.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
@@ -3569,7 +3571,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
 }
 
 // ── CARRITO ───────────────────────────────────────────────────
-function Carrito({cart,setCart,setPage,setEntregaGlobal}){
+function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
@@ -3607,14 +3609,98 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
     return {...c,qty:Math.min(next,max)};
   }));
   const carritoEncargo = tipoCarrito(cart) === "bajo_pedido";
+  const [porPagar, setPorPagar] = useState([]);
+  const [pagandoId, setPagandoId] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    const tok = getClienteToken();
+    if (!tok) {
+      setPorPagar([]);
+      return undefined;
+    }
+    supabase.rpc("cliente_listar_mis_pedidos", { p_session_token: tok, p_limite: 20 })
+      .then(({ data }) => {
+        if (!vivo) return;
+        setPorPagar(pedidosConEnvioPorPagar(Array.isArray(data) ? data : []));
+      })
+      .catch(() => { if (vivo) setPorPagar([]); });
+    return () => { vivo = false; };
+  }, [user?.id, user?.telefono]);
+  const pagarPedidoEnCarrito = async (p) => {
+    const tokCli = getClienteToken();
+    if (!tokCli) {
+      setPostLoginPage("carrito");
+      setPage("login");
+      return;
+    }
+    setPagandoId(p.id);
+    try {
+      const mpResp = await fetch("/api/payments/mp/create-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokCli}` },
+        body: JSON.stringify({
+          pedidoId: p.id,
+          amount: Number(p.total || 0),
+          baseUrl: window.location.origin,
+          payer: {
+            name: String(user?.nombre || "").trim() || null,
+            email: String(user?.email || "").trim() || null,
+          },
+        }),
+      });
+      const mpData = await mpResp.json().catch(() => ({}));
+      if (!mpResp.ok || !mpData?.ok || !(mpData.initPoint || mpData.sandboxInitPoint)) {
+        alert(mpData?.error || "No se pudo iniciar Mercado Pago.");
+        setPagandoId(null);
+        return;
+      }
+      window.location.href = mpData.initPoint || mpData.sandboxInitPoint;
+    } catch (_) {
+      alert("No se pudo iniciar Mercado Pago.");
+      setPagandoId(null);
+    }
+  };
+  const bloquePorPagar = porPagar.length > 0 ? (
+    <div style={{maxWidth:600,margin:"0 auto 20px",textAlign:"left"}}>
+      {porPagar.map((p) => {
+        const fee = feeEnvioEnCheckout(p);
+        const partes = desgloseEnvioCheckout(p.total, fee);
+        return (
+          <div key={p.id} style={{background:C.white,border:"1px solid #fcd34d",borderRadius:14,padding:16,marginBottom:12}}>
+            <div style={{color:C.dark,fontWeight:800,fontSize:16}}>Pedido #{p.id} · precio final {$(p.total)}</div>
+            <div style={{color:"#92400e",fontSize:13,lineHeight:1.45,marginTop:6}}>
+              Productos {$(partes.productos)} + envío {formatEnvioMoney(partes.envio)}
+            </div>
+            <Btn onClick={() => pagarPedidoEnCarrito(p)} col={BRAND.primary} sm disabled={pagandoId===p.id} style={{marginTop:12}}>
+              {pagandoId===p.id ? "Abriendo pago..." : `Pagar ahora ${$(p.total)}`}
+            </Btn>
+          </div>
+        );
+      })}
+    </div>
+  ) : null;
   const rm=id=>setCart(p=>p.filter(c=>c.id!==id));
   if(!cart.length) return(
-    <div style={{maxWidth:600,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
-      <div style={{width:64,height:64,borderRadius:18,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
-        <ShoppingCart size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
-      </div>
-      <h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:16}}>Carrito vacío</h2>
-      <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
+    <div style={{maxWidth:600,margin:"40px auto",padding:"0 24px",textAlign:"center"}}>
+      {bloquePorPagar}
+      {!porPagar.length && (
+        <>
+          <div style={{width:64,height:64,borderRadius:18,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
+            <ShoppingCart size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+          </div>
+          <h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:8}}>Carrito vacío</h2>
+          {!getClienteToken() && (
+            <p style={{color:C.mid,fontSize:14,lineHeight:1.5,margin:"0 0 16px"}}>
+              Si ya pediste a domicilio, entra con el teléfono del pedido. Aquí ves el precio final.
+            </p>
+          )}
+          {!getClienteToken() ? (
+            <Btn onClick={()=>{ setPostLoginPage("carrito"); setPage("login"); }} col={BRAND.primary}>Entrar a mi cuenta</Btn>
+          ) : (
+            <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
+          )}
+        </>
+      )}
     </div>
   );
   return(
@@ -3623,6 +3709,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         <ShoppingCart size={24} strokeWidth={2} color={BRAND.primary} aria-hidden />
         Tu carrito
       </h1>
+      {bloquePorPagar}
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(340px, 100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
           {cart.map(item=>{
@@ -3677,7 +3764,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber, te escribe por WhatsApp y pagas productos + transporte en Mi cuenta.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta y pagas productos + transporte.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -3955,9 +4042,6 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const envioFee = 0;
   const cargoPlataforma = cart.length ? cargoPlataformaOnline({ entrega }) : 0;
   const totalPagar = totalPedidoConPlataforma(sub, { entrega }) || Math.round(sub * 100) / 100;
-  const minOnline = montoMinimoPedidoOnline();
-  const alcanzaMinimoEnvio = entrega === "pickup" || cumpleMontoMinimoEnvio(sub, minOnline);
-  const msgMinimoEnvio = mensajeMontoMinimoPedidoOnline(minOnline);
 
   useEffect(() => {
     if (entrega === "pickup" || !direccionOk) {
@@ -4111,12 +4195,6 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         setG(false);
         return;
       }
-      if (tipo_entrega === "envio" && !cumpleMontoMinimoEnvio(sub, montoMinimoPedidoOnline())) {
-        notifyCheckout(mensajeMontoMinimoPedidoOnline(), "warning");
-        setG(false);
-        return;
-      }
-
       const tokCli = getClienteToken();
       const esInvitado = !tokCli;
 
@@ -4430,7 +4508,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     const instruccionEntrega = esPickup
       ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioPendienteCotizacion
-        ? "El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp el costo. Entras a Mi cuenta, confirmas y pagas productos + transporte."
+        ? "El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp. Entras a Mi cuenta, abres este pedido y pagas productos + transporte juntos."
         : lastOrder.envioFee
           ? `Envío ${formatEnvioMoney(lastOrder.envioFee)} en tu pago. Te avisamos cuando salga el mensajero.`
           : "Te avisamos cuando salga el mensajero.";
@@ -4548,7 +4626,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             const camposContacto = [
               ["Nombre completo","nombre","Ej. tu nombre"],
               ["Teléfono","tel","Ej. 55 1234 5678"],
-              ["Correo electrónico","email","Ej. tu@correo.com"],
+              ["Correo electrónico (obligatorio)","email","Ej. tu@correo.com"],
             ];
             const esInvitadoUI = !getClienteToken();
             return(
@@ -4569,6 +4647,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     </div>
                   ))}
                 </div>
+                {necesitaDireccion && (
+                  <div style={{fontSize:12,color:C.mid,marginTop:-4,marginBottom:14,lineHeight:1.45}}>
+                    El correo es obligatorio. Cuando el envío esté cotizado te llega desde contacto@farmacapital.mx la liga de tu carrito, con el precio final.
+                  </div>
+                )}
                 {necesitaDireccion&&(
                   <>
                     <div style={{color:C.dark,fontWeight:700,fontSize:15,margin:"4px 0 14px",paddingTop:14,borderTop:`1px solid ${C.border}`}}>
@@ -4664,19 +4747,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     Para continuar completa: <strong>{faltantesCheckout.join(", ")}</strong>
                   </div>
                 )}
-                {!alcanzaMinimoEnvio && (
-                  <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
-                    {msgMinimoEnvio}
-                  </div>
-                )}
                 <Btn
                   onClick={()=>{
                     if (!cart.length) {
                       setPage("carrito");
-                      return;
-                    }
-                    if (!alcanzaMinimoEnvio) {
-                      notifyCheckout(msgMinimoEnvio, "warning");
                       return;
                     }
                     setMetodo(entrega === "pickup" ? METODO_PENDIENTE_TIENDA : "mercadopago");
@@ -4684,7 +4758,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   }}
                   col={BRAND.primary}
                   style={{marginTop:20,width:stack?"100%":undefined}}
-                  disabled={!cart.length || !datosCheckoutCompletos || !envioListoParaPagar || !alcanzaMinimoEnvio}
+                  disabled={!cart.length || !datosCheckoutCompletos || !envioListoParaPagar}
                 >
                   {entrega==="pickup" ? "Revisar pedido →" : "Revisar y confirmar →"}
                 </Btn>
@@ -4705,7 +4779,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 {entrega!=="pickup" && (
                   <div style={{marginTop:4,color:"#92400e",fontWeight:600}}>
                     {entrega!=="pickup"
-                      ? "El vendedor cotiza el envío y te avisa por WhatsApp. Pagas después en Mi cuenta."
+                      ? "El vendedor cotiza el envío y te avisa por WhatsApp. El transporte se suma al total de tu pedido en Mi cuenta."
                       : null}
                   </div>
                 )}
@@ -4714,7 +4788,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
                     : entrega==="pickup"
                       ? "Pagas al recoger con tarjeta (terminal BBVA)"
-                      : "Confirmas ahora; pagas productos + envío cuando el vendedor cotice"}
+                      : "Confirmas ahora. Cuando el vendedor cargue el transporte, entras a Mi cuenta y pagas productos + envío."}
                 </div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>
@@ -4742,14 +4816,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <span style={{color:C.dark,fontWeight:800}}>Total</span>
                 <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$peso(totalPagar)}</span>
               </div>
-              {!alcanzaMinimoEnvio && (
-                <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
-                  {msgMinimoEnvio}
-                </div>
-              )}
               <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
                 <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
-                <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar||!alcanzaMinimoEnvio} style={{flex:stack?1:undefined,minWidth:0}}>
+                <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar} style={{flex:stack?1:undefined,minWidth:0}}>
                   {guardando
                     ? "Procesando…"
                     : esEncargo
@@ -6150,7 +6219,12 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
       });
       const mpData = await mpResp.json().catch(() => ({}));
       if (!mpResp.ok || !mpData?.ok || !(mpData.initPoint || mpData.sandboxInitPoint)) {
-        const msg = mpData?.error || "No se pudo iniciar Mercado Pago.";
+        const code = mpData?.error;
+        const msg = code === "envio_quote_required"
+          ? "Todavía estamos cotizando el envío. Cuando esté el precio, aquí pagas productos + transporte."
+          : code === "amount_mismatch"
+            ? "El total cambió. Recarga Mis pedidos y vuelve a pagar."
+            : (code || "No se pudo iniciar Mercado Pago.");
         alert(msg);
         setBusyPayPedidoId(null);
         return;
@@ -6306,12 +6380,17 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
             {(()=>{ const ep = etiquetaEstadoPagoPedido(p); return <Tag col={ep.col} sm>{ep.label}</Tag>; })()}
             {(()=>{ const el = etiquetaLogisticaPedido(p); return <Tag col={el.col} sm>{el.label}</Tag>; })()}
-            {p.tipo_entrega === "envio" && Number(p.costo_envio) >= 0 && p.logistics_meta?.envio?.cobrado_en_checkout ? (
+            {p.tipo_entrega === "envio" && feeEnvioEnCheckout(p) != null ? (
               <Tag col={BRAND.accent} sm>
-                Envío {formatEnvioMoney(p.costo_envio)} en el pago
+                Envío {formatEnvioMoney(feeEnvioEnCheckout(p))} en el pago
               </Tag>
             ) : null}
           </div>
+          {p.tipo_entrega === "envio" && feeEnvioEnCheckout(p) != null && String(p.payment_status || "").toLowerCase() !== "approved" ? (
+            <div style={{marginBottom:10,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:13,color:"#92400e",lineHeight:1.45}}>
+              El envío ya está cotizado: <strong>{formatEnvioMoney(feeEnvioEnCheckout(p))}</strong>. El total de arriba incluye productos y transporte. Revísalo y toca Pagar ahora.
+            </div>
+          ) : null}
           {p.delivery_tracking_url ? (
             <div style={{fontSize:12,color:C.textMid,marginBottom:10}}>
               Tracking: <a href={p.delivery_tracking_url} target="_blank" rel="noreferrer" style={{color:BRAND.primary,fontWeight:700}}>Ver seguimiento</a>
@@ -6334,8 +6413,8 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           ) : null}
           {!pedidoEsBajoPedido(p) && String(p.metodo_pago || "").toLowerCase() === "mercadopago" && String(p.payment_status || "").toLowerCase() !== "approved" ? (
             <div style={{marginBottom:10}}>
-              {p.tipo_entrega === "envio" && !["cotizado", "link_enviado"].includes(String(p.logistics_meta?.envio?.estado || "").toLowerCase()) ? (
-                <div style={{fontSize:12,color:C.mid,lineHeight:1.45}}>Te escribimos por WhatsApp cuando el vendedor cotice el envío. Entonces podrás pagar aquí.</div>
+              {p.tipo_entrega === "envio" && !clientePuedePagarPedidoEnvio(p) ? (
+                <div style={{fontSize:12,color:C.mid,lineHeight:1.45}}>Estamos cotizando el envío. En cuanto el vendedor cargue el transporte, aquí pagas productos + envío.</div>
               ) : (
                 <Btn onClick={()=>pagarPedidoMercadoPago(p)} col={BRAND.primary} sm disabled={busyPayPedidoId===p.id}>
                   {busyPayPedidoId===p.id
@@ -6348,6 +6427,12 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <div style={{background:C.cardDark,borderRadius:10,padding:"10px 14px"}}>
             <div style={{color:C.mid,fontSize:11,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Productos</div>
             {(p.pedido_items||[]).map((item,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.dark,fontSize:13}}>{item.productos?.nombre||"Producto"} ×{item.cantidad}</span><span style={{color:BRAND.primary,fontSize:13,fontWeight:600}}>{$(item.precio_unitario*item.cantidad)}</span></div>))}
+            {feeEnvioEnCheckout(p) != null ? (
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,paddingTop:6,borderTop:`1px solid ${C.border}`}}>
+                <span style={{color:C.dark,fontSize:13}}>Envío a domicilio</span>
+                <span style={{color:BRAND.primary,fontSize:13,fontWeight:700}}>{formatEnvioMoney(feeEnvioEnCheckout(p))}</span>
+              </div>
+            ) : null}
           </div>
         </div>
             ))}
@@ -6942,7 +7027,7 @@ export default function TiendaFarmaCapital(){
     catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos} filtroRx={filtroRx} onClearRx={()=>setPage("catalogo",{rx:false})}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
-    carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
+    carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout} user={user}/>,
     checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} setUser={setUser} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
     login:         <Login setUser={setUser} setPage={setPage}/>,
@@ -6971,6 +7056,7 @@ export default function TiendaFarmaCapital(){
         <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina={productosVistaTiendaFarmacia.some(esBajoPedido)}/>
       </>
     ),
+    pagar: <PagarPedidoInvitado />,
   };
 
   const sinFooter=["home","tarjeta"];
