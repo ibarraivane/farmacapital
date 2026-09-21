@@ -1,6 +1,7 @@
 'use strict';
 
 const { FARMACIA_FISCAL } = require('./farmaciaFiscal');
+const { resolverFromVerificado } = require('./resendFrom');
 const {
   sendWhatsAppSmart,
   getWhatsAppTemplateConfig,
@@ -189,8 +190,18 @@ function buildMessage({ event, pedido, items }) {
 
 async function sendEmail({ to, subject, text, html, from, replyTo, attachments }) {
   const RESEND_API_KEY = String(process.env.RESEND_API_KEY || '').trim();
-  const fromAddr = String(from || process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
+  const notifyFrom = String(process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
+  const fromAddr = String(from || notifyFrom).trim();
   if (!RESEND_API_KEY || !to) return { sent: false, reason: 'email_not_configured' };
+  const resuelto = await resolverFromVerificado({
+    apiKey: RESEND_API_KEY,
+    from: fromAddr,
+    notifyFrom,
+    fetchImpl: fetch,
+  });
+  if (!resuelto.ok) {
+    return { sent: false, reason: resuelto.reason || 'domain_not_verified', detail: resuelto.detail };
+  }
   const files = Array.isArray(attachments) ? attachments.filter((a) => a?.filename && a?.content) : [];
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -199,7 +210,7 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: fromAddr,
+      from: resuelto.from,
       to: [to],
       subject,
       text,
@@ -211,9 +222,9 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
   if (!resp.ok) {
     let detail = null;
     try { detail = await resp.json(); } catch { detail = await resp.text(); }
-    return { sent: false, reason: 'email_provider_error', detail };
+    return { sent: false, reason: 'email_provider_error', detail, from: resuelto.from };
   }
-  return { sent: true };
+  return { sent: true, from: resuelto.from };
 }
 
 async function sendTwilioWhatsapp({ to, text }) {

@@ -23,6 +23,7 @@ import { compartirODescargarPng } from "../utils/reciboImagen";
 import TicketVenta from "./tickets/TicketVenta";
 import EnvioCotizacionPanel from "./EnvioCotizacionPanel";
 import CronometroPedidoOnline from "./CronometroPedidoOnline";
+import FilaPedidoUnaLinea, { nombreQuienPide } from "./FilaPedidoUnaLinea";
 import { IconoAnaquel } from "./pos/PosIconos";
 
 function ubicacionPedidoItem(item) {
@@ -42,7 +43,7 @@ export default function PedidoOnlineCard({
 }) {
   const C = C_LIGHT;
   const [abierto, setAbierto] = useState(false);
-  const clienteNombre = p.clientes?.nombre || p.guest_nombre || "—";
+  const clienteNombre = nombreQuienPide(p);
   const clienteTel = p.clientes?.telefono || p.guest_telefono || "";
   const folioPOS = formatFolioOnline(p.id);
   const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
@@ -111,40 +112,23 @@ export default function PedidoOnlineCard({
 
   return (
     <Box style={{ padding: abierto ? (isNarrow ? 14 : 16) : "8px 12px", marginBottom: 8, minWidth: 0 }}>
-      <button
-        type="button"
-        aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "nowrap",
-          background: "none",
-          border: "none",
-          padding: 0,
-          cursor: "pointer",
-          textAlign: "left",
-          colorScheme: "light",
-          minWidth: 0,
-        }}
-      >
-        <span style={{ color: C.textDim, fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{abierto ? "▾" : "▸"}</span>
-        <span style={{ color: C.text, fontWeight: 800, fontSize: 13, flexShrink: 0 }}>Pedido #{p.id}</span>
-        <span style={{ background: BRAND.primary, color: "#fff", fontWeight: 900, fontSize: 11, padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{folioPOS}</span>
-        <span style={{ color: C.text, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{clienteNombre}</span>
-        <Tag col={p.tipo_entrega === "envio" ? C.teal : C.green} sm>{labelTipoEntregaPedido(p.tipo_entrega)}</Tag>
-        {(p.guest_nombre || p.guest_telefono) && <Tag col={C.amber} sm>Invitado</Tag>}
-        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <Tag col={ep.col} sm>{ep.label}</Tag>
-          <CronometroPedidoOnline pedido={p} />
-          <span style={{ color: C.blue, fontWeight: 900, fontSize: 14 }}>{$(p.total)}</span>
-        </span>
-      </button>
+      <FilaPedidoUnaLinea
+        abierto={abierto}
+        onToggle={() => setAbierto((v) => !v)}
+        nombre={clienteNombre}
+        pedidoId={p.id}
+        total={$(p.total)}
+      />
 
       {abierto && (
         <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+            <span style={{ background: BRAND.primary, color: "#fff", fontWeight: 900, fontSize: 11, padding: "2px 8px", borderRadius: 20 }}>{folioPOS}</span>
+            <Tag col={p.tipo_entrega === "envio" ? C.teal : C.green} sm>{labelTipoEntregaPedido(p.tipo_entrega)}</Tag>
+            {(p.guest_nombre || p.guest_telefono) && <Tag col={C.amber} sm>Invitado</Tag>}
+            <Tag col={ep.col} sm>{ep.label}</Tag>
+            <CronometroPedidoOnline pedido={p} />
+          </div>
           <div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>{clienteNombre}</div>
           {clienteTel && <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>📱 {clienteTel}</div>}
           {p.tipo_entrega === "envio" && p.direccion && (

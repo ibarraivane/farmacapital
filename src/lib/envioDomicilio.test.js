@@ -98,6 +98,11 @@ describe("envioDomicilio cliente", () => {
       costo: 100,
       detail: { message: "The farmacapital.mx domain is not verified." },
     })).toMatch(/verifica el dominio/);
+    expect(mensajeCorreoEnvioCotizado({
+      sent: false,
+      reason: "domain_not_verified",
+      costo: 100,
+    })).toMatch(/verifica el dominio/);
     expect(mensajeCorreoEnvioCotizado({ sent: true, costo: 100 })).toMatch(/contacto@farmacapital\.mx/);
   });
 });
