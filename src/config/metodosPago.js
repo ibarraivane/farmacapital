@@ -13,11 +13,15 @@ function numEnv(keys, fallback) {
   return fallback;
 }
 
-/** Mínimo de productos (antes de envío) para domicilio / prepago online. Pickup sin mínimo. */
+/**
+ * Mínimo de productos (antes de envío) para domicilio / prepago online.
+ * Default 0: el cliente ya paga el envío, no hay piso. Pickup tampoco tiene mínimo.
+ * Para reactivar un piso: REACT_APP_MONTO_MINIMO_PEDIDO_ONLINE / MONTO_MINIMO_PEDIDO_ONLINE.
+ */
 export function montoMinimoPedidoOnline() {
   return numEnv(
     ["REACT_APP_MONTO_MINIMO_PEDIDO_ONLINE", "MONTO_MINIMO_PEDIDO_ONLINE"],
-    150
+    0
   );
 }
 
@@ -31,14 +35,16 @@ export function recargoCatalogoOnline() {
 
 export function mensajeMontoMinimoPedidoOnline(min = montoMinimoPedidoOnline()) {
   const m = Number(min);
-  const pretty = Number.isFinite(m) ? m.toFixed(m % 1 ? 2 : 0) : "150";
+  if (!Number.isFinite(m) || m <= 0) return "";
+  const pretty = m.toFixed(m % 1 ? 2 : 0);
   return `El pedido a domicilio tiene un mínimo de $${pretty} en productos (antes de envío). Agrega algo más al carrito o recógelo en farmacia sin mínimo.`;
 }
 
-/** true si el subtotal de productos alcanza el mínimo para canal envío. */
+/** true si el subtotal de productos alcanza el mínimo para canal envío. min <= 0 = sin piso. */
 export function cumpleMontoMinimoEnvio(subtotalProductos, min = montoMinimoPedidoOnline()) {
-  const sub = Number(subtotalProductos);
   const m = Number(min);
-  if (!Number.isFinite(sub) || !Number.isFinite(m)) return false;
+  if (!Number.isFinite(m) || m <= 0) return true;
+  const sub = Number(subtotalProductos);
+  if (!Number.isFinite(sub)) return false;
   return sub + 1e-9 >= m;
 }
