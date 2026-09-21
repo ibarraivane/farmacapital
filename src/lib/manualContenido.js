@@ -436,8 +436,21 @@ export const TEMAS = [
     titulo: "Banners de la tienda",
     resumen: "Imágenes del sitio público.",
     pasos: [
-      "Banners: hero, franja, mosaico o popup.",
+      "Banners: hero, franja, mosaico, popup o plantilla (producto / servicio / categoría).",
+      "Un banner de producto toma foto y precio del catálogo. No promociones medicamentos con receta.",
       "No afecta inventario ni Recibir.",
+    ],
+  },
+  {
+    id: "fichas",
+    moduloId: "fichas",
+    roles: ["admin", "gerente"],
+    titulo: "Fichas de producto",
+    resumen: "Borradores de descripción e imágenes. Nada se publica sin revisión.",
+    pasos: [
+      "Al dar de alta un producto se crea un job de enriquecimiento.",
+      "Fichas: edita el borrador, mira las fuentes, elige foto y aprueba o rechaza.",
+      "La tienda solo muestra fichas en estado publicado.",
     ],
   },
   {

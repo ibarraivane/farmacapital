@@ -36,6 +36,7 @@ const { runBootstrapReferencias } = require('./_lib/bootstrapReferencias');
 const { drainRappiQueue } = require('./_lib/rappiSync');
 const { runCaducidadJob } = require('./_lib/caducidadJob');
 const { runMonitorPreciosJob } = require('./_lib/monitorPreciosJob');
+const { runCatalogEnrichJob } = require('./_lib/catalog/enrichJob');
 
 function getQuery(req) {
   try {
@@ -111,6 +112,7 @@ function readJsonBody(req) {
  * funciones del plan Hobby. Llegan por rewrite (ver vercel.json):
  *   /api/caducidad/job        -> /api/backup?job=caducidad
  *   /api/monitor-precios/job  -> /api/backup?job=monitor-precios
+ *   /api/catalog/enrich       -> /api/backup?job=catalog-enrich
  * Se usa el parámetro `job` (no `action`) para no pisar el `action` que ya
  * mandan el front y el cron.
  */
@@ -140,6 +142,20 @@ async function handleJobRoute(job, req, res, startedAt) {
       finish(await runCaducidadJob({ supabaseUrl, serviceKey }));
     } catch (err) {
       fail(err, 'caducidad job');
+    }
+    return;
+  }
+
+  if (job === 'catalog-enrich') {
+    const auth = isAuthorized(req);
+    if (!auth.ok) {
+      res.status(401).json({ ok: false, error: 'unauthorized' });
+      return;
+    }
+    try {
+      finish(await runCatalogEnrichJob({ supabaseUrl, serviceKey }));
+    } catch (err) {
+      fail(err, 'catalog-enrich job');
     }
     return;
   }
@@ -212,7 +228,7 @@ module.exports = async function handler(req, res) {
   // Antes del candado de CRON_SECRET: monitor-precios tiene acciones que se
   // autentican con sesión de usuario, no con el secreto del cron.
   const job = getQuery(req).get('job');
-  if (job === 'caducidad' || job === 'monitor-precios') {
+  if (job === 'caducidad' || job === 'monitor-precios' || job === 'catalog-enrich') {
     await handleJobRoute(job, req, res, startedAt);
     return;
   }
