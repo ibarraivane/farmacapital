@@ -326,7 +326,7 @@ function correoAvisoEnvioCotizado({
     `Productos: ${productos}\n` +
     `Envío a domicilio: ${envio}\n` +
     `Total a pagar: ${totalTxt}\n\n` +
-    `El ticket de compra va adjunto a este correo.\n\n` +
+    `El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.\n\n` +
     `Para liquidarlo, abre tu carrito y toca Pagar ahora:\n${link}\n\n` +
     `Entra con el teléfono que usaste al hacer el pedido. Si el carrito se ve vacío, es porque este pedido ya está confirmado: al entrar aparece el total de arriba.\n\n` +
     `FarmaCapital\n` +
@@ -347,7 +347,7 @@ function correoAvisoEnvioCotizado({
     `<tr><td style="padding:4px 0;color:#334155;">Envío a domicilio</td><td style="padding:4px 0;text-align:right;">${envio}</td></tr>` +
     `<tr><td style="padding:8px 0 0;font-weight:800;">Total a pagar</td><td style="padding:8px 0 0;text-align:right;font-weight:800;font-size:18px;">${totalTxt}</td></tr>` +
     `</table>` +
-    `<p style="margin:16px 0 8px;">El ticket de compra va adjunto a este correo.</p>` +
+    `<p style="margin:16px 0 8px;">El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.</p>` +
     `<p style="margin:0 0 16px;">Para liquidarlo, abre tu carrito y toca <strong>Pagar ahora</strong>. Entra con el teléfono que usaste al hacer el pedido.</p>` +
     `<p style="margin:0 0 20px;"><a href="${escapeHtmlCorreo(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;padding:12px 18px;border-radius:8px;">Abrir mi carrito</a></p>` +
     `<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;"><a href="${escapeHtmlCorreo(link)}" style="color:#0f766e;">${escapeHtmlCorreo(link)}</a></p>` +
@@ -361,7 +361,6 @@ function correoAvisoEnvioCotizado({
     text,
     html,
     link,
-    filename: `ticket-FC-${String(pedidoId).padStart(4, '0')}.pdf`,
     lineas,
   };
 }

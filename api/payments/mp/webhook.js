@@ -1,6 +1,9 @@
 'use strict';
 const crypto = require('crypto');
 const { sendOrderNotifications } = require('../../_lib/orderNotifications');
+const { ensurePedidoReciboToken, buildReciboPublicUrl } = require('../../_lib/receiptTicket');
+const { lineasTicketCorreo } = require('../../_lib/envioDomicilio');
+const { ticketPagoAdjunto } = require('../../_lib/ticketEnvioPdf');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -34,6 +37,27 @@ function verifyMpWebhookSignature(req, dataId) {
   } catch {
     return false;
   }
+}
+
+async function fetchDatosTicketPedido(supabaseUrl, serviceKey, pedidoId) {
+  const selects = [
+    'id,total,costo_envio,guest_email,guest_nombre',
+    'id,total,guest_email,guest_nombre',
+    'id,total',
+  ];
+  const headers = {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+  };
+  for (const select of selects) {
+    const resp = await fetch(
+      `${supabaseUrl}/rest/v1/pedidos?id=eq.${pedidoId}&select=${select}&limit=1`,
+      { headers }
+    );
+    const rows = await resp.json().catch(() => []);
+    if (resp.ok && Array.isArray(rows) && rows[0]) return rows[0];
+  }
+  return null;
 }
 
 module.exports = async function handler(req, res) {
@@ -307,11 +331,43 @@ module.exports = async function handler(req, res) {
         const event = status === 'approved'
           ? 'payment_approved'
           : (status === 'pending' || status === 'in_process' ? 'payment_pending' : 'payment_rejected');
+        let ticket = null;
+        let guest = null;
+        if (event === 'payment_approved') {
+          guest = await fetchDatosTicketPedido(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, pedidoId);
+          try {
+            const token = await ensurePedidoReciboToken(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, pedidoId);
+            const ticketUrl = token ? buildReciboPublicUrl(token) : null;
+            const lineas = lineasTicketCorreo(itemRows);
+            const productos = lineas.reduce((sum, l) => sum + Number(l.importe || 0), 0);
+            ticket = ticketPagoAdjunto({
+              pedidoId,
+              nombre: cliente?.nombre || guest?.guest_nombre,
+              items: lineas,
+              productos,
+              envio: guest?.costo_envio,
+              total: pedidoBefore.total,
+              ticketUrl,
+            });
+          } catch (_) {
+            ticket = null;
+          }
+        }
+        const emailGuest = String(guest?.guest_email || '').trim();
+        const emailCliente = String(cliente?.email || '').trim();
+        const email = emailGuest.includes('@')
+          ? emailGuest
+          : (emailCliente.includes('@') ? emailCliente : null);
         await sendOrderNotifications({
           event,
           pedido: { ...pedidoBefore, id: pedidoId },
-          cliente: cliente || {},
+          cliente: {
+            ...(cliente || {}),
+            email,
+            nombre: cliente?.nombre || guest?.guest_nombre || '',
+          },
           items: Array.isArray(itemRows) ? itemRows : [],
+          ticket,
         });
       } catch (_) {
         // Notificaciones no bloquean webhook.

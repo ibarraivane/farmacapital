@@ -373,14 +373,22 @@ async function sendPosTicketNotification({
   });
 }
 
-async function sendOrderNotifications({ event, pedido, cliente, items }) {
+async function sendOrderNotifications({ event, pedido, cliente, items, ticket }) {
   const msg = buildReceiptMessage({ event, pedido, items });
+  const adjunto = event === 'payment_approved' && ticket?.content && ticket?.filename && ticket?.url
+    ? ticket
+    : null;
+  const emailText = adjunto
+    ? `${msg}\n\nTu ticket de compra:\n${adjunto.url}\nVa adjunto a este correo.`
+    : msg;
   const templateName = resolveOrderEventTemplate(event);
   const bodyParameters = templateName
     ? buildOrderTemplateBodyParams({ event, pedido, items, cliente })
     : undefined;
   const subject = event === 'payment_approved'
-    ? `Pago aprobado Pedido #${pedido?.id || ''}`
+    ? (adjunto
+      ? `FarmaCapital · Ticket del pedido #${pedido?.id || ''}`
+      : `Pago aprobado Pedido #${pedido?.id || ''}`)
     : `Actualizacion de Pedido #${pedido?.id || ''}`;
   const waPromise = pedidoQuiereWhatsAppRecibo(pedido)
     ? sendWhatsapp({
@@ -392,10 +400,17 @@ async function sendOrderNotifications({ event, pedido, cliente, items }) {
       })
     : Promise.resolve({ sent: false, reason: 'whatsapp_opt_out' });
   const [emailRes, waRes] = await Promise.all([
-    sendEmail({ to: cliente?.email || null, subject, text: msg }),
+    sendEmail({
+      to: cliente?.email || null,
+      subject,
+      text: emailText,
+      attachments: adjunto ? [{ filename: adjunto.filename, content: adjunto.content }] : undefined,
+      from: adjunto ? 'FarmaCapital <contacto@farmacapital.mx>' : undefined,
+      replyTo: adjunto ? 'contacto@farmacapital.mx' : undefined,
+    }),
     waPromise,
   ]);
-  return { ok: true, email: emailRes, whatsapp: waRes };
+  return { ok: true, email: emailRes, whatsapp: waRes, ticket: Boolean(adjunto) };
 }
 
 module.exports = {

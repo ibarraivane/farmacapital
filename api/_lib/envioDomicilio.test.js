@@ -109,11 +109,12 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.match(mail.text, /Hola Ivan Ibarra/);
     assert.match(mail.text, /Envío a domicilio: \$60\.00/);
     assert.match(mail.text, /Total a pagar: \$540\.00/);
-    assert.match(mail.text, /ticket de compra va adjunto/);
+    assert.match(mail.text, /ticket de compra se crea cuando terminas el pago/);
+    assert.doesNotMatch(mail.text, /va adjunto/);
+    assert.equal(mail.filename, undefined);
     assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/carrito/);
     assert.match(mail.html, /href="https:\/\/www\.farmacapital\.mx\/carrito"/);
     assert.match(mail.html, /Abrir mi carrito/);
-    assert.equal(mail.filename, 'ticket-FC-0333.pdf');
     assert.doesNotMatch(mail.text, /\/pagar\?/);
     assert.doesNotMatch(mail.html, /\/pagar\?/);
   });

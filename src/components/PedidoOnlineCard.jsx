@@ -87,6 +87,7 @@ export default function PedidoOnlineCard({
   };
 
   const guardarReciboImagen = async () => {
+    if (!pagado) return;
     setReciboBusy(true);
     try {
       const ensured = await ensurePedidoTicketUrl(p.id);
@@ -200,9 +201,11 @@ export default function PedidoOnlineCard({
             <button onClick={enviarWhatsApp} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: "#25D366", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
               💬 WhatsApp cliente
             </button>
-            <Btn ol col={C.blue} sm dis={reciboBusy} onClick={guardarReciboImagen}>
-              {reciboBusy ? "Armando imagen…" : "Recibo (imagen)"}
-            </Btn>
+            {pagado && (
+              <Btn ol col={C.blue} sm dis={reciboBusy} onClick={guardarReciboImagen}>
+                {reciboBusy ? "Armando imagen…" : "Recibo (imagen)"}
+              </Btn>
+            )}
             <Btn ol col={C.red} sm onClick={() => onCancelar(p)}>Cancelar</Btn>
           </div>
         </div>
