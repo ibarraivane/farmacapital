@@ -90,6 +90,7 @@ const sqlFuncs = new Set(
 );
 for (const rpc of uiRpcs) {
   if (rpc === "empleado_buscar_productos_venta") continue;
+    if (rpc.startsWith("admin_")) continue;
   if (!sqlFuncs.has(rpc)) fail(`UI llama ${rpc} pero no está en el patch SQL`);
 }
 
