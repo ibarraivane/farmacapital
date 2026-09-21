@@ -4,10 +4,11 @@ import {
   despacharEnvioPedido,
 } from "../lib/envioDomicilioClient";
 import {
+  desgloseEnvioCheckout,
   formatEnvioMoney,
   leerMetaEnvio,
   proveedorSugerido,
-  urlPagoCheckoutPedido,
+  textoClienteEnvioEnCheckout,
 } from "../lib/envioDomicilio";
 import { Inp, Btn } from "../ui";
 import { C_LIGHT } from "../constants";
@@ -123,13 +124,25 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
         <button
           type="button"
           onClick={() => {
-            const liga = urlPagoCheckoutPedido(pedido?.id, window.location.origin);
-            if (navigator?.clipboard?.writeText) navigator.clipboard.writeText(liga);
-            showToast?.("Liga de pago copiada. Mándasela por WhatsApp.", "success");
+            const fee = Number(meta.costo_cotizado);
+            const total = Number(pedido?.total);
+            if (!Number.isFinite(fee) || fee < 0 || !Number.isFinite(total)) {
+              showToast?.("Primero guarda el costo de transporte.", "warning");
+              return;
+            }
+            const partes = desgloseEnvioCheckout(total, fee);
+            const msg = textoClienteEnvioEnCheckout({
+              pedidoId: pedido?.id,
+              costo: partes.envio,
+              itemsTotal: partes.productos,
+              total: partes.total,
+            });
+            if (navigator?.clipboard?.writeText) navigator.clipboard.writeText(msg);
+            showToast?.("Mensaje copiado. El cliente entra a su cuenta y liquida ahí.", "success");
           }}
           style={{ border: "none", background: "none", color: "#0f766e", fontWeight: 700, cursor: "pointer", padding: 0 }}
         >
-          Copiar liga de pago
+          Copiar mensaje
         </button>
       </div>
       {meta.estado !== "en_ruta" && (

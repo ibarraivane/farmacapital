@@ -255,22 +255,16 @@ function cotizacionEnvioMeta(current = {}, { costo, proveedor, distanciaKm, nota
   };
 }
 
-function urlPagoCheckoutPedido(pedidoId, origin) {
-  const base = String(origin || 'https://www.farmacapital.mx').replace(/\/+$/, '');
-  return `${base}/pagar?pedido=${encodeURIComponent(pedidoId)}`;
-}
-
-function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
+function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
   const envioTxt = Number(costo).toFixed(2);
   const prodTxt = Number(itemsTotal).toFixed(2);
   const totalTxt = Number(total).toFixed(2);
-  const link = urlPagoCheckoutPedido(pedidoId, origen);
   return (
     `🏥 FarmaCapital\n\n` +
-    `Tu pedido ${folio} ya tiene el transporte en el checkout.\n` +
+    `Tu pedido ${folio} ya está en tu cuenta, con el transporte incluido.\n` +
     `Productos $${prodTxt} + envío $${envioTxt} = $${totalTxt}.\n\n` +
-    `Entra con el teléfono del pedido y paga todo junto (un solo cargo):\n${link}`
+    `Entra a Mi cuenta en farmacapital.mx con el teléfono de este pedido, abre el pedido y toca Pagar ahora. Es un solo cargo.`
   );
 }
 
@@ -295,6 +289,5 @@ module.exports = {
   formatMoneyMx,
   totalPedidoConCostoEnvio,
   cotizacionEnvioMeta,
-  urlPagoCheckoutPedido,
   textoClienteEnvioEnCheckout,
 };

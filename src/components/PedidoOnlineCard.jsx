@@ -236,7 +236,11 @@ export default function PedidoOnlineCard({
             cliente={{ nombre: clienteNombre, telefono: clienteTel }}
             metodoPago={pagado ? "Mercado Pago" : "Pendiente de pago"}
             mostrarPuntos={pagado}
-            promoMsg={pagado ? null : "Incluye el envío. Se paga en la liga del pedido."}
+            promoMsg={
+              pagado || String(p.tipo_entrega || "").toLowerCase() !== "envio"
+                ? null
+                : "Incluye el envío. Entra a Mi cuenta y toca Pagar ahora."
+            }
             ticketUrl={reciboListo.ticketUrl}
           />
         </div>

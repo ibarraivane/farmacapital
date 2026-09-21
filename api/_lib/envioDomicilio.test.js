@@ -86,7 +86,9 @@ describe('envioDomicilio cotización en checkout', () => {
       itemsTotal: 480,
       total: 540,
     });
-    assert.match(texto, /\/pagar\?pedido=333/);
+    assert.match(texto, /Mi cuenta/);
+    assert.match(texto, /Pagar ahora/);
+    assert.doesNotMatch(texto, /\/pagar/);
     assert.match(texto, /envío \$60\.00/);
     assert.match(texto, /\$540\.00/);
   });

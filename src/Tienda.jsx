@@ -374,7 +374,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber y te manda por WhatsApp la liga. Ahí pagas productos + envío juntos. Rappi es otra app." },
+  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, abres el pedido y pagas productos + envío juntos con Pagar ahora. Rappi es otra app." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
@@ -2292,7 +2292,7 @@ function ContenidoCDMX({ color }){
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Pides, el vendedor cotiza el envío en DiDi o Uber y te manda la liga por WhatsApp. Ahí pagas productos + transporte juntos. Rappi no entrega pedidos de esta tienda.
+        Pides, el vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, abres el pedido y pagas productos + transporte juntos. Rappi no entrega pedidos de esta tienda.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
@@ -3680,7 +3680,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber y te manda por WhatsApp la liga para pagar productos + transporte.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta y pagas productos + transporte.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -4433,7 +4433,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     const instruccionEntrega = esPickup
       ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioPendienteCotizacion
-        ? "El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp la liga. Ahí pagas productos + transporte, juntos."
+        ? "El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp. Entras a Mi cuenta, abres este pedido y pagas productos + transporte juntos."
         : lastOrder.envioFee
           ? `Envío ${formatEnvioMoney(lastOrder.envioFee)} en tu pago. Te avisamos cuando salga el mensajero.`
           : "Te avisamos cuando salga el mensajero.";
@@ -4708,7 +4708,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 {entrega!=="pickup" && (
                   <div style={{marginTop:4,color:"#92400e",fontWeight:600}}>
                     {entrega!=="pickup"
-                      ? "El vendedor cotiza el envío y te manda por WhatsApp la liga para pagar. El transporte se suma a tu total."
+                      ? "El vendedor cotiza el envío y te avisa por WhatsApp. El transporte se suma al total de tu pedido en Mi cuenta."
                       : null}
                   </div>
                 )}
@@ -4717,7 +4717,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
                     : entrega==="pickup"
                       ? "Pagas al recoger con tarjeta (terminal BBVA)"
-                      : "Confirmas ahora. Cuando el vendedor cargue el transporte, pagas productos + envío en la liga."}
+                      : "Confirmas ahora. Cuando el vendedor cargue el transporte, entras a Mi cuenta y pagas productos + envío."}
                 </div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>

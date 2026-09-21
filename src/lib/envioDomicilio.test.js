@@ -67,12 +67,14 @@ describe("envioDomicilio cliente", () => {
       logistics_meta: { envio: { estado: "pendiente_cotizacion" } },
     })).toBe(false);
     expect(desgloseEnvioCheckout(540, 60)).toEqual({ productos: 480, envio: 60, total: 540 });
-    expect(textoClienteEnvioEnCheckout({
+    const texto = textoClienteEnvioEnCheckout({
       pedidoId: 333,
       costo: 60,
       itemsTotal: 480,
       total: 540,
-      origen: "https://www.farmacapital.mx",
-    })).toContain("https://www.farmacapital.mx/pagar?pedido=333");
+    });
+    expect(texto).toContain("Mi cuenta");
+    expect(texto).toContain("Pagar ahora");
+    expect(texto).not.toMatch(/\/pagar/);
   });
 });
