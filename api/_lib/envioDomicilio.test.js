@@ -105,10 +105,17 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.equal(mail.from, 'FarmaCapital <contacto@farmacapital.mx>');
     assert.equal(mail.replyTo, 'contacto@farmacapital.mx');
     assert.match(mail.subject, /#FC-0333/);
+    assert.match(mail.subject, /listo para pagar/);
     assert.match(mail.text, /Hola Ivan Ibarra/);
-    assert.match(mail.text, /envío \$60\.00/);
-    assert.match(mail.text, /\/carrito/);
+    assert.match(mail.text, /Envío a domicilio: \$60\.00/);
+    assert.match(mail.text, /Total a pagar: \$540\.00/);
+    assert.match(mail.text, /ticket de compra va adjunto/);
+    assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/carrito/);
+    assert.match(mail.html, /href="https:\/\/www\.farmacapital\.mx\/carrito"/);
+    assert.match(mail.html, /Abrir mi carrito/);
+    assert.equal(mail.filename, 'ticket-FC-0333.pdf');
     assert.doesNotMatch(mail.text, /\/pagar\?/);
+    assert.doesNotMatch(mail.html, /\/pagar\?/);
   });
   it('haversine de la sucursal a ~0 km', () => {
     const d = haversineKm(19.3714047, -99.0526916, 19.3714047, -99.0526916);

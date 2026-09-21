@@ -257,16 +257,112 @@ function cotizacionEnvioMeta(current = {}, { costo, proveedor, distanciaKm, nota
 
 const CORREO_ENVIO_FROM = 'FarmaCapital <contacto@farmacapital.mx>';
 
-function correoAvisoEnvioCotizado({ pedidoId, costo, itemsTotal, total, nombre } = {}) {
-  const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
+function dineroCorreo(n) {
+  const v = Number(n);
+  return `$${(Number.isFinite(v) ? v : 0).toFixed(2)}`;
+}
+
+function folioCorreo(pedidoId) {
+  return `#FC-${String(pedidoId).padStart(4, '0')}`;
+}
+
+function linkCarritoCorreo(origen) {
+  const base = String(origen || 'https://www.farmacapital.mx').replace(/\/+$/, '');
+  return `${base}/carrito`;
+}
+
+function escapeHtmlCorreo(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function lineasTicketCorreo(items) {
+  if (!Array.isArray(items)) return [];
+  return items.map((i) => {
+    const nombre = String(i?.nombre || i?.productos?.nombre || 'Producto').trim() || 'Producto';
+    const qty = Number(i?.qty ?? i?.cantidad ?? 1);
+    const precio = Number(i?.precio ?? i?.precio_unitario ?? 0);
+    const cantidad = Number.isFinite(qty) && qty > 0 ? qty : 1;
+    const unitario = Number.isFinite(precio) ? precio : 0;
+    return {
+      nombre,
+      qty: cantidad,
+      importe: Math.round(unitario * cantidad * 100) / 100,
+    };
+  });
+}
+
+/**
+ * Carta al cliente cuando el envío ya tiene precio.
+ * El texto de WhatsApp sigue en textoClienteEnvioEnCheckout.
+ */
+function correoAvisoEnvioCotizado({
+  pedidoId,
+  costo,
+  itemsTotal,
+  total,
+  nombre,
+  origen,
+  items,
+} = {}) {
+  const folio = folioCorreo(pedidoId);
   const quien = String(nombre || '').trim();
-  const cuerpo = textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total });
-  const saludo = quien ? `Hola ${quien}.\n\n` : '';
+  const saludo = quien ? `Hola ${quien}.` : 'Hola.';
+  const productos = dineroCorreo(itemsTotal);
+  const envio = dineroCorreo(costo);
+  const totalTxt = dineroCorreo(total);
+  const link = linkCarritoCorreo(origen);
+  const lineas = lineasTicketCorreo(items);
+  const detalle = lineas.length
+    ? `${lineas.map((l) => `- ${l.nombre} ×${l.qty}: ${dineroCorreo(l.importe)}`).join('\n')}\n`
+    : '';
+  const text =
+    `${saludo}\n\n` +
+    `Ya cotizamos el envío de tu pedido ${folio}. El precio final es un solo cargo:\n\n` +
+    `${detalle}` +
+    `Productos: ${productos}\n` +
+    `Envío a domicilio: ${envio}\n` +
+    `Total a pagar: ${totalTxt}\n\n` +
+    `El ticket de compra va adjunto a este correo.\n\n` +
+    `Para liquidarlo, abre tu carrito y toca Pagar ahora:\n${link}\n\n` +
+    `Entra con el teléfono que usaste al hacer el pedido. Si el carrito se ve vacío, es porque este pedido ya está confirmado: al entrar aparece el total de arriba.\n\n` +
+    `FarmaCapital\n` +
+    `Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa\n` +
+    `contacto@farmacapital.mx`;
+
+  const filas = lineas.map((l) => (
+    `<tr><td style="padding:6px 0;color:#0f172a;">${escapeHtmlCorreo(l.nombre)} ×${l.qty}</td>` +
+    `<td style="padding:6px 0;text-align:right;color:#0f172a;font-weight:700;">${dineroCorreo(l.importe)}</td></tr>`
+  )).join('');
+  const html =
+    `<div style="font-family:Georgia, 'Times New Roman', serif;color:#0f172a;background:#ffffff;padding:8px 4px;line-height:1.5;">` +
+    `<p style="margin:0 0 12px;">${escapeHtmlCorreo(saludo)}</p>` +
+    `<p style="margin:0 0 12px;">Ya cotizamos el envío de tu pedido <strong>${escapeHtmlCorreo(folio)}</strong>. El precio final es un solo cargo.</p>` +
+    (filas ? `<table style="width:100%;border-collapse:collapse;margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">${filas}</table>` : '') +
+    `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;">` +
+    `<tr><td style="padding:4px 0;color:#334155;">Productos</td><td style="padding:4px 0;text-align:right;">${productos}</td></tr>` +
+    `<tr><td style="padding:4px 0;color:#334155;">Envío a domicilio</td><td style="padding:4px 0;text-align:right;">${envio}</td></tr>` +
+    `<tr><td style="padding:8px 0 0;font-weight:800;">Total a pagar</td><td style="padding:8px 0 0;text-align:right;font-weight:800;font-size:18px;">${totalTxt}</td></tr>` +
+    `</table>` +
+    `<p style="margin:16px 0 8px;">El ticket de compra va adjunto a este correo.</p>` +
+    `<p style="margin:0 0 16px;">Para liquidarlo, abre tu carrito y toca <strong>Pagar ahora</strong>. Entra con el teléfono que usaste al hacer el pedido.</p>` +
+    `<p style="margin:0 0 20px;"><a href="${escapeHtmlCorreo(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;padding:12px 18px;border-radius:8px;">Abrir mi carrito</a></p>` +
+    `<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;"><a href="${escapeHtmlCorreo(link)}" style="color:#0f766e;">${escapeHtmlCorreo(link)}</a></p>` +
+    `<p style="margin:16px 0 0;color:#64748b;font-family:Arial,sans-serif;font-size:12px;">FarmaCapital · Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa<br>contacto@farmacapital.mx</p>` +
+    `</div>`;
+
   return {
     from: CORREO_ENVIO_FROM,
     replyTo: 'contacto@farmacapital.mx',
-    subject: `Tu pedido ${folio} ya tiene el costo de envío`,
-    text: `${saludo}${cuerpo}`,
+    subject: `FarmaCapital · Pedido ${folio} listo para pagar`,
+    text,
+    html,
+    link,
+    filename: `ticket-FC-${String(pedidoId).padStart(4, '0')}.pdf`,
+    lineas,
   };
 }
 
@@ -308,4 +404,5 @@ module.exports = {
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
   correoAvisoEnvioCotizado,
+  lineasTicketCorreo,
 };

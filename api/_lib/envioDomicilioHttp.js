@@ -21,6 +21,7 @@ const {
 } = require('./envioDomicilio');
 const { sendWhatsAppSmart } = require('./whatsappCloud');
 const { sendEmail } = require('./orderNotifications');
+const { ticketEnvioPdfBase64 } = require('./ticketEnvioPdf');
 
 function getQuery(req) {
   try {
@@ -118,25 +119,54 @@ async function resolvePedidoContacto(supabaseUrl, serviceKey, pedido) {
   return { email: email.includes('@') ? email : '', nombre };
 }
 
+async function fetchItemsPedido(supabaseUrl, serviceKey, pedidoId) {
+  const resp = await fetch(
+    `${supabaseUrl}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+  );
+  const rows = await resp.json().catch(() => []);
+  if (!resp.ok || !Array.isArray(rows)) return [];
+  return rows;
+}
+
 async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal }) {
   const contacto = await resolvePedidoContacto(supabaseUrl, serviceKey, pedido).catch(() => ({ email: '', nombre: '' }));
+  const items = await fetchItemsPedido(supabaseUrl, serviceKey, pedido.id).catch(() => []);
   const mail = correoAvisoEnvioCotizado({
     pedidoId: pedido.id,
     costo,
     itemsTotal,
     total: pedido.total,
     nombre: contacto.nombre,
+    items,
   });
   let email = { sent: false, reason: 'missing_email' };
   if (contacto.email) {
+    let attachments;
+    try {
+      const content = ticketEnvioPdfBase64({
+        pedidoId: pedido.id,
+        nombre: contacto.nombre,
+        items: mail.lineas,
+        productos: itemsTotal,
+        envio: costo,
+        total: pedido.total,
+      });
+      if (content) attachments = [{ filename: mail.filename, content }];
+    } catch (e) {
+      attachments = undefined;
+    }
     try {
       email = await sendEmail({
         to: contacto.email,
         subject: mail.subject,
         text: mail.text,
+        html: mail.html,
         from: mail.from,
         replyTo: mail.replyTo,
+        attachments,
       });
+      if (email.sent) email.adjunto = Boolean(attachments?.length);
     } catch (e) {
       email = { sent: false, reason: e?.message || 'email_failed' };
     }
