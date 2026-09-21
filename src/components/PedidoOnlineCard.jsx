@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Box, Tag, Btn } from "../ui";
 import { C_LIGHT, BRAND } from "../constants";
 import { $ } from "../utils";
@@ -8,12 +8,20 @@ import {
   esPedidoPickupPendienteCobro,
   etiquetaPagoPedidoOnline,
 } from "../utils/pedidosTiendaWeb";
-import { formatFolioOnline, buildOnlineOrderReceiptMessage, openWhatsAppToCustomer } from "../utils/orderReceiptWhatsApp";
+import {
+  formatFolioOnline,
+  buildOnlineOrderReceiptMessage,
+  openWhatsAppToCustomer,
+  ensurePedidoTicketUrl,
+  lineasReciboPedidoOnline,
+} from "../utils/orderReceiptWhatsApp";
 import {
   desgloseEnvioCheckout,
   feeEnvioEnCheckout,
   textoClienteEnvioEnCheckout,
 } from "../lib/envioDomicilio";
+import { compartirODescargarPng } from "../utils/reciboImagen";
+import TicketVenta from "./tickets/TicketVenta";
 import EnvioCotizacionPanel from "./EnvioCotizacionPanel";
 import CronometroPedidoOnline from "./CronometroPedidoOnline";
 import { IconoAnaquel } from "./pos/PosIconos";
@@ -40,6 +48,10 @@ export default function PedidoOnlineCard({
   const clienteTel = p.clientes?.telefono || p.guest_telefono || "";
   const folioPOS = formatFolioOnline(p.id);
   const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
+  const ticketRef = useRef(null);
+  const [reciboBusy, setReciboBusy] = useState(false);
+  const [reciboListo, setReciboListo] = useState(null);
+  const pagado = String(p.payment_status || "").toLowerCase() === "approved";
 
   const enviarWhatsApp = () => {
     if (!clienteTel) {
@@ -74,6 +86,28 @@ export default function PedidoOnlineCard({
     if (!openWhatsAppToCustomer(tel, msg)) {
       showToast("No se pudo abrir WhatsApp", "warning");
     }
+  };
+
+  const guardarReciboImagen = async () => {
+    setReciboBusy(true);
+    try {
+      const ensured = await ensurePedidoTicketUrl(p.id);
+      setReciboListo({ ticketUrl: ensured.ok ? ensured.ticketUrl : null });
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      const el = ticketRef.current;
+      const nombre = `recibo-FC-${String(p.id).padStart(4, "0")}.png`;
+      const modo = await compartirODescargarPng(el, nombre);
+      showToast(
+        modo === "shared"
+          ? "Elige WhatsApp y se pega la imagen del recibo."
+          : "Imagen descargada. Ábrela y mándala en el chat de WhatsApp.",
+        "success"
+      );
+    } catch (e) {
+      if (e?.name !== "AbortError") showToast("No se pudo armar la imagen del recibo.", "warning");
+    }
+    setReciboListo(null);
+    setReciboBusy(false);
   };
 
   return (
@@ -181,10 +215,32 @@ export default function PedidoOnlineCard({
             <button onClick={enviarWhatsApp} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: "#25D366", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
               💬 WhatsApp cliente
             </button>
+            <Btn ol col={C.blue} sm dis={reciboBusy} onClick={guardarReciboImagen}>
+              {reciboBusy ? "Armando imagen…" : "Recibo (imagen)"}
+            </Btn>
             <Btn ol col={C.red} sm onClick={() => onCancelar(p)}>Cancelar</Btn>
           </div>
         </div>
       )}
+      {reciboListo ? (
+        <div style={{ position: "fixed", left: "-120vw", top: 0, width: "80mm", background: "#fff" }} aria-hidden>
+          <TicketVenta
+            ref={ticketRef}
+            venta={{
+              id: p.id,
+              folio: `FC-${String(p.id).padStart(4, "0")}`,
+              total: p.total,
+              created_at: p.created_at,
+            }}
+            productos={lineasReciboPedidoOnline(p)}
+            cliente={{ nombre: clienteNombre, telefono: clienteTel }}
+            metodoPago={pagado ? "Mercado Pago" : "Pendiente de pago"}
+            mostrarPuntos={pagado}
+            promoMsg={pagado ? null : "Incluye el envío. Se paga en la liga del pedido."}
+            ticketUrl={reciboListo.ticketUrl}
+          />
+        </div>
+      ) : null}
     </Box>
   );
 }

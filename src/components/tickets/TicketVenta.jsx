@@ -25,6 +25,7 @@ const TicketVenta = forwardRef(({
   config     = {},
   promoMsg   = null,
   ticketUrl  = null,
+  mostrarPuntos = true,
 }, ref) => {
   const cfg = mergeFarmaciaConfig(config);
 
@@ -141,7 +142,7 @@ const TicketVenta = forwardRef(({
       )}
 
       {/* ══ PUNTOS FARMACAPITAL ══ */}
-      {ptsG > 0 && (
+      {mostrarPuntos && ptsG > 0 && (
         <div className="ticket-puntos">
           ★ +{ptsG} PUNTOS FARMACAPITAL GANADOS
           {cliente&&<div>Saldo: {(cliente.puntos||0)+ptsG} pts = ${(((cliente.puntos||0)+ptsG)*0.5).toFixed(0)}</div>}
