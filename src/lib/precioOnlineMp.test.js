@@ -5,6 +5,7 @@ import {
   totalPedidoConPlataforma,
   esEntregaPickup,
   TASA_MP_ONLINE,
+  CARGO_SERVICIO_MXN,
   CONCEPTO_CARGO_PLATAFORMA,
 } from "./precioOnlineMp";
 
@@ -14,14 +15,16 @@ function netoTrasMp(cobrado) {
   return cobrado - (cobrado * 0.0349 + 4) * 1.16;
 }
 
-test("tarjeta solo 3.49%+IVA; Servicio $5 en envío, $0 en pick-up", () => {
+test("tarjeta solo 3.49%+IVA; sin Servicio al cliente", () => {
   expect(TASA_MP_ONLINE).toBeCloseTo(0.0349 * 1.16, 6);
-  expect(cargoPlataformaOnline()).toBe(5);
-  expect(cargoPlataformaOnline({ entrega: "cdmx" })).toBe(5);
+  expect(CARGO_SERVICIO_MXN).toBe(0);
+  expect(cargoPlataformaOnline()).toBe(0);
+  expect(cargoPlataformaOnline({ entrega: "cdmx" })).toBe(0);
   expect(cargoPlataformaOnline({ entrega: "pickup" })).toBe(0);
   expect(cargoPlataformaOnline({ tipo_entrega: "recoger" })).toBe(0);
   expect(espejo.cargoPlataformaOnline({ entrega: "pickup" })).toBe(0);
-  expect(espejo.cargoPlataformaOnline({ entrega: "cdmx" })).toBe(5);
+  expect(espejo.cargoPlataformaOnline({ entrega: "cdmx" })).toBe(0);
+  expect(espejo.CARGO_SERVICIO_MXN).toBe(0);
   expect(CONCEPTO_CARGO_PLATAFORMA).toBe("Servicio");
   expect(esEntregaPickup("pickup")).toBe(true);
   expect(esEntregaPickup("recoger")).toBe(true);
@@ -35,16 +38,16 @@ test("el % + IVA siempre cierra a peso entero (sin centavos)", () => {
   }
 });
 
-test("Skittles $10 → $11; pick-up $11, envío 1 pieza $16 / 5 piezas $60", () => {
+test("Skittles $10 → $11; pick-up y envío sin +$5 de Servicio", () => {
   expect(precioOnlineMp(10)).toBe(11);
   expect(precioOnlineMp(42)).toBe(44);
   expect(espejo.precioOnlineMp(10)).toBe(11);
   expect(totalPedidoConPlataforma(11, { entrega: "pickup" })).toBe(11);
-  expect(totalPedidoConPlataforma(11, { entrega: "cdmx" })).toBe(16);
-  expect(totalPedidoConPlataforma(55, { entrega: "cdmx" })).toBe(60);
+  expect(totalPedidoConPlataforma(11, { entrega: "cdmx" })).toBe(11);
+  expect(totalPedidoConPlataforma(55, { entrega: "cdmx" })).toBe(55);
   expect(espejo.totalPedidoConPlataforma(11, { entrega: "pickup" })).toBe(11);
-  expect(espejo.totalPedidoConPlataforma(11)).toBe(16);
-  expect(netoTrasMp(16)).toBeGreaterThanOrEqual(10);
+  expect(espejo.totalPedidoConPlataforma(11)).toBe(11);
+  expect(netoTrasMp(11)).toBeLessThan(10);
 });
 
 test("placeholder <= $0.01 no se paga en línea", () => {
