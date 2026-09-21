@@ -28,7 +28,7 @@ import {
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
   productoEsCajaAbiertaMostrador,
-  descripcionPublicaTienda,
+  nombrePublicoTienda,
   subtituloPublicoTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
@@ -1954,7 +1954,7 @@ function ProductCard({prod,addToCart,onClick}){
           {prod.tipo==="generico"&&<Tag col={BRAND.secondary} sm>Genérico</Tag>}
           {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
         </div>
-        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
+        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{nombrePublicoTienda(prod) || prod.nombre}</div>
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
         <div style={{marginBottom:10}}>
           {cta
@@ -2111,7 +2111,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             {prod.requiere_receta&&<Tag col={C.red}>Requiere receta</Tag>}
             <Tag col={C.mid} sm>{prod.categoria}</Tag>
           </div>
-          <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{prod.nombre}</h1>
+          <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{nombrePublicoTienda(prod) || prod.nombre}</h1>
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
           <div style={{marginBottom:20}}>
             {cta
@@ -2177,7 +2177,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           producto={prod}
           ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
           monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
-          whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${prod.nombre || "un producto"}`)}`}
+          whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${nombrePublicoTienda(prod) || prod.nombre || "un producto"}`)}`}
         />
       </div>
       {similares.length>0&&(
@@ -3758,7 +3758,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
                   <Pill size={24} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
                 )}
               </div>
-              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
+              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{nombrePublicoTienda(item) || item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
               <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <button type="button" aria-label="Disminuir cantidad" onClick={()=>upd(item.id,-1)} style={qtyBtnStyle}>-</button>
@@ -4831,7 +4831,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               </div>
               {cart.map(item=>(
                 <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span>
+                  <span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{nombrePublicoTienda(item) || item.nombre} ×{item.qty}</span>
                   <span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$peso(cobroDe(item))}</span>
                 </div>
               ))}
@@ -4889,7 +4889,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
-          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
+          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{nombrePublicoTienda(item) || item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
           {entrega!=="pickup"&&(
             <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
               <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>

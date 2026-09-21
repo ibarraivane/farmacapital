@@ -4,8 +4,11 @@ import { productoEsCajaAbiertaMostrador } from "./cajaAbiertaMostrador";
 export {
   descripcionPublicaTienda,
   esNotaInternaCompra,
+  expandirTextoPublicoTienda,
+  nombrePublicoTienda,
   presentacionPublicaTienda,
   productoEsCajaAbiertaMostrador,
+  quitarCodigoBarrasPublico,
   subtituloPublicoTienda,
 } from "./cajaAbiertaMostrador";
 
