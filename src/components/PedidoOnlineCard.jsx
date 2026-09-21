@@ -4,7 +4,6 @@ import { C_LIGHT, BRAND } from "../constants";
 import { $ } from "../utils";
 import { labelTipoEntregaPedido } from "../utils/orderChannels";
 import {
-  esPedidoEnvioPorCotizar,
   esPedidoPickupPendienteCobro,
   etiquetaPagoPedidoOnline,
 } from "../utils/pedidosTiendaWeb";
@@ -42,8 +41,7 @@ export default function PedidoOnlineCard({
   onCancelar,
 }) {
   const C = C_LIGHT;
-  const needsAction = esPedidoEnvioPorCotizar(p) || esPedidoPickupPendienteCobro(p);
-  const [abierto, setAbierto] = useState(needsAction);
+  const [abierto, setAbierto] = useState(false);
   const clienteNombre = p.clientes?.nombre || p.guest_nombre || "—";
   const clienteTel = p.clientes?.telefono || p.guest_telefono || "";
   const folioPOS = formatFolioOnline(p.id);
@@ -111,56 +109,43 @@ export default function PedidoOnlineCard({
   };
 
   return (
-    <Box style={{ padding: isNarrow ? 14 : 20, marginBottom: 12, minWidth: 0 }}>
+    <Box style={{ padding: abierto ? (isNarrow ? 14 : 16) : "8px 12px", marginBottom: 8, minWidth: 0 }}>
       <button
         type="button"
+        aria-expanded={abierto}
         onClick={() => setAbierto((v) => !v)}
         style={{
           width: "100%",
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 10,
-          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "nowrap",
           background: "none",
           border: "none",
           padding: 0,
           cursor: "pointer",
           textAlign: "left",
           colorScheme: "light",
+          minWidth: 0,
         }}
       >
-        <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ color: C.textDim, fontWeight: 800, fontSize: 14 }}>{abierto ? "▾" : "▸"}</span>
-            <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>Pedido #{p.id}</div>
-            <div style={{ background: BRAND.primary, color: "#fff", fontWeight: 900, fontSize: 13, padding: "2px 10px", borderRadius: 20 }}>{folioPOS}</div>
-            <Tag col={p.tipo_entrega === "envio" ? C.teal : C.green} sm>{labelTipoEntregaPedido(p.tipo_entrega)}</Tag>
-            {(p.guest_nombre || p.guest_telefono) && <Tag col={C.amber} sm>Invitado</Tag>}
-          </div>
-          <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginTop: 6 }}>{clienteNombre}</div>
-          {clienteTel && <div style={{ color: C.textMid, fontSize: 12, marginTop: 1 }}>📱 {clienteTel}</div>}
-        </div>
-        <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-          <div style={{ color: C.blue, fontWeight: 900, fontSize: 18 }}>{$(p.total)}</div>
+        <span style={{ color: C.textDim, fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{abierto ? "▾" : "▸"}</span>
+        <span style={{ color: C.text, fontWeight: 800, fontSize: 13, flexShrink: 0 }}>Pedido #{p.id}</span>
+        <span style={{ background: BRAND.primary, color: "#fff", fontWeight: 900, fontSize: 11, padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{folioPOS}</span>
+        <span style={{ color: C.text, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{clienteNombre}</span>
+        <Tag col={p.tipo_entrega === "envio" ? C.teal : C.green} sm>{labelTipoEntregaPedido(p.tipo_entrega)}</Tag>
+        {(p.guest_nombre || p.guest_telefono) && <Tag col={C.amber} sm>Invitado</Tag>}
+        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <Tag col={ep.col} sm>{ep.label}</Tag>
           <CronometroPedidoOnline pedido={p} />
-        </div>
+          <span style={{ color: C.blue, fontWeight: 900, fontSize: 14 }}>{$(p.total)}</span>
+        </span>
       </button>
-
-      {!abierto && (
-        <div style={{ marginTop: 8, color: C.textMid, fontSize: 12 }}>
-          {(p.pedido_items || []).length} producto{(p.pedido_items || []).length === 1 ? "" : "s"}
-          {p.tipo_entrega === "envio" && p.direccion ? ` · ${p.direccion}` : ""}
-          {" · "}
-          <button type="button" onClick={() => setAbierto(true)} style={{ border: "none", background: "none", color: C.blue, fontWeight: 800, cursor: "pointer", padding: 0 }}>
-            Ver detalle
-          </button>
-        </div>
-      )}
 
       {abierto && (
         <div style={{ marginTop: 12 }}>
+          <div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>{clienteNombre}</div>
+          {clienteTel && <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>📱 {clienteTel}</div>}
           {p.tipo_entrega === "envio" && p.direccion && (
             <div style={{ color: C.textDim, fontSize: 11, marginBottom: 6, maxWidth: 480, lineHeight: 1.35, display: "flex", alignItems: "flex-start", gap: 5 }}>
               <span style={{ marginTop: 1 }}><IconoAnaquel size={13} /></span>
