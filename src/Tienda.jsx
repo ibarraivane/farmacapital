@@ -78,6 +78,8 @@ import {
   estimarEnvioDesdeCoords,
   etiquetaEstadoEnvioCliente,
   feeEnvioEnCheckout,
+  desgloseEnvioCheckout,
+  pedidosConEnvioPorPagar,
   formatEnvioMoney,
   getEnvioConfigCliente,
 } from "./lib/envioDomicilio";
@@ -3569,7 +3571,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
 }
 
 // ── CARRITO ───────────────────────────────────────────────────
-function Carrito({cart,setCart,setPage,setEntregaGlobal}){
+function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
@@ -3607,14 +3609,98 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
     return {...c,qty:Math.min(next,max)};
   }));
   const carritoEncargo = tipoCarrito(cart) === "bajo_pedido";
+  const [porPagar, setPorPagar] = useState([]);
+  const [pagandoId, setPagandoId] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    const tok = getClienteToken();
+    if (!tok) {
+      setPorPagar([]);
+      return undefined;
+    }
+    supabase.rpc("cliente_listar_mis_pedidos", { p_session_token: tok, p_limite: 20 })
+      .then(({ data }) => {
+        if (!vivo) return;
+        setPorPagar(pedidosConEnvioPorPagar(Array.isArray(data) ? data : []));
+      })
+      .catch(() => { if (vivo) setPorPagar([]); });
+    return () => { vivo = false; };
+  }, [user?.id, user?.telefono]);
+  const pagarPedidoEnCarrito = async (p) => {
+    const tokCli = getClienteToken();
+    if (!tokCli) {
+      setPostLoginPage("carrito");
+      setPage("login");
+      return;
+    }
+    setPagandoId(p.id);
+    try {
+      const mpResp = await fetch("/api/payments/mp/create-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokCli}` },
+        body: JSON.stringify({
+          pedidoId: p.id,
+          amount: Number(p.total || 0),
+          baseUrl: window.location.origin,
+          payer: {
+            name: String(user?.nombre || "").trim() || null,
+            email: String(user?.email || "").trim() || null,
+          },
+        }),
+      });
+      const mpData = await mpResp.json().catch(() => ({}));
+      if (!mpResp.ok || !mpData?.ok || !(mpData.initPoint || mpData.sandboxInitPoint)) {
+        alert(mpData?.error || "No se pudo iniciar Mercado Pago.");
+        setPagandoId(null);
+        return;
+      }
+      window.location.href = mpData.initPoint || mpData.sandboxInitPoint;
+    } catch (_) {
+      alert("No se pudo iniciar Mercado Pago.");
+      setPagandoId(null);
+    }
+  };
+  const bloquePorPagar = porPagar.length > 0 ? (
+    <div style={{maxWidth:600,margin:"0 auto 20px",textAlign:"left"}}>
+      {porPagar.map((p) => {
+        const fee = feeEnvioEnCheckout(p);
+        const partes = desgloseEnvioCheckout(p.total, fee);
+        return (
+          <div key={p.id} style={{background:C.white,border:"1px solid #fcd34d",borderRadius:14,padding:16,marginBottom:12}}>
+            <div style={{color:C.dark,fontWeight:800,fontSize:16}}>Pedido #{p.id} · precio final {$(p.total)}</div>
+            <div style={{color:"#92400e",fontSize:13,lineHeight:1.45,marginTop:6}}>
+              Productos {$(partes.productos)} + envío {formatEnvioMoney(partes.envio)}
+            </div>
+            <Btn onClick={() => pagarPedidoEnCarrito(p)} col={BRAND.primary} sm disabled={pagandoId===p.id} style={{marginTop:12}}>
+              {pagandoId===p.id ? "Abriendo pago..." : `Pagar ahora ${$(p.total)}`}
+            </Btn>
+          </div>
+        );
+      })}
+    </div>
+  ) : null;
   const rm=id=>setCart(p=>p.filter(c=>c.id!==id));
   if(!cart.length) return(
-    <div style={{maxWidth:600,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
-      <div style={{width:64,height:64,borderRadius:18,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
-        <ShoppingCart size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
-      </div>
-      <h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:16}}>Carrito vacío</h2>
-      <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
+    <div style={{maxWidth:600,margin:"40px auto",padding:"0 24px",textAlign:"center"}}>
+      {bloquePorPagar}
+      {!porPagar.length && (
+        <>
+          <div style={{width:64,height:64,borderRadius:18,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
+            <ShoppingCart size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+          </div>
+          <h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:8}}>Carrito vacío</h2>
+          {!getClienteToken() && (
+            <p style={{color:C.mid,fontSize:14,lineHeight:1.5,margin:"0 0 16px"}}>
+              Si ya pediste a domicilio, entra con el teléfono del pedido. Aquí ves el precio final.
+            </p>
+          )}
+          {!getClienteToken() ? (
+            <Btn onClick={()=>{ setPostLoginPage("carrito"); setPage("login"); }} col={BRAND.primary}>Entrar a mi cuenta</Btn>
+          ) : (
+            <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
+          )}
+        </>
+      )}
     </div>
   );
   return(
@@ -3623,6 +3709,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         <ShoppingCart size={24} strokeWidth={2} color={BRAND.primary} aria-hidden />
         Tu carrito
       </h1>
+      {bloquePorPagar}
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(340px, 100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
           {cart.map(item=>{
@@ -4539,7 +4626,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             const camposContacto = [
               ["Nombre completo","nombre","Ej. tu nombre"],
               ["Teléfono","tel","Ej. 55 1234 5678"],
-              ["Correo electrónico","email","Ej. tu@correo.com"],
+              ["Correo electrónico (obligatorio)","email","Ej. tu@correo.com"],
             ];
             const esInvitadoUI = !getClienteToken();
             return(
@@ -4560,6 +4647,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     </div>
                   ))}
                 </div>
+                {necesitaDireccion && (
+                  <div style={{fontSize:12,color:C.mid,marginTop:-4,marginBottom:14,lineHeight:1.45}}>
+                    El correo es obligatorio. Cuando el envío esté cotizado te llega desde contacto@farmacapital.mx la liga de tu carrito, con el precio final.
+                  </div>
+                )}
                 {necesitaDireccion&&(
                   <>
                     <div style={{color:C.dark,fontWeight:700,fontSize:15,margin:"4px 0 14px",paddingTop:14,borderTop:`1px solid ${C.border}`}}>
@@ -6935,7 +7027,7 @@ export default function TiendaFarmaCapital(){
     catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos} filtroRx={filtroRx} onClearRx={()=>setPage("catalogo",{rx:false})}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
-    carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
+    carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout} user={user}/>,
     checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} setUser={setUser} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
     login:         <Login setUser={setUser} setPage={setPage}/>,

@@ -46,11 +46,11 @@ export default function AvisoEnvioPorPagar({ user, setPage }) {
     }}>
       <span>
         Tu pedido {folio} ya tiene el envío cotizado{fee != null ? `: ${formatEnvioMoney(fee)}` : ""}.
-        {" "}No está en el carrito: entra a Mi cuenta, revísalo y toca Pagar ahora.
+        {" "}Ábrelo en tu carrito: ahí está el precio final.
       </span>
       <button
         type="button"
-        onClick={() => setPage?.("cuenta")}
+        onClick={() => setPage?.("carrito")}
         style={{
           background: "#92400e",
           color: "#fff",

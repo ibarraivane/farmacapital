@@ -75,9 +75,9 @@ describe("envioDomicilio cliente", () => {
       itemsTotal: 480,
       total: 540,
     });
-    expect(texto).toContain("Mi cuenta");
+    expect(texto).toContain("https://www.farmacapital.mx/carrito");
     expect(texto).toContain("Pagar ahora");
-    expect(texto).not.toMatch(/\/pagar/);
+    expect(texto).not.toMatch(/\/pagar\?/);
     expect(pedidosConEnvioPorPagar([
       pedido,
       { id: 1, tipo_entrega: "envio", estado: "pendiente", payment_status: "pending", logistics_meta: { envio: { estado: "pendiente_cotizacion" } } },

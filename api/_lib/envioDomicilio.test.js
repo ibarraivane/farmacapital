@@ -86,14 +86,14 @@ describe('envioDomicilio cotización en checkout', () => {
       itemsTotal: 480,
       total: 540,
     });
-    assert.match(texto, /Mi cuenta/);
     assert.match(texto, /Pagar ahora/);
-    assert.doesNotMatch(texto, /\/pagar/);
+    assert.match(texto, /\/carrito/);
+    assert.doesNotMatch(texto, /\/pagar\?/);
     assert.match(texto, /envío \$60\.00/);
     assert.match(texto, /\$540\.00/);
   });
 
-  it('el correo sale de contacto y manda a Mi cuenta', () => {
+  it('el correo sale de contacto y abre el carrito', () => {
     const { correoAvisoEnvioCotizado } = require('./envioDomicilio');
     const mail = correoAvisoEnvioCotizado({
       pedidoId: 333,
@@ -107,9 +107,8 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.match(mail.subject, /#FC-0333/);
     assert.match(mail.text, /Hola Ivan Ibarra/);
     assert.match(mail.text, /envío \$60\.00/);
-    assert.match(mail.text, /Mi cuenta/);
-    assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/cuenta/);
-    assert.doesNotMatch(mail.text, /\/pagar/);
+    assert.match(mail.text, /\/carrito/);
+    assert.doesNotMatch(mail.text, /\/pagar\?/);
   });
   it('haversine de la sucursal a ~0 km', () => {
     const d = haversineKm(19.3714047, -99.0526916, 19.3714047, -99.0526916);

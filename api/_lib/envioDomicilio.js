@@ -266,20 +266,22 @@ function correoAvisoEnvioCotizado({ pedidoId, costo, itemsTotal, total, nombre }
     from: CORREO_ENVIO_FROM,
     replyTo: 'contacto@farmacapital.mx',
     subject: `Tu pedido ${folio} ya tiene el costo de envío`,
-    text: `${saludo}${cuerpo}\n\nhttps://www.farmacapital.mx/cuenta`,
+    text: `${saludo}${cuerpo}`,
   };
 }
 
-function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total } = {}) {
+function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
   const envioTxt = Number(costo).toFixed(2);
   const prodTxt = Number(itemsTotal).toFixed(2);
   const totalTxt = Number(total).toFixed(2);
+  const base = String(origen || 'https://www.farmacapital.mx').replace(/\/+$/, '');
+  const link = `${base}/carrito`;
   return (
     `🏥 FarmaCapital\n\n` +
-    `Tu pedido ${folio} ya está en tu cuenta, con el transporte incluido.\n` +
+    `Tu pedido ${folio} ya tiene el precio final.\n` +
     `Productos $${prodTxt} + envío $${envioTxt} = $${totalTxt}.\n\n` +
-    `Entra a Mi cuenta en farmacapital.mx con el teléfono de este pedido, abre el pedido y toca Pagar ahora. Es un solo cargo.`
+    `Ábrelo en tu carrito y toca Pagar ahora. Es un solo cargo:\n${link}`
   );
 }
 

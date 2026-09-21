@@ -242,13 +242,15 @@ export function pedidosConEnvioPorPagar(pedidos) {
   });
 }
 
-export function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total } = {}) {
+export function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, "0")}`;
+  const base = String(origen || "https://www.farmacapital.mx").replace(/\/+$/, "");
+  const link = `${base}/carrito`;
   return (
     `🏥 FarmaCapital\n\n` +
-    `Tu pedido ${folio} ya está en tu cuenta, con el transporte incluido.\n` +
+    `Tu pedido ${folio} ya tiene el precio final.\n` +
     `Productos $${Number(itemsTotal).toFixed(2)} + envío $${Number(costo).toFixed(2)} = $${Number(total).toFixed(2)}.\n\n` +
-    `Entra a Mi cuenta en farmacapital.mx con el teléfono de este pedido, abre el pedido y toca Pagar ahora. Es un solo cargo.`
+    `Ábrelo en tu carrito y toca Pagar ahora. Es un solo cargo:\n${link}`
   );
 }
 
