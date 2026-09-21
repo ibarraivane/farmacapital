@@ -49,6 +49,12 @@ import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
 import FichaProductoEnriquecida from "./components/tienda/FichaProductoEnriquecida";
 import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
 import IntroAnimacion from "./components/tienda/IntroAnimacion";
+import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
+import PieV2 from "./components/tienda/v2/PieV2";
+import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
+import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
+import { tiendaV2Activa } from "./theme/tiendaV2";
+import "./components/tienda/v2/tiendaV2.css";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
   CANTIDAD_MAX_BAJO_PEDIDO,
@@ -1844,7 +1850,14 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
 }
 
 // ── PRODUCT CARD ──────────────────────────────────────────────
-function ProductCard({prod,addToCart,onClick}){
+function ProductCard(props){
+  if (tiendaV2Activa()) {
+    return <TarjetaProducto prod={props.prod} onClick={props.onClick} />;
+  }
+  return <ProductCardClasica {...props} />;
+}
+
+function ProductCardClasica({prod,addToCart,onClick}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
@@ -3248,7 +3261,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         </div>
       </div>
 
-      <Footer setPage={setPage}/>
+      {!tiendaV2Activa() && <Footer setPage={setPage}/>}
     </div>
   );
 }
@@ -6615,6 +6628,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
 // ── APP PRINCIPAL ─────────────────────────────────────────────
 export default function TiendaFarmaCapital(){
   const C = useTheme();
+  const v2 = tiendaV2Activa();
   const initialResetToken = (() => {
     try { return new URLSearchParams(window.location.search).get("reset") || ""; } catch { return ""; }
   })();
@@ -7096,18 +7110,16 @@ export default function TiendaFarmaCapital(){
 
   const sinFooter=["home","tarjeta"];
 
-  return(
-    <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>
-    <TiendaPromosCtx.Provider value={mapaPromos}>
+  const storeTree = (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         html{-webkit-text-size-adjust:100%;}
         body{
-          background:${C.bg};
-          font-family:var(--fc-body);
-          color:${C.dark};
+          background:${v2 ? "#FFFFFF" : C.bg};
+          font-family:${v2 ? "'Inter', Arial, sans-serif" : "var(--fc-body)"};
+          color:${v2 ? "#001534" : C.dark};
           /* clip recorta X sin crear scrollport (hidden sí lo crea y traga la rueda). */
           overflow-x:clip;
           overflow-y:visible;
@@ -7126,15 +7138,28 @@ export default function TiendaFarmaCapital(){
           overflow-y:visible;
         }
         img,svg,video,canvas{max-width:100%;height:auto;}
-        ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${C.bg};}::-webkit-scrollbar-thumb{background:${C.border};border-radius:4px;}
-        button,select{font-family:var(--fc-body);}
+        ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${v2 ? "#F4F6F8" : C.bg};}::-webkit-scrollbar-thumb{background:${v2 ? "#DCE2EA" : C.border};border-radius:4px;}
+        button,select{font-family:${v2 ? "inherit" : "var(--fc-body)"};}
       `}</style>
 
       <IntroAnimacion />
-      {/* Popup bienvenida */}
-      {showPopup&&<PopupBienvenida onClose={()=>{ setShowPopup(false); try { sessionStorage.setItem("farmacapital_popup_visto","1"); } catch (_) { /* noop */ } }} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
+      {/* Popup bienvenida — retirado en v2 (spec 1.6). */}
+      {!v2 && showPopup&&<PopupBienvenida onClose={()=>{ setShowPopup(false); try { sessionStorage.setItem("farmacapital_popup_visto","1"); } catch (_) { /* noop */ } }} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
 
-      <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser} busqHero={busqHero} setBusqHero={setBusqHero} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>
+      {v2 ? (
+        <EncabezadoV2
+          page={page}
+          setPage={setPage}
+          cart={cart}
+          busqHero={busqHero}
+          setBusqHero={setBusqHero}
+          productos={productosVistaTiendaFarmacia}
+          setProdDetalle={setProdD}
+          aviso={<AvisoEnvioPorPagar user={user} setPage={setPage} />}
+        />
+      ) : (
+        <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser} busqHero={busqHero} setBusqHero={setBusqHero} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>
+      )}
 
       {(isSupabaseProductionMisconfigured || isSupabaseLocalMisconfigured) && (
         <div style={{
@@ -7153,13 +7178,21 @@ export default function TiendaFarmaCapital(){
       )}
 
       <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
-        <main style={{background:C.bg}}>
+        <main style={{background: v2 ? "#FFFFFF" : C.bg}}>
           {pages[page]||pages.home}
         </main>
-        {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
+        {v2
+          ? (page !== "tarjeta" && <PieV2 setPage={setPage} />)
+          : (!sinFooter.includes(page) && <Footer setPage={setPage} />)}
       </div>
       <WhatsAppFloatingButton />
     </>
+  );
+
+  return(
+    <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>
+    <TiendaPromosCtx.Provider value={mapaPromos}>
+    {v2 ? <TiendaV2Shell>{storeTree}</TiendaV2Shell> : storeTree}
     </TiendaPromosCtx.Provider>
     </TiendaPlaceholderCtx.Provider>
   );
