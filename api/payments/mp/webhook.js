@@ -345,6 +345,7 @@ module.exports = async function handler(req, res) {
               nombre: cliente?.nombre || guest?.guest_nombre,
               items: lineas,
               productos,
+              servicio: Number(pedidoBefore?.logistics_meta?.cargo_plataforma_mxn) || 0,
               envio: guest?.costo_envio,
               total: pedidoBefore.total,
               ticketUrl,

@@ -279,6 +279,28 @@ function escapeHtmlCorreo(value) {
     .replace(/"/g, '&quot;');
 }
 
+/** Servicio $5 ya sumado al total por el trigger (logistics_meta.cargo_plataforma_mxn). */
+function cargoServicioPedido(pedido) {
+  const n = Number(pedido?.logistics_meta?.cargo_plataforma_mxn);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+}
+
+/**
+ * Parte el total del pedido en productos + servicio + envío.
+ * pedido.total ya incluye el Servicio $5 (trigger) y, si hay cotización, el envío.
+ */
+function desglosePedido(total, costoEnvio, cargoServicio) {
+  const t = Math.round((Number(total) || 0) * 100) / 100;
+  const envio = Number.isFinite(Number(costoEnvio)) && Number(costoEnvio) >= 0 ? Math.round(Number(costoEnvio) * 100) / 100 : 0;
+  const servicio = Number.isFinite(Number(cargoServicio)) && Number(cargoServicio) > 0 ? Math.round(Number(cargoServicio) * 100) / 100 : 0;
+  return {
+    productos: Math.max(0, Math.round((t - envio - servicio) * 100) / 100),
+    servicio,
+    envio,
+    total: t,
+  };
+}
+
 function lineasTicketCorreo(items) {
   if (!Array.isArray(items)) return [];
   return items.map((i) => {
@@ -303,6 +325,7 @@ function correoAvisoEnvioCotizado({
   pedidoId,
   costo,
   itemsTotal,
+  cargo = 0,
   total,
   nombre,
   origen,
@@ -313,6 +336,8 @@ function correoAvisoEnvioCotizado({
   const saludo = quien ? `Hola ${quien}.` : 'Hola.';
   const productos = dineroCorreo(itemsTotal);
   const envio = dineroCorreo(costo);
+  const cargoN = Number(cargo) > 0 ? Number(cargo) : 0;
+  const servicio = dineroCorreo(cargoN);
   const totalTxt = dineroCorreo(total);
   const link = linkCarritoCorreo(origen);
   const lineas = lineasTicketCorreo(items);
@@ -324,6 +349,7 @@ function correoAvisoEnvioCotizado({
     `Ya cotizamos el envío de tu pedido ${folio}. El precio final es un solo cargo:\n\n` +
     `${detalle}` +
     `Productos: ${productos}\n` +
+    (cargoN > 0 ? `Servicio: ${servicio}\n` : '') +
     `Envío a domicilio: ${envio}\n` +
     `Total a pagar: ${totalTxt}\n\n` +
     `El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.\n\n` +
@@ -344,6 +370,7 @@ function correoAvisoEnvioCotizado({
     (filas ? `<table style="width:100%;border-collapse:collapse;margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">${filas}</table>` : '') +
     `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;">` +
     `<tr><td style="padding:4px 0;color:#334155;">Productos</td><td style="padding:4px 0;text-align:right;">${productos}</td></tr>` +
+    (cargoN > 0 ? `<tr><td style="padding:4px 0;color:#334155;">Servicio</td><td style="padding:4px 0;text-align:right;">${servicio}</td></tr>` : '') +
     `<tr><td style="padding:4px 0;color:#334155;">Envío a domicilio</td><td style="padding:4px 0;text-align:right;">${envio}</td></tr>` +
     `<tr><td style="padding:8px 0 0;font-weight:800;">Total a pagar</td><td style="padding:8px 0 0;text-align:right;font-weight:800;font-size:18px;">${totalTxt}</td></tr>` +
     `</table>` +
@@ -365,7 +392,7 @@ function correoAvisoEnvioCotizado({
   };
 }
 
-function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
+function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, cargo = 0, total, origen } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
   const envioTxt = Number(costo).toFixed(2);
   const prodTxt = Number(itemsTotal).toFixed(2);
@@ -375,7 +402,7 @@ function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, orige
   return (
     `🏥 FarmaCapital\n\n` +
     `Tu pedido ${folio} ya tiene el precio final.\n` +
-    `Productos $${prodTxt} + envío $${envioTxt} = $${totalTxt}.\n\n` +
+    `Productos $${prodTxt}${Number(cargo) > 0 ? ` + servicio $${Number(cargo).toFixed(2)}` : ''} + envío $${envioTxt} = $${totalTxt}.\n\n` +
     `Ábrelo en tu carrito y toca Pagar ahora. Es un solo cargo:\n${link}`
   );
 }
@@ -403,5 +430,7 @@ module.exports = {
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
   correoAvisoEnvioCotizado,
+  cargoServicioPedido,
+  desglosePedido,
   lineasTicketCorreo,
 };
