@@ -3261,7 +3261,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         </div>
       </div>
 
-      <Footer setPage={setPage}/>
+      {!tiendaV2Activa() && <Footer setPage={setPage}/>}
     </div>
   );
 }
