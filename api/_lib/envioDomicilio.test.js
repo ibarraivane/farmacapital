@@ -121,6 +121,33 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.doesNotMatch(mail.text, /\/carrito/);
     assert.doesNotMatch(mail.html, /\/carrito/);
   });
+  it('el Servicio $5 aparece en el desglose del correo y de WhatsApp', () => {
+    const { correoAvisoEnvioCotizado, desglosePedido, cargoServicioPedido } = require('./envioDomicilio');
+    // Pedido con envío: productos 202 + servicio 5 (trigger) + envío 100
+    const pedido = { total: 207, logistics_meta: { cargo_plataforma_mxn: 5 } };
+    const { itemsTotal, total } = totalPedidoConCostoEnvio(pedido.total, null, 100);
+    assert.equal(total, 307);
+    const d = desglosePedido(total, 100, cargoServicioPedido(pedido));
+    assert.deepEqual(d, { productos: 202, servicio: 5, envio: 100, total: 307 });
+    assert.equal(itemsTotal, 207); // por eso ya no se usa itemsTotal para el correo
+    const mail = correoAvisoEnvioCotizado({
+      pedidoId: 441, costo: 100, itemsTotal: d.productos, cargo: d.servicio, total,
+      items: [{ nombre: 'A', cantidad: 1, precio_unitario: 85 }, { nombre: 'B', cantidad: 1, precio_unitario: 59 }, { nombre: 'C', cantidad: 1, precio_unitario: 58 }],
+    });
+    assert.match(mail.text, /Productos: \$202\.00/);
+    assert.match(mail.text, /Servicio: \$5\.00/);
+    assert.match(mail.text, /Total a pagar: \$307\.00/);
+    assert.match(mail.html, />Servicio</);
+    const wa = textoClienteEnvioEnCheckout({ pedidoId: 441, costo: 100, itemsTotal: 202, cargo: 5, total: 307 });
+    assert.match(wa, /Productos \$202\.00 \+ servicio \$5\.00 \+ envío \$100\.00 = \$307\.00/);
+  });
+
+  it('recoger en tienda no lleva Servicio', () => {
+    const { desglosePedido, cargoServicioPedido } = require('./envioDomicilio');
+    const d = desglosePedido(202, 0, cargoServicioPedido({ logistics_meta: { cargo_plataforma_mxn: 0 } }));
+    assert.deepEqual(d, { productos: 202, servicio: 0, envio: 0, total: 202 });
+  });
+
   it('haversine de la sucursal a ~0 km', () => {
     const d = haversineKm(19.3714047, -99.0526916, 19.3714047, -99.0526916);
     assert.equal(d, 0);

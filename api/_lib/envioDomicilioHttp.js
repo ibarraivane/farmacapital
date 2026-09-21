@@ -18,6 +18,8 @@ const {
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
   correoAvisoEnvioCotizado,
+  cargoServicioPedido,
+  desglosePedido,
 } = require('./envioDomicilio');
 const { sendWhatsAppSmart } = require('./whatsappCloud');
 const { sendEmail } = require('./orderNotifications');
@@ -128,13 +130,14 @@ async function fetchItemsPedido(supabaseUrl, serviceKey, pedidoId) {
   return rows;
 }
 
-async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal }) {
+async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal, cargo = 0 }) {
   const contacto = await resolvePedidoContacto(supabaseUrl, serviceKey, pedido).catch(() => ({ email: '', nombre: '' }));
   const items = await fetchItemsPedido(supabaseUrl, serviceKey, pedido.id).catch(() => []);
   const mail = correoAvisoEnvioCotizado({
     pedidoId: pedido.id,
     costo,
     itemsTotal,
+    cargo,
     total: pedido.total,
     nombre: contacto.nombre,
     items,
@@ -178,6 +181,7 @@ async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, cos
           pedidoId: pedido.id,
           costo,
           itemsTotal,
+          cargo,
           total: pedido.total,
         }),
         allowTextFallback: true,
@@ -481,12 +485,15 @@ async function handleQuote(req, body) {
     proveedor,
   });
 
+  // pedido.total trae el Servicio $5 del trigger: separarlo para que el cliente vea el desglose real.
+  const desglose = desglosePedido(newTotal, costo, cargoServicioPedido(pedido));
   const aviso = await avisarClienteEnvioCotizado({
     supabaseUrl,
     serviceKey,
     pedido: { ...pedido, total: newTotal, costo_envio: costo },
     costo,
-    itemsTotal,
+    itemsTotal: desglose.productos,
+    cargo: desglose.servicio,
   });
   return {
     status: 200,
@@ -494,7 +501,8 @@ async function handleQuote(req, body) {
       ok: true,
       pedidoId,
       total: newTotal,
-      items_total: itemsTotal,
+      items_total: desglose.productos,
+      cargo_plataforma: desglose.servicio,
       costo_envio: costo,
       envio: envioPatch,
       whatsapp: aviso.whatsapp,
