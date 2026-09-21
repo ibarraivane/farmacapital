@@ -79,12 +79,15 @@ import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "
 import { attachEnvioPedido } from "./lib/envioDomicilioClient";
 import {
   checkoutPuedePedirEnvio,
+  clientePuedePagarPedidoEnvio,
   estimarEnvioDesdeCoords,
   etiquetaEstadoEnvioCliente,
+  feeEnvioEnCheckout,
   formatEnvioMoney,
   getEnvioConfigCliente,
 } from "./lib/envioDomicilio";
 import DestinationPicker from "./components/DestinationPicker";
+import PagarPedidoInvitado from "./components/PagarPedidoInvitado";
 import RecompraStrip, { ProductosStripStyles } from "./components/RecompraStrip";
 import { attachTiendaHorizontalStripWheel } from "./lib/forwardVerticalWheel";
 import SocialLoginButtons from "./components/SocialLoginButtons";
@@ -371,7 +374,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber, te escribe por WhatsApp el costo y en Mi cuenta confirmas y pagas productos + envío. Rappi es otra app." },
+  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber y te manda por WhatsApp la liga. Ahí pagas productos + envío juntos. Rappi es otra app." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
@@ -2289,7 +2292,7 @@ function ContenidoCDMX({ color }){
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Pides, el vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, confirmas y pagas productos + transporte. Rappi no entrega pedidos de esta tienda.
+        Pides, el vendedor cotiza el envío en DiDi o Uber y te manda la liga por WhatsApp. Ahí pagas productos + transporte juntos. Rappi no entrega pedidos de esta tienda.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
@@ -3677,7 +3680,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber, te escribe por WhatsApp y pagas productos + transporte en Mi cuenta.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber y te manda por WhatsApp la liga para pagar productos + transporte.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -4430,7 +4433,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     const instruccionEntrega = esPickup
       ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioPendienteCotizacion
-        ? "El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp el costo. Entras a Mi cuenta, confirmas y pagas productos + transporte."
+        ? "El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp la liga. Ahí pagas productos + transporte, juntos."
         : lastOrder.envioFee
           ? `Envío ${formatEnvioMoney(lastOrder.envioFee)} en tu pago. Te avisamos cuando salga el mensajero.`
           : "Te avisamos cuando salga el mensajero.";
@@ -4705,7 +4708,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 {entrega!=="pickup" && (
                   <div style={{marginTop:4,color:"#92400e",fontWeight:600}}>
                     {entrega!=="pickup"
-                      ? "El vendedor cotiza el envío y te avisa por WhatsApp. Pagas después en Mi cuenta."
+                      ? "El vendedor cotiza el envío y te manda por WhatsApp la liga para pagar. El transporte se suma a tu total."
                       : null}
                   </div>
                 )}
@@ -4714,7 +4717,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
                     : entrega==="pickup"
                       ? "Pagas al recoger con tarjeta (terminal BBVA)"
-                      : "Confirmas ahora; pagas productos + envío cuando el vendedor cotice"}
+                      : "Confirmas ahora. Cuando el vendedor cargue el transporte, pagas productos + envío en la liga."}
                 </div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>
@@ -6150,7 +6153,12 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
       });
       const mpData = await mpResp.json().catch(() => ({}));
       if (!mpResp.ok || !mpData?.ok || !(mpData.initPoint || mpData.sandboxInitPoint)) {
-        const msg = mpData?.error || "No se pudo iniciar Mercado Pago.";
+        const code = mpData?.error;
+        const msg = code === "envio_quote_required"
+          ? "Todavía estamos cotizando el envío. Cuando esté el precio, aquí pagas productos + transporte."
+          : code === "amount_mismatch"
+            ? "El total cambió. Recarga Mis pedidos y vuelve a pagar."
+            : (code || "No se pudo iniciar Mercado Pago.");
         alert(msg);
         setBusyPayPedidoId(null);
         return;
@@ -6306,9 +6314,9 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
             {(()=>{ const ep = etiquetaEstadoPagoPedido(p); return <Tag col={ep.col} sm>{ep.label}</Tag>; })()}
             {(()=>{ const el = etiquetaLogisticaPedido(p); return <Tag col={el.col} sm>{el.label}</Tag>; })()}
-            {p.tipo_entrega === "envio" && Number(p.costo_envio) >= 0 && p.logistics_meta?.envio?.cobrado_en_checkout ? (
+            {p.tipo_entrega === "envio" && feeEnvioEnCheckout(p) != null ? (
               <Tag col={BRAND.accent} sm>
-                Envío {formatEnvioMoney(p.costo_envio)} en el pago
+                Envío {formatEnvioMoney(feeEnvioEnCheckout(p))} en el pago
               </Tag>
             ) : null}
           </div>
@@ -6334,8 +6342,8 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           ) : null}
           {!pedidoEsBajoPedido(p) && String(p.metodo_pago || "").toLowerCase() === "mercadopago" && String(p.payment_status || "").toLowerCase() !== "approved" ? (
             <div style={{marginBottom:10}}>
-              {p.tipo_entrega === "envio" && !["cotizado", "link_enviado"].includes(String(p.logistics_meta?.envio?.estado || "").toLowerCase()) ? (
-                <div style={{fontSize:12,color:C.mid,lineHeight:1.45}}>Te escribimos por WhatsApp cuando el vendedor cotice el envío. Entonces podrás pagar aquí.</div>
+              {p.tipo_entrega === "envio" && !clientePuedePagarPedidoEnvio(p) ? (
+                <div style={{fontSize:12,color:C.mid,lineHeight:1.45}}>Estamos cotizando el envío. En cuanto el vendedor cargue el transporte, aquí pagas productos + envío.</div>
               ) : (
                 <Btn onClick={()=>pagarPedidoMercadoPago(p)} col={BRAND.primary} sm disabled={busyPayPedidoId===p.id}>
                   {busyPayPedidoId===p.id
@@ -6348,6 +6356,12 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <div style={{background:C.cardDark,borderRadius:10,padding:"10px 14px"}}>
             <div style={{color:C.mid,fontSize:11,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Productos</div>
             {(p.pedido_items||[]).map((item,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.dark,fontSize:13}}>{item.productos?.nombre||"Producto"} ×{item.cantidad}</span><span style={{color:BRAND.primary,fontSize:13,fontWeight:600}}>{$(item.precio_unitario*item.cantidad)}</span></div>))}
+            {feeEnvioEnCheckout(p) != null ? (
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,paddingTop:6,borderTop:`1px solid ${C.border}`}}>
+                <span style={{color:C.dark,fontSize:13}}>Envío a domicilio</span>
+                <span style={{color:BRAND.primary,fontSize:13,fontWeight:700}}>{formatEnvioMoney(feeEnvioEnCheckout(p))}</span>
+              </div>
+            ) : null}
           </div>
         </div>
             ))}
@@ -6971,6 +6985,7 @@ export default function TiendaFarmaCapital(){
         <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina={productosVistaTiendaFarmacia.some(esBajoPedido)}/>
       </>
     ),
+    pagar: <PagarPedidoInvitado />,
   };
 
   const sinFooter=["home","tarjeta"];

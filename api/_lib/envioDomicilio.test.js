@@ -14,6 +14,9 @@ const {
   cotizacionVencida,
   puedeDespacharEnvio,
   DEFAULT_TARIFAS,
+  totalPedidoConCostoEnvio,
+  cotizacionEnvioMeta,
+  textoClienteEnvioEnCheckout,
 } = require('./envioDomicilio');
 
 describe('envioDomicilio tarifas y radio', () => {
@@ -60,7 +63,33 @@ describe('envioDomicilio tarifas y radio', () => {
   });
 });
 
-describe('envioDomicilio distancia', () => {
+describe('envioDomicilio cotización en checkout', () => {
+  it('cotización del vendedor entra al total del checkout', () => {
+    const { itemsTotal, total } = totalPedidoConCostoEnvio(480, null, 60);
+    assert.equal(itemsTotal, 480);
+    assert.equal(total, 540);
+    const otra = totalPedidoConCostoEnvio(540, 60, 75);
+    assert.equal(otra.itemsTotal, 480);
+    assert.equal(otra.total, 555);
+    const meta = cotizacionEnvioMeta(
+      { calle: 'Río Grijalva 37' },
+      { costo: 60, proveedor: 'didi', distanciaKm: null, now: new Date('2026-09-21T00:00:00Z') },
+    );
+    assert.equal(meta.cobrado_en_checkout, true);
+    assert.equal(meta.estado, 'cotizado');
+    assert.equal(meta.costo_cotizado, 60);
+    assert.equal(meta.distancia_km, null);
+    assert.equal(meta.calle, 'Río Grijalva 37');
+    const texto = textoClienteEnvioEnCheckout({
+      pedidoId: 333,
+      costo: 60,
+      itemsTotal: 480,
+      total: 540,
+    });
+    assert.match(texto, /\/pagar\?pedido=333/);
+    assert.match(texto, /envío \$60\.00/);
+    assert.match(texto, /\$540\.00/);
+  });
   it('haversine de la sucursal a ~0 km', () => {
     const d = haversineKm(19.3714047, -99.0526916, 19.3714047, -99.0526916);
     assert.equal(d, 0);

@@ -186,6 +186,65 @@ export function leerMetaEnvio(pedido) {
   return {};
 }
 
+export function urlPagoCheckoutPedido(pedidoId, origin) {
+  const base = String(origin || "https://www.farmacapital.mx").replace(/\/+$/, "");
+  return `${base}/pagar?pedido=${encodeURIComponent(pedidoId)}`;
+}
+
+export function desgloseEnvioCheckout(total, costo) {
+  const t = Math.round((Number(total) || 0) * 100) / 100;
+  const c = Math.round((Number(costo) || 0) * 100) / 100;
+  const productos = Math.round((t - c) * 100) / 100;
+  if (productos < -0.001) {
+    return { productos: t, envio: c, total: Math.round((t + c) * 100) / 100 };
+  }
+  return { productos: Math.max(0, productos), envio: c, total: t };
+}
+
+/** Fee ya cotizado que debe verse en el checkout. null si todavía no hay precio. */
+export function feeEnvioEnCheckout(p) {
+  if (String(p?.tipo_entrega || "").toLowerCase() !== "envio") return null;
+  const envio = leerMetaEnvio(p);
+  const es = String(envio.estado || "").toLowerCase();
+  const fromCol = p?.costo_envio != null && p?.costo_envio !== "" ? Number(p.costo_envio) : null;
+  const raw = fromCol != null ? fromCol : Number(envio.costo_cotizado);
+  const quoted = ["cotizado", "link_enviado", "pagado"].includes(es)
+    || envio.cobrado_en_checkout === true
+    || fromCol != null;
+  if (!quoted || !Number.isFinite(raw) || raw < 0) return null;
+  return Math.round(raw * 100) / 100;
+}
+
+/**
+ * El cliente puede abrir Mercado Pago.
+ * Si el listado no trae la cotización, se deja intentar: el servidor rechaza si aún no hay precio.
+ */
+export function clientePuedePagarPedidoEnvio(p) {
+  if (String(p?.tipo_entrega || "").toLowerCase() !== "envio") return true;
+  const envio = leerMetaEnvio(p);
+  const es = String(envio.estado || "").toLowerCase();
+  if (["pendiente_cotizacion", "vencido", "fuera_radio"].includes(es)) return false;
+  if (["cotizado", "link_enviado", "pagado"].includes(es)) return true;
+  if (String(p?.delivery_status || "").toLowerCase() === "quoted") return true;
+  if (p?.costo_envio != null && p?.costo_envio !== "" && Number.isFinite(Number(p.costo_envio)) && Number(p.costo_envio) >= 0) {
+    return true;
+  }
+  if (envio.cobrado_en_checkout) return true;
+  if (!es && (p?.costo_envio == null || p?.costo_envio === "") && !p?.delivery_status) return true;
+  return false;
+}
+
+export function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
+  const folio = `#FC-${String(pedidoId).padStart(4, "0")}`;
+  const link = urlPagoCheckoutPedido(pedidoId, origen);
+  return (
+    `🏥 FarmaCapital\n\n` +
+    `Tu pedido ${folio} ya tiene el transporte en el checkout.\n` +
+    `Productos $${Number(itemsTotal).toFixed(2)} + envío $${Number(costo).toFixed(2)} = $${Number(total).toFixed(2)}.\n\n` +
+    `Entra con el teléfono del pedido y paga todo junto (un solo cargo):\n${link}`
+  );
+}
+
 /** Etiqueta de cuenta/cliente: el envío va en el total, no hay segundo link. */
 export function etiquetaEstadoEnvioCliente(envio = {}, paymentStatus) {
   const es = String(envio?.estado || "").toLowerCase();

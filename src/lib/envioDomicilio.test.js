@@ -1,12 +1,16 @@
 import {
   calcularCostoEnvio,
   checkoutPuedePedirEnvio,
+  clientePuedePagarPedidoEnvio,
+  desgloseEnvioCheckout,
   estimarEnvioDesdeCoords,
   etiquetaEstadoEnvioCliente,
+  feeEnvioEnCheckout,
   getEnvioConfigCliente,
   haversineKm,
   minutosRestantesCotizacion,
   proveedorSugerido,
+  textoClienteEnvioEnCheckout,
 } from "./envioDomicilio";
 
 describe("envioDomicilio cliente", () => {
@@ -47,5 +51,28 @@ describe("envioDomicilio cliente", () => {
     expect(etiquetaEstadoEnvioCliente({ estado: "cotizado", cobrado_en_checkout: true }, "pending")).toBe("Envío en el total");
     expect(etiquetaEstadoEnvioCliente({ estado: "link_enviado" }, "approved")).toBe("Listo para pagar envío");
     expect(etiquetaEstadoEnvioCliente({ estado: "en_ruta" })).toBe("En ruta");
+  });
+
+  test("el transporte cotizado se suma al checkout del cliente", () => {
+    const pedido = {
+      tipo_entrega: "envio",
+      total: 540,
+      costo_envio: 60,
+      logistics_meta: { envio: { estado: "cotizado", costo_cotizado: 60, cobrado_en_checkout: true } },
+    };
+    expect(feeEnvioEnCheckout(pedido)).toBe(60);
+    expect(clientePuedePagarPedidoEnvio(pedido)).toBe(true);
+    expect(clientePuedePagarPedidoEnvio({
+      tipo_entrega: "envio",
+      logistics_meta: { envio: { estado: "pendiente_cotizacion" } },
+    })).toBe(false);
+    expect(desgloseEnvioCheckout(540, 60)).toEqual({ productos: 480, envio: 60, total: 540 });
+    expect(textoClienteEnvioEnCheckout({
+      pedidoId: 333,
+      costo: 60,
+      itemsTotal: 480,
+      total: 540,
+      origen: "https://www.farmacapital.mx",
+    })).toContain("https://www.farmacapital.mx/pagar?pedido=333");
   });
 });

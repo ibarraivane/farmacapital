@@ -7,6 +7,7 @@ import {
   formatEnvioMoney,
   leerMetaEnvio,
   proveedorSugerido,
+  urlPagoCheckoutPedido,
 } from "../lib/envioDomicilio";
 import { Inp, Btn } from "../ui";
 import { C_LIGHT } from "../constants";
@@ -57,12 +58,10 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
       return;
     }
     showToast(
-      r.whatsapp?.sent
-        ? "Costo guardado y WhatsApp enviado al cliente."
-        : "Costo guardado. Si no salió el WhatsApp, avísale tú desde el botón verde.",
-      r.whatsapp?.sent ? "success" : "warning"
+      `$${n.toFixed(2)} cargado al checkout del cliente. Avísale por el botón verde de WhatsApp.`,
+      "success"
     );
-    onUpdated?.(r.envio);
+    onUpdated?.({ envio: r.envio, total: r.total, costo_envio: n, items_total: r.items_total });
   };
 
   const marcarRuta = async () => {
@@ -102,8 +101,8 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
       <div style={{ marginBottom: 8, fontWeight: 700, color: "#0f766e" }}>
         {meta.estado === "en_ruta" && "En ruta"}
         {pedidoPaid && meta.estado !== "en_ruta" && "Cliente ya pagó. Puedes pedir el mensajero."}
-        {!pedidoPaid && meta.estado === "cotizado" && "Cotización enviada. Esperando que el cliente pague en la tienda."}
-        {!pedidoPaid && meta.estado !== "cotizado" && meta.estado !== "en_ruta" && "Abre DiDi o Uber, cotiza y pon aquí el costo. Se le avisa por WhatsApp para que liquide."}
+        {!pedidoPaid && meta.estado === "cotizado" && "Cargado al checkout del cliente. Falta que pague productos + transporte."}
+        {!pedidoPaid && meta.estado !== "cotizado" && meta.estado !== "en_ruta" && "Abre DiDi o Uber, cotiza y pon aquí el costo. Se suma al total que el cliente paga en la tienda."}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
         <a href={DIDI_STAFF_URL} target="_blank" rel="noreferrer" style={{ fontWeight: 800, color: "#0f766e" }}>
@@ -120,6 +119,17 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
           style={{ border: "none", background: "none", color: "#0f766e", fontWeight: 700, cursor: "pointer", padding: 0 }}
         >
           Copiar dirección
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const liga = urlPagoCheckoutPedido(pedido?.id, window.location.origin);
+            if (navigator?.clipboard?.writeText) navigator.clipboard.writeText(liga);
+            showToast?.("Liga de pago copiada. Mándasela por WhatsApp.", "success");
+          }}
+          style={{ border: "none", background: "none", color: "#0f766e", fontWeight: 700, cursor: "pointer", padding: 0 }}
+        >
+          Copiar liga de pago
         </button>
       </div>
       {meta.estado !== "en_ruta" && (

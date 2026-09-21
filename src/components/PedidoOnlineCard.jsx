@@ -9,6 +9,11 @@ import {
   etiquetaPagoPedidoOnline,
 } from "../utils/pedidosTiendaWeb";
 import { formatFolioOnline, buildOnlineOrderReceiptMessage, openWhatsAppToCustomer } from "../utils/orderReceiptWhatsApp";
+import {
+  desgloseEnvioCheckout,
+  feeEnvioEnCheckout,
+  textoClienteEnvioEnCheckout,
+} from "../lib/envioDomicilio";
 import EnvioCotizacionPanel from "./EnvioCotizacionPanel";
 import CronometroPedidoOnline from "./CronometroPedidoOnline";
 import { IconoAnaquel } from "./pos/PosIconos";
@@ -41,18 +46,32 @@ export default function PedidoOnlineCard({
       showToast("Este pedido no tiene teléfono registrado", "warning");
       return;
     }
-    const msg = buildOnlineOrderReceiptMessage({
-      pedidoId: p.id,
-      items: (p.pedido_items || []).map((i) => ({
-        nombre: i.productos?.nombre,
-        qty: i.cantidad,
-        precio: i.precio_unitario,
-      })),
-      total: p.total,
-      tipoEntrega: p.tipo_entrega,
-      metodoPago: p.metodo_pago,
-    });
-    if (!openWhatsAppToCustomer(clienteTel, msg)) {
+    const fee = feeEnvioEnCheckout(p);
+    let msg;
+    if (fee != null) {
+      const partes = desgloseEnvioCheckout(p.total, fee);
+      msg = textoClienteEnvioEnCheckout({
+        pedidoId: p.id,
+        costo: partes.envio,
+        itemsTotal: partes.productos,
+        total: partes.total,
+        origen: window.location.origin,
+      });
+    } else {
+      msg = buildOnlineOrderReceiptMessage({
+        pedidoId: p.id,
+        items: (p.pedido_items || []).map((i) => ({
+          nombre: i.productos?.nombre,
+          qty: i.cantidad,
+          precio: i.precio_unitario,
+        })),
+        total: p.total,
+        tipoEntrega: p.tipo_entrega,
+        metodoPago: p.metodo_pago,
+      });
+    }
+    const tel = String(clienteTel).replace(/\D/g, "").slice(-10);
+    if (!openWhatsAppToCustomer(tel, msg)) {
       showToast("No se pudo abrir WhatsApp", "warning");
     }
   };
@@ -118,12 +137,19 @@ export default function PedidoOnlineCard({
             <EnvioCotizacionPanel
               pedido={p}
               showToast={showToast}
-              onUpdated={(envio) => {
-                setPedOn((rows) => rows.map((x) => (
-                  x.id === p.id
-                    ? { ...x, logistics_meta: { ...(x.logistics_meta || {}), envio } }
-                    : x
-                )));
+              onUpdated={(patch) => {
+                const envio = patch?.envio?.estado ? patch.envio : patch;
+                setPedOn((rows) => rows.map((x) => {
+                  if (x.id !== p.id) return x;
+                  const next = {
+                    ...x,
+                    logistics_meta: { ...(x.logistics_meta || {}), envio },
+                  };
+                  if (patch?.total != null) next.total = patch.total;
+                  if (patch?.costo_envio != null) next.costo_envio = patch.costo_envio;
+                  if (envio?.estado === "cotizado") next.delivery_status = "quoted";
+                  return next;
+                }));
               }}
             />
           )}

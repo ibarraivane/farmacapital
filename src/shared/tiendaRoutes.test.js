@@ -49,5 +49,8 @@ describe("tiendaRoutes", () => {
     expect(resolveTiendaPage("te-lo-conseguimos")).toBe("conseguir");
     expect(tiendaPathnameToPageId("/tarjeta")).toBe("tarjeta");
     expect(tiendaPathnameToPageId("/conseguir")).toBe("conseguir");
+    expect(tiendaPathnameToPageId("/pagar")).toBe("pagar");
+    expect(pageIdToTiendaPath("pagar")).toBe("/pagar");
+    expect(resolveTiendaPage("pago")).toBe("checkout");
   });
 });

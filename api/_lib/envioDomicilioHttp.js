@@ -14,6 +14,9 @@ const {
   cotizacionVencida,
   puedeDespacharEnvio,
   PROVEEDORES_ENVIO,
+  totalPedidoConCostoEnvio,
+  cotizacionEnvioMeta,
+  textoClienteEnvioEnCheckout,
 } = require('./envioDomicilio');
 const { sendWhatsAppSmart } = require('./whatsappCloud');
 
@@ -100,17 +103,13 @@ async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, cos
   try {
     const tel = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
     if (!tel || tel.length < 10) return { sent: false, reason: 'missing_phone' };
-    const folio = `#FC-${String(pedido.id).padStart(4, '0')}`;
-    const envioTxt = Number(costo).toFixed(2);
-    const prodTxt = Number(itemsTotal).toFixed(2);
-    const totalTxt = Number(pedido.total).toFixed(2);
-    const text =
-      `🏥 FarmaCapital\n\n` +
-      `Tu pedido ${folio} ya tiene costo de envío.\n` +
-      `Te confirmamos: el transporte es $${envioTxt}.\n` +
-      `Productos $${prodTxt} + envío $${envioTxt} = $${totalTxt}.\n\n` +
-      `Entra a farmacapital.mx → Mi cuenta y toca «Pagar ahora». ` +
-      `Ahí liquidas productos + envío (el cargo de la tarjeta se suma una sola vez).`;
+    const text = textoClienteEnvioEnCheckout({
+      pedidoId: pedido.id,
+      costo,
+      itemsTotal,
+      total: pedido.total,
+      origen: process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx',
+    });
     return await sendWhatsAppSmart({ to: tel, text, allowTextFallback: true });
   } catch (e) {
     return { sent: false, reason: e?.message || 'whatsapp_failed' };
@@ -380,24 +379,14 @@ async function handleQuote(req, body) {
   }
 
   const prevFee = Number(pedido.costo_envio);
-  let itemsTotal = Number(pedido.total || 0);
-  if (Number.isFinite(prevFee) && prevFee >= 0) {
-    itemsTotal = Math.round((itemsTotal - prevFee) * 100) / 100;
-  }
-  const newTotal = Math.round((itemsTotal + costo) * 100) / 100;
+  const { itemsTotal, total: newTotal } = totalPedidoConCostoEnvio(pedido.total, prevFee, costo);
 
-  const envioPatch = {
-    ...current,
-    estado: costo === 0 ? 'cotizado' : 'cotizado',
-    cobrado_en_checkout: false,
-    costo_real_mensajeria: costo,
-    costo_cotizado: costo,
-    distancia_km: Number.isFinite(distanciaKm) ? distanciaKm : current.distancia_km ?? null,
+  const envioPatch = cotizacionEnvioMeta(current, {
+    costo,
     proveedor,
-    fulfillment_type: proveedor === 'propio' ? 'own_delivery' : 'courier',
-    cotizado_at: new Date().toISOString(),
-    nota_interna: String(body?.nota || '').trim() || current.nota_interna || null,
-  };
+    distanciaKm: Number.isFinite(distanciaKm) ? distanciaKm : current.distancia_km,
+    nota: body?.nota,
+  });
   const logistics_meta = mergeEnvioMeta(pedido, envioPatch);
   const patched = await patchPedido(supabaseUrl, serviceKey, pedidoId, {
     total: newTotal,
@@ -425,7 +414,7 @@ async function handleQuote(req, body) {
     costo,
     itemsTotal,
   });
-  return { status: 200, json: { ok: true, pedidoId, total: newTotal, envio: envioPatch, whatsapp: wa } };
+  return { status: 200, json: { ok: true, pedidoId, total: newTotal, items_total: itemsTotal, costo_envio: costo, envio: envioPatch, whatsapp: wa } };
 }
 
 async function handlePaymentLink() {
@@ -482,6 +471,86 @@ async function handleDispatch(req, body) {
   return { status: 200, json: { ok: true, envio: envioPatch } };
 }
 
+async function handleResumenPago(body) {
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) return { status: 500, json: { ok: false, error: 'missing_supabase' } };
+  const pedidoId = Number(body?.pedidoId || body?.pedido_id);
+  if (!pedidoId) return { status: 400, json: { ok: false, error: 'invalid_pedido_id' } };
+  const phone = String(body?.guestPhone || body?.guest_telefono || '').replace(/\D/g, '').slice(-10);
+  if (phone.length < 10) return { status: 400, json: { ok: false, error: 'missing_guest_phone' } };
+
+  const pedido = await fetchPedido(supabaseUrl, serviceKey, pedidoId);
+  if (!pedido) return { status: 404, json: { ok: false, error: 'pedido_not_found' } };
+  if (pedido.tipo !== 'online') return { status: 400, json: { ok: false, error: 'pedido_not_online' } };
+
+  const tel = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
+  if (!tel || tel.slice(-10) !== phone) {
+    return { status: 403, json: { ok: false, error: 'guest_phone_mismatch' } };
+  }
+
+  const created = new Date(pedido.created_at).getTime();
+  const windowMs = String(pedido.tipo_entrega || '').toLowerCase() === 'envio'
+    ? 72 * 60 * 60 * 1000
+    : 2 * 60 * 60 * 1000;
+  if (!Number.isFinite(created) || Date.now() - created > windowMs) {
+    return { status: 403, json: { ok: false, error: 'guest_checkout_expired' } };
+  }
+
+  const { envio } = readEnvioMeta(pedido);
+  const current = expireIfNeeded(envio);
+  const estado = String(current.estado || '').toLowerCase();
+  const costoRaw = pedido.costo_envio != null && pedido.costo_envio !== ''
+    ? Number(pedido.costo_envio)
+    : Number(current.costo_cotizado);
+  const costo = Number.isFinite(costoRaw) && costoRaw >= 0 ? Math.round(costoRaw * 100) / 100 : null;
+  const quoted = ['cotizado', 'link_enviado', 'pagado'].includes(estado)
+    || current.cobrado_en_checkout === true
+    || (pedido.costo_envio != null && pedido.costo_envio !== '' && costo != null);
+  const paid = String(pedido.payment_status || '').toLowerCase() === 'approved';
+  const cargoRaw = Number(pedido.logistics_meta?.cargo_plataforma_mxn);
+  const cargo = Number.isFinite(cargoRaw) && cargoRaw > 0 ? Math.round(cargoRaw * 100) / 100 : 0;
+  const total = Math.round((Number(pedido.total) || 0) * 100) / 100;
+  const envioFee = quoted && costo != null ? costo : 0;
+  const itemsTotal = Math.max(0, Math.round((total - envioFee - cargo) * 100) / 100);
+
+  let lineas = [];
+  try {
+    const itemsResp = await fetch(
+      `${supabaseUrl}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
+    const rows = await itemsResp.json().catch(() => []);
+    if (itemsResp.ok && Array.isArray(rows)) {
+      lineas = rows.map((row) => ({
+        nombre: row?.productos?.nombre || 'Producto',
+        cantidad: Number(row.cantidad) || 1,
+        importe: Math.round((Number(row.precio_unitario) || 0) * (Number(row.cantidad) || 1) * 100) / 100,
+      }));
+    }
+  } catch {
+    lineas = [];
+  }
+
+  return {
+    status: 200,
+    json: {
+      ok: true,
+      pedidoId,
+      folio: `#FC-${String(pedidoId).padStart(4, '0')}`,
+      total,
+      items_total: itemsTotal,
+      costo_envio: quoted ? costo : null,
+      cargo_plataforma: cargo,
+      estado_envio: estado || null,
+      payment_status: pedido.payment_status || null,
+      tipo_entrega: pedido.tipo_entrega || null,
+      puede_pagar: !paid && pedido.estado === 'pendiente' && quoted && pedido.tipo_entrega === 'envio',
+      pagado: paid,
+      lineas,
+    },
+  };
+}
+
 async function handleGet(body) {
   const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
   if (!supabaseUrl || !serviceKey) return { status: 500, json: { ok: false, error: 'missing_supabase' } };
@@ -517,6 +586,7 @@ async function dispatch(req) {
   if (action === 'estimate') return handleEstimate(body);
   if (action === 'attach') return handleAttach(req, body);
   if (action === 'quote') return handleQuote(req, body);
+  if (action === 'resumen-pago' || action === 'resumen_pago') return handleResumenPago(body);
   if (action === 'create-payment-link' || action === 'payment_link') return handlePaymentLink(req, body);
   if (action === 'dispatch' || action === 'en_ruta') return handleDispatch(req, body);
   return { status: 400, json: { ok: false, error: 'unknown_action' } };

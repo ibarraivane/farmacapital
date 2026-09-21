@@ -221,6 +221,59 @@ function formatMoneyMx(n) {
   return `$${v.toFixed(2)}`;
 }
 
+/** Total del pedido = productos (sin el fee previo) + costo de transporte nuevo. */
+function totalPedidoConCostoEnvio(totalActual, costoPrevio, costoNuevo) {
+  let items = Number(totalActual || 0);
+  const prev = Number(costoPrevio);
+  if (Number.isFinite(prev) && prev >= 0) {
+    items = Math.round((items - prev) * 100) / 100;
+  }
+  const costo = Number(costoNuevo);
+  const fee = Number.isFinite(costo) && costo >= 0 ? costo : 0;
+  return {
+    itemsTotal: items,
+    total: Math.round((items + fee) * 100) / 100,
+  };
+}
+
+/** La cotización del vendedor queda dentro del único cobro del checkout. */
+function cotizacionEnvioMeta(current = {}, { costo, proveedor, distanciaKm, nota, now = new Date() } = {}) {
+  const fee = Number(costo);
+  return {
+    ...current,
+    estado: 'cotizado',
+    cobrado_en_checkout: true,
+    costo_real_mensajeria: fee,
+    costo_cotizado: fee,
+    distancia_km: distanciaKm == null || distanciaKm === '' || !Number.isFinite(Number(distanciaKm))
+      ? (current.distancia_km ?? null)
+      : Number(distanciaKm),
+    proveedor,
+    fulfillment_type: proveedor === 'propio' ? 'own_delivery' : 'courier',
+    cotizado_at: now.toISOString(),
+    nota_interna: String(nota || '').trim() || current.nota_interna || null,
+  };
+}
+
+function urlPagoCheckoutPedido(pedidoId, origin) {
+  const base = String(origin || 'https://www.farmacapital.mx').replace(/\/+$/, '');
+  return `${base}/pagar?pedido=${encodeURIComponent(pedidoId)}`;
+}
+
+function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
+  const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
+  const envioTxt = Number(costo).toFixed(2);
+  const prodTxt = Number(itemsTotal).toFixed(2);
+  const totalTxt = Number(total).toFixed(2);
+  const link = urlPagoCheckoutPedido(pedidoId, origen);
+  return (
+    `🏥 FarmaCapital\n\n` +
+    `Tu pedido ${folio} ya tiene el transporte en el checkout.\n` +
+    `Productos $${prodTxt} + envío $${envioTxt} = $${totalTxt}.\n\n` +
+    `Entra con el teléfono del pedido y paga todo junto (un solo cargo):\n${link}`
+  );
+}
+
 module.exports = {
   DEFAULT_TARIFAS,
   ESTADOS_ENVIO,
@@ -240,4 +293,8 @@ module.exports = {
   cotizacionVencida,
   puedeDespacharEnvio,
   formatMoneyMx,
+  totalPedidoConCostoEnvio,
+  cotizacionEnvioMeta,
+  urlPagoCheckoutPedido,
+  textoClienteEnvioEnCheckout,
 };
