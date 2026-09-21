@@ -59,8 +59,10 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
       return;
     }
     showToast(
-      `$${n.toFixed(2)} cargado al checkout del cliente. Avísale por el botón verde de WhatsApp.`,
-      "success"
+      r.email?.sent
+        ? `$${n.toFixed(2)} cargado. Le mandamos un correo desde contacto@farmacapital.mx para que lo revise en Mi cuenta.`
+        : `$${n.toFixed(2)} cargado al pedido. No salió el correo. Avísale por el botón verde de WhatsApp.`,
+      r.email?.sent ? "success" : "warning"
     );
     onUpdated?.({ envio: r.envio, total: r.total, costo_envio: n, items_total: r.items_total });
   };

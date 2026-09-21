@@ -255,6 +255,21 @@ function cotizacionEnvioMeta(current = {}, { costo, proveedor, distanciaKm, nota
   };
 }
 
+const CORREO_ENVIO_FROM = 'FarmaCapital <contacto@farmacapital.mx>';
+
+function correoAvisoEnvioCotizado({ pedidoId, costo, itemsTotal, total, nombre } = {}) {
+  const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
+  const quien = String(nombre || '').trim();
+  const cuerpo = textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total });
+  const saludo = quien ? `Hola ${quien}.\n\n` : '';
+  return {
+    from: CORREO_ENVIO_FROM,
+    replyTo: 'contacto@farmacapital.mx',
+    subject: `Tu pedido ${folio} ya tiene el costo de envío`,
+    text: `${saludo}${cuerpo}\n\nhttps://www.farmacapital.mx/cuenta`,
+  };
+}
+
 function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
   const envioTxt = Number(costo).toFixed(2);
@@ -290,4 +305,5 @@ module.exports = {
   totalPedidoConCostoEnvio,
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
+  correoAvisoEnvioCotizado,
 };

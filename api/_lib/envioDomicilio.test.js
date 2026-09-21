@@ -92,6 +92,25 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.match(texto, /envío \$60\.00/);
     assert.match(texto, /\$540\.00/);
   });
+
+  it('el correo sale de contacto y manda a Mi cuenta', () => {
+    const { correoAvisoEnvioCotizado } = require('./envioDomicilio');
+    const mail = correoAvisoEnvioCotizado({
+      pedidoId: 333,
+      costo: 60,
+      itemsTotal: 480,
+      total: 540,
+      nombre: 'Ivan Ibarra',
+    });
+    assert.equal(mail.from, 'FarmaCapital <contacto@farmacapital.mx>');
+    assert.equal(mail.replyTo, 'contacto@farmacapital.mx');
+    assert.match(mail.subject, /#FC-0333/);
+    assert.match(mail.text, /Hola Ivan Ibarra/);
+    assert.match(mail.text, /envío \$60\.00/);
+    assert.match(mail.text, /Mi cuenta/);
+    assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/cuenta/);
+    assert.doesNotMatch(mail.text, /\/pagar/);
+  });
   it('haversine de la sucursal a ~0 km', () => {
     const d = haversineKm(19.3714047, -99.0526916, 19.3714047, -99.0526916);
     assert.equal(d, 0);

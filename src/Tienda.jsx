@@ -82,6 +82,7 @@ import {
   getEnvioConfigCliente,
 } from "./lib/envioDomicilio";
 import DestinationPicker from "./components/DestinationPicker";
+import AvisoEnvioPorPagar from "./components/AvisoEnvioPorPagar";
 import PagarPedidoInvitado from "./components/PagarPedidoInvitado";
 import RecompraStrip, { ProductosStripStyles } from "./components/RecompraStrip";
 import { attachTiendaHorizontalStripWheel } from "./lib/forwardVerticalWheel";
@@ -1763,6 +1764,7 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
           </button>
         </div>
       </header>
+      <AvisoEnvioPorPagar user={user} setPage={setPage} />
       {mostrarBuscador && (
         <div style={{
           background:"#fff",
@@ -6292,6 +6294,11 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
               </Tag>
             ) : null}
           </div>
+          {p.tipo_entrega === "envio" && feeEnvioEnCheckout(p) != null && String(p.payment_status || "").toLowerCase() !== "approved" ? (
+            <div style={{marginBottom:10,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:13,color:"#92400e",lineHeight:1.45}}>
+              El envío ya está cotizado: <strong>{formatEnvioMoney(feeEnvioEnCheckout(p))}</strong>. El total de arriba incluye productos y transporte. Revísalo y toca Pagar ahora.
+            </div>
+          ) : null}
           {p.delivery_tracking_url ? (
             <div style={{fontSize:12,color:C.textMid,marginBottom:10}}>
               Tracking: <a href={p.delivery_tracking_url} target="_blank" rel="noreferrer" style={{color:BRAND.primary,fontWeight:700}}>Ver seguimiento</a>

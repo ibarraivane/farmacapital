@@ -229,6 +229,19 @@ export function clientePuedePagarPedidoEnvio(p) {
   return false;
 }
 
+/** Pedidos de domicilio ya cotizados que el cliente todavía no liquida. */
+export function pedidosConEnvioPorPagar(pedidos) {
+  if (!Array.isArray(pedidos)) return [];
+  return pedidos.filter((p) => {
+    const estado = String(p?.estado || "").toLowerCase();
+    if (["cancelado", "cancelada", "completado"].includes(estado)) return false;
+    if (String(p?.payment_status || "").toLowerCase() === "approved") return false;
+    if (String(p?.tipo_entrega || "").toLowerCase() !== "envio") return false;
+    if (feeEnvioEnCheckout(p) == null) return false;
+    return clientePuedePagarPedidoEnvio(p);
+  });
+}
+
 export function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, "0")}`;
   return (

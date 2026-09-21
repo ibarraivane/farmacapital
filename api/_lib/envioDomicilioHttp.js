@@ -17,8 +17,10 @@ const {
   totalPedidoConCostoEnvio,
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
+  correoAvisoEnvioCotizado,
 } = require('./envioDomicilio');
 const { sendWhatsAppSmart } = require('./whatsappCloud');
+const { sendEmail } = require('./orderNotifications');
 
 function getQuery(req) {
   try {
@@ -99,25 +101,70 @@ async function resolvePedidoTelefono(supabaseUrl, serviceKey, pedido) {
   return tel.slice(-10);
 }
 
+async function resolvePedidoContacto(supabaseUrl, serviceKey, pedido) {
+  let email = String(pedido?.guest_email || '').trim();
+  let nombre = String(pedido?.guest_nombre || '').trim();
+  const clienteId = Number(pedido?.cliente_id);
+  if ((!email.includes('@') || !nombre) && Number.isFinite(clienteId) && clienteId > 0) {
+    const resp = await fetch(
+      `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=email,nombre&limit=1`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
+    const rows = await resp.json().catch(() => []);
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (!email.includes('@')) email = String(row?.email || '').trim();
+    if (!nombre) nombre = String(row?.nombre || '').trim();
+  }
+  return { email: email.includes('@') ? email : '', nombre };
+}
+
 async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal }) {
+  const contacto = await resolvePedidoContacto(supabaseUrl, serviceKey, pedido).catch(() => ({ email: '', nombre: '' }));
+  const mail = correoAvisoEnvioCotizado({
+    pedidoId: pedido.id,
+    costo,
+    itemsTotal,
+    total: pedido.total,
+    nombre: contacto.nombre,
+  });
+  let email = { sent: false, reason: 'missing_email' };
+  if (contacto.email) {
+    try {
+      email = await sendEmail({
+        to: contacto.email,
+        subject: mail.subject,
+        text: mail.text,
+        from: mail.from,
+        replyTo: mail.replyTo,
+      });
+    } catch (e) {
+      email = { sent: false, reason: e?.message || 'email_failed' };
+    }
+  }
+  let whatsapp = { sent: false, reason: 'missing_phone' };
   try {
     const tel = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
-    if (!tel || tel.length < 10) return { sent: false, reason: 'missing_phone' };
-    const text = textoClienteEnvioEnCheckout({
-      pedidoId: pedido.id,
-      costo,
-      itemsTotal,
-      total: pedido.total,
-      origen: process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx',
-    });
-    return await sendWhatsAppSmart({ to: tel, text, allowTextFallback: true });
+    if (tel && tel.length >= 10) {
+      whatsapp = await sendWhatsAppSmart({
+        to: tel,
+        text: textoClienteEnvioEnCheckout({
+          pedidoId: pedido.id,
+          costo,
+          itemsTotal,
+          total: pedido.total,
+        }),
+        allowTextFallback: true,
+      });
+    }
   } catch (e) {
-    return { sent: false, reason: e?.message || 'whatsapp_failed' };
+    whatsapp = { sent: false, reason: e?.message || 'whatsapp_failed' };
   }
+  return { email, whatsapp };
 }
 
 async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
   const selects = [
+    'id,cliente_id,total,estado,tipo,tipo_entrega,direccion,created_at,guest_nombre,guest_telefono,guest_email,logistics_meta,costo_envio,delivery_provider,delivery_status,payment_status',
     'id,cliente_id,total,estado,tipo,tipo_entrega,direccion,created_at,guest_telefono,logistics_meta,costo_envio,delivery_provider,delivery_status,payment_status',
     'id,cliente_id,total,estado,tipo,tipo_entrega,direccion,created_at,guest_telefono,logistics_meta,costo_envio,payment_status',
     'id,cliente_id,total,estado,tipo,tipo_entrega,direccion,created_at,guest_telefono,payment_status',
@@ -407,14 +454,26 @@ async function handleQuote(req, body) {
     proveedor,
   });
 
-  const wa = await avisarClienteEnvioCotizado({
+  const aviso = await avisarClienteEnvioCotizado({
     supabaseUrl,
     serviceKey,
     pedido: { ...pedido, total: newTotal, costo_envio: costo },
     costo,
     itemsTotal,
   });
-  return { status: 200, json: { ok: true, pedidoId, total: newTotal, items_total: itemsTotal, costo_envio: costo, envio: envioPatch, whatsapp: wa } };
+  return {
+    status: 200,
+    json: {
+      ok: true,
+      pedidoId,
+      total: newTotal,
+      items_total: itemsTotal,
+      costo_envio: costo,
+      envio: envioPatch,
+      whatsapp: aviso.whatsapp,
+      email: aviso.email,
+    },
+  };
 }
 
 async function handlePaymentLink() {

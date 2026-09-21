@@ -9,6 +9,7 @@ import {
   getEnvioConfigCliente,
   haversineKm,
   minutosRestantesCotizacion,
+  pedidosConEnvioPorPagar,
   proveedorSugerido,
   textoClienteEnvioEnCheckout,
 } from "./envioDomicilio";
@@ -55,6 +56,7 @@ describe("envioDomicilio cliente", () => {
 
   test("el transporte cotizado se suma al checkout del cliente", () => {
     const pedido = {
+      id: 333,
       tipo_entrega: "envio",
       total: 540,
       costo_envio: 60,
@@ -76,5 +78,10 @@ describe("envioDomicilio cliente", () => {
     expect(texto).toContain("Mi cuenta");
     expect(texto).toContain("Pagar ahora");
     expect(texto).not.toMatch(/\/pagar/);
+    expect(pedidosConEnvioPorPagar([
+      pedido,
+      { id: 1, tipo_entrega: "envio", estado: "pendiente", payment_status: "pending", logistics_meta: { envio: { estado: "pendiente_cotizacion" } } },
+      { id: 2, tipo_entrega: "recoger", total: 80 },
+    ]).map((p) => p.id)).toEqual([333]);
   });
 });
