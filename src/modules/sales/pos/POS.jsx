@@ -3822,15 +3822,20 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                             setBbvaModal(true);
                           }}>🏦 Cobrar BBVA</Btn>
                         )}
-                        {p.tipo_entrega==="envio" && !p.delivery_tracking_url && (
+                        {p.tipo_entrega==="envio" && p.delivery_status !== "in_route" && !p.delivery_tracking_url && (
                           <Btn sm col={C.teal} dis={guardando} onClick={async()=>{
                             const tokU = sessionStorage.getItem("farmacapital_session_token");
                             const r = await despacharEnvioPedido({ pedidoId: p.id, sessionToken: tokU });
                             if (r.ok) {
-                              showToast("Marcado en ruta", "success");
+                              showToast("En ruta. Pide el Uber/DiDi y entrega.", "success");
                               setPedOnHist((prev)=>prev.map((x)=>x.id===p.id ? { ...x, delivery_status: "in_route" } : x));
                             } else {
-                              showToast(r.error === "envio_no_pagado" ? "Falta el pago del envío." : `No se despachó: ${r.error}`, "warning");
+                              showToast(
+                                r.error === "envio_no_pagado"
+                                  ? "Este pedido aún no está pagado. El cliente liquida en su cuenta; después marcas en ruta."
+                                  : `No se despachó: ${r.error}`,
+                                "warning",
+                              );
                             }
                           }}>Marcar en ruta</Btn>
                         )}

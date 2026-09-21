@@ -207,11 +207,11 @@ function cotizacionVencida(cotizarAntesDe, now = new Date()) {
 function puedeDespacharEnvio(envio = {}, opts = {}) {
   const estado = String(envio.estado || '');
   const costo = Number(envio.costo_cotizado);
-  if (estado === 'pagado') return true;
+  // Pedido liquidado en Mercado Pago (productos + envío): el mensajero puede salir
+  // aunque logistics_meta.envio se haya quedado en cotizado / link_enviado.
+  if (opts.paymentApproved) return true;
+  if (estado === 'pagado' || estado === 'en_ruta') return true;
   if (estado === 'cotizado' && Number.isFinite(costo) && costo === 0) return true;
-  if (envio.cobrado_en_checkout && opts.paymentApproved && ['cotizado', 'pagado'].includes(estado)) {
-    return true;
-  }
   return false;
 }
 
