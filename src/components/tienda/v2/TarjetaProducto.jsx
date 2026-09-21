@@ -55,7 +55,9 @@ export default function TarjetaProducto({
     if (cta === "ordenar") { abrir(); return; }
     if (agotado) return;
     if (!productoPermitidoEnTiendaFarmaciaWeb(prod)) {
-      window.alert(razonBloqueoProductoTiendaFarmacia(prod));
+      if (typeof window.alert === "function") {
+        window.alert(razonBloqueoProductoTiendaFarmacia(prod));
+      }
       return;
     }
     if (addToCart?.(prod) === false) return;

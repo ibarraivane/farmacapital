@@ -14,6 +14,7 @@ const omeprazol = {
   precio: 89,
   stock: 5,
   bajo_pedido: false,
+  activo: true,
 };
 
 test("tarjeta abre el producto y el + agrega", () => {

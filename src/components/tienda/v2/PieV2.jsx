@@ -7,7 +7,7 @@ function datoReal(...vals) {
 }
 
 export default function PieV2({ setPage, farmacia = FARMACIA_FISCAL }) {
-  const go = (id, opts) => setPage?.(id, opts);
+  const go = (id, opts) => (opts == null ? setPage?.(id) : setPage?.(id, opts));
   const responsable = datoReal(farmacia.responsable_sanitario, farmacia.responsable_cedula);
   const avisoFun = datoReal(farmacia.aviso_funcionamiento);
   const legal = [

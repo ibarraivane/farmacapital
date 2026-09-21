@@ -21,6 +21,7 @@ test("el contador del carrito es verde y el logo abre inicio", () => {
 });
 
 test("el buscador reusa las sugerencias del catálogo", () => {
+  window.scrollTo = jest.fn();
   const setPage = jest.fn();
   const setProdDetalle = jest.fn();
   render(

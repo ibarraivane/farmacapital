@@ -51,12 +51,15 @@ export default function EncabezadoV2({
     setProdDetalle?.(row);
     setBusqFocus(false);
     setPage?.("detalle", { productId: row.id });
-    window.scrollTo?.({ top: 0, behavior: "smooth" });
+    if (typeof window.scrollTo === "function") {
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (_) { /* jsdom */ }
+    }
   };
 
   const go = (id, opts) => {
     setMenuOpen(false);
     if (id === "cita") navigateToCita(setPage);
+    else if (opts == null) setPage?.(id);
     else setPage?.(id, opts);
   };
 
