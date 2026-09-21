@@ -9,6 +9,7 @@ import {
   leerMetaEnvio,
   proveedorSugerido,
   textoClienteEnvioEnCheckout,
+  mensajeCorreoEnvioCotizado,
 } from "../lib/envioDomicilio";
 import { Inp, Btn } from "../ui";
 import { C_LIGHT } from "../constants";
@@ -59,9 +60,12 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
       return;
     }
     showToast(
-      r.email?.sent
-        ? `$${n.toFixed(2)} cargado. Le mandamos un correo desde contacto@farmacapital.mx para que lo revise en Mi cuenta.`
-        : `$${n.toFixed(2)} cargado al pedido. No salió el correo. Avísale por el botón verde de WhatsApp.`,
+      mensajeCorreoEnvioCotizado({
+        sent: Boolean(r.email?.sent),
+        reason: r.email?.reason,
+        detail: r.email?.detail,
+        costo: n,
+      }),
       r.email?.sent ? "success" : "warning"
     );
     onUpdated?.({ envio: r.envio, total: r.total, costo_envio: n, items_total: r.items_total });

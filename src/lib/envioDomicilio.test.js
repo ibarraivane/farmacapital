@@ -12,6 +12,7 @@ import {
   pedidosConEnvioPorPagar,
   proveedorSugerido,
   textoClienteEnvioEnCheckout,
+  mensajeCorreoEnvioCotizado,
 } from "./envioDomicilio";
 
 describe("envioDomicilio cliente", () => {
@@ -83,5 +84,20 @@ describe("envioDomicilio cliente", () => {
       { id: 1, tipo_entrega: "envio", estado: "pendiente", payment_status: "pending", logistics_meta: { envio: { estado: "pendiente_cotizacion" } } },
       { id: 2, tipo_entrega: "recoger", total: 80 },
     ]).map((p) => p.id)).toEqual([333]);
+  });
+
+  test("el toast dice por qué no salió el correo", () => {
+    expect(mensajeCorreoEnvioCotizado({
+      sent: false,
+      reason: "missing_email",
+      costo: 100,
+    })).toMatch(/no tiene correo/);
+    expect(mensajeCorreoEnvioCotizado({
+      sent: false,
+      reason: "email_provider_error",
+      costo: 100,
+      detail: { message: "The farmacapital.mx domain is not verified." },
+    })).toMatch(/verifica el dominio/);
+    expect(mensajeCorreoEnvioCotizado({ sent: true, costo: 100 })).toMatch(/contacto@farmacapital\.mx/);
   });
 });
