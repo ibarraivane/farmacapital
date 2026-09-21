@@ -8,17 +8,31 @@ function dinero(n) {
   return `$${(Number.isFinite(v) ? v : 0).toFixed(2)}`;
 }
 
-/** Ticket de cobro pendiente, para adjuntar al correo del envío cotizado. */
-function ticketEnvioPdfBase64({
+function folioTicket(pedidoId) {
+  return `#FC-${String(pedidoId).padStart(4, '0')}`;
+}
+
+function nombreArchivoTicket(pedidoId) {
+  return `ticket-FC-${String(pedidoId).padStart(4, '0')}.pdf`;
+}
+
+/**
+ * PDF del ticket que ya existe (pago aprobado + URL /r/{token}).
+ * No se usa al cotizar el envío: ahí el ticket todavía no existe.
+ */
+function ticketCompraPdfBase64({
   pedidoId,
   nombre,
   items,
   productos,
   envio,
   total,
+  ticketUrl,
   ahora = new Date(),
 } = {}) {
-  const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
+  const url = String(ticketUrl || '').trim();
+  if (!url) return null;
+  const folio = folioTicket(pedidoId);
   const doc = new jsPDF({ unit: 'mm', format: 'a5' });
   const cfg = FARMACIA_FISCAL;
   let y = 16;
@@ -52,7 +66,7 @@ function ticketEnvioPdfBase64({
     doc.text(`Cliente: ${String(nombre).trim()}`, 14, y);
     y += 5;
   }
-  doc.text('Pendiente de pago · envío a domicilio', 14, y);
+  doc.text('Pagado', 14, y);
   y += 8;
   doc.setDrawColor(180);
   doc.line(14, y, 134, y);
@@ -70,21 +84,27 @@ function ticketEnvioPdfBase64({
   y += 2;
   doc.line(14, y, 134, y);
   y += 6;
-  doc.text('Productos', 14, y);
-  doc.text(dinero(productos), 134, y, { align: 'right' });
-  y += 5;
-  doc.text('Envío a domicilio', 14, y);
-  doc.text(dinero(envio), 134, y, { align: 'right' });
-  y += 7;
+  if (productos != null) {
+    doc.text('Productos', 14, y);
+    doc.text(dinero(productos), 134, y, { align: 'right' });
+    y += 5;
+  }
+  const envioN = Number(envio);
+  if (Number.isFinite(envioN) && envioN > 0) {
+    doc.text('Envío a domicilio', 14, y);
+    doc.text(dinero(envioN), 134, y, { align: 'right' });
+    y += 5;
+  }
+  y += 2;
   doc.setFont('times', 'bold');
   doc.setFontSize(13);
-  doc.text('Total a pagar', 14, y);
+  doc.text('Total pagado', 14, y);
   doc.text(dinero(total), 134, y, { align: 'right' });
   y += 10;
   doc.setFont('times', 'normal');
   doc.setFontSize(9);
   const nota = doc.splitTextToSize(
-    'Para liquidar, abre tu carrito en farmacapital.mx/carrito con el teléfono del pedido y toca Pagar ahora.',
+    `Gracias por tu compra. Tu ticket también está en ${url}`,
     120,
   );
   doc.text(nota, 14, y);
@@ -92,4 +112,30 @@ function ticketEnvioPdfBase64({
   return Buffer.from(raw).toString('base64');
 }
 
-module.exports = { ticketEnvioPdfBase64 };
+/** Adjunto del correo de pago. Null si el ticket público todavía no existe. */
+function ticketPagoAdjunto({ pedidoId, nombre, items, productos, envio, total, ticketUrl, ahora } = {}) {
+  const url = String(ticketUrl || '').trim();
+  if (!url) return null;
+  const content = ticketCompraPdfBase64({
+    pedidoId,
+    nombre,
+    items,
+    productos,
+    envio,
+    total,
+    ticketUrl: url,
+    ahora,
+  });
+  if (!content) return null;
+  return {
+    url,
+    filename: nombreArchivoTicket(pedidoId),
+    content,
+  };
+}
+
+module.exports = {
+  ticketCompraPdfBase64,
+  ticketPagoAdjunto,
+  nombreArchivoTicket,
+};

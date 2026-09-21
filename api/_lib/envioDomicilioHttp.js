@@ -21,7 +21,6 @@ const {
 } = require('./envioDomicilio');
 const { sendWhatsAppSmart } = require('./whatsappCloud');
 const { sendEmail } = require('./orderNotifications');
-const { ticketEnvioPdfBase64 } = require('./ticketEnvioPdf');
 
 function getQuery(req) {
   try {
@@ -142,20 +141,6 @@ async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, cos
   });
   let email = { sent: false, reason: 'missing_email' };
   if (contacto.email) {
-    let attachments;
-    try {
-      const content = ticketEnvioPdfBase64({
-        pedidoId: pedido.id,
-        nombre: contacto.nombre,
-        items: mail.lineas,
-        productos: itemsTotal,
-        envio: costo,
-        total: pedido.total,
-      });
-      if (content) attachments = [{ filename: mail.filename, content }];
-    } catch (e) {
-      attachments = undefined;
-    }
     try {
       email = await sendEmail({
         to: contacto.email,
@@ -164,9 +149,7 @@ async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, cos
         html: mail.html,
         from: mail.from,
         replyTo: mail.replyTo,
-        attachments,
       });
-      if (email.sent) email.adjunto = Boolean(attachments?.length);
     } catch (e) {
       email = { sent: false, reason: e?.message || 'email_failed' };
     }
