@@ -7185,7 +7185,7 @@ export default function TiendaFarmaCapital(){
           ? (page !== "tarjeta" && <PieV2 setPage={setPage} />)
           : (!sinFooter.includes(page) && <Footer setPage={setPage} />)}
       </div>
-      <WhatsAppFloatingButton />
+      {!v2 && <WhatsAppFloatingButton />}
     </>
   );
 
