@@ -3323,8 +3323,6 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
     ()=>(busq.trim().length>=3&&fil.length===0?spellSuggestFromProducts(poolCatalogo,busq):[]),
     [poolCatalogo,busq,fil.length]
   );
-  const disponiblesCount = useMemo(()=>fil.filter(p=>!productoAgotadoTienda(p)).length,[fil]);
-  const agotadosCount = fil.length - disponiblesCount;
   const limpiarFiltrosLaterales = ()=>{
     setCat("Todos"); setTipo("todos");
   };
@@ -3337,21 +3335,17 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       {filtroRx && (
         <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}40`,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",justifyContent:"space-between"}}>
           <div style={{color:BRAND.primary,fontSize:13,lineHeight:1.45}}>
-            Mostrando medicamentos que requieren receta (Rx / antibióticos). Trae tu receta al recoger.
+            Medicamentos que requieren receta (Rx / antibióticos). Trae tu receta al recoger.
           </div>
           <Btn sm outline col={BRAND.primary} onClick={()=>onClearRx?.()}>Ver catálogo completo</Btn>
         </div>
       )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:24}}>
-        <div style={{color:C.dim,fontSize:14,lineHeight:1.45,minWidth:0,flex:"1 1 200px"}}>
-          {busqActiva
-            ? `${fil.length} resultado${fil.length === 1 ? "" : "s"}${agotadosCount > 0 ? ` · ${disponiblesCount} disponible${disponiblesCount === 1 ? "" : "s"}, ${agotadosCount} agotado${agotadosCount === 1 ? "" : "s"}` : ""} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
-            : agotadosCount > 0
-              ? `${fil.length} productos · ${disponiblesCount} disponibles, ${agotadosCount} agotados`
-              : `${fil.length} productos disponibles`}
-          {vista === "grid" && hayMasCatalogo ? ` · mostrando ${pageFil.length}` : ""}
-          {vista === "bandas" ? " · vista en bandas por categoría" : ""}
-        </div>
+      <div style={{display:"flex",justifyContent:busqActiva?"space-between":"flex-end",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:24}}>
+        {busqActiva ? (
+          <div style={{color:C.dim,fontSize:14,lineHeight:1.45,minWidth:0,flex:"1 1 200px"}}>
+            Refiná con filtros o escribí más palabras (ej. «ácido fólico»)
+          </div>
+        ) : null}
         <div
           role="group"
           aria-label="Cómo ver el catálogo"
@@ -3542,7 +3536,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
                 col={BRAND.primary}
                 onClick={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
               >
-                Cargar más · {fil.length - pageFil.length} restantes
+                Cargar más
               </Btn>
             </div>
           )}
