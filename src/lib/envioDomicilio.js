@@ -254,6 +254,35 @@ export function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total
   );
 }
 
+function textoErrorResend(detail) {
+  if (!detail) return "";
+  if (typeof detail === "string") return detail;
+  return String(detail.message || detail.error || "");
+}
+
+/** Texto del toast al guardar la cotización. El costo ya quedó en el pedido. */
+export function mensajeCorreoEnvioCotizado({ sent, reason, detail, costo } = {}) {
+  const n = Number(costo);
+  const monto = Number.isFinite(n) ? `$${n.toFixed(2)}` : "El costo";
+  if (sent) {
+    return `${monto} cargado. Le mandamos un correo desde contacto@farmacapital.mx con la liga de su carrito.`;
+  }
+  const err = textoErrorResend(detail);
+  if (reason === "missing_email") {
+    return `${monto} cargado, pero este pedido no tiene correo. Ponlo en la ficha del cliente y vuelve a guardar.`;
+  }
+  if (reason === "email_not_configured") {
+    return `${monto} cargado. Falta la llave de Resend en el servidor, por eso no salió el correo.`;
+  }
+  if (/domain is not verified|not verified|verificar/i.test(err)) {
+    return `${monto} cargado. Resend rechazó contacto@farmacapital.mx: verifica el dominio farmacapital.mx en resend.com/domains y vuelve a guardar.`;
+  }
+  if (/only send testing emails/i.test(err)) {
+    return `${monto} cargado. Esa cuenta de Resend solo escribe al correo con el que se creó, hasta que verifiques farmacapital.mx.`;
+  }
+  return `${monto} cargado al pedido. No salió el correo. Avísale por el botón verde de WhatsApp.`;
+}
+
 /** Etiqueta de cuenta/cliente: el envío va en el total, no hay segundo link. */
 export function etiquetaEstadoEnvioCliente(envio = {}, paymentStatus) {
   const es = String(envio?.estado || "").toLowerCase();
