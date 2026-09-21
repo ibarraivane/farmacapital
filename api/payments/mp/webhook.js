@@ -316,7 +316,7 @@ module.exports = async function handler(req, res) {
             }
           ),
           fetch(
-            `${SUPABASE_URL}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+            `${SUPABASE_URL}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre,imagen_url)`,
             {
               headers: {
                 apikey: SUPABASE_SERVICE_ROLE_KEY,

@@ -1,5 +1,7 @@
 'use strict';
 
+const emailTemplates = require('./emailTemplates');
+
 const DEFAULT_TARIFAS = [
   { distancia_min_km: 0, distancia_max_km: 2, costo_base: 30, gratis_desde: 180 },
   { distancia_min_km: 2, distancia_max_km: 4, costo_base: 45, gratis_desde: 230 },
@@ -301,6 +303,17 @@ function desglosePedido(total, costoEnvio, cargoServicio) {
   };
 }
 
+const NOMBRE_PROVEEDOR = { didi: 'DiDi', uber: 'Uber Direct', propio: 'Repartidor FarmaCapital' };
+
+/** Renglones para la plantilla: nombre, cantidad, importe y foto (solo URL https). */
+function itemsPlantillaCorreo(items) {
+  const raw = Array.isArray(items) ? items : [];
+  return lineasTicketCorreo(raw).map((l, i) => {
+    const img = String(raw[i]?.productos?.imagen_url || raw[i]?.imagen_url || '').trim();
+    return { nombre: l.nombre, cantidad: l.qty, importe: l.importe, img: /^https:\/\//i.test(img) ? img : undefined };
+  });
+}
+
 function lineasTicketCorreo(items) {
   if (!Array.isArray(items)) return [];
   return items.map((i) => {
@@ -330,6 +343,9 @@ function correoAvisoEnvioCotizado({
   nombre,
   origen,
   items,
+  proveedor,
+  colonia,
+  telUltimos4,
 } = {}) {
   const folio = folioCorreo(pedidoId);
   const quien = String(nombre || '').trim();
@@ -359,32 +375,26 @@ function correoAvisoEnvioCotizado({
     `Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa\n` +
     `contacto@farmacapital.mx`;
 
-  const filas = lineas.map((l) => (
-    `<tr><td style="padding:6px 0;color:#0f172a;">${escapeHtmlCorreo(l.nombre)} ×${l.qty}</td>` +
-    `<td style="padding:6px 0;text-align:right;color:#0f172a;font-weight:700;">${dineroCorreo(l.importe)}</td></tr>`
-  )).join('');
-  const html =
-    `<div style="font-family:Georgia, 'Times New Roman', serif;color:#0f172a;background:#ffffff;padding:8px 4px;line-height:1.5;">` +
-    `<p style="margin:0 0 12px;">${escapeHtmlCorreo(saludo)}</p>` +
-    `<p style="margin:0 0 12px;">Ya cotizamos el envío de tu pedido <strong>${escapeHtmlCorreo(folio)}</strong>. El precio final es un solo cargo.</p>` +
-    (filas ? `<table style="width:100%;border-collapse:collapse;margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">${filas}</table>` : '') +
-    `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;">` +
-    `<tr><td style="padding:4px 0;color:#334155;">Productos</td><td style="padding:4px 0;text-align:right;">${productos}</td></tr>` +
-    (cargoN > 0 ? `<tr><td style="padding:4px 0;color:#334155;">Servicio</td><td style="padding:4px 0;text-align:right;">${servicio}</td></tr>` : '') +
-    `<tr><td style="padding:4px 0;color:#334155;">Envío a domicilio</td><td style="padding:4px 0;text-align:right;">${envio}</td></tr>` +
-    `<tr><td style="padding:8px 0 0;font-weight:800;">Total a pagar</td><td style="padding:8px 0 0;text-align:right;font-weight:800;font-size:18px;">${totalTxt}</td></tr>` +
-    `</table>` +
-    `<p style="margin:16px 0 8px;">El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.</p>` +
-    `<p style="margin:0 0 16px;">Para liquidarlo, abre tu carrito y toca <strong>Pagar ahora</strong>. Entra con el teléfono que usaste al hacer el pedido.</p>` +
-    `<p style="margin:0 0 20px;"><a href="${escapeHtmlCorreo(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;padding:12px 18px;border-radius:8px;">Abrir mi carrito</a></p>` +
-    `<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;"><a href="${escapeHtmlCorreo(link)}" style="color:#0f766e;">${escapeHtmlCorreo(link)}</a></p>` +
-    `<p style="margin:16px 0 0;color:#64748b;font-family:Arial,sans-serif;font-size:12px;">FarmaCapital · Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa<br>contacto@farmacapital.mx</p>` +
-    `</div>`;
+  // Diseño v2 (api/_lib/emailTemplates.js). El texto plano de arriba se conserva.
+  const plantilla = emailTemplates.envioCotizado({
+    pedidoId,
+    nombre: quien,
+    items: itemsPlantillaCorreo(items),
+    subtotal: Number(itemsTotal),
+    servicio: cargoN,
+    envio: Number(costo),
+    total: Number(total),
+    paqueteria: NOMBRE_PROVEEDOR[String(proveedor || '').toLowerCase()] || undefined,
+    destino: String(colonia || '').trim() || undefined, // solo colonia: nunca calle ni número
+    telUltimos4: String(telUltimos4 || '').replace(/\D/g, '').slice(-4) || undefined,
+    urlPagar: link,
+  });
+  const html = plantilla.html;
 
   return {
     from: CORREO_ENVIO_FROM,
     replyTo: 'contacto@farmacapital.mx',
-    subject: `FarmaCapital · Pedido ${folio} listo para pagar`,
+    subject: plantilla.subject,
     text,
     html,
     link,
@@ -430,6 +440,7 @@ module.exports = {
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
   correoAvisoEnvioCotizado,
+  itemsPlantillaCorreo,
   cargoServicioPedido,
   desglosePedido,
   lineasTicketCorreo,
