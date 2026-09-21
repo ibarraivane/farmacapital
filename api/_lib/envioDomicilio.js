@@ -317,47 +317,41 @@ function correoAvisoEnvioCotizado({
   const link = linkCarritoCorreo(origen);
   const lineas = lineasTicketCorreo(items);
   const detalle = lineas.length
-    ? `${lineas.map((l) => `- ${l.nombre} ×${l.qty}: ${dineroCorreo(l.importe)}`).join('\n')}\n`
+    ? `${lineas.map((l) => `${l.nombre} ×${l.qty}  ${dineroCorreo(l.importe)}`).join('\n')}\n`
     : '';
+  const avisoCorto = `Tu pedido ${folio} ya tiene precio. Total ${totalTxt}.`;
   const text =
-    `${saludo}\n\n` +
-    `Ya cotizamos el envío de tu pedido ${folio}. El precio final es un solo cargo:\n\n` +
-    `${detalle}` +
+    `${saludo} ${avisoCorto}\n\n` +
+    `Ábrelo y toca Pagar ahora:\n${link}\n\n` +
     `Productos: ${productos}\n` +
     `Envío a domicilio: ${envio}\n` +
-    `Total a pagar: ${totalTxt}\n\n` +
-    `El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.\n\n` +
-    `Para liquidarlo, abre tu carrito y toca Pagar ahora:\n${link}\n\n` +
-    `Entra con el teléfono que usaste al hacer el pedido. Si el carrito se ve vacío, es porque este pedido ya está confirmado: al entrar aparece el total de arriba.\n\n` +
-    `FarmaCapital\n` +
-    `Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa\n` +
-    `contacto@farmacapital.mx`;
+    (detalle ? `\n${detalle}` : '') +
+    `\nEl ticket se crea cuando terminas el pago.\n` +
+    `Entra con el teléfono del pedido.\n\n` +
+    `FarmaCapital`;
 
   const filas = lineas.map((l) => (
-    `<tr><td style="padding:6px 0;color:#0f172a;">${escapeHtmlCorreo(l.nombre)} ×${l.qty}</td>` +
-    `<td style="padding:6px 0;text-align:right;color:#0f172a;font-weight:700;">${dineroCorreo(l.importe)}</td></tr>`
+    `<tr><td style="padding:10px 0;color:#0f172a;border-bottom:1px solid #e2e8f0;">${escapeHtmlCorreo(l.nombre)} ×${l.qty}</td>` +
+    `<td style="padding:10px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;">${dineroCorreo(l.importe)}</td></tr>`
   )).join('');
   const html =
-    `<div style="font-family:Georgia, 'Times New Roman', serif;color:#0f172a;background:#ffffff;padding:8px 4px;line-height:1.5;">` +
-    `<p style="margin:0 0 12px;">${escapeHtmlCorreo(saludo)}</p>` +
-    `<p style="margin:0 0 12px;">Ya cotizamos el envío de tu pedido <strong>${escapeHtmlCorreo(folio)}</strong>. El precio final es un solo cargo.</p>` +
-    (filas ? `<table style="width:100%;border-collapse:collapse;margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">${filas}</table>` : '') +
-    `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;">` +
-    `<tr><td style="padding:4px 0;color:#334155;">Productos</td><td style="padding:4px 0;text-align:right;">${productos}</td></tr>` +
-    `<tr><td style="padding:4px 0;color:#334155;">Envío a domicilio</td><td style="padding:4px 0;text-align:right;">${envio}</td></tr>` +
-    `<tr><td style="padding:8px 0 0;font-weight:800;">Total a pagar</td><td style="padding:8px 0 0;text-align:right;font-weight:800;font-size:18px;">${totalTxt}</td></tr>` +
-    `</table>` +
-    `<p style="margin:16px 0 8px;">El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.</p>` +
-    `<p style="margin:0 0 16px;">Para liquidarlo, abre tu carrito y toca <strong>Pagar ahora</strong>. Entra con el teléfono que usaste al hacer el pedido.</p>` +
-    `<p style="margin:0 0 20px;"><a href="${escapeHtmlCorreo(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;padding:12px 18px;border-radius:8px;">Abrir mi carrito</a></p>` +
-    `<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;"><a href="${escapeHtmlCorreo(link)}" style="color:#0f766e;">${escapeHtmlCorreo(link)}</a></p>` +
-    `<p style="margin:16px 0 0;color:#64748b;font-family:Arial,sans-serif;font-size:12px;">FarmaCapital · Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa<br>contacto@farmacapital.mx</p>` +
+    `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeHtmlCorreo(`${saludo} ${avisoCorto}`)}</div>` +
+    `<div style="font-family:Arial,sans-serif;color:#0f172a;background:#ffffff;max-width:480px;line-height:1.45;">` +
+    `<p style="margin:0 0 8px;font-size:16px;">${escapeHtmlCorreo(saludo)}</p>` +
+    `<p style="margin:0 0 16px;font-size:16px;">Tu pedido <strong>${escapeHtmlCorreo(folio)}</strong> ya tiene precio.</p>` +
+    `<p style="margin:0 0 4px;color:#64748b;font-size:13px;">Total a pagar</p>` +
+    `<p style="margin:0 0 18px;font-size:28px;font-weight:800;letter-spacing:-0.02em;">${totalTxt}</p>` +
+    `<p style="margin:0 0 22px;"><a href="${escapeHtmlCorreo(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px;">Pagar ahora</a></p>` +
+    `<p style="margin:0 0 18px;color:#64748b;font-size:13px;">Productos ${productos} · Envío ${envio}</p>` +
+    (filas ? `<table style="width:100%;border-collapse:collapse;margin:0 0 16px;font-size:14px;">${filas}</table>` : '') +
+    `<p style="margin:0 0 8px;color:#334155;font-size:14px;">El ticket se crea cuando terminas el pago. Entra con el teléfono del pedido.</p>` +
+    `<p style="margin:0;color:#64748b;font-size:12px;">FarmaCapital · contacto@farmacapital.mx</p>` +
     `</div>`;
 
   return {
     from: CORREO_ENVIO_FROM,
     replyTo: 'contacto@farmacapital.mx',
-    subject: `FarmaCapital · Pedido ${folio} listo para pagar`,
+    subject: `Pedido ${folio} listo para pagar`,
     text,
     html,
     link,

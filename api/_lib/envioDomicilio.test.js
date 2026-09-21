@@ -106,15 +106,30 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.equal(mail.replyTo, 'contacto@farmacapital.mx');
     assert.match(mail.subject, /#FC-0333/);
     assert.match(mail.subject, /listo para pagar/);
+    assert.doesNotMatch(mail.subject, /FarmaCapital/);
     assert.match(mail.text, /Hola Ivan Ibarra/);
+    assert.match(mail.text.slice(0, 160), /Total \$540\.00/);
     assert.match(mail.text, /Envío a domicilio: \$60\.00/);
-    assert.match(mail.text, /Total a pagar: \$540\.00/);
-    assert.match(mail.text, /ticket de compra se crea cuando terminas el pago/);
+    assert.match(mail.text, /ticket se crea cuando terminas el pago/);
     assert.doesNotMatch(mail.text, /va adjunto/);
     assert.equal(mail.filename, undefined);
     assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/carrito/);
     assert.match(mail.html, /href="https:\/\/www\.farmacapital\.mx\/carrito"/);
-    assert.match(mail.html, /Abrir mi carrito/);
+    assert.match(mail.html, /Pagar ahora/);
+    const conProductos = correoAvisoEnvioCotizado({
+      pedidoId: 441,
+      costo: 100,
+      itemsTotal: 202,
+      total: 302,
+      nombre: 'Ivan ibarra',
+      items: [
+        { nombre: 'Kurtosil', qty: 1, precio: 85 },
+        { nombre: 'Namifen', qty: 1, precio: 59 },
+      ],
+    });
+    assert.doesNotMatch(conProductos.text.slice(0, 140), /Kurtosil/);
+    assert.match(conProductos.text, /Kurtosil ×1/);
+    assert.match(conProductos.html, /Kurtosil/);
     assert.doesNotMatch(mail.text, /\/pagar\?/);
     assert.doesNotMatch(mail.html, /\/pagar\?/);
   });
