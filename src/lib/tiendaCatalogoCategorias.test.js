@@ -23,6 +23,7 @@ describe("bandasCatalogoPorCategoria", () => {
     const bandas = bandasCatalogoPorCategoria(productos);
     expect(bandas.map((b) => b.categoria)).toEqual([
       "Analgésico",
+      "Antiinflamatorio",
       "Alergia",
       "Hidratación",
       "Dermatología",

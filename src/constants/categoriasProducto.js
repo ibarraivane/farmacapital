@@ -4,6 +4,8 @@
  * (no comparar el texto crudo).
  */
 
+import { inferirCategoriaCatalogo } from "./inferirCategoriaCatalogo";
+
 export const CATEGORIAS_PRODUCTO = Object.freeze([
   "Analgésico",
   "Antiinflamatorio",
@@ -82,30 +84,19 @@ export function categoriasCoinciden(a, b) {
   return Boolean(ca) && ca === cb;
 }
 
-function blobCategoriaProducto(p) {
-  return `${p?.nombre || ""} ${p?.marca || ""} ${p?.forma_farmaceutica || ""} ${p?.principio_activo || ""}`
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+/**
+ * Suero oral / electrolitos. El parser de ticket los metió en Higiene o GENERAL.
+ */
+export function esProductoHidratacionOral(p) {
+  return inferirCategoriaCatalogo(p) === "Hidratación";
 }
 
 /**
- * Suero oral / electrolitos de mostrador. El parser de ticket los metió
- * en Higiene o GENERAL; en vitrina van a Hidratación.
+ * Categoría de vitrina e inventario: infiere por ficha si hay señal clara.
+ * Si no, deja la categoría canónica (o el cubo Otro).
  */
-export function esProductoHidratacionOral(p) {
-  const t = blobCategoriaProducto(p);
-  if (!t.trim()) return false;
-  if (/\b(electrolit|electrolid|pedialyte|suerox|oralit|voldratol)\b/.test(t)) return true;
-  if (/\bsuero oral\b/.test(t)) return true;
-  if (/\belectrolitos\b/.test(t)) return true;
-  return false;
-}
-
-/** Categoría que ve el cliente (corrige sueros mal etiquetados). */
 export function categoriaVitrina(p) {
-  if (esProductoHidratacionOral(p)) return "Hidratación";
-  return categoriaCanon(p?.categoria);
+  return inferirCategoriaCatalogo(p) || categoriaCanon(p?.categoria) || "Otro";
 }
 
 export function categoriaVitrinaPasaFiltro(p, filtro) {
