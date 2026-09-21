@@ -106,7 +106,7 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.equal(mail.from, 'FarmaCapital <contacto@farmacapital.mx>');
     assert.equal(mail.replyTo, 'contacto@farmacapital.mx');
     assert.match(mail.subject, /#FC-0333/);
-    assert.match(mail.subject, /listo para pagar/);
+    assert.match(mail.subject, /ya tiene precio/);
     assert.match(mail.text, /Hola Ivan Ibarra/);
     assert.match(mail.text, /Envío a domicilio: \$60\.00/);
     assert.match(mail.text, /Total a pagar: \$540\.00/);
@@ -116,10 +116,11 @@ describe('envioDomicilio cotización en checkout', () => {
     assert.match(mail.text, /Todavía no está pagado/);
     assert.match(mail.text, /https:\/\/www\.farmacapital\.mx\/pagar\?pedido=333/);
     assert.match(mail.html, /href="https:\/\/www\.farmacapital\.mx\/pagar\?pedido=333"/);
-    assert.match(mail.html, /Pagar ahora/);
     assert.doesNotMatch(mail.text, /ya está confirmado/);
     assert.doesNotMatch(mail.text, /\/carrito/);
     assert.doesNotMatch(mail.html, /\/carrito/);
+    assert.match(mail.html, /Pagar \$540\.00/);
+    assert.match(mail.html, /Paso 2 de 5/);
   });
   it('el Servicio $5 aparece en el desglose del correo y de WhatsApp', () => {
     const { correoAvisoEnvioCotizado, desglosePedido, cargoServicioPedido } = require('./envioDomicilio');
