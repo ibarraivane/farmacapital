@@ -2,6 +2,7 @@ import {
   calcularCostoEnvio,
   checkoutPuedePedirEnvio,
   clientePuedePagarPedidoEnvio,
+  cargoServicioPedido,
   desgloseEnvioCheckout,
   estimarEnvioDesdeCoords,
   etiquetaEstadoEnvioCliente,
@@ -69,7 +70,13 @@ describe("envioDomicilio cliente", () => {
       tipo_entrega: "envio",
       logistics_meta: { envio: { estado: "pendiente_cotizacion" } },
     })).toBe(false);
-    expect(desgloseEnvioCheckout(540, 60)).toEqual({ productos: 480, envio: 60, total: 540 });
+    expect(desgloseEnvioCheckout(540, 60)).toEqual({ productos: 480, servicio: 0, envio: 60, total: 540 });
+    // Servicio $5 ya incluido en pedidos.total por el trigger
+    expect(desgloseEnvioCheckout(307, 100, 5)).toEqual({ productos: 202, servicio: 5, envio: 100, total: 307 });
+    expect(cargoServicioPedido({ logistics_meta: { cargo_plataforma_mxn: 5 } })).toBe(5);
+    expect(cargoServicioPedido({ logistics_meta: { cargo_plataforma_mxn: 0 } })).toBe(0);
+    expect(textoClienteEnvioEnCheckout({ pedidoId: 441, costo: 100, itemsTotal: 202, cargo: 5, total: 307 }))
+      .toMatch(/Productos \$202\.00 \+ servicio \$5\.00 \+ envío \$100\.00 = \$307\.00/);
     const texto = textoClienteEnvioEnCheckout({
       pedidoId: 333,
       costo: 60,

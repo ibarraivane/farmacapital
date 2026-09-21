@@ -316,7 +316,7 @@ module.exports = async function handler(req, res) {
             }
           ),
           fetch(
-            `${SUPABASE_URL}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+            `${SUPABASE_URL}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre,imagen_url)`,
             {
               headers: {
                 apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -345,6 +345,7 @@ module.exports = async function handler(req, res) {
               nombre: cliente?.nombre || guest?.guest_nombre,
               items: lineas,
               productos,
+              servicio: Number(pedidoBefore?.logistics_meta?.cargo_plataforma_mxn) || 0,
               envio: guest?.costo_envio,
               total: pedidoBefore.total,
               ticketUrl,
