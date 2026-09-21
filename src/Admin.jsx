@@ -26,7 +26,14 @@ import { puedeCrearBannerProducto } from "./lib/bannersPlantilla";
 import GestionUsuariosTabla from "./components/GestionUsuariosTabla";
 import { GRID_STACK_2COL } from "./constants/layout";
 import { UserPlus } from "lucide-react";
-import { PageHero } from "./components/AdminChrome";
+import { PageHero, AdminNavToggle, AdminCollapsedTopbar } from "./components/AdminChrome";
+import {
+  ADMIN_SIDEBAR_WIDTH_PX,
+  adminMainMarginLeftPx,
+  adminSidebarIsOverlay,
+  loadAdminSidebarCollapsed,
+  saveAdminSidebarCollapsed,
+} from "./utils/adminSidebarCollapse";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -350,6 +357,14 @@ function farmacapitalNavLabel(item, usuario) {
   return item.label;
 }
 
+function adminPageNavItem(page) {
+  if (!page) return null;
+  const direct = NAV_ITEMS.find((n) => n.id === page);
+  if (direct) return direct;
+  if (page === "inventario") return NAV_ITEMS.find((n) => n.id === "inv") || null;
+  return null;
+}
+
 function SidebarBadge({count, critical}) {
   if (!count) return null;
   const C = C_LIGHT;
@@ -369,7 +384,7 @@ function SidebarBadge({count, critical}) {
   );
 }
 
-function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0,mobile=false,navOpen=false,badgeCounts={},badgeCritical={}}){
+function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0,mobile=false,navOpen=false,overlay=false,onCollapse,badgeCounts={},badgeCritical={}}){
   const C = C_LIGHT;
   const isAdmin = rolEsAdmin(usuario.rol);
   const [adminOrder, setAdminOrder] = useState(() => (isAdmin ? loadAdminNavOrder(usuario) : null));
@@ -413,14 +428,29 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
   return(
     <div
       className="farmacapital-admin-sidebar"
+      data-overlay={overlay ? "1" : "0"}
       style={{
-      width:220,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
-      boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
-      display:"flex",flexDirection:"column",position:"fixed",left:mobile?(navOpen?0:-220):0,top:0,
-      height:"100vh",maxHeight:"100dvh",zIndex:mobile?2101:100,overflow:"hidden",transition:"left .22s ease",
+      width:ADMIN_SIDEBAR_WIDTH_PX,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
+      boxShadow: overlay?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
+      display:"flex",flexDirection:"column",position:"fixed",
+      left:overlay?(navOpen?0:-ADMIN_SIDEBAR_WIDTH_PX):0,
+      top: overlay && !mobile ? "calc(52px + env(safe-area-inset-top, 0px))" : 0,
+      height: overlay && !mobile ? "calc(100vh - 52px - env(safe-area-inset-top, 0px))" : "100vh",
+      maxHeight: overlay && !mobile ? "calc(100dvh - 52px - env(safe-area-inset-top, 0px))" : "100dvh",
+      zIndex:overlay?2101:100,overflow:"hidden",transition:"left .22s ease",
     }}>
-      <div style={{flexShrink:0,padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
-        <Logo size={32} showText={true}/>
+      <div style={{flexShrink:0,padding: onCollapse ? "14px 10px 14px 14px" : "18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+          <Logo size={32} showText={true}/>
+          {onCollapse ? (
+            <AdminNavToggle
+              expanded
+              compact
+              label="Minimizar menú de navegación"
+              onClick={onCollapse}
+            />
+          ) : null}
+        </div>
       {usuario.rol==="admin"&&(
           <div style={{display:"flex",gap:4,marginTop:12}}>
             {/* MINISUPER OCULTO — segunda fase
@@ -1915,6 +1945,15 @@ export default function FarmaCapitalAdmin(){
 
   const isMobileLayout = useMediaQuery("(max-width: 900px)");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadAdminSidebarCollapsed());
+  const sidebarOverlay = adminSidebarIsOverlay({ isMobile: isMobileLayout, collapsed: sidebarCollapsed });
+  const mainMarginLeft = adminMainMarginLeftPx({ isMobile: isMobileLayout, collapsed: sidebarCollapsed });
+
+  const persistSidebarCollapsed = (next) => {
+    setSidebarCollapsed(next);
+    saveAdminSidebarCollapsed(next);
+    setMobileNavOpen(false);
+  };
 
   // setPageAndSave(id) o setPageAndSave(id, { tab: "reabasto" }) para deep-link a tabs del hub.
   const setPageAndSave = (p, opts = {}) => {
@@ -1938,7 +1977,7 @@ export default function FarmaCapitalAdmin(){
             window.history.pushState({ farmacapitalPage: "recibir" }, "", url);
           }
         } catch (_) { /* noop */ }
-        if (isMobileLayout) setMobileNavOpen(false);
+        if (sidebarOverlay) setMobileNavOpen(false);
         return;
       }
       if (next === "inv" && !tabHint) {
@@ -1959,12 +1998,21 @@ export default function FarmaCapitalAdmin(){
         window.history.pushState({ farmacapitalPage: next }, "", url);
       }
     } catch (_) { /* noop */ }
-    if (isMobileLayout) setMobileNavOpen(false);
+    if (sidebarOverlay) setMobileNavOpen(false);
   };
 
   useEffect(() => {
-    if (!isMobileLayout) setMobileNavOpen(false);
-  }, [isMobileLayout]);
+    if (!sidebarOverlay) setMobileNavOpen(false);
+  }, [sidebarOverlay]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileNavOpen]);
 
   useEffect(() => {
     initBillingListeners();
@@ -2393,7 +2441,7 @@ export default function FarmaCapitalAdmin(){
       onConfirm={()=>{ confirmDlg.onConfirm?.(); setConfirmDlg(p=>({...p,open:false})); }}
       onCancel={()=>setConfirmDlg(p=>({...p,open:false}))}
     />
-    <div className="farmacapital-admin-root" style={{background:C.bg,fontFamily:"var(--fc-body)",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden",touchAction:"pan-y"}}>
+    <div className="farmacapital-admin-root" data-sidebar-collapsed={!isMobileLayout && sidebarCollapsed ? "1" : "0"} style={{background:C.bg,fontFamily:"var(--fc-body)",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden",touchAction:"pan-y"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -2409,6 +2457,7 @@ body{
   overflow-wrap:break-word;word-wrap:break-word;
   touch-action:pan-y;
   -webkit-overflow-scrolling:touch;
+  transition:margin-left .22s ease,padding .22s ease;
 }
 .farmacapital-admin-sidebar{
   box-sizing:border-box;
@@ -2428,7 +2477,7 @@ body{
   }
 }`}</style>
       <DevSupabaseEnvBanner />
-      {isMobileLayout && mobileNavOpen && (
+      {sidebarOverlay && mobileNavOpen && (
         <div
           role="presentation"
           onClick={()=>setMobileNavOpen(false)}
@@ -2439,27 +2488,25 @@ body{
         />
       )}
       {isMobileLayout && (
-        <button
-          type="button"
-          aria-label="Abrir menú de navegación"
-          aria-expanded={mobileNavOpen}
+        <AdminNavToggle
+          floating
+          expanded={mobileNavOpen}
           onClick={()=>setMobileNavOpen(o=>!o)}
           style={{
             position:"fixed",
             top:"calc(12px + env(safe-area-inset-top, 0px))",
             left:"calc(12px + env(safe-area-inset-left, 0px))",
             zIndex:2100,
-            width:48,height:48,borderRadius:12,
-            border:`1px solid ${C.border}`,background:C.card,
-            boxShadow:"0 4px 20px rgba(0,0,0,.08)",cursor:"pointer",
-            fontSize:20,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",
-            color:C.text,
-            pointerEvents:"auto",
-            touchAction:"manipulation",
           }}
-        >
-          ☰
-        </button>
+        />
+      )}
+      {!isMobileLayout && sidebarCollapsed && (
+        <AdminCollapsedTopbar
+          title={farmacapitalNavLabel(adminPageNavItem(page), usuario) || "FarmaCapital"}
+          navOpen={mobileNavOpen}
+          onToggleNav={()=>setMobileNavOpen(o=>!o)}
+          onPin={()=>persistSidebarCollapsed(false)}
+        />
       )}
       <AdminNavSidebar
         active={page} setActive={setPageAndSave}
@@ -2468,17 +2515,21 @@ body{
         alertas={alertas}
         ventasOffline={ventasOffline}
         mobile={isMobileLayout}
-        navOpen={mobileNavOpen}
+        overlay={sidebarOverlay}
+        navOpen={isMobileLayout ? mobileNavOpen : (sidebarCollapsed ? mobileNavOpen : true)}
+        onCollapse={!isMobileLayout && !sidebarCollapsed ? () => persistSidebarCollapsed(true) : undefined}
         badgeCounts={badgeCounts}
         badgeCritical={badgeCritical}
       />
       <main className="farmacapital-admin-main" style={{
-        marginLeft:isMobileLayout?0:220,
+        marginLeft:mainMarginLeft,
         padding:isMobileLayout
           ? "calc(72px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))"
-          : "clamp(16px, 3vw, 28px)",
+          : sidebarCollapsed
+            ? "calc(64px + env(safe-area-inset-top, 0px)) clamp(16px, 3vw, 28px) clamp(16px, 3vw, 28px)"
+            : "clamp(16px, 3vw, 28px)",
         /* En escritorio: NO usar width:100% con marginLeft (provoca overflow horizontal al redimensionar). */
-        ...(isMobileLayout
+        ...(isMobileLayout || sidebarCollapsed
           ? { width: "100%", maxWidth: "100%" }
           : { width: "auto", maxWidth: "none", minWidth: 0 }),
         overflowX: isMobileLayout ? "visible" : "hidden",
