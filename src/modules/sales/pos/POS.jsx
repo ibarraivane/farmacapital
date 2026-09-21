@@ -77,6 +77,7 @@ import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../
 import PedidoOnlineCard from "../../../components/PedidoOnlineCard";
 import CronometroPedidoOnline from "../../../components/CronometroPedidoOnline";
 import { despacharEnvioPedido } from "../../../lib/envioDomicilioClient";
+import { reenviarTicketCorreoPedido } from "../../../lib/reenviarTicketCorreo";
 
 function mlDePresentacion(producto) {
   const t = `${producto?.presentacion || ""} ${producto?.nombre || ""} ${producto?.concentracion || ""}`;
@@ -3821,6 +3822,23 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                             setBbvaFolio(formatFolioOnline(p.id));
                             setBbvaModal(true);
                           }}>🏦 Cobrar BBVA</Btn>
+                        )}
+                        {String(p.payment_status || "").toLowerCase() === "approved" && (
+                          <Btn sm ol col={C.blue} dis={guardando} onClick={async()=>{
+                            const tokU = sessionStorage.getItem("farmacapital_session_token");
+                            const r = await reenviarTicketCorreoPedido({ pedidoId: p.id, sessionToken: tokU });
+                            if (r.ok) {
+                              const dest = Array.isArray(r.to) ? r.to.join(", ") : "";
+                              showToast(dest ? `Recibo enviado a ${dest}` : "Recibo enviado por correo", "success");
+                            } else {
+                              showToast(
+                                r.error === "missing_email"
+                                  ? "Falta el correo del cliente en la ficha."
+                                  : `No se envió el recibo: ${r.error || r.detail || "error"}`,
+                                "warning",
+                              );
+                            }
+                          }}>Enviar recibo por correo</Btn>
                         )}
                         {p.tipo_entrega==="envio" && !p.delivery_tracking_url && (
                           <Btn sm col={C.teal} dis={guardando} onClick={async()=>{

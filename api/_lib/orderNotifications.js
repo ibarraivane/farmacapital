@@ -1,6 +1,7 @@
 'use strict';
 
 const { FARMACIA_FISCAL } = require('./farmaciaFiscal');
+const { emailsAvisoCliente, emailsValidos } = require('./clienteEmails');
 const {
   sendWhatsAppSmart,
   getWhatsAppTemplateConfig,
@@ -36,7 +37,13 @@ function normalizeItems(items) {
   }));
 }
 
-function buildReceiptMessage({ event, pedido, items }) {
+function nombreCortoCliente(cliente) {
+  const raw = String(cliente?.nombre || '').trim();
+  if (!raw) return '';
+  return raw.split(/\s+/)[0] || '';
+}
+
+function buildReceiptMessage({ event, pedido, items, cliente }) {
   const pedidoId = pedido?.id || '?';
   const folio = formatFolioOnline(pedidoId) || `#FC-${pedidoId}`;
   const total = formatMoneyMx(pedido?.total);
@@ -45,19 +52,25 @@ function buildReceiptMessage({ event, pedido, items }) {
   const itemsTxt = lineItems.length
     ? lineItems.map((i) => `• ${i.nombre} ×${i.qty} = $${(i.precio * i.qty).toFixed(2)}`).join('\n')
     : null;
+  const corto = nombreCortoCliente(cliente);
+  const saludo = corto ? `Hola ${corto},\n\n` : '';
 
   if (event === 'payment_approved') {
     const pickupNote =
       pedido?.tipo_entrega === 'recoger'
         ? `\n\nMuestra tu folio ${folio} al llegar.\n📍 ${FARMACIA_MAPS_URL}`
-        : '';
+        : '\n\nTu pedido a domicilio ya está pagado. Gracias por confiar en FarmaCapital.';
     return (
-      `🏥 FarmaCapital\n${FARMACIA_DIRECCION}\n\n` +
-      `✅ Pago aprobado\n🔖 Folio: ${folio}\n` +
+      saludo +
+      `¡Gracias por tu compra en FarmaCapital!\n\n` +
+      `🏥 ${FARMACIA_DIRECCION}\n\n` +
+      `✅ Pago recibido\n🔖 Folio: ${folio}\n` +
       (itemsTxt ? `${itemsTxt}\n\n` : '') +
       `💰 Total: $${total}\n📦 Entrega: ${entrega}` +
       pickupNote +
-      `\n\nTe avisaremos cuando esté listo.\n📱 WhatsApp farmacia: ${FARMACIA_WHATSAPP_DISPLAY}`
+      `\n\nTu recibo / ticket de compra va en este correo` +
+      (pedido?.tipo_entrega === 'envio' ? ' (PDF adjunto).' : '.') +
+      `\n📱 WhatsApp farmacia: ${FARMACIA_WHATSAPP_DISPLAY}`
     );
   }
   if (event === 'payment_pending') {
@@ -190,7 +203,12 @@ function buildMessage({ event, pedido, items }) {
 async function sendEmail({ to, subject, text, html, from, replyTo, attachments }) {
   const RESEND_API_KEY = String(process.env.RESEND_API_KEY || '').trim();
   const fromAddr = String(from || process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
-  if (!RESEND_API_KEY || !to) return { sent: false, reason: 'email_not_configured' };
+  const recipients = Array.isArray(to)
+    ? emailsValidos(to)
+    : emailsValidos(to);
+  if (!RESEND_API_KEY || !recipients.length) {
+    return { sent: false, reason: RESEND_API_KEY ? 'missing_email' : 'email_not_configured' };
+  }
   const files = Array.isArray(attachments) ? attachments.filter((a) => a?.filename && a?.content) : [];
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -200,7 +218,7 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
     },
     body: JSON.stringify({
       from: fromAddr,
-      to: [to],
+      to: recipients,
       subject,
       text,
       ...(html ? { html } : {}),
@@ -213,7 +231,7 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
     try { detail = await resp.json(); } catch { detail = await resp.text(); }
     return { sent: false, reason: 'email_provider_error', detail };
   }
-  return { sent: true };
+  return { sent: true, to: recipients };
 }
 
 async function sendTwilioWhatsapp({ to, text }) {
@@ -373,8 +391,19 @@ async function sendPosTicketNotification({
   });
 }
 
-async function sendOrderNotifications({ event, pedido, cliente, items, ticket }) {
-  const msg = buildReceiptMessage({ event, pedido, items });
+function destinosCorreoPedido(pedido, cliente) {
+  if (Array.isArray(cliente?.email)) {
+    return emailsValidos(cliente.email, cliente?.email_alt);
+  }
+  return emailsAvisoCliente({
+    guestEmail: pedido?.guest_email,
+    email: cliente?.email,
+    emailAlt: cliente?.email_alt,
+  });
+}
+
+async function sendOrderNotifications({ event, pedido, cliente, items, ticket, channels }) {
+  const msg = buildReceiptMessage({ event, pedido, items, cliente });
   const adjunto = event === 'payment_approved' && ticket?.content && ticket?.filename && ticket?.url
     ? ticket
     : null;
@@ -385,12 +414,16 @@ async function sendOrderNotifications({ event, pedido, cliente, items, ticket })
   const bodyParameters = templateName
     ? buildOrderTemplateBodyParams({ event, pedido, items, cliente })
     : undefined;
+  const folio = formatFolioOnline(pedido?.id) || `#${pedido?.id || ''}`;
   const subject = event === 'payment_approved'
     ? (adjunto
-      ? `FarmaCapital · Ticket del pedido #${pedido?.id || ''}`
-      : `Pago aprobado Pedido #${pedido?.id || ''}`)
+      ? `FarmaCapital · Gracias por tu compra · Ticket ${folio}`
+      : `FarmaCapital · Gracias por tu compra · Pedido ${folio}`)
     : `Actualizacion de Pedido #${pedido?.id || ''}`;
-  const waPromise = pedidoQuiereWhatsAppRecibo(pedido)
+  const wantEmail = !channels || channels.includes('email');
+  const wantWa = !channels || channels.includes('whatsapp');
+  const destinos = wantEmail ? destinosCorreoPedido(pedido, cliente) : [];
+  const waPromise = wantWa && pedidoQuiereWhatsAppRecibo(pedido)
     ? sendWhatsapp({
         to: cliente?.telefono || null,
         text: msg,
@@ -398,16 +431,18 @@ async function sendOrderNotifications({ event, pedido, cliente, items, ticket })
         bodyParameters,
         allowTextFallback: false,
       })
-    : Promise.resolve({ sent: false, reason: 'whatsapp_opt_out' });
+    : Promise.resolve({ sent: false, reason: wantWa ? 'whatsapp_opt_out' : 'channel_skipped' });
   const [emailRes, waRes] = await Promise.all([
-    sendEmail({
-      to: cliente?.email || null,
-      subject,
-      text: emailText,
-      attachments: adjunto ? [{ filename: adjunto.filename, content: adjunto.content }] : undefined,
-      from: adjunto ? 'FarmaCapital <contacto@farmacapital.mx>' : undefined,
-      replyTo: adjunto ? 'contacto@farmacapital.mx' : undefined,
-    }),
+    wantEmail
+      ? sendEmail({
+          to: destinos,
+          subject,
+          text: emailText,
+          attachments: adjunto ? [{ filename: adjunto.filename, content: adjunto.content }] : undefined,
+          from: adjunto ? 'FarmaCapital <contacto@farmacapital.mx>' : undefined,
+          replyTo: adjunto ? 'contacto@farmacapital.mx' : undefined,
+        })
+      : Promise.resolve({ sent: false, reason: 'channel_skipped' }),
     waPromise,
   ]);
   return { ok: true, email: emailRes, whatsapp: waRes, ticket: Boolean(adjunto) };
