@@ -190,7 +190,12 @@ function buildMessage({ event, pedido, items }) {
 async function sendEmail({ to, subject, text, html, from, replyTo, attachments }) {
   const RESEND_API_KEY = String(process.env.RESEND_API_KEY || '').trim();
   const fromAddr = String(from || process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
-  if (!RESEND_API_KEY || !to) return { sent: false, reason: 'email_not_configured' };
+  const recipients = Array.isArray(to)
+    ? to.map((e) => String(e || '').trim()).filter((e) => e.includes('@'))
+    : (String(to || '').trim().includes('@') ? [String(to).trim()] : []);
+  if (!RESEND_API_KEY || !recipients.length) {
+    return { sent: false, reason: RESEND_API_KEY ? 'missing_email' : 'email_not_configured' };
+  }
   const files = Array.isArray(attachments) ? attachments.filter((a) => a?.filename && a?.content) : [];
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -200,7 +205,7 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
     },
     body: JSON.stringify({
       from: fromAddr,
-      to: [to],
+      to: recipients,
       subject,
       text,
       ...(html ? { html } : {}),
@@ -213,7 +218,7 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
     try { detail = await resp.json(); } catch { detail = await resp.text(); }
     return { sent: false, reason: 'email_provider_error', detail };
   }
-  return { sent: true };
+  return { sent: true, to: recipients };
 }
 
 async function sendTwilioWhatsapp({ to, text }) {
