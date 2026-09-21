@@ -78,6 +78,7 @@ import { attachEnvioPedido } from "./lib/envioDomicilioClient";
 import {
   checkoutPuedePedirEnvio,
   clientePuedePagarPedidoEnvio,
+  copyConfirmacionPedido,
   estimarEnvioDesdeCoords,
   etiquetaEstadoEnvioCliente,
   feeEnvioEnCheckout,
@@ -4386,13 +4387,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           metodoPago: "mercadopago",
           whatsappRecibo: enviarReciboWhatsApp,
         });
-        if (enviarReciboWhatsApp) {
-          notifyOnlineOrderReceipt({
-            pedidoId: resp.pedido_id,
-            sessionToken: tokCli || null,
-            phoneVerify: tokCli ? null : soloDigitosTel(datos.tel),
-          }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
-        }
+        // Domicilio sin cobro: no mandar “pedido confirmado” / recibo. El aviso sale al cotizar el envío.
         setG(false);
         setConf(true);
         setCart([]);
@@ -4532,6 +4527,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   if(conf&&lastOrder){
     const folio = formatFolioOnline(lastOrder.pedidoId);
     const esPickup = lastOrder.tipo_entrega==="recoger";
+    const copyConf = copyConfirmacionPedido(lastOrder);
     const reenviarReciboWhatsApp = () => {
       openWhatsAppToFarmacia(buildCustomerToFarmaciaMessage({
         pedidoId: lastOrder.pedidoId,
@@ -4542,7 +4538,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     const instruccionEntrega = esPickup
       ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioPendienteCotizacion
-        ? "El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp. Entras a Mi cuenta, abres este pedido y pagas productos + transporte juntos."
+        ? "Aún no pagas. El vendedor cotiza el envío en DiDi o Uber y te llega un correo y WhatsApp para pagar productos + transporte juntos."
         : lastOrder.envioFee
           ? `Envío ${formatEnvioMoney(lastOrder.envioFee)} en tu pago. Te avisamos cuando salga el mensajero.`
           : "Te avisamos cuando salga el mensajero.";
@@ -4550,7 +4546,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     return(
       <div style={{maxWidth:560,margin:"clamp(32px,10vw,72px) auto",padding:"0 16px",textAlign:"center"}}>
         <TiendaIconWell Icon={CircleCheck} color={BRAND.accent} />
-        <h1 style={{color:C.dark,fontSize:"clamp(20px,5vw,26px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>{lastOrder.reservado ? "¡Encargo apartado!" : "¡Pedido confirmado!"}</h1>
+        <h1 style={{color:C.dark,fontSize:"clamp(20px,5vw,26px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>{copyConf.titulo}</h1>
         {lastOrder.reservado && (
           <p style={{color:C.mid,fontSize:14,lineHeight:1.6,margin:"0 auto 8px",maxWidth:460}}>
             Reservamos {$(lastOrder.sub)} en tu tarjeta; todavía no se cobra. Lo conseguimos en 24-48 hrs y cobramos cuando esté listo. Si no lo conseguimos, cancelamos la reserva sin cargo y te avisamos por WhatsApp.
@@ -4590,7 +4586,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               </div>
             ))}
             <div style={{display:"flex",justifyContent:"space-between",paddingTop:8,marginTop:4,borderTop:`1px solid ${C.border}`}}>
-              <span style={{color:C.dark,fontWeight:800}}>{lastOrder.reservado ? "Total apartado" : lastOrder.cobroEnTienda ? "Total a pagar al recoger" : "Total pagado"}</span>
+              <span style={{color:C.dark,fontWeight:800}}>{copyConf.totalLabel}</span>
               <span style={{color:BRAND.primary,fontWeight:900}}>${Number(lastOrder.sub).toFixed(2)}</span>
             </div>
           </div>
@@ -4609,6 +4605,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           {lastOrder.reservado ? (
             <>
               Tu encargo quedó apartado con folio <strong>{folio}</strong>. Te escribimos por WhatsApp a <strong>{lastOrder.datosTel}</strong> cuando lo tengamos y cobremos la reserva.
+            </>
+          ) : lastOrder.envioPendienteCotizacion ? (
+            <>
+              {copyConf.pie} Folio <strong>{folio}</strong>
+              {lastOrder.datosTel ? <> · te escribimos a <strong>{lastOrder.datosTel}</strong></> : null}.
             </>
           ) : lastOrder.whatsappRecibo !== false ? (
             <>

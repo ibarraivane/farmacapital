@@ -242,15 +242,40 @@ export function pedidosConEnvioPorPagar(pedidos) {
   });
 }
 
+export function linkPagarPedido(pedidoId, origen = "https://www.farmacapital.mx") {
+  const base = String(origen || "https://www.farmacapital.mx").replace(/\/+$/, "");
+  const id = Number(pedidoId);
+  if (!Number.isFinite(id) || id <= 0) return `${base}/pagar`;
+  return `${base}/pagar?pedido=${id}`;
+}
+
+/** Textos de la pantalla post-checkout. Un domicilio sin cobro no es “pagado”. */
+export function copyConfirmacionPedido(lastOrder = {}) {
+  if (lastOrder.reservado) {
+    return { titulo: "¡Encargo apartado!", totalLabel: "Total apartado", pagado: false };
+  }
+  if (lastOrder.cobroEnTienda) {
+    return { titulo: "¡Pedido registrado!", totalLabel: "Total a pagar al recoger", pagado: false };
+  }
+  if (lastOrder.envioPendienteCotizacion) {
+    return {
+      titulo: "¡Pedido recibido!",
+      totalLabel: "Total de productos",
+      pagado: false,
+      pie: "Todavía no está pagado. Cuando cotizamos el envío te llega un correo y WhatsApp para pagar productos + transporte.",
+    };
+  }
+  return { titulo: "¡Pedido confirmado!", totalLabel: "Total pagado", pagado: true };
+}
+
 export function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, "0")}`;
-  const base = String(origen || "https://www.farmacapital.mx").replace(/\/+$/, "");
-  const link = `${base}/carrito`;
+  const link = linkPagarPedido(pedidoId, origen);
   return (
     `🏥 FarmaCapital\n\n` +
-    `Tu pedido ${folio} ya tiene el precio final.\n` +
+    `Tu pedido ${folio} ya tiene el precio final. Todavía no está pagado.\n` +
     `Productos $${Number(itemsTotal).toFixed(2)} + envío $${Number(costo).toFixed(2)} = $${Number(total).toFixed(2)}.\n\n` +
-    `Ábrelo en tu carrito y toca Pagar ahora. Es un solo cargo:\n${link}`
+    `Ábrelo y toca Pagar ahora. Es un solo cargo:\n${link}`
   );
 }
 
@@ -265,7 +290,7 @@ export function mensajeCorreoEnvioCotizado({ sent, reason, detail, costo } = {})
   const n = Number(costo);
   const monto = Number.isFinite(n) ? `$${n.toFixed(2)}` : "El costo";
   if (sent) {
-    return `${monto} cargado. Le mandamos un correo desde contacto@farmacapital.mx con la liga de su carrito.`;
+    return `${monto} cargado. Le mandamos un correo desde contacto@farmacapital.mx con la liga para pagar.`;
   }
   const err = textoErrorResend(detail);
   if (reason === "missing_email") {
