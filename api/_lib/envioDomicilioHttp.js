@@ -18,6 +18,8 @@ const {
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
   correoAvisoEnvioCotizado,
+  cargoServicioPedido,
+  desglosePedido,
 } = require('./envioDomicilio');
 const { sendWhatsAppSmart } = require('./whatsappCloud');
 const { sendEmail } = require('./orderNotifications');
@@ -125,7 +127,7 @@ async function resolvePedidoContacto(supabaseUrl, serviceKey, pedido) {
 
 async function fetchItemsPedido(supabaseUrl, serviceKey, pedidoId) {
   const resp = await fetch(
-    `${supabaseUrl}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+    `${supabaseUrl}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre,imagen_url)`,
     { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
   );
   const rows = await resp.json().catch(() => []);
@@ -133,16 +135,22 @@ async function fetchItemsPedido(supabaseUrl, serviceKey, pedidoId) {
   return rows;
 }
 
-async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal }) {
+async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal, cargo = 0 }) {
   const contacto = await resolvePedidoContacto(supabaseUrl, serviceKey, pedido).catch(() => ({ email: '', emails: [], nombre: '' }));
   const items = await fetchItemsPedido(supabaseUrl, serviceKey, pedido.id).catch(() => []);
+  const telPedido = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido).catch(() => '');
+  const envioMeta = pedido?.logistics_meta?.envio && typeof pedido.logistics_meta.envio === 'object' ? pedido.logistics_meta.envio : {};
   const mail = correoAvisoEnvioCotizado({
     pedidoId: pedido.id,
     costo,
     itemsTotal,
+    cargo,
     total: pedido.total,
     nombre: contacto.nombre,
     items,
+    proveedor: envioMeta.proveedor || pedido.delivery_provider,
+    colonia: envioMeta.colonia,
+    telUltimos4: telPedido,
   });
   let email = { sent: false, reason: 'missing_email' };
   const destinos = Array.isArray(contacto.emails) ? contacto.emails : [];
@@ -170,6 +178,7 @@ async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, cos
           pedidoId: pedido.id,
           costo,
           itemsTotal,
+          cargo,
           total: pedido.total,
         }),
         allowTextFallback: true,
@@ -473,12 +482,15 @@ async function handleQuote(req, body) {
     proveedor,
   });
 
+  // pedido.total trae el Servicio $5 del trigger: separarlo para que el cliente vea el desglose real.
+  const desglose = desglosePedido(newTotal, costo, cargoServicioPedido(pedido));
   const aviso = await avisarClienteEnvioCotizado({
     supabaseUrl,
     serviceKey,
-    pedido: { ...pedido, total: newTotal, costo_envio: costo },
+    pedido: { ...pedido, total: newTotal, costo_envio: costo, delivery_provider: proveedor, logistics_meta },
     costo,
-    itemsTotal,
+    itemsTotal: desglose.productos,
+    cargo: desglose.servicio,
   });
   return {
     status: 200,
@@ -486,7 +498,8 @@ async function handleQuote(req, body) {
       ok: true,
       pedidoId,
       total: newTotal,
-      items_total: itemsTotal,
+      items_total: desglose.productos,
+      cargo_plataforma: desglose.servicio,
       costo_envio: costo,
       envio: envioPatch,
       whatsapp: aviso.whatsapp,

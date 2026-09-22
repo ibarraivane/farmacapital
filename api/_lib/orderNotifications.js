@@ -3,6 +3,7 @@
 const { FARMACIA_FISCAL } = require('./farmaciaFiscal');
 const { resolverFromVerificado } = require('./resendFrom');
 const { emailsAvisoCliente, emailsValidos } = require('./clienteEmails');
+const emailTemplates = require('./emailTemplates');
 const {
   sendWhatsAppSmart,
   getWhatsAppTemplateConfig,
@@ -411,6 +412,43 @@ function destinosCorreoPedido(pedido, cliente) {
   });
 }
 
+/**
+ * Correo HTML de pago aprobado (diseño v2).
+ * Desglose: productos + Servicio (si logistics_meta lo trae) + envío = pedidos.total.
+ */
+function buildPagoAprobadoEmail({ pedido, cliente, items, ticketUrl }) {
+  const meta = pedido?.logistics_meta && typeof pedido.logistics_meta === 'object' ? pedido.logistics_meta : {};
+  const raw = Array.isArray(items) ? items : [];
+  const lineas = normalizeItems(raw).map((l, i) => {
+    const img = String(raw[i]?.productos?.imagen_url || '').trim();
+    return {
+      nombre: l.nombre,
+      cantidad: l.qty,
+      importe: Math.round(l.precio * l.qty * 100) / 100,
+      img: /^https:\/\//i.test(img) ? img : undefined,
+    };
+  });
+  const total = Math.round((Number(pedido?.total) || 0) * 100) / 100;
+  const servicio = Number(meta.cargo_plataforma_mxn) > 0 ? Math.round(Number(meta.cargo_plataforma_mxn) * 100) / 100 : 0;
+  const esEnvio = pedido?.tipo_entrega === 'envio';
+  let envio = null;
+  if (esEnvio) {
+    const fee = Number(pedido?.costo_envio ?? meta?.envio?.costo_cotizado);
+    const productos = lineas.reduce((sum, l) => sum + l.importe, 0);
+    envio = Number.isFinite(fee) && fee >= 0 ? fee : Math.max(0, Math.round((total - productos - servicio) * 100) / 100);
+  }
+  return emailTemplates.pagoAprobado({
+    pedidoId: pedido?.id,
+    nombre: cliente?.nombre || '',
+    items: lineas,
+    servicio,
+    envio,
+    total,
+    entrega: esEnvio ? 'envio' : 'recoger',
+    urlTicket: ticketUrl || undefined,
+  });
+}
+
 async function sendOrderNotifications({ event, pedido, cliente, items, ticket, channels }) {
   const msg = buildReceiptMessage({ event, pedido, items, cliente });
   const adjunto = event === 'payment_approved' && ticket?.content && ticket?.filename && ticket?.url
@@ -423,12 +461,22 @@ async function sendOrderNotifications({ event, pedido, cliente, items, ticket, c
   const bodyParameters = templateName
     ? buildOrderTemplateBodyParams({ event, pedido, items, cliente })
     : undefined;
+  let htmlPago = null;
+  if (event === 'payment_approved') {
+    try {
+      htmlPago = buildPagoAprobadoEmail({ pedido, cliente, items, ticketUrl: adjunto?.url });
+    } catch (_) {
+      htmlPago = null;
+    }
+  }
   const folio = formatFolioOnline(pedido?.id) || `#${pedido?.id || ''}`;
-  const subject = event === 'payment_approved'
-    ? (adjunto
-      ? `FarmaCapital · Gracias por tu compra · Ticket ${folio}`
-      : `FarmaCapital · Gracias por tu compra · Pedido ${folio}`)
-    : `Actualizacion de Pedido #${pedido?.id || ''}`;
+  const subject = htmlPago
+    ? htmlPago.subject
+    : event === 'payment_approved'
+      ? (adjunto
+        ? `FarmaCapital · Gracias por tu compra · Ticket ${folio}`
+        : `FarmaCapital · Gracias por tu compra · Pedido ${folio}`)
+      : `Actualizacion de Pedido #${pedido?.id || ''}`;
   const wantEmail = !channels || channels.includes('email');
   const wantWa = !channels || channels.includes('whatsapp');
   const destinos = wantEmail ? destinosCorreoPedido(pedido, cliente) : [];
@@ -447,6 +495,7 @@ async function sendOrderNotifications({ event, pedido, cliente, items, ticket, c
           to: destinos,
           subject,
           text: emailText,
+          html: htmlPago ? htmlPago.html : undefined,
           attachments: adjunto ? [{ filename: adjunto.filename, content: adjunto.content }] : undefined,
           from: adjunto ? 'FarmaCapital <contacto@farmacapital.mx>' : undefined,
           replyTo: adjunto ? 'contacto@farmacapital.mx' : undefined,
@@ -459,6 +508,7 @@ async function sendOrderNotifications({ event, pedido, cliente, items, ticket, c
 
 module.exports = {
   sendOrderNotifications,
+  buildPagoAprobadoEmail,
   sendEmail,
   sendPosTicketNotification,
   sendWhatsapp,

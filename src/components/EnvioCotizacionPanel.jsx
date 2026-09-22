@@ -4,6 +4,7 @@ import {
   despacharEnvioPedido,
 } from "../lib/envioDomicilioClient";
 import {
+  cargoServicioPedido,
   desgloseEnvioCheckout,
   formatEnvioMoney,
   leerMetaEnvio,
@@ -136,11 +137,12 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
               showToast?.("Primero guarda el costo de transporte.", "warning");
               return;
             }
-            const partes = desgloseEnvioCheckout(total, fee);
+            const partes = desgloseEnvioCheckout(total, fee, cargoServicioPedido(pedido));
             const msg = textoClienteEnvioEnCheckout({
               pedidoId: pedido?.id,
               costo: partes.envio,
               itemsTotal: partes.productos,
+              cargo: partes.servicio,
               total: partes.total,
             });
             if (navigator?.clipboard?.writeText) navigator.clipboard.writeText(msg);

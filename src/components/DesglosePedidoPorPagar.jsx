@@ -2,16 +2,16 @@ import { Btn } from "../ui";
 import { BRAND } from "../constants";
 import { useTheme } from "../themeContext";
 import { $ } from "../utils";
-import { desgloseEnvioCheckout, feeEnvioEnCheckout, formatEnvioMoney } from "../lib/envioDomicilio";
+import { cargoServicioPedido, desgloseEnvioCheckout, feeEnvioEnCheckout, formatEnvioMoney } from "../lib/envioDomicilio";
 
 /**
  * Pedido a domicilio ya cotizado, todavía sin pagar.
- * Muestra las piezas del carrito, el envío y el total. El botón abre Mercado Pago.
+ * Muestra las piezas del carrito, el Servicio, el envío y el total. El botón abre Mercado Pago.
  */
 export default function DesglosePedidoPorPagar({ pedido, busy, onPagar }) {
   const C = useTheme();
   const fee = feeEnvioEnCheckout(pedido);
-  const partes = desgloseEnvioCheckout(pedido?.total, fee);
+  const partes = desgloseEnvioCheckout(pedido?.total, fee, cargoServicioPedido(pedido));
   const lineas = Array.isArray(pedido?.pedido_items) ? pedido.pedido_items : [];
 
   return (
@@ -49,6 +49,11 @@ export default function DesglosePedidoPorPagar({ pedido, busy, onPagar }) {
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: C.dark, marginBottom: 6 }}>
           <span>Productos</span><span>{$(partes.productos)}</span>
         </div>
+        {partes.servicio > 0 ? (
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: C.dark, marginBottom: 6 }}>
+            <span>Servicio</span><span>{$(partes.servicio)}</span>
+          </div>
+        ) : null}
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: C.dark, marginBottom: 8 }}>
           <span>Envío a domicilio</span><span>{formatEnvioMoney(partes.envio)}</span>
         </div>

@@ -25,6 +25,7 @@ function ticketCompraPdfBase64({
   nombre,
   items,
   productos,
+  servicio,
   envio,
   total,
   ticketUrl,
@@ -89,6 +90,12 @@ function ticketCompraPdfBase64({
     doc.text(dinero(productos), 134, y, { align: 'right' });
     y += 5;
   }
+  const servicioN = Number(servicio);
+  if (Number.isFinite(servicioN) && servicioN > 0) {
+    doc.text('Servicio', 14, y);
+    doc.text(dinero(servicioN), 134, y, { align: 'right' });
+    y += 5;
+  }
   const envioN = Number(envio);
   if (Number.isFinite(envioN) && envioN > 0) {
     doc.text('Envío a domicilio', 14, y);
@@ -113,7 +120,7 @@ function ticketCompraPdfBase64({
 }
 
 /** Adjunto del correo de pago. Null si el ticket público todavía no existe. */
-function ticketPagoAdjunto({ pedidoId, nombre, items, productos, envio, total, ticketUrl, ahora } = {}) {
+function ticketPagoAdjunto({ pedidoId, nombre, items, productos, servicio, envio, total, ticketUrl, ahora } = {}) {
   const url = String(ticketUrl || '').trim();
   if (!url) return null;
   const content = ticketCompraPdfBase64({
@@ -121,6 +128,7 @@ function ticketPagoAdjunto({ pedidoId, nombre, items, productos, envio, total, t
     nombre,
     items,
     productos,
+    servicio,
     envio,
     total,
     ticketUrl: url,

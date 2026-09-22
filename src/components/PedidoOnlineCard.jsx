@@ -15,6 +15,7 @@ import {
   lineasReciboPedidoOnline,
 } from "../utils/orderReceiptWhatsApp";
 import {
+  cargoServicioPedido,
   desgloseEnvioCheckout,
   feeEnvioEnCheckout,
   textoClienteEnvioEnCheckout,
@@ -60,11 +61,12 @@ export default function PedidoOnlineCard({
     const fee = feeEnvioEnCheckout(p);
     let msg;
     if (fee != null) {
-      const partes = desgloseEnvioCheckout(p.total, fee);
+      const partes = desgloseEnvioCheckout(p.total, fee, cargoServicioPedido(p));
       msg = textoClienteEnvioEnCheckout({
         pedidoId: p.id,
         costo: partes.envio,
         itemsTotal: partes.productos,
+        cargo: partes.servicio,
         total: partes.total,
         origen: window.location.origin,
       });
