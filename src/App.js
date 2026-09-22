@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import FarmaCapitalAdmin from "./Admin";
 import Tienda from "./Tienda";
+import AvisoCookies from "./components/AvisoCookies";
 import AdminDashboard from "./AdminDashboard";
 import { adminPathnameToPageId } from "./shared/adminRoutes";
 import { attachPwaManifestHistorySync } from "./syncPwaManifest";
@@ -155,6 +156,7 @@ export default function App() {
   return (
     <TiendaRouteBoundary>
       <Tienda />
+      <AvisoCookies />
     </TiendaRouteBoundary>
   );
 }

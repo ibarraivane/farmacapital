@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ClipboardList, MessageCircle, Plus, QrCode, RefreshCw, Search, X } from "lucide-react";
+import { Calculator, ClipboardList, MessageCircle, Plus, QrCode, RefreshCw, Search, X } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
@@ -20,6 +20,7 @@ import {
 } from "./lib/pedidosMostrador";
 import { buildSolicitudWhatsAppCliente } from "./lib/solicitudTienda";
 import EncargosBajoPedidoPanel from "./components/EncargosBajoPedidoPanel";
+import { folioCotizacion, stashCotizacionAbierta } from "./lib/cotizaciones";
 
 const C = C_LIGHT;
 
@@ -89,7 +90,7 @@ function colorUrgencia(u) {
   return { bg: C.cardDark, color: C.textMid };
 }
 
-export default function PedidosMostradorModule({ usuario }) {
+export default function PedidosMostradorModule({ usuario, onNavigate }) {
   const esAdmin = rolEsAdmin(usuario?.rol);
   const [filtro, setFiltro] = useState("abiertas");
   const [lista, setLista] = useState([]);
@@ -112,6 +113,8 @@ export default function PedidosMostradorModule({ usuario }) {
   const [buscando, setBuscando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [actualizandoId, setActualizandoId] = useState(null);
+  const [cotizPorSolicitud, setCotizPorSolicitud] = useState({});
+  const [promoviendoId, setPromoviendoId] = useState(null);
 
   const cargar = useCallback(async () => {
     const tok = sessionTok();
@@ -145,8 +148,26 @@ export default function PedidosMostradorModule({ usuario }) {
       setLista(Array.isArray(listRes.data) ? listRes.data : []);
     }
     if (!rankRes.error) setRanking(Array.isArray(rankRes.data) ? rankRes.data : []);
+    const rows = Array.isArray(listRes.data) ? listRes.data : [];
+    if (esAdmin && rows.length && tok) {
+      const { data: mapData, error: mapErr } = await supabase.rpc("admin_cotizaciones_de_solicitudes", {
+        p_session_token: tok,
+        p_solicitud_ids: rows.map((s) => s.id),
+      });
+      if (!mapErr && Array.isArray(mapData)) {
+        const next = {};
+        for (const row of mapData) {
+          if (row?.solicitud_id && row?.cotizacion_id) {
+            next[row.solicitud_id] = { id: row.cotizacion_id, folio: row.folio || folioCotizacion(row.cotizacion_id) };
+          }
+        }
+        setCotizPorSolicitud(next);
+      }
+    } else if (!esAdmin) {
+      setCotizPorSolicitud({});
+    }
     setLoading(false);
-  }, [filtro]);
+  }, [filtro, esAdmin]);
 
   useEffect(() => {
     cargar();
@@ -245,6 +266,42 @@ export default function PedidosMostradorModule({ usuario }) {
     }
     showToast(`Marcado: ${etiquetaEstado(estado)}`, "success");
     cargar();
+  };
+
+  const abrirCotizacion = async (solicitud) => {
+    const existente = cotizPorSolicitud[solicitud.id];
+    const ir = (id) => {
+      stashCotizacionAbierta(id);
+      if (typeof onNavigate === "function") onNavigate("cotiz");
+    };
+    if (existente?.id) {
+      ir(existente.id);
+      return;
+    }
+    const tok = sessionTok();
+    if (!tok) return;
+    setPromoviendoId(solicitud.id);
+    const { data, error } = await supabase.rpc("admin_promover_solicitud_a_cotizacion", {
+      p_session_token: tok,
+      p_solicitud_id: solicitud.id,
+    });
+    setPromoviendoId(null);
+    if (error) {
+      showToast(
+        /admin_promover_solicitud_a_cotizacion|schema cache|does not exist/i.test(error.message || "")
+          ? "Falta aplicar sql/patch_cotizaciones_20260921.sql en Supabase."
+          : error.message || "No se pudo abrir la cotización",
+        "error",
+      );
+      return;
+    }
+    const id = data?.id;
+    if (!id) {
+      showToast("No se pudo abrir la cotización", "error");
+      return;
+    }
+    showToast(`Cotización ${data.folio || folioCotizacion(id)}`, "success");
+    ir(id);
   };
 
   const vacia = !loading && lista.length === 0;
@@ -726,6 +783,32 @@ export default function PedidosMostradorModule({ usuario }) {
                           <MessageCircle size={14} /> Pasar costo por WhatsApp
                         </a>
                       ) : null}
+                      {esAdmin ? (
+                        <button
+                          type="button"
+                          disabled={promoviendoId === s.id}
+                          onClick={() => abrirCotizacion(s)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            marginTop: 8,
+                            marginLeft: s.cliente_telefono ? 12 : 0,
+                            padding: 0,
+                            border: "none",
+                            background: "transparent",
+                            color: C.blue,
+                            fontWeight: 700,
+                            fontSize: 12,
+                            cursor: promoviendoId === s.id ? "wait" : "pointer",
+                          }}
+                        >
+                          <Calculator size={14} />
+                          {cotizPorSolicitud[s.id]
+                            ? `Abrir ${cotizPorSolicitud[s.id].folio || folioCotizacion(cotizPorSolicitud[s.id].id)}`
+                            : "Abrir cotización"}
+                        </button>
+                      ) : null}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {next.map((e) => (
@@ -806,7 +889,7 @@ export default function PedidosMostradorModule({ usuario }) {
       {esAdmin && tab === "lista" && (
         <p style={{ marginTop: 16, fontSize: 12, color: C.textDim }}>
           Estados: {ESTADOS_SOLICITUD.map((e) => e.label).join(" → ")}. Usa «Pedir» / «Pedido» al comprar y «Llegó»
-          al recibir.
+          al recibir. Si vale la pena cotizar (fuentes, costo y ganancia), abre Cotizaciones.
         </p>
       )}
     </div>

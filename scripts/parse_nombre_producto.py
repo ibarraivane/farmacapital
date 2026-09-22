@@ -61,8 +61,9 @@ CATEGORY_PREFIXES: list[tuple[str, str, str]] = [
     (r"^Pads\b", "Pads", "Cuidado personal"),
     (r"^Cotonetes\b", "Cotonetes", "Higiene personal"),
     (r"^Leche\b", "Leche", "Abarrotes"),
-    (r"^Electrolit\b", "Suero oral", "Higiene personal"),
-    (r"^Pedialyte\b", "Suero oral", "Higiene personal"),
+    (r"^Electrolit\b", "Suero oral", "Hidratación"),
+    (r"^Pedialyte\b", "Suero oral", "Hidratación"),
+    (r"^Suerox\b", "Suero oral", "Hidratación"),
     (r"^Ensure\b", "Suplemento", "Abarrotes"),
     (r"^Pediasure\b", "Suplemento", "Abarrotes"),
     (r"^Glucerna\b", "Suplemento", "Abarrotes"),
@@ -109,9 +110,10 @@ CATEGORY_PREFIXES: list[tuple[str, str, str]] = [
     (r"^Bib\b", "Biberón", "Bebés"),
     (r"^Leche\b", "Leche", "Abarrotes"),
     (r"^Nestum\b", "Suplemento", "Abarrotes"),
-    (r"^Electrolit\b", "Suero oral", "Higiene personal"),
-    (r"^Electrolid\b", "Suero oral", "Higiene personal"),
-    (r"^Pedialyte\b", "Suero oral", "Higiene personal"),
+    (r"^Electrolit\b", "Suero oral", "Hidratación"),
+    (r"^Electrolid\b", "Suero oral", "Hidratación"),
+    (r"^Pedialyte\b", "Suero oral", "Hidratación"),
+    (r"^Suerox\b", "Suero oral", "Hidratación"),
     (r"^Toa\s+Hum\b", "Toallas húmedas", "Higiene personal"),
     (r"^Absorsec\b", "Toallas húmedas", "Higiene personal"),
     (r"^Termometro\b", "Termómetro", "Botiquín"),
@@ -819,8 +821,8 @@ def _parse_farmalive(text: str, tipo: str | None = None) -> ParsedProducto | Non
             "AMPOLLETA", "GRAGEAS", "COMPRIMIDOS", "UNGÜENTO", "SOLUCION", "INYECTABLE",
         } else "Producto"
 
-    if not cat and marca in {"Electrolit", "Pedialyte"}:
-        cat = "Higiene personal"
+    if not cat and marca in {"Electrolit", "Pedialyte", "Suerox", "Oralit", "Voldratol"}:
+        cat = "Hidratación"
         forma = forma or "Suero oral"
 
     presentacion = " · ".join(dict.fromkeys(pres_parts)) if pres_parts else pres

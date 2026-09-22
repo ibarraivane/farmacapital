@@ -1,0 +1,31 @@
+---
+description: Nombre de mostrador corto; marca, principio y empaque van en sus columnas. No dump masivo de nombres.
+alwaysApply: true
+---
+
+# Ficha partida: un hecho por columna
+
+El cliente y el mostrador buscan por marca, sustancia o “20 tabletas”. Eso no tiene que vivir todo en `nombre`.
+
+| Columna | Qué va | Qué no |
+|---|---|---|
+| `nombre` | Cómo lo piden: línea comercial o molécula + **dosis** si distingue SKUs (`Ibuprofeno 400 mg`, `Anthelios UV Air`) | Código de ticket, `C/24`, `20 tabletas`, `40 ml` |
+| `marca` | Marca real de la caja | Casa Nadro (`LGEN`, `FRABEL`) |
+| `principio_activo` | DCI / fórmula | Dosis suelta (`500 mg`) |
+| `presentacion` | Empaque o volumen (`24 cápsulas`, `40 ml`) | Nota de ticket |
+| `concentracion` | Dosis / FPS (`400 mg`, `FPS 50+`) | Conteo de piezas |
+| `forma_farmaceutica` | Tabletas, fluido, crema | Categoría (“Medicamento”) |
+
+## Dosis vs empaque (no colapsar SKUs)
+
+- **Se queda en el nombre:** `400 mg` / `600 mg` / `FPS 50+` — dos ibuprofenos no pueden llamarse igual.
+- **Sale del nombre, se ve en el subtítulo:** `C/24`, `20 tabletas`, `40 ml`.
+- Variante de línea (Invisible vs Oil Control, UV Air) se queda en `nombre`.
+
+Usa `partirNombreMostrador` / `aplicarFichaMostrador` en [`src/lib/nombreMostrador.js`](src/lib/nombreMostrador.js). La pantalla (tienda y POS) usa `tituloPublicoProducto` + `subtituloPublicoTienda`.
+
+## Prohibido
+
+- Un SQL de cientos de `UPDATE nombre = …` “a ojo”. Ya se intentó (`patch_nombres_catalogo_limpio.sql`) y dejó basura de ticket.
+- Inventar marca, principio o conteo si no están en la ficha o la caja.
+- Copiar el código del PDF como nombre (sigue valiendo `carga-ticket-ficha-proveedor.mdc`).

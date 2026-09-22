@@ -18,9 +18,12 @@ const {
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
   correoAvisoEnvioCotizado,
+  cargoServicioPedido,
+  desglosePedido,
 } = require('./envioDomicilio');
 const { sendWhatsAppSmart } = require('./whatsappCloud');
 const { sendEmail } = require('./orderNotifications');
+const { emailsAvisoCliente } = require('./clienteEmails');
 
 function getQuery(req) {
   try {
@@ -102,25 +105,29 @@ async function resolvePedidoTelefono(supabaseUrl, serviceKey, pedido) {
 }
 
 async function resolvePedidoContacto(supabaseUrl, serviceKey, pedido) {
-  let email = String(pedido?.guest_email || '').trim();
+  const guestEmail = String(pedido?.guest_email || '').trim();
   let nombre = String(pedido?.guest_nombre || '').trim();
+  let email = '';
+  let emailAlt = '';
   const clienteId = Number(pedido?.cliente_id);
-  if ((!email.includes('@') || !nombre) && Number.isFinite(clienteId) && clienteId > 0) {
+  if (Number.isFinite(clienteId) && clienteId > 0) {
     const resp = await fetch(
-      `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=email,nombre&limit=1`,
+      `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=email,email_alt,nombre&limit=1`,
       { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
     );
     const rows = await resp.json().catch(() => []);
     const row = Array.isArray(rows) ? rows[0] : null;
-    if (!email.includes('@')) email = String(row?.email || '').trim();
+    email = String(row?.email || '').trim();
+    emailAlt = String(row?.email_alt || '').trim();
     if (!nombre) nombre = String(row?.nombre || '').trim();
   }
-  return { email: email.includes('@') ? email : '', nombre };
+  const emails = emailsAvisoCliente({ guestEmail, email, emailAlt });
+  return { email: emails[0] || '', emails, nombre };
 }
 
 async function fetchItemsPedido(supabaseUrl, serviceKey, pedidoId) {
   const resp = await fetch(
-    `${supabaseUrl}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+    `${supabaseUrl}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre,imagen_url)`,
     { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
   );
   const rows = await resp.json().catch(() => []);
@@ -128,42 +135,35 @@ async function fetchItemsPedido(supabaseUrl, serviceKey, pedidoId) {
   return rows;
 }
 
-async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal }) {
-  const contacto = await resolvePedidoContacto(supabaseUrl, serviceKey, pedido).catch(() => ({ email: '', nombre: '' }));
+async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal, cargo = 0 }) {
+  const contacto = await resolvePedidoContacto(supabaseUrl, serviceKey, pedido).catch(() => ({ email: '', emails: [], nombre: '' }));
   const items = await fetchItemsPedido(supabaseUrl, serviceKey, pedido.id).catch(() => []);
+  const telPedido = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido).catch(() => '');
+  const envioMeta = pedido?.logistics_meta?.envio && typeof pedido.logistics_meta.envio === 'object' ? pedido.logistics_meta.envio : {};
   const mail = correoAvisoEnvioCotizado({
     pedidoId: pedido.id,
     costo,
     itemsTotal,
+    cargo,
     total: pedido.total,
     nombre: contacto.nombre,
     items,
+    proveedor: envioMeta.proveedor || pedido.delivery_provider,
+    colonia: envioMeta.colonia,
+    telUltimos4: telPedido,
   });
   let email = { sent: false, reason: 'missing_email' };
-  if (contacto.email) {
+  const destinos = Array.isArray(contacto.emails) ? contacto.emails : [];
+  if (destinos.length) {
     try {
       email = await sendEmail({
-        to: contacto.email,
+        to: destinos,
         subject: mail.subject,
         text: mail.text,
         html: mail.html,
         from: mail.from,
         replyTo: mail.replyTo,
       });
-      if (!email.sent && email.reason === 'email_provider_error') {
-        const fallbackFrom = String(process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
-        if (fallbackFrom && fallbackFrom !== mail.from) {
-          const otroRemitente = await sendEmail({
-            to: contacto.email,
-            subject: mail.subject,
-            text: mail.text,
-            html: mail.html,
-            from: fallbackFrom,
-            replyTo: mail.replyTo,
-          });
-          if (otroRemitente.sent) email = { ...otroRemitente, fromFallback: true };
-        }
-      }
     } catch (e) {
       email = { sent: false, reason: e?.message || 'email_failed' };
     }
@@ -178,6 +178,7 @@ async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, cos
           pedidoId: pedido.id,
           costo,
           itemsTotal,
+          cargo,
           total: pedido.total,
         }),
         allowTextFallback: true,
@@ -481,12 +482,15 @@ async function handleQuote(req, body) {
     proveedor,
   });
 
+  // pedido.total trae el Servicio $5 del trigger: separarlo para que el cliente vea el desglose real.
+  const desglose = desglosePedido(newTotal, costo, cargoServicioPedido(pedido));
   const aviso = await avisarClienteEnvioCotizado({
     supabaseUrl,
     serviceKey,
-    pedido: { ...pedido, total: newTotal, costo_envio: costo },
+    pedido: { ...pedido, total: newTotal, costo_envio: costo, delivery_provider: proveedor, logistics_meta },
     costo,
-    itemsTotal,
+    itemsTotal: desglose.productos,
+    cargo: desglose.servicio,
   });
   return {
     status: 200,
@@ -494,7 +498,8 @@ async function handleQuote(req, body) {
       ok: true,
       pedidoId,
       total: newTotal,
-      items_total: itemsTotal,
+      items_total: desglose.productos,
+      cargo_plataforma: desglose.servicio,
       costo_envio: costo,
       envio: envioPatch,
       whatsapp: aviso.whatsapp,

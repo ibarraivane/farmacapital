@@ -15,10 +15,10 @@ const ITEMS = [
   { id: "c", label: "Tres" },
 ];
 
-test("Dashboard encabezado tiene Exportar ventas CSV", () => {
+test("Dashboard encabezado tiene Exportar a Excel", () => {
   const src = readFileSync(join(__dirname, "DashboardModule.jsx"), "utf8");
-  expect(src).toContain("Exportar ventas CSV");
-  expect(src).toContain("ejecutarExportVentasAnalisis");
+  expect(src).toContain("BotonesReporte");
+  expect(src).not.toContain("Exportar ventas CSV");
 });
 
 test("Flujo de caja usa Banknote, no una gota", () => {

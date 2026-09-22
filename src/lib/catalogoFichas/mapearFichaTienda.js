@@ -1,7 +1,17 @@
-import { descripcionPublicaTienda } from "../../utils/tiendaFarmaciaCatalogo";
+import { descripcionPublicaTienda, presentacionPublicaTienda } from "../../utils/tiendaFarmaciaCatalogo";
 
 function texto(v) {
   return v == null ? "" : String(v).trim();
+}
+
+/** TABLETAS / CAPSULAS del ticket: en vitrina se lee en minúsculas. */
+function textoFichaCliente(v) {
+  const t = texto(v);
+  if (!t) return "";
+  if (t.length > 1 && t === t.toUpperCase() && /[A-ZÁÉÍÓÚÜÑ]/.test(t)) {
+    return t.charAt(0) + t.slice(1).toLowerCase();
+  }
+  return t;
 }
 
 function lista(v) {
@@ -50,12 +60,11 @@ export function mapearFichaTienda({ producto, ficha, monografia } = {}) {
   const fichaTecnica = [
     { k: "Sustancia activa", v: texto(prod.principio_activo) },
     { k: "Concentración", v: texto(prod.concentracion) },
-    { k: "Forma farmacéutica", v: texto(prod.forma_farmaceutica) },
-    { k: "Presentación", v: texto(prod.presentacion) },
+    { k: "Forma farmacéutica", v: textoFichaCliente(prod.forma_farmaceutica) },
+    { k: "Presentación", v: presentacionPublicaTienda(prod) },
     { k: "Laboratorio", v: texto(prod.marca) },
     { k: "Registro sanitario", v: texto(fichaOk?.registro_sanitario) },
     { k: "Tipo de venta", v: prod.requiere_receta ? "Con receta médica" : (prod.requiere_receta === false ? "Sin receta" : "") },
-    { k: "Código de barras", v: texto(prod.codigo_barras) },
   ].filter((row) => row.v);
 
   return {

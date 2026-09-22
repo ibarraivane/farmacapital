@@ -2,7 +2,8 @@
  * Bandas de catálogo por categoría para la home de la tienda.
  * Orden canónico de categorías; dentro de cada banda: con stock primero, luego A–Z.
  */
-import { CATEGORIAS_PRODUCTO, categoriaCanon } from "../constants/categoriasProducto";
+import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina } from "../constants/categoriasProducto";
+import { resetearPosicionCatalogo } from "./tiendaCatalogoPosicion";
 
 function agotado(p) {
   return Number(p?.stock) <= 0;
@@ -34,7 +35,7 @@ export function bandasCatalogoPorCategoria(productos, opts = {}) {
 
   for (const p of productos || []) {
     if (!p || p.activo === false) continue;
-    const cat = categoriaCanon(p.categoria) || "Otro";
+    const cat = categoriaVitrina(p) || "Otro";
     if (!byCat.has(cat)) byCat.set(cat, []);
     byCat.get(cat).push(p);
   }
@@ -82,7 +83,8 @@ export function irACatalogoCategoria(setPage, categoria) {
   } catch {
     /* ignore */
   }
-  setPage?.("catalogo", { rx: false });
+  resetearPosicionCatalogo();
+  setPage?.("catalogo", { rx: false, catalogoScroll: "top" });
 }
 
 /** Preferencia de layout del catálogo: cuadrícula o bandas horizontales. */

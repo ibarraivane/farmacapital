@@ -16,21 +16,28 @@ describe("metodosPago config", async () => {
     recargoCatalogoOnline,
   } = mod;
 
-  it("defaults sin mínimo de domicilio y recargo 8%", () => {
+  it("defaults sin mínimo de envío y 8% recargo", () => {
     assert.equal(montoMinimoPedidoOnline(), 0);
     assert.equal(recargoCatalogoOnline(), 0.08);
     assert.equal(cumpleMontoMinimoEnvio(20), true);
     assert.equal(cumpleMontoMinimoEnvio(1), true);
   });
 
-  it("bordes de mínimo", () => {
+  it("sin piso (0) cualquier subtotal de productos pasa", () => {
+    assert.equal(cumpleMontoMinimoEnvio(20), true);
+    assert.equal(cumpleMontoMinimoEnvio(0.01, 0), true);
+    assert.equal(cumpleMontoMinimoEnvio(0, 0), true);
+  });
+
+  it("bordes si se reactiva un mínimo", () => {
     assert.equal(cumpleMontoMinimoEnvio(149.99, 150), false);
     assert.equal(cumpleMontoMinimoEnvio(150, 150), true);
     assert.equal(cumpleMontoMinimoEnvio(150.0, 150), true);
     assert.equal(cumpleMontoMinimoEnvio(20, 150), false);
   });
 
-  it("mensaje menciona el monto", () => {
+  it("mensaje vacío sin piso; con piso menciona el monto", () => {
+    assert.equal(mensajeMontoMinimoPedidoOnline(0), "");
     assert.match(mensajeMontoMinimoPedidoOnline(150), /\$150/);
     assert.match(mensajeMontoMinimoPedidoOnline(150), /farmacia/i);
   });

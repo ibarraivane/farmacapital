@@ -4,6 +4,8 @@
  * `pedidos.logistics_meta` cuando apliques sql/patch_pedidos_logistics_meta.sql.
  */
 
+import { politicaProducto } from "../config/politicaMedicamentos";
+
 /** Envío foráneo (Skydropx) desactivado hasta nuevo aviso. Pick-up y CDMX siguen activos. */
 export const ENABLE_FORANEO = false;
 
@@ -99,11 +101,12 @@ export function mapUiEntregaToRpc(entregaUi, opts = {}) {
  * Producto apto para carrito / checkout web (alineado a validación RPC).
  * Con receta sí se vende en línea (se pide al entregar). Controlados: solo mostrador.
  */
-export function productoPermitidoEnTiendaWeb(p) {
+export function productoPermitidoEnTiendaWeb(p, options = {}) {
   if (!p || !p.activo) return false;
   if (p.visible_tienda === false) return false;
   if (p.controlado === true) return false;
   if (String(p.grupo_controlado || "").trim()) return false;
+  if (!politicaProducto(p, options.politica).ventaEnLinea) return false;
   return true;
 }
 
@@ -113,8 +116,9 @@ export function productoPermitidoEnTiendaWeb(p) {
  */
 export function productoPermitidoEnvioDomicilio(p, options = {}) {
   const permiteTienda = options.permiteEnTiendaWeb ?? productoPermitidoEnTiendaWeb;
-  if (!permiteTienda(p)) return false;
+  if (!permiteTienda(p, options)) return false;
   if (p.delivery_allowed === false) return false;
+  if (!politicaProducto(p, options.politica).envioDomicilio) return false;
   return true;
 }
 
@@ -150,7 +154,7 @@ export function validarCarritoParaEntrega(cart, entregaUi, productRowById, optio
       });
       continue;
     }
-    if (entregaUi !== "pickup" && !productoPermitidoEnvioDomicilio(row, { permiteEnTiendaWeb: permiteEnTienda })) {
+    if (entregaUi !== "pickup" && !productoPermitidoEnvioDomicilio(row, { ...options, permiteEnTiendaWeb: permiteEnTienda })) {
       bloqueados.push({
         id: item.id,
         nombre: item.nombre || row.nombre,

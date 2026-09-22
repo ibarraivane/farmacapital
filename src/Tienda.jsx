@@ -13,6 +13,7 @@ import {
   navigateToCita,
 } from "./utils/clienteSession";
 import { tiendaProductMatchesBusqueda, spellSuggestFromProducts, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "./utils/fuzzySearch";
+import { tituloPublicoProducto } from "./utils/posProductDisplay";
 import { CONSULTA_PRECIO_DEFAULT, citaPagoOk, labelEstadoPagoCita } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 import {
@@ -28,11 +29,12 @@ import {
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
   productoEsCajaAbiertaMostrador,
-  descripcionPublicaTienda,
+  nombrePublicoTienda,
   subtituloPublicoTienda,
+  descripcionPublicaTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
-import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
+import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, categoriaVitrinaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -49,6 +51,12 @@ import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
 import FichaProductoEnriquecida from "./components/tienda/FichaProductoEnriquecida";
 import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
 import IntroAnimacion from "./components/tienda/IntroAnimacion";
+import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
+import PieV2 from "./components/tienda/v2/PieV2";
+import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
+import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
+import { tiendaV2Activa } from "./theme/tiendaV2";
+import "./components/tienda/v2/tiendaV2.css";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
   CANTIDAD_MAX_BAJO_PEDIDO,
@@ -109,7 +117,20 @@ import {
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
 import { bandasCatalogoPorCategoria, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
+import {
+  aplicarPosicionCatalogo,
+  guardarVisiblesCatalogo,
+  hayRestoreCatalogo,
+  intentScrollCatalogo,
+  leerProductoCatalogo,
+  leerScrollCatalogo,
+  leerVisiblesCatalogo,
+  limpiarRestoreCatalogo,
+  marcarRestoreCatalogo,
+  snapshotSalidaCatalogo,
+} from "./lib/tiendaCatalogoPosicion";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
+import { politicaProducto, validarCarritoPolitica, textosPolitica } from "./config/politicaMedicamentos";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
 import { completeClienteOAuth, enabledSocialProviders } from "./utils/clienteOAuth";
@@ -385,10 +406,10 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, abres el pedido y pagas productos + envío juntos con Pagar ahora. Rappi es otra app." },
+  { p:"¿Cuánto tarda el envío?", r:"Confirmas tu pedido en línea (aún no se cobra). Cotizamos el transporte según tu zona y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta con Pagar ahora. Preparamos y salimos en cuanto esté pagado." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
-  { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
+  { p:"¿Qué hago si necesito un medicamento con receta?", r:textosPolitica().faqReceta },
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
@@ -1647,12 +1668,39 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
 
 // ── HEADER ────────────────────────────────────────────────────
 
+/** Publica la altura de un nodo como variable CSS (header / buscador sticky). */
+function useCssVarHeight(ref, cssVar, enabled = true) {
+  useEffect(() => {
+    if (!enabled) {
+      document.documentElement.style.removeProperty(cssVar);
+      return undefined;
+    }
+    const el = ref.current;
+    if (!el) return undefined;
+    const apply = () => {
+      const h = Math.round(el.getBoundingClientRect().height);
+      if (h > 0) document.documentElement.style.setProperty(cssVar, `${h}px`);
+    };
+    apply();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    window.addEventListener("resize", apply);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", apply);
+      document.documentElement.style.removeProperty(cssVar);
+    };
+  }, [cssVar, enabled]);
+}
+
 function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,setProdDetalle}){
   const C = useTheme();
   const stackHeader = useMediaQuery("(max-width: 768px)");
   const [menuOpen, setMenuOpen] = useState(false);
   const [busqFocus, setBusqFocus] = useState(false);
   const searchInputRef = useRef(null);
+  const headerStickyRef = useRef(null);
+  useCssVarHeight(headerStickyRef, "--fc-header-h");
   const n=cart.reduce((a,c)=>a+c.qty,0);
   const mostrarBuscador = page === "carrito";
   const poolHeader = useMemo(() => poolCatalogoTienda(productos || []), [productos]);
@@ -1669,7 +1717,7 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
     const q = String(busqHero || "").trim();
     setBusqFocus(false);
     try { if (q) sessionStorage.setItem("farmacapital_busq", q); } catch (_) { /* noop */ }
-    setPage("catalogo");
+    setPage("catalogo", { catalogoScroll: "results" });
     requestAnimationFrame(() => {
       document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -1691,7 +1739,7 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
 
   return(
     <>
-      <div style={{position:"sticky",top:0,zIndex:50}}>
+      <div ref={headerStickyRef} className="farmacapital-header-sticky" style={{position:"sticky",top:0,zIndex:50}}>
       <header data-brand-surface="dark" style={{
         background:BRAND.primary,
         borderBottom:"none",
@@ -1844,7 +1892,14 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
 }
 
 // ── PRODUCT CARD ──────────────────────────────────────────────
-function ProductCard({prod,addToCart,onClick}){
+function ProductCard(props){
+  if (tiendaV2Activa()) {
+    return <TarjetaProducto prod={props.prod} onClick={props.onClick} />;
+  }
+  return <ProductCardClasica {...props} />;
+}
+
+function ProductCardClasica({prod,addToCart,onClick}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
@@ -1879,7 +1934,9 @@ function ProductCard({prod,addToCart,onClick}){
   // Nunca quitar el wrapper fijo de RecompraStrip: sin él la banda se ve como 1 tarjeta a todo el ancho.
   const recuadroEncargo = cta ? estiloRecuadroConseguir() : null;
   return(
-    <div style={{
+    <div
+      data-catalogo-producto={prod?.id != null ? String(prod.id) : undefined}
+      style={{
       background: recuadroEncargo ? recuadroEncargo.background : C.white,
       borderRadius:12,
       border: recuadroEncargo ? recuadroEncargo.border : `1px solid ${C.border}`,
@@ -1889,6 +1946,7 @@ function ProductCard({prod,addToCart,onClick}){
       width:"100%",
       maxWidth:"100%",
       minWidth:0,
+      scrollMarginTop:80,
       cursor:narrow?"default":"pointer",
       opacity:agotado ? 0.42 : 1,
       transition:"border-color .2s, transform .15s, opacity .15s",
@@ -1952,9 +2010,9 @@ function ProductCard({prod,addToCart,onClick}){
               : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"} sm>{d==="inmediato"?"Hoy":"24-48 hrs"}</Tag>
           }
           {prod.tipo==="generico"&&<Tag col={BRAND.secondary} sm>Genérico</Tag>}
-          {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
+          {politicaProducto(prod).requiereReceta&&<Tag col={C.red} sm>{politicaProducto(prod).etiquetaCorta}</Tag>}
         </div>
-        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
+        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</div>
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
         <div style={{marginBottom:10}}>
           {cta
@@ -2002,7 +2060,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     const q = String(busqHero||"").trim();
     setBusqFocus(false);
     try { if (q) sessionStorage.setItem("farmacapital_busq", q); } catch (err) { /* ignore */ }
-    setPage("catalogo");
+    setPage("catalogo", { catalogoScroll: "results" });
     requestAnimationFrame(()=>{
       document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -2047,7 +2105,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     setBusqHero?.(String(prod.nombre || ""));
     setPage("conseguir", { search: String(prod.nombre || "") });
   };
-  const similares=productos.filter(p=>categoriasCoinciden(p.categoria, prod.categoria)&&p.id!==prod.id).slice(0,4);
+  const similares=productos.filter(p=>categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod))&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
@@ -2069,7 +2127,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           }}
           onFocus={()=>setBusqFocus(true)}
           onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
-          placeholder="Buscar otro producto (nombre, principio activo, SKU…)"
+          placeholder="Buscar otro producto (nombre, principio activo o marca…)"
           suggestions={suggestions}
           productos={productos}
           onPickSuggestion={(row)=>{
@@ -2108,10 +2166,10 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"Disponible hoy":"24-48 hrs"}</Tag>
             }
             {prod.tipo==="generico"&&<Tag col={BRAND.secondary}>Genérico</Tag>}
-            {prod.requiere_receta&&<Tag col={C.red}>Requiere receta</Tag>}
+            {politicaProducto(prod).requiereReceta&&<Tag col={C.red}>{politicaProducto(prod).etiqueta}</Tag>}
             <Tag col={C.mid} sm>{prod.categoria}</Tag>
           </div>
-          <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{prod.nombre}</h1>
+          <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</h1>
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
           <div style={{marginBottom:20}}>
             {cta
@@ -2139,10 +2197,16 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               </div>
             </div>
           )}
-          {prod.requiere_receta&&(
+          {descripcionPublicaTienda(prod)&&(
+            <div style={{background:C.cardDark,borderRadius:12,padding:16,marginBottom:20}}>
+              <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:6}}>Descripción</div>
+              <div style={{color:C.mid,fontSize:14,lineHeight:1.7}}>{descripcionPublicaTienda(prod)}</div>
+            </div>
+          )}
+          {politicaProducto(prod).requiereReceta&&(
             <div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:10,padding:"10px 14px",marginBottom:16}}>
               <div style={{color:C.red,fontWeight:700,fontSize:13}}>
-                <IconLabel Icon={FileText} color={C.red} size={14}>Requiere receta médica. Se solicitará al entregar.</IconLabel>
+                <IconLabel Icon={FileText} color={C.red} size={14}>{politicaProducto(prod).avisoFicha}</IconLabel>
               </div>
             </div>
           )}
@@ -2177,7 +2241,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           producto={prod}
           ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
           monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
-          whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${prod.nombre || "un producto"}`)}`}
+          whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre || "un producto"}`)}`}
         />
       </div>
       {similares.length>0&&(
@@ -2307,9 +2371,7 @@ function ContenidoPickup({ C, color }){
       </p>
       <h4 style={sH4(color)}>Horario</h4>
       <ul style={sList}>
-        <li style={sListItem}>Lunes a Viernes: 8:00 – 22:00</li>
-        <li style={sListItem}>Sábado: 8:00 – 20:00</li>
-        <li style={sListItem}>Domingo: 9:00 – 18:00</li>
+        <li style={sListItem}>Todos los días: {HORARIO_FARMACIA.apertura} – {HORARIO_FARMACIA.cierre}</li>
       </ul>
       <h4 style={sH4(color)}>Importante</h4>
       <p style={{margin:0,color:C.textMid,fontSize:13}}>
@@ -2319,30 +2381,32 @@ function ContenidoPickup({ C, color }){
   );
 }
 
-function ContenidoCDMX({ color }){
+function ContenidoCDMX({ C, color }){
+  const horario = `${HORARIO_FARMACIA.apertura} a ${HORARIO_FARMACIA.cierre}`;
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Pides, el vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, abres el pedido y pagas productos + transporte juntos. Rappi no entrega pedidos de esta tienda.
+        Entrega a domicilio en zona cercana. Confirmas tu pedido en línea sin pagar todavía; cotizamos el transporte según tu dirección y te avisamos por WhatsApp o correo para que pagues productos + envío juntos en Mi cuenta.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
-        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Entrega a domicilio&quot;</li>
-        <li style={sListItem}>Elige &quot;Entrega a domicilio&quot; y paga productos + envío en el mismo checkout</li>
-        <li style={sListItem}>Preparamos el pedido en FarmaCapital</li>
-        <li style={sListItem}>Un servicio de mensajería recoge en la farmacia y lo lleva a tu domicilio</li>
+        <li style={sListItem}>Agrega productos al carrito y elige &quot;Entrega a domicilio&quot;</li>
+        <li style={sListItem}>Confirma tu dirección y registra el pedido (aún no se cobra)</li>
+        <li style={sListItem}>Cotizamos el envío y te escribimos con el total final</li>
+        <li style={sListItem}>Pagas productos + transporte en Mi cuenta con Mercado Pago (un solo cargo)</li>
+        <li style={sListItem}>Preparamos el pedido y un mensajero te lo lleva a domicilio</li>
       </ol>
       <h4 style={sH4(color)}>Cobertura</h4>
       <p style={{margin:"0 0 12px"}}>
-        El vendedor confirma si se puede enviar a tu dirección (DiDi o Uber). Sin tope de km: si no se puede, te lo dice.
+        Zona cercana a la farmacia. Si tu dirección queda fuera de cobertura, te lo decimos antes de cobrar.
       </p>
       <h4 style={sH4(color)}>Costo</h4>
       <p style={{margin:"0 0 12px"}}>
-        El vendedor lo cotiza en DiDi o Uber y te escribe. Pagas productos + envío cuando esté listo en Mi cuenta.
+        El envío depende de la distancia. Lo sumamos al total de productos y lo ves antes de pagar en Mi cuenta.
       </p>
       <h4 style={sH4(color)}>Horario de servicio</h4>
       <p style={{margin:"0 0 12px"}}>
-        Disponible durante el horario de atención de la farmacia.
+        Disponible todos los días de {horario}.
       </p>
       <h4 style={sH4(color)}>Recomendación</h4>
       <p style={{margin:0,color:C.textMid,fontSize:13}}>
@@ -2503,7 +2567,7 @@ function HomeServices({setPage}){
   const servicios = [
     { key:"catalogo", titulo:"Ver catálogo", desc:"Medicamentos y más", color:BRAND.primary, tipo:"page", destino:"catalogo", icon:Pill },
     { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
-    { key:"cdmx", titulo:"Entrega a domicilio", desc:"Zona cercana · se paga en checkout", color:BRAND.secondary, tipo:"modal", icon:Bike },
+    { key:"cdmx", titulo:"Entrega a domicilio", desc:"Zona cercana · cotizamos el envío", color:BRAND.secondary, tipo:"modal", icon:Bike },
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
@@ -2686,12 +2750,12 @@ function HomePromociones({promos,setPage}){
                   color:"#fff",fontWeight:700,fontSize:16,
                   padding:16,textAlign:"center",lineHeight:1.35,
                 }}>
-                  {p.nombre || "Promoción"}
+                  {nombrePublicoTienda({ nombre: tituloPublicoProducto(p) }) || "Promoción"}
                 </div>
               )}
               <div style={{padding:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-                  <div style={{fontWeight:700,fontSize:14,color:C.text,lineHeight:1.3,flex:1,minWidth:0}}>{p.nombre}</div>
+                  <div style={{fontWeight:700,fontSize:14,color:C.text,lineHeight:1.3,flex:1,minWidth:0}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(p) })}</div>
                   <span style={{
                     padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,flexShrink:0,
                     background:badge.bg,color:badge.fg,
@@ -2762,12 +2826,10 @@ function TiendaSearchSuggestions({ suggestions, productos, onPick, C }) {
               fontFamily: "var(--fc-body)",
             }}
           >
-            <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, lineHeight: 1.35 }}>{s.nombre}</div>
-            <div style={{ color: C.dim, fontSize: 11, marginTop: 3, display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {s.sku ? <span>SKU <strong style={{ color: BRAND.primary }}>{s.sku}</strong></span> : null}
-              {s.codigo_barras ? <span>Cód. {s.codigo_barras}</span> : null}
-              {Number(s.stock) <= 0 ? <span style={{ color: C.red }}>Agotado</span> : null}
-            </div>
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, lineHeight: 1.35 }}>{row ? (nombrePublicoTienda({ nombre: tituloPublicoProducto(row) }) || row.nombre) : s.nombre}</div>
+            {Number(s.stock) <= 0 ? (
+              <div style={{ color: C.red, fontSize: 11, marginTop: 3 }}>Agotado</div>
+            ) : null}
           </button>
         );
       })}
@@ -2782,7 +2844,7 @@ function TiendaBusquedaBar({
   onFocus,
   onBlur,
   onKeyDown,
-  placeholder = "Nombre, principio activo, SKU o código de barras…",
+  placeholder = "Nombre, principio activo o marca…",
   suggestions = [],
   productos = [],
   onPickSuggestion,
@@ -2836,6 +2898,7 @@ function TiendaBusquedaBar({
         <input
           ref={inputRef}
           type="search"
+          className="farmacapital-field-input"
           value={value}
           onChange={onChange}
           onFocus={onFocus}
@@ -2854,7 +2917,7 @@ function TiendaBusquedaBar({
             lineHeight: 1.25,
             fontFamily: "var(--fc-body)",
             outline: "none",
-            background: C.white,
+            background: "#ffffff",
             color: C.text,
             WebkitTextFillColor: C.text,
             caretColor: BRAND.primary,
@@ -3248,7 +3311,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         </div>
       </div>
 
-      <Footer setPage={setPage}/>
+      {!tiendaV2Activa() && <Footer setPage={setPage}/>}
     </div>
   );
 }
@@ -3257,8 +3320,8 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHero,loadingProductos,filtroRx,onClearRx}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
-  /** Safari iOS: sticky lateral + scroll del documento suele causar rebote/“lock”; solo usar sticky en escritorio ancho. */
-  const categoriasStickyDesktop = useMediaQuery("(min-width: 1025px)");
+  const busqStickyRef = useRef(null);
+  useCssVarHeight(busqStickyRef, "--fc-catalogo-busq-h");
   const [cat,setCat]=useState(()=>{
     try {
       const saved = sessionStorage.getItem("farmacapital_cat") || "Todos";
@@ -3269,15 +3332,22 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   });
   const [busq,setBusq]=useState(busqHero||sessionStorage.getItem("farmacapital_busq")||"");
   const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmacapital_tipo")||"todos");
-  const [openCategorias, setOpenCategorias] = useState(false);
   const [busqFocus,setBusqFocus]=useState(false);
-  const [visibles, setVisibles] = useState(CATALOGO_PAGE_SIZE);
+  const [visibles, setVisibles] = useState(() => leerVisiblesCatalogo(CATALOGO_PAGE_SIZE));
   const [vista, setVista] = useState(() => leerVistaCatalogo());
   const setVistaCatalogo = (v) => setVista(guardarVistaCatalogo(v));
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
-  useEffect(() => { setVisibles(CATALOGO_PAGE_SIZE); }, [cat, tipo, busq, filtroRx]);
+  const filtrosCatalogoKey = `${cat}|${tipo}|${String(busq || "").trim()}|${filtroRx ? "1" : "0"}`;
+  const filtrosCatalogoKeyRef = useRef(filtrosCatalogoKey);
+  useEffect(() => {
+    if (filtrosCatalogoKeyRef.current === filtrosCatalogoKey) return;
+    filtrosCatalogoKeyRef.current = filtrosCatalogoKey;
+    setVisibles(CATALOGO_PAGE_SIZE);
+    guardarVisiblesCatalogo(CATALOGO_PAGE_SIZE, CATALOGO_PAGE_SIZE);
+  }, [filtrosCatalogoKey]);
+  useEffect(() => { guardarVisiblesCatalogo(visibles, CATALOGO_PAGE_SIZE); }, [visibles]);
   useEffect(()=>{
     const t = busqHero != null && String(busqHero).trim();
     if (t) {
@@ -3288,11 +3358,11 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   },[busqHero]);
   const cats = useMemo(() => {
     const pool = poolCatalogoTienda(productos);
-    const presentes = new Set(pool.map((p) => categoriaCanon(p.categoria)).filter(Boolean));
+    const presentes = new Set(pool.map((p) => categoriaVitrina(p)).filter(Boolean));
     return ["Todos", ...CATEGORIAS_PRODUCTO.filter((c) => presentes.has(c))];
   }, [productos]);
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
-    .filter(p=>categoriaPasaFiltro(p.categoria, cat))
+    .filter(p=>categoriaVitrinaPasaFiltro(p, cat))
     .filter(p=>tipo==="todos"||p.tipo===tipo)
     .filter(p=>!filtroRx || p.requiere_receta || esCategoriaAntibiotico(p.categoria)),
   [productos,cat,tipo,filtroRx]);
@@ -3323,35 +3393,45 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
     ()=>(busq.trim().length>=3&&fil.length===0?spellSuggestFromProducts(poolCatalogo,busq):[]),
     [poolCatalogo,busq,fil.length]
   );
-  const disponiblesCount = useMemo(()=>fil.filter(p=>!productoAgotadoTienda(p)).length,[fil]);
-  const agotadosCount = fil.length - disponiblesCount;
   const limpiarFiltrosLaterales = ()=>{
     setCat("Todos"); setTipo("todos");
   };
   const busqActiva = busq.trim().length > 0;
+  const catBtnStyle = (c) => ({
+    width: stack ? "auto" : "100%",
+    flexShrink: 0,
+    textAlign: "left",
+    padding: stack ? "6px 12px" : "8px 10px",
+    borderRadius: stack ? 20 : 8,
+    border: stack ? `1px solid ${cat === c ? BRAND.primary : C.border}` : "none",
+    background: cat === c ? BRAND.primary + "18" : "transparent",
+    color: cat === c ? BRAND.primary : C.mid,
+    fontSize: 13,
+    fontWeight: cat === c ? 700 : 400,
+    cursor: "pointer",
+    marginBottom: stack ? 0 : 2,
+    whiteSpace: "nowrap",
+    fontFamily: "var(--fc-body)",
+  });
   return(
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh",overflowX:"clip"}}>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>
         {filtroRx ? "Surtir receta" : "Catálogo FarmaCapital"}
       </h1>
       {filtroRx && (
         <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}40`,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",justifyContent:"space-between"}}>
           <div style={{color:BRAND.primary,fontSize:13,lineHeight:1.45}}>
-            Mostrando medicamentos que requieren receta (Rx / antibióticos). Trae tu receta al recoger.
+            {textosPolitica().catalogoRx}
           </div>
           <Btn sm outline col={BRAND.primary} onClick={()=>onClearRx?.()}>Ver catálogo completo</Btn>
         </div>
       )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:24}}>
-        <div style={{color:C.dim,fontSize:14,lineHeight:1.45,minWidth:0,flex:"1 1 200px"}}>
-          {busqActiva
-            ? `${fil.length} resultado${fil.length === 1 ? "" : "s"}${agotadosCount > 0 ? ` · ${disponiblesCount} disponible${disponiblesCount === 1 ? "" : "s"}, ${agotadosCount} agotado${agotadosCount === 1 ? "" : "s"}` : ""} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
-            : agotadosCount > 0
-              ? `${fil.length} productos · ${disponiblesCount} disponibles, ${agotadosCount} agotados`
-              : `${fil.length} productos disponibles`}
-          {vista === "grid" && hayMasCatalogo ? ` · mostrando ${pageFil.length}` : ""}
-          {vista === "bandas" ? " · vista en bandas por categoría" : ""}
-        </div>
+      <div style={{display:"flex",justifyContent:busqActiva?"space-between":"flex-end",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:24}}>
+        {busqActiva ? (
+          <div style={{color:C.dim,fontSize:14,lineHeight:1.45,minWidth:0,flex:"1 1 200px"}}>
+            Refiná con filtros o escribí más palabras (ej. «ácido fólico»)
+          </div>
+        ) : null}
         <div
           role="group"
           aria-label="Cómo ver el catálogo"
@@ -3393,7 +3473,21 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           </button>
         </div>
       </div>
-      <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
+      <div
+        ref={busqStickyRef}
+        id="farmacapital-catalogo-busqueda"
+        className="farmacapital-catalogo-busqueda-sticky"
+        style={{
+          background: C.bg,
+          marginLeft: -16,
+          marginRight: -16,
+          paddingLeft: 16,
+          paddingRight: 16,
+          paddingTop: 8,
+          paddingBottom: 12,
+        }}
+      >
+      <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20}}>
         <TiendaBusquedaBar
           compact
           value={busq}
@@ -3422,7 +3516,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           }}
           onFocus={()=>setBusqFocus(true)}
           onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
-          placeholder="Nombre, principio activo, marca, SKU o código…"
+          placeholder="Nombre, principio activo o marca…"
           suggestions={suggestions}
           productos={productos}
           onPickSuggestion={(row)=>{
@@ -3456,22 +3550,45 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             <button key={v} onClick={()=>setTipo(v)} style={{padding:"5px 12px",borderRadius:20,border:`1px solid ${tipo===v?BRAND.primary:C.border}`,background:tipo===v?BRAND.primary+"18":"transparent",color:tipo===v?BRAND.primary:C.mid,fontSize:12,cursor:"pointer",fontWeight:600}}>{l}</button>
           ))}
         </div>
+        {stack && (
+          <div
+            className="farmacapital-catalogo-cats-scroll"
+            role="listbox"
+            aria-label="Categorías"
+            style={{
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              marginTop: 10,
+              paddingTop: 10,
+              borderTop: `1px solid ${C.border}`,
+            }}
+          >
+            {cats.map((c) => (
+              <button key={c} type="button" onClick={() => setCat(c)} style={catBtnStyle(c)}>{c}</button>
+            ))}
+          </div>
+        )}
+      </div>
       </div>
       <div style={{
         display: "grid",
         gap: 20,
         alignItems: "start",
         gridTemplateColumns: stack ? "1fr" : "180px 1fr",
-        gridTemplateAreas: stack ? '"resultados" "categorias"' : '"categorias resultados"',
+        gridTemplateAreas: stack ? '"resultados"' : '"categorias resultados"',
         width: "100%",
       }}>
         <div
           id="farmacapital-catalogo-resultados"
           style={{
+            gridArea: "resultados",
             width: "100%",
+            minWidth: 0,
             height: "auto",
             overflow: "visible",
             position: "relative",
+            scrollMarginTop: "calc(var(--fc-header-h, 60px) + var(--fc-catalogo-busq-h, 120px) + 8px)",
             display: vista === "bandas" ? "block" : "grid",
             gap: stack ? 16 : 18,
             /** Móvil: una columna; laptop/desktop: rejilla tipo “antes”, varias tarjetas por fila */
@@ -3542,68 +3659,26 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
                 col={BRAND.primary}
                 onClick={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
               >
-                Cargar más · {fil.length - pageFil.length} restantes
+                Cargar más
               </Btn>
             </div>
           )}
         </div>
-        {stack && busqActiva ? (
+        {!stack && (
           <div
+            className="farmacapital-catalogo-categorias"
             style={{
               gridArea: "categorias",
-              width: "100%",
               background: C.white,
               borderRadius: 14,
               border: `1px solid ${C.border}`,
-              padding: "8px 12px 12px",
-              boxSizing: "border-box",
+              padding: 16,
+              height: "fit-content",
             }}
           >
-            <button
-              type="button"
-              onClick={() => setOpenCategorias(v => !v)}
-              style={{
-                width: "100%",
-                cursor: "pointer",
-                color: C.dark,
-                fontWeight: 700,
-                fontSize: 14,
-                padding: "8px 4px",
-                border: "none",
-                background: "transparent",
-                textAlign: "left",
-              }}
-            >
-              Categorías {cat !== "Todos" ? `· ${cat}` : ""} <span style={{ color: C.dim, fontWeight: 600, fontSize: 12 }}>(tocá para filtrar)</span>
-            </button>
-            {openCategorias && (
-              <div style={{ marginTop: 8, maxHeight: "min(50vh, 320px)", overflowY: "visible" }}>
-                {cats.map((c) => (
-                  <button key={c} type="button" onClick={() => setCat(c)} style={{
-                    width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
-                    background: cat === c ? BRAND.primary + "18" : "transparent", color: cat === c ? BRAND.primary : C.mid, fontSize: 13, fontWeight: cat === c ? 700 : 400, cursor: "pointer", marginBottom: 2,
-                  }}>{c}</button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{
-            gridArea: "categorias",
-            background: C.white,
-            borderRadius: 14,
-            border: `1px solid ${C.border}`,
-            padding: 16,
-            height: "fit-content",
-            position: categoriasStickyDesktop ? "sticky" : "relative",
-            top: categoriasStickyDesktop ? "calc(env(safe-area-inset-top, 0px) + 100px)" : undefined,
-          }}>
             <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, marginBottom: 12 }}>Categorías</div>
             {cats.map((c) => (
-              <button key={c} type="button" onClick={() => setCat(c)} style={{
-                width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
-                background: cat === c ? BRAND.primary + "18" : "transparent", color: cat === c ? BRAND.primary : C.mid, fontSize: 13, fontWeight: cat === c ? 700 : 400, cursor: "pointer", marginBottom: 2,
-              }}>{c}</button>
+              <button key={c} type="button" onClick={() => setCat(c)} style={catBtnStyle(c)}>{c}</button>
             ))}
           </div>
         )}
@@ -3758,7 +3833,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
                   <Pill size={24} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
                 )}
               </div>
-              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
+              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
               <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <button type="button" aria-label="Disminuir cantidad" onClick={()=>upd(item.id,-1)} style={qtyBtnStyle}>-</button>
@@ -3780,7 +3855,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · lo pagas en el checkout",Icon:Bike}].map(({id,label,sub,Icon})=>(
+          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · cotizamos el envío",Icon:Bike}].map(({id,label,sub,Icon})=>(
             <button
               key={id}
               type="button"
@@ -3799,14 +3874,29 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta y pagas productos + transporte.</div></div>)}
-          {entrega==="cdmx"&&(
-            <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
-              <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
-                Algunos productos no se envían (controlados u omitidos para delivery). Si el checkout los rechaza, quítalos o elige <strong>pick-up en tienda</strong>.
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden sin pagar todavía. Cotizamos el envío y te avisamos por WhatsApp o correo para pagar productos + transporte en Mi cuenta.</div></div>)}
+          {entrega!=="pickup"&&(() => {
+            const pol = validarCarritoPolitica(cart, "envio");
+            if (pol.ok) {
+              return (
+                <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+                  <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
+                    {textosPolitica().carritoAviso}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div role="alert" style={{background:C.red+"10",border:`1px solid ${C.red}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+                <div style={{color:C.red,fontSize:12,fontWeight:700,marginBottom:4}}>No se puede enviar a domicilio</div>
+                {pol.bloqueados.map((b)=>(
+                  <div key={String(b.prod?.id ?? b.motivo)} style={{color:C.dark,fontSize:12,lineHeight:1.45}}>• {b.motivo}</div>
+                ))}
+                <div style={{color:C.mid,fontSize:11,lineHeight:1.45,marginTop:8,marginBottom:8}}>Los antibióticos se entregan solo en sucursal, con receta. Recógelo ahí o quítalo del pedido.</div>
+                <Btn sm col={BRAND.primary} onClick={()=>setEntrega("pickup")}>Recoger todo en sucursal</Btn>
               </div>
-            </div>
-          )}
+            );
+          })()}
           {(() => {
             const canje = leerCanjeActivo();
             if (!canje) return null;
@@ -3840,7 +3930,12 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
               <strong>Encargo bajo pedido.</strong> Apartas el total con tarjeta de crédito y se cobra cuando lo conseguimos (24-48 hrs). Si no lo conseguimos, cancelamos sin cargo.
             </div>
           )}
-          <Btn onClick={()=>setPage("checkout")} col={BRAND.primary} full>{carritoEncargo?"Continuar para apartar →":"Proceder al pago →"}</Btn>
+          <Btn
+            onClick={()=>setPage("checkout")}
+            col={BRAND.primary}
+            full
+            disabled={entrega!=="pickup" && !validarCarritoPolitica(cart, "envio").ok}
+          >{carritoEncargo?"Continuar para apartar →":entrega==="cdmx"?"Continuar con el pedido →":"Proceder al pago →"}</Btn>
           <div style={{color:C.dim,fontSize:11,textAlign:"center",marginTop:10}}>
             <IconLabel Icon={Lock} color={C.dim} size={12}>Pago 100% seguro · SSL</IconLabel>
           </div>
@@ -3856,7 +3951,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
   const unitTienda = (c) => {
-    // Precio de tarjeta (3.49%+IVA). Servicio $5 una vez por pedido, no por SKU.
+    // Precio de tarjeta (3.49%+IVA). Sin cargo de Servicio aparte.
     return ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
   };
   const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);
@@ -4128,7 +4223,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       const [{ data: stockRows }, { data: lotesRowsRaw }] = await Promise.all([
         supabase
           .from("productos")
-          .select("id,stock,precio,descuento_pct,activo,requiere_receta,categoria,bajo_pedido")
+          .select("id,stock,precio,descuento_pct,activo,requiere_receta,categoria,bajo_pedido,controlado")
           .in("id", productIds),
         supabase.rpc("tienda_public_lotes_resumen_checkout", { p_producto_ids: numericIds }),
       ]);
@@ -4208,6 +4303,15 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         return;
       }
 
+      const politica = validarCarritoPolitica(
+        reconciled.map((c) => ({ ...c, ...(stockMap.get(tiendaNormProductId(c.id)) || {}) })),
+        entrega === "pickup" ? "recoger" : "envio"
+      );
+      if (!politica.ok) {
+        notifyCheckout(`Revisa tu carrito:\n${politica.bloqueados.map((b)=>`• ${b.motivo}`).join("\n")}\n\nQuítalo o elige recoger en farmacia.`, "warning");
+        setG(false);
+        return;
+      }
       const { ok, bloqueados } = validarCarritoParaEntrega(reconciled, entrega, stockMap, {
         permiteEnTiendaWeb: productoPermitidoEnTiendaFarmaciaWeb,
         razonNoPermitidoTienda: razonBloqueoProductoTiendaFarmacia,
@@ -4538,7 +4642,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     const instruccionEntrega = esPickup
       ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioPendienteCotizacion
-        ? "Aún no pagas. El vendedor cotiza el envío en DiDi o Uber y te llega un correo y WhatsApp para pagar productos + transporte juntos."
+        ? "Aún no pagas. Cotizamos el envío y te llega un correo o WhatsApp para pagar productos + transporte juntos en Mi cuenta."
         : lastOrder.envioFee
           ? `Envío ${formatEnvioMoney(lastOrder.envioFee)} en tu pago. Te avisamos cuando salga el mensajero.`
           : "Te avisamos cuando salga el mensajero.";
@@ -4684,7 +4788,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 </div>
                 {necesitaDireccion && (
                   <div style={{fontSize:12,color:C.mid,marginTop:-4,marginBottom:14,lineHeight:1.45}}>
-                    El correo es obligatorio. Cuando el envío esté cotizado te llega desde contacto@farmacapital.mx la liga de tu carrito, con el precio final.
+                    El correo es obligatorio. Cuando coticemos el envío te llega desde contacto@farmacapital.mx la liga para pagar productos + transporte.
                   </div>
                 )}
                 {necesitaDireccion&&(
@@ -4736,7 +4840,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                         )}
                         {direccionOk && (
                           <div style={{fontSize:13,color:"#166534",lineHeight:1.45}}>
-                            El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp. No se cobra ahora.
+                            Cotizamos el envío según tu dirección y te avisamos por WhatsApp o correo. No se cobra ahora.
                           </div>
                         )}
                       </div>
@@ -4752,7 +4856,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div style={{marginTop:14,fontSize:12,color:C.mid}}>
                   {entrega==="pickup"
                     ? "Pick-up: confirmas el pedido ahora y pagas al recoger con tarjeta (terminal BBVA)."
-                    : "Domicilio: confirmas ahora. El vendedor cotiza y te avisa; pagas en Mi cuenta."}
+                    : "Domicilio: confirmas ahora. Cotizamos el envío y te avisamos; pagas en Mi cuenta."}
                 </div>
                 <label
                   style={{
@@ -4814,7 +4918,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 {entrega!=="pickup" && (
                   <div style={{marginTop:4,color:"#92400e",fontWeight:600}}>
                     {entrega!=="pickup"
-                      ? "El vendedor cotiza el envío y te avisa por WhatsApp. El transporte se suma al total de tu pedido en Mi cuenta."
+                      ? "Cotizamos el envío y te avisamos. El transporte se suma al total de tu pedido en Mi cuenta."
                       : null}
                   </div>
                 )}
@@ -4823,7 +4927,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
                     : entrega==="pickup"
                       ? "Pagas al recoger con tarjeta (terminal BBVA)"
-                      : "Confirmas ahora. Cuando el vendedor cargue el transporte, entras a Mi cuenta y pagas productos + envío."}
+                      : "Confirmas ahora. Cuando el envío esté cotizado, entras a Mi cuenta y pagas productos + envío."}
                 </div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>
@@ -4831,7 +4935,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               </div>
               {cart.map(item=>(
                 <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span>
+                  <span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre} ×{item.qty}</span>
                   <span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$peso(cobroDe(item))}</span>
                 </div>
               ))}
@@ -4889,7 +4993,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
-          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
+          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
           {entrega!=="pickup"&&(
             <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
               <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
@@ -5348,6 +5452,7 @@ function AvisoPrivacidad({setPage}){
         ["4. Transferencia de datos","Sus datos no serán transferidos a terceros sin su consentimiento, salvo en los casos previstos por la ley o cuando sea necesario para el cumplimiento del servicio contratado (ej. empresas de mensajería)."],
         ["5. Derechos ARCO","Usted tiene derecho a Acceder, Rectificar, Cancelar u Oponerse al tratamiento de sus datos (derechos ARCO). Para ejercerlos, envíe un correo a contacto@farmacapital.mx indicando su nombre, el derecho que desea ejercer y los datos a los que se refiere. Responderemos en un plazo máximo de 20 días hábiles."],
         ["6. Cambios al aviso de privacidad","FarmaCapital se reserva el derecho de modificar el presente aviso. Cualquier cambio será notificado a través de nuestro sitio web farmacapital.com.mx."],
+        ["7. Cookies","Usamos almacenamiento necesario para el carrito, el inicio de sesión y el pago. Si aceptas las cookies en el aviso de la tienda, también recordamos preferencias de navegación. Puedes elegir «Solo necesarias»; el carrito y la cuenta siguen funcionando. El aviso no vuelve a mostrarse hasta que borres los datos del navegador."],
       ].map(([t,c])=>(
         <div key={t} style={{marginBottom:20}}>
           <div style={{color:C.dark,fontWeight:700,marginBottom:6}}>{t}</div>
@@ -5366,7 +5471,7 @@ function TerminosCondiciones({setPage}){
         ["1. Aceptación","Al utilizar la plataforma de FarmaCapital, el usuario acepta los presentes Términos y Condiciones. Si no está de acuerdo, le pedimos que no utilice nuestros servicios."],
         ["2. Productos y precios","Los precios mostrados en la plataforma incluyen IVA y están sujetos a disponibilidad. FarmaCapital se reserva el derecho de modificar precios sin previo aviso, respetando siempre el precio vigente al momento de confirmar el pedido."],
         ["3. Disponibilidad de productos","Indicamos claramente si un producto está disponible de forma inmediata o en 24-48 horas. En caso de no poder surtir un pedido, notificaremos al cliente y realizaremos el reembolso correspondiente en un plazo no mayor a 5 días hábiles."],
-        ["4. Medicamentos con receta","Los medicamentos que requieren receta médica serán entregados únicamente al presentar la receta original vigente. FarmaCapital se reserva el derecho de cancelar pedidos de medicamentos controlados que no cumplan con los requisitos de COFEPRIS."],
+        ["4. Medicamentos con receta",textosPolitica().terminosReceta],
         ["5. Responsabilidad","FarmaCapital no se hace responsable del uso incorrecto de los medicamentos. Se recomienda siempre consultar a un profesional de la salud. La información en nuestra plataforma es de carácter informativo y no sustituye la opinión médica."],
         ["6. Propiedad intelectual","El contenido de la plataforma de FarmaCapital, incluyendo textos, imágenes y logotipos, es propiedad de FarmaCapital y está protegido por las leyes de propiedad intelectual vigentes en México."],
         ["7. Jurisdicción","Para cualquier controversia derivada del uso de esta plataforma, las partes se someten a la jurisdicción de los tribunales competentes de la Ciudad de México."],
@@ -5385,7 +5490,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Confirmas ahora y pagas al recoger con tarjeta (terminal BBVA).\n• Entrega a domicilio: confirmas la orden, el vendedor cotiza en DiDi o Uber, te escribe por WhatsApp y pagas productos + envío en Mi cuenta. Sin tope de km: el vendedor decide si se puede enviar.\n• Rappi no es un envío de esta página: los pedidos Rappi se hacen en la app de Rappi."],
+        ["Tipos de entrega disponibles",`• Pick-up en FarmaCapital: Gratis. Confirmas ahora y pagas al recoger con tarjeta (terminal BBVA).\n• Entrega a domicilio: confirmas la orden sin pagar, cotizamos el transporte en zona cercana y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta.\n• Horario de entrega: todos los días ${HORARIO_FARMACIA.apertura}–${HORARIO_FARMACIA.cierre}.`],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
@@ -6615,6 +6720,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
 // ── APP PRINCIPAL ─────────────────────────────────────────────
 export default function TiendaFarmaCapital(){
   const C = useTheme();
+  const v2 = tiendaV2Activa();
   const initialResetToken = (() => {
     try { return new URLSearchParams(window.location.search).get("reset") || ""; } catch { return ""; }
   })();
@@ -6631,6 +6737,9 @@ export default function TiendaFarmaCapital(){
     if (initialResetToken) return "reset-password";
     return tiendaPathnameToPageId(window.location.pathname) || "home";
   });
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const catalogoScrollIntentRef = useRef("top");
   const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "" } = {}) => {
     const path = pageIdToTiendaPath(target, {
       rx: target === "catalogo" && rx,
@@ -6659,6 +6768,22 @@ export default function TiendaFarmaCapital(){
       if (nextRx) sessionStorage.setItem("farmacapital_rx", "1");
       else sessionStorage.removeItem("farmacapital_rx");
     } catch (_) { /* noop */ }
+    const fromPage = pageRef.current;
+    if (fromPage === "catalogo" && target === "detalle") {
+      snapshotSalidaCatalogo({
+        scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+        productId: opts.productId,
+      });
+      marcarRestoreCatalogo();
+    }
+    if (target === "catalogo") {
+      const intent = intentScrollCatalogo({ fromPage, catalogoScroll: opts.catalogoScroll });
+      catalogoScrollIntentRef.current = intent;
+      if (intent === "restore") marcarRestoreCatalogo();
+      else limpiarRestoreCatalogo();
+    } else if (target !== "detalle") {
+      catalogoScrollIntentRef.current = "top";
+    }
     try {
       writeTiendaHistory(target, {
         rx: nextRx,
@@ -6685,6 +6810,22 @@ export default function TiendaFarmaCapital(){
           || sessionStorage.getItem("farmacapital_rx") === "1";
         setFiltroRx(Boolean(rx && p === "catalogo"));
       } catch (_) { /* noop */ }
+      if (pageRef.current === "catalogo" && p === "detalle") {
+        snapshotSalidaCatalogo({
+          scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+          productId: e.state?.productId,
+        });
+        marcarRestoreCatalogo();
+      }
+      if (p === "catalogo" && (pageRef.current === "detalle" || hayRestoreCatalogo())) {
+        catalogoScrollIntentRef.current = "restore";
+        marcarRestoreCatalogo();
+      } else if (p === "catalogo") {
+        catalogoScrollIntentRef.current = "top";
+        limpiarRestoreCatalogo();
+      } else {
+        catalogoScrollIntentRef.current = "top";
+      }
       setPageRaw(p);
     };
     window.addEventListener("popstate",h);
@@ -6729,8 +6870,29 @@ export default function TiendaFarmaCapital(){
   },[]);
   useEffect(() => attachTiendaHorizontalStripWheel(), []);
   useEffect(()=>{
-    const id = window.requestAnimationFrame(()=>{ window.scrollTo(0, 0); });
-    return ()=>window.cancelAnimationFrame(id);
+    const intent = catalogoScrollIntentRef.current;
+    const restore = page === "catalogo" && (intent === "restore" || hayRestoreCatalogo());
+    if (page === "catalogo" && intent === "results" && !restore) return undefined;
+    let cancelled = false;
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        if (restore) {
+          aplicarPosicionCatalogo({
+            y: leerScrollCatalogo(),
+            productId: leerProductoCatalogo(),
+          });
+          return;
+        }
+        window.scrollTo(0, 0);
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
   },[page]);
   const [cart,setCart]           = useState(() => loadStoredCart(getClienteUser()));
   const [user,setUser]           = useState(()=> getClienteUser());
@@ -6954,6 +7116,10 @@ export default function TiendaFarmaCapital(){
       alert(razonBloqueoProductoTiendaFarmacia(prod));
       return false;
     }
+    if (!politicaProducto(prod).ventaEnLinea) {
+      alert(politicaProducto(prod).avisoFicha || razonBloqueoProductoTiendaFarmacia(prod));
+      return false;
+    }
     const noMezcla = motivoNoMezclar(cart, prod);
     if (noMezcla) {
       // La tienda pública no monta ToastProvider: alert, igual que los otros bloqueos del carrito.
@@ -7096,18 +7262,16 @@ export default function TiendaFarmaCapital(){
 
   const sinFooter=["home","tarjeta"];
 
-  return(
-    <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>
-    <TiendaPromosCtx.Provider value={mapaPromos}>
+  const storeTree = (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         html{-webkit-text-size-adjust:100%;}
         body{
-          background:${C.bg};
-          font-family:var(--fc-body);
-          color:${C.dark};
+          background:${v2 ? "#FFFFFF" : C.bg};
+          font-family:${v2 ? "'Inter', Arial, sans-serif" : "var(--fc-body)"};
+          color:${v2 ? "#001534" : C.dark};
           /* clip recorta X sin crear scrollport (hidden sí lo crea y traga la rueda). */
           overflow-x:clip;
           overflow-y:visible;
@@ -7126,15 +7290,28 @@ export default function TiendaFarmaCapital(){
           overflow-y:visible;
         }
         img,svg,video,canvas{max-width:100%;height:auto;}
-        ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${C.bg};}::-webkit-scrollbar-thumb{background:${C.border};border-radius:4px;}
-        button,select{font-family:var(--fc-body);}
+        ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${v2 ? "#F4F6F8" : C.bg};}::-webkit-scrollbar-thumb{background:${v2 ? "#DCE2EA" : C.border};border-radius:4px;}
+        button,select{font-family:${v2 ? "inherit" : "var(--fc-body)"};}
       `}</style>
 
       <IntroAnimacion />
-      {/* Popup bienvenida */}
-      {showPopup&&<PopupBienvenida onClose={()=>{ setShowPopup(false); try { sessionStorage.setItem("farmacapital_popup_visto","1"); } catch (_) { /* noop */ } }} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
+      {/* Popup bienvenida — retirado en v2 (spec 1.6). */}
+      {!v2 && showPopup&&<PopupBienvenida onClose={()=>{ setShowPopup(false); try { sessionStorage.setItem("farmacapital_popup_visto","1"); } catch (_) { /* noop */ } }} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
 
-      <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser} busqHero={busqHero} setBusqHero={setBusqHero} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>
+      {v2 ? (
+        <EncabezadoV2
+          page={page}
+          setPage={setPage}
+          cart={cart}
+          busqHero={busqHero}
+          setBusqHero={setBusqHero}
+          productos={productosVistaTiendaFarmacia}
+          setProdDetalle={setProdD}
+          aviso={<AvisoEnvioPorPagar user={user} setPage={setPage} />}
+        />
+      ) : (
+        <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser} busqHero={busqHero} setBusqHero={setBusqHero} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>
+      )}
 
       {(isSupabaseProductionMisconfigured || isSupabaseLocalMisconfigured) && (
         <div style={{
@@ -7153,13 +7330,21 @@ export default function TiendaFarmaCapital(){
       )}
 
       <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
-        <main style={{background:C.bg}}>
+        <main style={{background: v2 ? "#FFFFFF" : C.bg}}>
           {pages[page]||pages.home}
         </main>
-        {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
+        {v2
+          ? (page !== "tarjeta" && <PieV2 setPage={setPage} />)
+          : (!sinFooter.includes(page) && <Footer setPage={setPage} />)}
       </div>
-      <WhatsAppFloatingButton />
+      {!v2 && <WhatsAppFloatingButton />}
     </>
+  );
+
+  return(
+    <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>
+    <TiendaPromosCtx.Provider value={mapaPromos}>
+    {v2 ? <TiendaV2Shell>{storeTree}</TiendaV2Shell> : storeTree}
     </TiendaPromosCtx.Provider>
     </TiendaPlaceholderCtx.Provider>
   );

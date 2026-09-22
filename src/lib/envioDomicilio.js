@@ -186,14 +186,25 @@ export function leerMetaEnvio(pedido) {
   return {};
 }
 
-export function desgloseEnvioCheckout(total, costo) {
+/** Servicio $5 que el trigger ya sumó a pedidos.total (0 al recoger). */
+export function cargoServicioPedido(p) {
+  const n = Number(p?.logistics_meta?.cargo_plataforma_mxn);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+}
+
+/**
+ * Parte pedidos.total en productos + servicio + envío.
+ * `cargo` es el Servicio ya incluido en el total (logistics_meta.cargo_plataforma_mxn).
+ */
+export function desgloseEnvioCheckout(total, costo, cargo = 0) {
   const t = Math.round((Number(total) || 0) * 100) / 100;
   const c = Math.round((Number(costo) || 0) * 100) / 100;
-  const productos = Math.round((t - c) * 100) / 100;
+  const s = Number(cargo) > 0 ? Math.round(Number(cargo) * 100) / 100 : 0;
+  const productos = Math.round((t - c - s) * 100) / 100;
   if (productos < -0.001) {
-    return { productos: t, envio: c, total: Math.round((t + c) * 100) / 100 };
+    return { productos: t, servicio: 0, envio: c, total: Math.round((t + c) * 100) / 100 };
   }
-  return { productos: Math.max(0, productos), envio: c, total: t };
+  return { productos: Math.max(0, productos), servicio: s, envio: c, total: t };
 }
 
 /** Fee ya cotizado que debe verse en el checkout. null si todavía no hay precio. */
@@ -268,13 +279,13 @@ export function copyConfirmacionPedido(lastOrder = {}) {
   return { titulo: "¡Pedido confirmado!", totalLabel: "Total pagado", pagado: true };
 }
 
-export function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
+export function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, cargo = 0, total, origen } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, "0")}`;
   const link = linkPagarPedido(pedidoId, origen);
   return (
     `🏥 FarmaCapital\n\n` +
     `Tu pedido ${folio} ya tiene el precio final. Todavía no está pagado.\n` +
-    `Productos $${Number(itemsTotal).toFixed(2)} + envío $${Number(costo).toFixed(2)} = $${Number(total).toFixed(2)}.\n\n` +
+    `Productos $${Number(itemsTotal).toFixed(2)}${Number(cargo) > 0 ? ` + servicio $${Number(cargo).toFixed(2)}` : ""} + envío $${Number(costo).toFixed(2)} = $${Number(total).toFixed(2)}.\n\n` +
     `Ábrelo y toca Pagar ahora. Es un solo cargo:\n${link}`
   );
 }
@@ -299,7 +310,7 @@ export function mensajeCorreoEnvioCotizado({ sent, reason, detail, costo } = {})
   if (reason === "email_not_configured") {
     return `${monto} cargado. Falta la llave de Resend en el servidor, por eso no salió el correo.`;
   }
-  if (/domain is not verified|not verified|verificar/i.test(err)) {
+  if (reason === "domain_not_verified" || /domain is not verified|not verified|verificar/i.test(err)) {
     return `${monto} cargado. Resend rechazó contacto@farmacapital.mx: verifica el dominio farmacapital.mx en resend.com/domains y vuelve a guardar.`;
   }
   if (/only send testing emails/i.test(err)) {

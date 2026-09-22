@@ -32,7 +32,8 @@ function requiredCatalogQueryTokens(tokens) {
 
 const CATALOG_UNIT_TOKENS = new Set([
   "cm", "mm", "m", "ml", "mg", "mcg", "g", "kg", "l", "lt", "iu", "ui",
-  "tab", "tabs", "cap", "caps", "pza", "pieza",
+  "tab", "tabs", "tableta", "tabletas", "cap", "caps", "capsula", "capsulas",
+  "comprimido", "comprimidos", "pza", "pieza",
 ]);
 
 const CATALOG_NAME_LIKE_KINDS = new Set([

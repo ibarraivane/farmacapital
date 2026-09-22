@@ -33,8 +33,10 @@ it("entra cerrado en una línea y el detalle sale al hacer click", () => {
   );
   expect(screen.queryByText(/bartolache/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/WhatsApp cliente/)).not.toBeInTheDocument();
-  const fila = screen.getByRole("button", { name: /Pedido #441/ });
+  const fila = screen.getByRole("button", { name: /Ivan ibarra/ });
   expect(fila).toHaveAttribute("aria-expanded", "false");
+  expect(fila).toHaveTextContent("Pedido #441");
+  expect(fila.style.gridTemplateColumns).toMatch(/minmax\(7\.5rem,\s*1fr\)/);
   fireEvent.click(fila);
   expect(fila).toHaveAttribute("aria-expanded", "true");
   expect(screen.getAllByText(/bartolache/i).length).toBeGreaterThan(0);

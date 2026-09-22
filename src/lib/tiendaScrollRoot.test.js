@@ -31,6 +31,7 @@ describe("tienda scroll root (index.css)", () => {
     expect(css).toMatch(/\.farmacapital-productos-strip\s*\{[^}]*overflow-y:\s*hidden/s);
     expect(css).toMatch(/\.farmacapital-productos-strip\s*\{[^}]*overscroll-behavior-x:\s*contain/s);
     expect(css).toMatch(/@media\s*\(max-width:\s*767px\)\s*\{[^}]*scroll-snap-type:\s*x\s+proximity/s);
+    expect(css).toMatch(/\.farmacapital-catalogo-cats-scroll\s*\{[^}]*overflow-y:\s*hidden/s);
   });
 });
 
@@ -50,5 +51,13 @@ describe("tienda scroll root (shell)", () => {
   test("el hero recorta con clip, no hidden (hidden traga la rueda)", () => {
     expect(tienda).toMatch(/className="hero-carousel"[\s\S]*?overflow:"clip"/);
     expect(tienda).toMatch(/heroShellSx[\s\S]*?overflow:\s*"clip"/);
+  });
+
+  test("volver al catálogo desde un producto restaura scroll (no siempre top)", () => {
+    expect(tienda).toMatch(/aplicarPosicionCatalogo/);
+    expect(tienda).toMatch(/intentScrollCatalogo/);
+    expect(tienda).toMatch(/hayRestoreCatalogo/);
+    expect(tienda).toMatch(/leerVisiblesCatalogo/);
+    expect(tienda).not.toMatch(/requestAnimationFrame\(\(\)=>\{ window\.scrollTo\(0, 0\); \}\)/);
   });
 });

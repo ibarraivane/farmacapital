@@ -14,6 +14,7 @@ describe("bandasCatalogoPorCategoria", () => {
     { id: 4, nombre: "Paracetamol", categoria: "analgesico", stock: 2, activo: true },
     { id: 5, nombre: "Inactivo", categoria: "Gastro", stock: 9, activo: false },
     { id: 6, nombre: "Agua", categoria: "Hidratación", stock: 20, activo: true },
+    { id: 9, nombre: "Electrolit Uva", marca: "Electrolit", categoria: "Higiene", stock: 8, activo: true },
     { id: 7, nombre: "Rareza", categoria: "Dermatología", stock: 3, activo: true },
     { id: 8, nombre: "Misc", categoria: "Otro", stock: 1, activo: true },
   ];
@@ -22,11 +23,14 @@ describe("bandasCatalogoPorCategoria", () => {
     const bandas = bandasCatalogoPorCategoria(productos);
     expect(bandas.map((b) => b.categoria)).toEqual([
       "Analgésico",
+      "Antiinflamatorio",
       "Alergia",
       "Hidratación",
       "Dermatología",
       "Otro",
     ]);
+    const hidra = bandas.find((b) => b.categoria === "Hidratación");
+    expect(hidra.productos.map((p) => p.nombre)).toEqual(["Agua", "Electrolit Uva"]);
   });
 
   test("pone disponibles antes que agotados dentro de la banda", () => {
@@ -55,11 +59,17 @@ describe("bandasCatalogoPorCategoria", () => {
 });
 
 describe("irACatalogoCategoria", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
   test("guarda categoría y navega al catálogo", () => {
     const pages = [];
+    sessionStorage.setItem("farmacapital_catalogo_scroll", "900");
     irACatalogoCategoria((p, opts) => pages.push([p, opts]), "Alergia");
     expect(sessionStorage.getItem("farmacapital_cat")).toBe("Alergia");
-    expect(pages).toEqual([["catalogo", { rx: false }]]);
+    expect(sessionStorage.getItem("farmacapital_catalogo_scroll")).toBeNull();
+    expect(pages).toEqual([["catalogo", { rx: false, catalogoScroll: "top" }]]);
   });
 });
 

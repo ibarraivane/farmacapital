@@ -4,6 +4,7 @@ const { sendOrderNotifications } = require('../../_lib/orderNotifications');
 const { ensurePedidoReciboToken, buildReciboPublicUrl } = require('../../_lib/receiptTicket');
 const { lineasTicketCorreo } = require('../../_lib/envioDomicilio');
 const { ticketPagoAdjunto } = require('../../_lib/ticketEnvioPdf');
+const { emailsAvisoCliente } = require('../../_lib/clienteEmails');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -52,6 +53,23 @@ async function fetchDatosTicketPedido(supabaseUrl, serviceKey, pedidoId) {
   for (const select of selects) {
     const resp = await fetch(
       `${supabaseUrl}/rest/v1/pedidos?id=eq.${pedidoId}&select=${select}&limit=1`,
+      { headers }
+    );
+    const rows = await resp.json().catch(() => []);
+    if (resp.ok && Array.isArray(rows) && rows[0]) return rows[0];
+  }
+  return null;
+}
+
+async function fetchClienteAviso(supabaseUrl, serviceKey, clienteId) {
+  if (!clienteId) return null;
+  const headers = {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+  };
+  for (const select of ['id,nombre,telefono,email,email_alt', 'id,nombre,telefono,email']) {
+    const resp = await fetch(
+      `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=${select}&limit=1`,
       { headers }
     );
     const rows = await resp.json().catch(() => []);
@@ -307,7 +325,7 @@ module.exports = async function handler(req, res) {
       try {
         const [cliResp, itemsResp] = await Promise.all([
           fetch(
-            `${SUPABASE_URL}/rest/v1/clientes?id=eq.${pedidoBefore.cliente_id}&select=id,nombre,telefono,email&limit=1`,
+            `${SUPABASE_URL}/rest/v1/clientes?id=eq.${pedidoBefore.cliente_id}&select=id,nombre,telefono,email,email_alt&limit=1`,
             {
               headers: {
                 apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -316,7 +334,7 @@ module.exports = async function handler(req, res) {
             }
           ),
           fetch(
-            `${SUPABASE_URL}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+            `${SUPABASE_URL}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre,imagen_url)`,
             {
               headers: {
                 apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -345,6 +363,7 @@ module.exports = async function handler(req, res) {
               nombre: cliente?.nombre || guest?.guest_nombre,
               items: lineas,
               productos,
+              servicio: Number(pedidoBefore?.logistics_meta?.cargo_plataforma_mxn) || 0,
               envio: guest?.costo_envio,
               total: pedidoBefore.total,
               ticketUrl,
@@ -354,16 +373,22 @@ module.exports = async function handler(req, res) {
           }
         }
         const emailGuest = String(guest?.guest_email || '').trim();
-        const emailCliente = String(cliente?.email || '').trim();
-        const email = emailGuest.includes('@')
-          ? emailGuest
-          : (emailCliente.includes('@') ? emailCliente : null);
+        const emails = emailsAvisoCliente({
+          guestEmail: emailGuest,
+          email: cliente?.email,
+          emailAlt: cliente?.email_alt,
+        });
         await sendOrderNotifications({
           event,
-          pedido: { ...pedidoBefore, id: pedidoId },
+          pedido: {
+            ...pedidoBefore,
+            id: pedidoId,
+            guest_email: emailGuest || pedidoBefore.guest_email || null,
+            costo_envio: guest?.costo_envio ?? pedidoBefore.costo_envio,
+          },
           cliente: {
             ...(cliente || {}),
-            email,
+            email: emails,
             nombre: cliente?.nombre || guest?.guest_nombre || '',
           },
           items: Array.isArray(itemRows) ? itemRows : [],

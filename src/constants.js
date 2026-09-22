@@ -5,7 +5,7 @@ import {
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, HeartPulse,
   SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe, BookOpen, ScanLine,
-  ClipboardList, FileText,
+  ClipboardList, FileText, Calculator,
 } from "lucide-react";
 
 export const C_LIGHT = {
@@ -54,7 +54,7 @@ export const NAV_ADMIN = [
   "recibir", "inv",
   "agenda", "cons", "exp_dr",
   "cof", "dev", "fact",
-  "promo", "banners", "fichas", "bot", "config_cons",
+  "promo", "banners", "fichas", "cotiz", "bot", "config_cons",
   "usuarios", "rrhh",
   "ayuda", "pwa",
 ];
@@ -65,7 +65,7 @@ export const ADMIN_NAV_SECTIONS = [
   { title: "Inventario", ids: ["recibir", "inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
-  { title: "Comercial y crecimiento", ids: ["promo", "banners", "fichas", "bot", "config_cons"] },
+  { title: "Comercial y crecimiento", ids: ["promo", "banners", "fichas", "cotiz", "bot", "config_cons"] },
   { title: "Administración interna", ids: ["usuarios", "rrhh"] },
   { title: "Sistema", ids: ["ayuda", "pwa"] },
 ];
@@ -98,6 +98,7 @@ export const NAV_ITEMS = [
   {id:"promo",      icon: Target,          label:"Promociones"},
   {id:"dev",        icon: Undo2,           label:"Devoluciones"},
   {id:"ped_mostrador", icon: ClipboardList, label:"Lo que buscan"},
+  {id:"cotiz",         icon: Calculator,     label:"Cotizaciones"},
   {id:"fact",       icon: Receipt,         label:"Facturación"},
   // ══ SISTEMA ═══════════════════════════════
   {id:"banners",    icon: ImageIcon,       label:"Banners"},

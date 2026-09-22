@@ -4,6 +4,8 @@
  * (no comparar el texto crudo).
  */
 
+import { inferirCategoriaCatalogo } from "./inferirCategoriaCatalogo";
+
 export const CATEGORIAS_PRODUCTO = Object.freeze([
   "Analgésico",
   "Antiinflamatorio",
@@ -80,6 +82,26 @@ export function categoriasCoinciden(a, b) {
   const ca = categoriaCanon(a);
   const cb = categoriaCanon(b);
   return Boolean(ca) && ca === cb;
+}
+
+/**
+ * Suero oral / electrolitos. El parser de ticket los metió en Higiene o GENERAL.
+ */
+export function esProductoHidratacionOral(p) {
+  return inferirCategoriaCatalogo(p) === "Hidratación";
+}
+
+/**
+ * Categoría de vitrina e inventario: infiere por ficha si hay señal clara.
+ * Si no, deja la categoría canónica (o el cubo Otro).
+ */
+export function categoriaVitrina(p) {
+  return inferirCategoriaCatalogo(p) || categoriaCanon(p?.categoria) || "Otro";
+}
+
+export function categoriaVitrinaPasaFiltro(p, filtro) {
+  if (!filtro || filtro === "todas" || filtro === "Todos") return true;
+  return categoriasCoinciden(categoriaVitrina(p), filtro);
 }
 
 export function esCategoriaAntibiotico(raw) {

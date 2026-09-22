@@ -1,5 +1,7 @@
 'use strict';
 
+const emailTemplates = require('./emailTemplates');
+
 const DEFAULT_TARIFAS = [
   { distancia_min_km: 0, distancia_max_km: 2, costo_base: 30, gratis_desde: 180 },
   { distancia_min_km: 2, distancia_max_km: 4, costo_base: 45, gratis_desde: 230 },
@@ -207,11 +209,11 @@ function cotizacionVencida(cotizarAntesDe, now = new Date()) {
 function puedeDespacharEnvio(envio = {}, opts = {}) {
   const estado = String(envio.estado || '');
   const costo = Number(envio.costo_cotizado);
-  if (estado === 'pagado') return true;
+  // Pedido liquidado en Mercado Pago (productos + envío): el mensajero puede salir
+  // aunque logistics_meta.envio se haya quedado en cotizado / link_enviado.
+  if (opts.paymentApproved) return true;
+  if (estado === 'pagado' || estado === 'en_ruta') return true;
   if (estado === 'cotizado' && Number.isFinite(costo) && costo === 0) return true;
-  if (envio.cobrado_en_checkout && opts.paymentApproved && ['cotizado', 'pagado'].includes(estado)) {
-    return true;
-  }
   return false;
 }
 
@@ -281,6 +283,39 @@ function escapeHtmlCorreo(value) {
     .replace(/"/g, '&quot;');
 }
 
+/** Servicio $5 ya sumado al total por el trigger (logistics_meta.cargo_plataforma_mxn). */
+function cargoServicioPedido(pedido) {
+  const n = Number(pedido?.logistics_meta?.cargo_plataforma_mxn);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+}
+
+/**
+ * Parte el total del pedido en productos + servicio + envío.
+ * pedido.total ya incluye el Servicio $5 (trigger) y, si hay cotización, el envío.
+ */
+function desglosePedido(total, costoEnvio, cargoServicio) {
+  const t = Math.round((Number(total) || 0) * 100) / 100;
+  const envio = Number.isFinite(Number(costoEnvio)) && Number(costoEnvio) >= 0 ? Math.round(Number(costoEnvio) * 100) / 100 : 0;
+  const servicio = Number.isFinite(Number(cargoServicio)) && Number(cargoServicio) > 0 ? Math.round(Number(cargoServicio) * 100) / 100 : 0;
+  return {
+    productos: Math.max(0, Math.round((t - envio - servicio) * 100) / 100),
+    servicio,
+    envio,
+    total: t,
+  };
+}
+
+const NOMBRE_PROVEEDOR = { didi: 'DiDi', uber: 'Uber Direct', propio: 'Repartidor FarmaCapital' };
+
+/** Renglones para la plantilla: nombre, cantidad, importe y foto (solo URL https). */
+function itemsPlantillaCorreo(items) {
+  const raw = Array.isArray(items) ? items : [];
+  return lineasTicketCorreo(raw).map((l, i) => {
+    const img = String(raw[i]?.productos?.imagen_url || raw[i]?.imagen_url || '').trim();
+    return { nombre: l.nombre, cantidad: l.qty, importe: l.importe, img: /^https:\/\//i.test(img) ? img : undefined };
+  });
+}
+
 function lineasTicketCorreo(items) {
   if (!Array.isArray(items)) return [];
   return items.map((i) => {
@@ -305,16 +340,22 @@ function correoAvisoEnvioCotizado({
   pedidoId,
   costo,
   itemsTotal,
+  cargo = 0,
   total,
   nombre,
   origen,
   items,
+  proveedor,
+  colonia,
+  telUltimos4,
 } = {}) {
   const folio = folioCorreo(pedidoId);
   const quien = String(nombre || '').trim();
   const saludo = quien ? `Hola ${quien}.` : 'Hola.';
   const productos = dineroCorreo(itemsTotal);
   const envio = dineroCorreo(costo);
+  const cargoN = Number(cargo) > 0 ? Number(cargo) : 0;
+  const servicio = dineroCorreo(cargoN);
   const totalTxt = dineroCorreo(total);
   const link = linkPagarPedidoCorreo(origen, pedidoId);
   const lineas = lineasTicketCorreo(items);
@@ -323,42 +364,37 @@ function correoAvisoEnvioCotizado({
     : '';
   const text =
     `${saludo}\n\n` +
-    `Ya cotizamos el envío de tu pedido ${folio}. Todavía no está pagado. El precio final es un solo cargo:\n\n` +
-    `${detalle}` +
-    `Productos: ${productos}\n` +
-    `Envío a domicilio: ${envio}\n` +
-    `Total a pagar: ${totalTxt}\n\n` +
-    `El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.\n\n` +
+    `Ya cotizamos el envío de tu pedido ${folio}. Todavía no está pagado. Total a pagar: ${totalTxt}.\n\n` +
     `Para liquidarlo, abre esta liga, escribe el teléfono del pedido y toca Pagar ahora:\n${link}\n\n` +
+    `Productos: ${productos}\n` +
+    (cargoN > 0 ? `Servicio: ${servicio}\n` : '') +
+    `Envío a domicilio: ${envio}\n` +
+    (detalle ? `\n${detalle}` : '') +
+    `\nEl ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.\n\n` +
     `FarmaCapital\n` +
     `Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa\n` +
     `contacto@farmacapital.mx`;
 
-  const filas = lineas.map((l) => (
-    `<tr><td style="padding:6px 0;color:#0f172a;">${escapeHtmlCorreo(l.nombre)} ×${l.qty}</td>` +
-    `<td style="padding:6px 0;text-align:right;color:#0f172a;font-weight:700;">${dineroCorreo(l.importe)}</td></tr>`
-  )).join('');
-  const html =
-    `<div style="font-family:Georgia, 'Times New Roman', serif;color:#0f172a;background:#ffffff;padding:8px 4px;line-height:1.5;">` +
-    `<p style="margin:0 0 12px;">${escapeHtmlCorreo(saludo)}</p>` +
-    `<p style="margin:0 0 12px;">Ya cotizamos el envío de tu pedido <strong>${escapeHtmlCorreo(folio)}</strong>. El precio final es un solo cargo.</p>` +
-    (filas ? `<table style="width:100%;border-collapse:collapse;margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">${filas}</table>` : '') +
-    `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;">` +
-    `<tr><td style="padding:4px 0;color:#334155;">Productos</td><td style="padding:4px 0;text-align:right;">${productos}</td></tr>` +
-    `<tr><td style="padding:4px 0;color:#334155;">Envío a domicilio</td><td style="padding:4px 0;text-align:right;">${envio}</td></tr>` +
-    `<tr><td style="padding:8px 0 0;font-weight:800;">Total a pagar</td><td style="padding:8px 0 0;text-align:right;font-weight:800;font-size:18px;">${totalTxt}</td></tr>` +
-    `</table>` +
-    `<p style="margin:16px 0 8px;">El ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.</p>` +
-    `<p style="margin:0 0 16px;">Para liquidarlo, abre esta liga, escribe el teléfono del pedido y toca <strong>Pagar ahora</strong>.</p>` +
-    `<p style="margin:0 0 20px;"><a href="${escapeHtmlCorreo(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;padding:12px 18px;border-radius:8px;">Pagar ahora</a></p>` +
-    `<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;"><a href="${escapeHtmlCorreo(link)}" style="color:#0f766e;">${escapeHtmlCorreo(link)}</a></p>` +
-    `<p style="margin:16px 0 0;color:#64748b;font-family:Arial,sans-serif;font-size:12px;">FarmaCapital · Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa<br>contacto@farmacapital.mx</p>` +
-    `</div>`;
+  // Diseño v2 (api/_lib/emailTemplates.js). El texto plano de arriba se conserva.
+  const plantilla = emailTemplates.envioCotizado({
+    pedidoId,
+    nombre: quien,
+    items: itemsPlantillaCorreo(items),
+    subtotal: Number(itemsTotal),
+    servicio: cargoN,
+    envio: Number(costo),
+    total: Number(total),
+    paqueteria: NOMBRE_PROVEEDOR[String(proveedor || '').toLowerCase()] || undefined,
+    destino: String(colonia || '').trim() || undefined, // solo colonia: nunca calle ni número
+    telUltimos4: String(telUltimos4 || '').replace(/\D/g, '').slice(-4) || undefined,
+    urlPagar: link,
+  });
+  const html = plantilla.html;
 
   return {
     from: CORREO_ENVIO_FROM,
     replyTo: 'contacto@farmacapital.mx',
-    subject: `FarmaCapital · Pedido ${folio} listo para pagar`,
+    subject: plantilla.subject,
     text,
     html,
     link,
@@ -366,7 +402,7 @@ function correoAvisoEnvioCotizado({
   };
 }
 
-function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, origen } = {}) {
+function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, cargo = 0, total, origen } = {}) {
   const folio = `#FC-${String(pedidoId).padStart(4, '0')}`;
   const envioTxt = Number(costo).toFixed(2);
   const prodTxt = Number(itemsTotal).toFixed(2);
@@ -375,7 +411,7 @@ function textoClienteEnvioEnCheckout({ pedidoId, costo, itemsTotal, total, orige
   return (
     `🏥 FarmaCapital\n\n` +
     `Tu pedido ${folio} ya tiene el precio final. Todavía no está pagado.\n` +
-    `Productos $${prodTxt} + envío $${envioTxt} = $${totalTxt}.\n\n` +
+    `Productos $${prodTxt}${Number(cargo) > 0 ? ` + servicio $${Number(cargo).toFixed(2)}` : ''} + envío $${envioTxt} = $${totalTxt}.\n\n` +
     `Ábrelo y toca Pagar ahora. Es un solo cargo:\n${link}`
   );
 }
@@ -403,5 +439,8 @@ module.exports = {
   cotizacionEnvioMeta,
   textoClienteEnvioEnCheckout,
   correoAvisoEnvioCotizado,
+  itemsPlantillaCorreo,
+  cargoServicioPedido,
+  desglosePedido,
   lineasTicketCorreo,
 };

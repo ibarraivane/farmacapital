@@ -3,8 +3,11 @@ import {
   categoriaCanon,
   categoriasCoinciden,
   categoriaPasaFiltro,
+  categoriaVitrina,
+  categoriaVitrinaPasaFiltro,
   esCategoriaAntibiotico,
   esMedicamentoControlado,
+  esProductoHidratacionOral,
   opcionesCategoriaSelect,
 } from "./categoriasProducto";
 
@@ -34,6 +37,21 @@ describe("categoriasProducto", () => {
     expect(esMedicamentoControlado({ grupo_controlado: "II" })).toBe(true);
     expect(categoriaPasaFiltro("Digestivo", "Gastro")).toBe(true);
     expect(categoriaPasaFiltro("Alergia", "Gastro")).toBe(false);
+  });
+
+  test("electrolitos van a Hidratación aunque el ticket los haya puesto en Higiene", () => {
+    const electrolit = { nombre: "Electrolit Uva", marca: "Electrolit", categoria: "Higiene" };
+    const pedialyte = { nombre: "Pedialyte fresa", marca: "Pedialyte", categoria: "Otro" };
+    const suerox = { nombre: "Suerox 8 Iones Coco 630 ML", marca: "Suerox", categoria: "GENERAL" };
+    const shampoo = { nombre: "Pantene Brillo Extremo", marca: "Pantene", categoria: "Higiene" };
+    expect(esProductoHidratacionOral(electrolit)).toBe(true);
+    expect(categoriaVitrina(electrolit)).toBe("Hidratación");
+    expect(categoriaVitrina(pedialyte)).toBe("Hidratación");
+    expect(categoriaVitrina(suerox)).toBe("Hidratación");
+    expect(categoriaVitrinaPasaFiltro(electrolit, "Hidratación")).toBe(true);
+    expect(categoriaVitrinaPasaFiltro(electrolit, "Higiene")).toBe(false);
+    expect(categoriaVitrina(shampoo)).toBe("Higiene");
+    expect(categoriaVitrinaPasaFiltro(shampoo, "Hidratación")).toBe(false);
   });
 
   test("el select conserva un valor huérfano para no pisarlo al abrir", () => {

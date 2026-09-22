@@ -11,7 +11,7 @@ import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearc
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
-import { posTituloProducto, posSubtituloProducto, posEtiquetaVariante } from "../../../utils/posProductDisplay";
+import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
@@ -48,7 +48,7 @@ import {
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
-import { esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosOnlineMostrador, esErrorColumnaCostoEnvio } from "../../../utils/pedidosTiendaWeb";
+import { fetchPedidosOnlineMostrador, esErrorColumnaCostoEnvio } from "../../../utils/pedidosTiendaWeb";
 import {
   telefonoClientePedido,
   payloadMarcarPedidoListo,
@@ -75,8 +75,9 @@ import {
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import PedidoOnlineCard from "../../../components/PedidoOnlineCard";
-import CronometroPedidoOnline from "../../../components/CronometroPedidoOnline";
+import PedidoOnlineHistRow from "../../../components/PedidoOnlineHistRow";
 import { despacharEnvioPedido } from "../../../lib/envioDomicilioClient";
+import { reenviarTicketCorreoPedido } from "../../../lib/reenviarTicketCorreo";
 
 function mlDePresentacion(producto) {
   const t = `${producto?.presentacion || ""} ${producto?.nombre || ""} ${producto?.concentracion || ""}`;
@@ -240,7 +241,18 @@ function precioCajaDesdeProducto(producto, qty, propuestasByLote) {
   return precioLineaCajaPos(producto, qty, propuestasByLote, fechaLocalMexico());
 }
 
-const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v1";
+const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v2";
+
+function posEsUsoGenericoObsoleto(text) {
+  const t = String(text || "").trim().toLowerCase();
+  if (!t) return false;
+  return (
+    t === "producto de venta libre. indica seguir las instrucciones del envase o consultar al químico farmacéutico."
+    || t === "producto de venta libre. indica seguir las instrucciones del envase o consultar al quimico farmaceutico."
+    || (t.includes("consultar al químico") && t.includes("producto de venta libre") && t.length < 120)
+    || (t.includes("consultar al quimico") && t.includes("producto de venta libre") && t.length < 120)
+  );
+}
 
 function posDescripcionPareceTicket(text) {
   const d = String(text || "").trim();
@@ -260,6 +272,12 @@ function posDescripcionEsUsoValido(item) {
 
 function posUsoFallback(item) {
   return describePosProductUseFallback(item);
+}
+
+function posUsoParaMostrar(item, usoTexto) {
+  const t = String(usoTexto || "").trim();
+  if (t && !posDescripcionPareceTicket(t) && !posEsUsoGenericoObsoleto(t)) return t;
+  return posUsoFallback(item);
 }
 
 function readPosUsoCache() {
@@ -372,9 +390,10 @@ function PosProductoFichaPanel({
     : stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
   const sinPrecio = cajaFalsa ? precioFicha <= 0.01 : !productoEsVendible(item);
   const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
-  const uso = usoLoading
+  const usoResuelto = posUsoParaMostrar(item, usoTexto);
+  const uso = usoLoading && posEsUsoGenericoObsoleto(usoResuelto)
     ? "Consultando uso con Claude…"
-    : (usoTexto || posUsoFallback(item));
+    : usoResuelto;
   const forma = posEtiquetaForma(item);
   const stack = isMobilePos || isNarrow;
 
@@ -445,7 +464,7 @@ function PosProductoFichaPanel({
           >
             <GaleriaProducto
               imagenes={galeria}
-              alt={posTituloProducto(item)}
+              alt={tituloPublicoProducto(item)}
               maxAlto={stack ? 200 : 252}
               onImagenClick={() => setFotoAbierta(true)}
               imagenRef={fotoBtnRef}
@@ -488,7 +507,7 @@ function PosProductoFichaPanel({
               {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockVisible} en stock</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
-              {posTituloProducto(item)}
+              {tituloPublicoProducto(item)}
             </h2>
             {posSubtituloProducto(item) && (
               <div style={{ fontSize: 12, color: C.textMid, marginTop: 6, lineHeight: 1.4 }}>
@@ -694,10 +713,10 @@ function PosProductoFichaPanel({
         </div>
       </div>
     </div>
-    <Modal open={Boolean(fotoAbierta && galeria.length)} onClose={cerrarFoto} title={posTituloProducto(item)}>
+    <Modal open={Boolean(fotoAbierta && galeria.length)} onClose={cerrarFoto} title={tituloPublicoProducto(item)}>
       <GaleriaProducto
         imagenes={galeria}
-        alt={posTituloProducto(item)}
+        alt={tituloPublicoProducto(item)}
         maxAlto={520}
         style={{ borderRadius: 12, background: "#fff" }}
         mostrarPuntos={false}
@@ -1288,7 +1307,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       return;
     }
     const cached = usoByProdId[id];
-    if (cached && !posDescripcionPareceTicket(cached)) return;
+    if (cached && !posDescripcionPareceTicket(cached) && !posEsUsoGenericoObsoleto(cached)) return;
 
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const localPreview = describePosProductUseLocal(fichaProd) || posUsoFallback(fichaProd);
@@ -1400,7 +1419,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         }
         return ex
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${posTituloProducto(item)} (unidad)`}];
+          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
       });
       return added;
     }
@@ -1430,7 +1449,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         qty:1,
         rxI:null,
         esUnidad:false,
-        nombre:posTituloProducto(item),
+        nombre:tituloPublicoProducto(item),
         ...precioCajaDesdeProducto(item, 1, especialesRef.current),
       }];
     });
@@ -1507,7 +1526,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 qty,
                 rxI,
                 esUnidad: false,
-                nombre: posTituloProducto(producto),
+                nombre: tituloPublicoProducto(producto),
                 ...precioCajaDesdeProducto(producto, qty, especialesRef.current),
               },
             ];
@@ -3520,7 +3539,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   ? (grupoEquivalentes ? `Volver a las ${grupoEquivalentes.total} opciones` : "Volver a los resultados")
                   : "Cerrar producto"
               }
-              usoTexto={fichaProd ? (usoByProdId[fichaProd.id] || (posDescripcionEsUsoValido(fichaProd) ? fichaProd.descripcion : null)) : null}
+              usoTexto={fichaProd ? posUsoParaMostrar(
+                fichaProd,
+                usoByProdId[fichaProd.id] || (posDescripcionEsUsoValido(fichaProd) ? fichaProd.descripcion : null)
+              ) : null}
               usoLoading={!!fichaProd && usoLoadingId === fichaProd.id}
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}
@@ -3587,7 +3609,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   {productos.filter(p=>favs.includes(p.id)&&p.activo).map(p=>(
                     <button key={p.id} onClick={()=>setFichaProd(p)}
                       style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${C.amber}`,background:C.amberDim,color:"#92400e",fontSize:11,fontWeight:700,cursor:"pointer",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      ⭐ {posTituloProducto(p)}
+                      ⭐ {tituloPublicoProducto(p)}
                     </button>
                   ))}
                 </div>
@@ -3792,54 +3814,46 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 {pedOnlineHist.length === 0 ? (
                   <div style={{color:C.textDim,fontSize:12,padding:"8px 0"}}>Sin pedidos surtidos recientes</div>
                 ) : pedOnlineHist.map((p)=>(
-                  <Box key={`hist-${p.id}`} style={{padding:12,marginBottom:10,minWidth:0,opacity:.95}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
-                      <div>
-                        <div style={{color:C.text,fontWeight:700,fontSize:13}}>Pedido #{p.id} · {formatFolioOnline(p.id)}</div>
-                        <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{p.clientes?.nombre} · {new Date(p.created_at).toLocaleString("es-MX")}</div>
-                      </div>
-                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                        <Tag
-                          col={p.delivery_status === "ready_for_pickup" || p.estado !== "completado" ? BRAND.accent : C.green}
-                          sm
-                        >
-                          {p.delivery_status === "ready_for_pickup"
-                            ? "Listo"
-                            : p.estado === "completado"
-                              ? "Entregado"
-                              : "Listo"}
-                        </Tag>
-                        {(() => {
-                          const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
-                          return <Tag col={ep.col} sm>{ep.label}</Tag>;
-                        })()}
-                        <CronometroPedidoOnline pedido={p} />
-                        <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{$(p.total)}</span>
-                        {esPedidoPickupPendienteCobro(p) && p.estado === "listo" && (
-                          <Btn sm col="#1a237e" dis={guardando} onClick={()=>{
-                            bbvaOnlinePedidoRef.current = p;
-                            setBbvaFolio(formatFolioOnline(p.id));
-                            setBbvaModal(true);
-                          }}>🏦 Cobrar BBVA</Btn>
-                        )}
-                        {p.tipo_entrega==="envio" && !p.delivery_tracking_url && (
-                          <Btn sm col={C.teal} dis={guardando} onClick={async()=>{
-                            const tokU = sessionStorage.getItem("farmacapital_session_token");
-                            const r = await despacharEnvioPedido({ pedidoId: p.id, sessionToken: tokU });
-                            if (r.ok) {
-                              showToast("Marcado en ruta", "success");
-                              setPedOnHist((prev)=>prev.map((x)=>x.id===p.id ? { ...x, delivery_status: "in_route" } : x));
-                            } else {
-                              showToast(r.error === "envio_no_pagado" ? "Falta el pago del envío." : `No se despachó: ${r.error}`, "warning");
-                            }
-                          }}>Marcar en ruta</Btn>
-                        )}
-                        {p.delivery_tracking_url && (
-                          <a href={p.delivery_tracking_url} target="_blank" rel="noreferrer" style={{fontSize:11,fontWeight:700,color:C.blue}}>Tracking</a>
-                        )}
-                      </div>
-                    </div>
-                  </Box>
+                  <PedidoOnlineHistRow
+                    key={`hist-${p.id}`}
+                    pedido={p}
+                    guardando={guardando}
+                    onCobrarBbva={(ped) => {
+                      bbvaOnlinePedidoRef.current = ped;
+                      setBbvaFolio(formatFolioOnline(ped.id));
+                      setBbvaModal(true);
+                    }}
+                    onEnviarRecibo={async (ped) => {
+                      const tokU = sessionStorage.getItem("farmacapital_session_token");
+                      const r = await reenviarTicketCorreoPedido({ pedidoId: ped.id, sessionToken: tokU });
+                      if (r.ok) {
+                        const dest = Array.isArray(r.to) ? r.to.join(", ") : "";
+                        showToast(dest ? `Recibo enviado a ${dest}` : "Recibo enviado por correo", "success");
+                      } else {
+                        showToast(
+                          r.error === "missing_email"
+                            ? "Falta el correo del cliente en la ficha."
+                            : `No se envió el recibo: ${r.error || r.detail || "error"}`,
+                          "warning",
+                        );
+                      }
+                    }}
+                    onMarcarRuta={async (ped) => {
+                      const tokU = sessionStorage.getItem("farmacapital_session_token");
+                      const r = await despacharEnvioPedido({ pedidoId: ped.id, sessionToken: tokU });
+                      if (r.ok) {
+                        showToast("En ruta. Pide el Uber/DiDi y entrega.", "success");
+                        setPedOnHist((prev) => prev.map((x) => x.id === ped.id ? { ...x, delivery_status: "in_route" } : x));
+                      } else {
+                        showToast(
+                          r.error === "envio_no_pagado"
+                            ? "Este pedido aún no está pagado. El cliente liquida en su cuenta; después marcas en ruta."
+                            : `No se despachó: ${r.error}`,
+                          "warning",
+                        );
+                      }
+                    }}
+                  />
                 ))}
               </div>
             </>

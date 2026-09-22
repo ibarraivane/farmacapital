@@ -36,13 +36,32 @@ test("el payload de alta incluye sku y no inventa stock ni caducidad", () => {
     codigo: "7501300407047",
     tipo: "patente",
     costo: 204.38,
+    marca: "Febrax",
   });
   expect(p.tipo).toBe("marca");
   expect(p.precio).toBe(256);
   expect(p.sku).toBe("FC-00407047");
   expect(p.codigo_barras).toBe("7501300407047");
+  expect(p.nombre).toBe("Febrax");
+  expect(p.presentacion).toMatch(/15/i);
+  expect(p.marca).toBe("Febrax");
   expect(p.stock).toBeUndefined();
   expect(p.fecha_caducidad).toBeUndefined();
+});
+
+test("el payload de alta parte ficha y no inventa principio", () => {
+  const p = payloadAltaRecepcion({
+    nombre: "Ibuprofeno 400 mg 20 tabletas",
+    codigo: "7501008499818",
+    tipo: "generico",
+    costo: 10,
+    principio_activo: "Ibuprofeno",
+  });
+  expect(p.nombre).toBe("Ibuprofeno 400 mg");
+  expect(p.presentacion).toMatch(/20/i);
+  expect(p.concentracion).toBe("400 mg");
+  expect(p.principio_activo).toBe("Ibuprofeno");
+  expect(p.forma_farmaceutica).toBe("Tabletas");
 });
 
 test("City Mark GUM pendiente de alta manda sku NOT NULL", () => {

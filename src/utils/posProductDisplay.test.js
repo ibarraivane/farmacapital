@@ -1,4 +1,4 @@
-import { nombreComercialPos, posDestacadoTarjeta, posEtiquetaVariante, posNombreReconocido, posSubtituloProducto, posTituloProducto } from "./posProductDisplay";
+import { nombreComercialPos, posDestacadoTarjeta, posEtiquetaVariante, posNombreReconocido, posSubtituloProducto, posTituloProducto, tituloPublicoProducto } from "./posProductDisplay";
 
 const alumag = {
   sku: "FC-75710113",
@@ -118,6 +118,26 @@ describe("posTituloProducto", () => {
     const titulos = [invisible, color, oil, oilColor, uvAir].map(posTituloProducto);
     expect(new Set(titulos).size).toBe(5);
     expect(titulos.every((t) => t === "La Roche Anthelios")).toBe(false);
+  });
+});
+
+describe("tituloPublicoProducto", () => {
+  test("la dosis distingue dos ibuprofenos; el C/20 no va en el título", () => {
+    const mg400 = {
+      nombre: "Ibuprofeno",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Ibuprofeno",
+      concentracion: "400 mg",
+      presentacion: "20 tabletas",
+      forma_farmaceutica: "Tabletas",
+    };
+    const mg600 = { ...mg400, concentracion: "600 mg", presentacion: "10 tabletas" };
+    expect(tituloPublicoProducto(mg400)).toMatch(/400/i);
+    expect(tituloPublicoProducto(mg600)).toMatch(/600/i);
+    expect(tituloPublicoProducto(mg400)).not.toBe(tituloPublicoProducto(mg600));
+    expect(tituloPublicoProducto(mg400)).not.toMatch(/20/i);
+    expect(posSubtituloProducto(mg400)).toMatch(/20/i);
   });
 });
 

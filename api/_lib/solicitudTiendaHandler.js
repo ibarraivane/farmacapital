@@ -3,14 +3,25 @@
 const { getSupabaseAdminConfig } = require('./supabaseAdmin');
 const { applyRestrictiveCors } = require('./allowedOrigins');
 const { validarSolicitudTienda, buildStaffEmail } = require('./solicitudTienda');
+const { resolverFromVerificado } = require('./resendFrom');
 
 async function sendResendEmail({ to, subject, text }) {
   const RESEND_API_KEY = String(process.env.RESEND_API_KEY || '').trim();
-  const from = String(process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
+  const fromPedido = String(process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
   const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
   if (!RESEND_API_KEY || !recipients.length) {
     return { sent: false, reason: RESEND_API_KEY ? 'missing_to' : 'email_not_configured' };
   }
+  const resuelto = await resolverFromVerificado({
+    apiKey: RESEND_API_KEY,
+    from: fromPedido,
+    notifyFrom: fromPedido,
+    fetchImpl: fetch,
+  });
+  if (!resuelto.ok) {
+    return { sent: false, reason: resuelto.reason || 'domain_not_verified', detail: resuelto.detail };
+  }
+  const from = resuelto.from;
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {

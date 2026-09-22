@@ -28,6 +28,7 @@ export const MODULOS_BLOQUEADOS_VENDEDOR = [
   "trans",        // Transacciones / consolidado
   "cons",         // Consultorio (configuración clínica)
   "exp_dr",       // Expedientes
+  "cotiz",        // Cotizaciones: costos y margen (oficina del dueño)
 ];
 
 // Default del rol (barra lateral). Pedidos online vive como pestaña del POS.

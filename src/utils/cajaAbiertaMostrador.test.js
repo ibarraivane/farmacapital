@@ -2,8 +2,11 @@ import {
   cuentaPiezasCajaMostrador,
   descripcionPublicaTienda,
   esNotaInternaCompra,
+  expandirTextoPublicoTienda,
+  nombrePublicoTienda,
   presentacionPublicaTienda,
   productoEsCajaAbiertaMostrador,
+  quitarCodigoBarrasPublico,
   subtituloPublicoTienda,
 } from "./cajaAbiertaMostrador";
 
@@ -217,6 +220,37 @@ test("ocultar en web no implica bajar el SKU del POS", () => {
   expect(p.precio_unidad).toBe(7);
 });
 
+test("subtituloPublicoTienda usa marca y presentación, no la nota de compra", () => {
+  expect(
+    subtituloPublicoTienda({
+      nombre: "Ibuprofeno 400 mg",
+      marca: "Genérico",
+      presentacion: "20 tabletas",
+      concentracion: "400 mg",
+      forma_farmaceutica: "Tabletas",
+      descripcion: "Ticket Nadro · falta EAN",
+    }),
+  ).toBe("20 tabletas · Tabletas");
+  expect(
+    subtituloPublicoTienda({
+      nombre: "Anthelios UV Air",
+      marca: "La Roche-Posay",
+      presentacion: "40 ml",
+      concentracion: "FPS 50+",
+      forma_farmaceutica: "Fluido",
+    }),
+  ).toMatch(/La Roche-Posay/i);
+  expect(
+    subtituloPublicoTienda({
+      nombre: "Anthelios UV Air",
+      marca: "La Roche-Posay",
+      presentacion: "40 ml",
+      concentracion: "FPS 50+",
+      forma_farmaceutica: "Fluido",
+    }),
+  ).toMatch(/40 ml/i);
+});
+
 test("descripcionPublicaTienda oculta notas de ticket", () => {
   expect(
     descripcionPublicaTienda({
@@ -306,6 +340,13 @@ test("descripcionPublicaTienda oculta notas de mayoreo y recargo", () => {
   expect(subtituloPublicoTienda(madrid)).toBe("Frasco");
   expect(
     descripcionPublicaTienda({
+      nombre: "Aceite de almendras dulces Madrid 125 ml",
+      descripcion: "Aceite de almendras dulces. Frasco 125 ml. Uso tópico.",
+      presentacion: "Frasco 125 ml",
+    }),
+  ).toBe("Aceite de almendras dulces. Frasco 125 ml. Uso tópico.");
+  expect(
+    descripcionPublicaTienda({
       nombre: "Aceite de almendras dulces Flor de Aire 125 ml",
       descripcion: "IFC 124418. EAN de la botella 7502280170501. Recargo marca +25%.",
     }),
@@ -322,4 +363,38 @@ test("descripcionPublicaTienda oculta notas de mayoreo y recargo", () => {
       descripcion: "Humecta piel y cabello. Uso tópico.",
     }),
   ).toBe("Humecta piel y cabello. Uso tópico.");
+});
+
+test("nombrePublicoTienda expande Eferv y no corta Tabcin", () => {
+  expect(nombrePublicoTienda({ nombre: "Aspirina Eferv" })).toBe("Aspirina Efervescente");
+  expect(nombrePublicoTienda({ nombre: "Tabcin Eferv" })).toBe("Tabcin Efervescente");
+  expect(expandirTextoPublicoTienda("Aspirina Eferv Tab C/12")).toBe("Aspirina Efervescente tabletas caja con 12");
+});
+
+test("presentacion C/12 se lee como Caja con 12", () => {
+  expect(presentacionPublicaTienda({ presentacion: "C/12" })).toBe("Caja con 12");
+  expect(presentacionPublicaTienda({ presentacion: "C/12 capsulas" })).toBe("Caja con 12 capsulas");
+});
+
+test("descripcionPublicaTienda quita el código de barras y no repite el nombre corto", () => {
+  expect(quitarCodigoBarrasPublico("Aspirina Bayer 500 mg 80 tabletas — EAN 7501008499818"))
+    .toBe("Aspirina Bayer 500 mg 80 tabletas");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Aspirina Bayer 500 mg 80 tabletas",
+      descripcion: "Aspirina Bayer 500 mg 80 tabletas — EAN 7501008499818",
+    }),
+  ).toBe("");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Aspirina Eferv",
+      descripcion: "Aspirina Eferv",
+    }),
+  ).toBe("");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Aspirina Eferv",
+      descripcion: "Aspirina efervescente de Bayer. EAN 7501008496701",
+    }),
+  ).toBe("Aspirina efervescente de Bayer.");
 });
