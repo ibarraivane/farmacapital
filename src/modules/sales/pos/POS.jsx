@@ -240,7 +240,18 @@ function precioCajaDesdeProducto(producto, qty, propuestasByLote) {
   return precioLineaCajaPos(producto, qty, propuestasByLote, fechaLocalMexico());
 }
 
-const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v1";
+const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v2";
+
+function posEsUsoGenericoObsoleto(text) {
+  const t = String(text || "").trim().toLowerCase();
+  if (!t) return false;
+  return (
+    t === "producto de venta libre. indica seguir las instrucciones del envase o consultar al químico farmacéutico."
+    || t === "producto de venta libre. indica seguir las instrucciones del envase o consultar al quimico farmaceutico."
+    || (t.includes("consultar al químico") && t.includes("producto de venta libre") && t.length < 120)
+    || (t.includes("consultar al quimico") && t.includes("producto de venta libre") && t.length < 120)
+  );
+}
 
 function posDescripcionPareceTicket(text) {
   const d = String(text || "").trim();
@@ -260,6 +271,12 @@ function posDescripcionEsUsoValido(item) {
 
 function posUsoFallback(item) {
   return describePosProductUseFallback(item);
+}
+
+function posUsoParaMostrar(item, usoTexto) {
+  const t = String(usoTexto || "").trim();
+  if (t && !posDescripcionPareceTicket(t) && !posEsUsoGenericoObsoleto(t)) return t;
+  return posUsoFallback(item);
 }
 
 function readPosUsoCache() {
@@ -372,9 +389,10 @@ function PosProductoFichaPanel({
     : stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
   const sinPrecio = cajaFalsa ? precioFicha <= 0.01 : !productoEsVendible(item);
   const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
-  const uso = usoLoading
+  const usoResuelto = posUsoParaMostrar(item, usoTexto);
+  const uso = usoLoading && posEsUsoGenericoObsoleto(usoResuelto)
     ? "Consultando uso con Claude…"
-    : (usoTexto || posUsoFallback(item));
+    : usoResuelto;
   const forma = posEtiquetaForma(item);
   const stack = isMobilePos || isNarrow;
 
@@ -1288,7 +1306,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       return;
     }
     const cached = usoByProdId[id];
-    if (cached && !posDescripcionPareceTicket(cached)) return;
+    if (cached && !posDescripcionPareceTicket(cached) && !posEsUsoGenericoObsoleto(cached)) return;
 
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const localPreview = describePosProductUseLocal(fichaProd) || posUsoFallback(fichaProd);
@@ -3520,7 +3538,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   ? (grupoEquivalentes ? `Volver a las ${grupoEquivalentes.total} opciones` : "Volver a los resultados")
                   : "Cerrar producto"
               }
-              usoTexto={fichaProd ? (usoByProdId[fichaProd.id] || (posDescripcionEsUsoValido(fichaProd) ? fichaProd.descripcion : null)) : null}
+              usoTexto={fichaProd ? posUsoParaMostrar(
+                fichaProd,
+                usoByProdId[fichaProd.id] || (posDescripcionEsUsoValido(fichaProd) ? fichaProd.descripcion : null)
+              ) : null}
               usoLoading={!!fichaProd && usoLoadingId === fichaProd.id}
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}

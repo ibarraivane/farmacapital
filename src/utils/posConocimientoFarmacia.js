@@ -153,7 +153,48 @@ const USO_POR_PATRON = [
   { re: /glucosa|tiras\s+react|medidor/i, uso: "Producto para monitoreo de glucosa en sangre en personas con diabetes o bajo indicación médica." },
   { re: /pañal|panal|huggies|pampers/i, uso: "Pañal desechable para absorción de orina y heces en bebés o incontinencia leve." },
   { re: /gel\s+antibact|sanitizer|alcohol\s+gel|antiséptico/i, uso: "Gel antiséptico para higiene de manos y reducción de gérmenes en superficies cutáneas." },
+  // Minisuper / dulcería / abarrotes (no son medicamentos)
+  { re: /chocolate|turin|kisses|hershey|ferrero|snickers|milky\s*way|carlos\s*v|abonado|chocorrol|ping[uü]ino|gansito/i, uso: "Chocolate o dulce de chocolate para consumo ocasional. No es medicamento." },
+  { re: /conejo|huevo\s+de\s+pascua|dulce|gomita|paleta|caramelo|chicle|mazapan|mazap[aá]n|lst\s*ok|bombon|bombón|algod[oó]n\s+de\s+az[uú]car/i, uso: "Dulce o golosina para consumo ocasional. No es medicamento." },
+  { re: /galleta|botana|cacahuate|papas\b|doritos|cheetos|sabritas|chicharr[oó]n|pretzel|nacho/i, uso: "Botana o galleta para consumo ocasional. No es medicamento." },
+  { re: /\b(coca[\s-]?cola|pepsi|sprite|fanta|jugo|refresco|agua\s+purificada|agua\s+natural|electrolit\s+sabor|bebida)\b/i, uso: "Bebida para hidratación o consumo ocasional. No es medicamento." },
+  { re: /\b(jab[oó]n|detergente|cloro|limpieza|suavitel|fabuloso|pinol|lysol)\b/i, uso: "Producto de limpieza o aseo del hogar. Uso según instrucciones del envase." },
+  { re: /\b(servilleta|papel\s+hig|papel\s+sanitario|kleenex|pañuelo|toalla\s+h[uú]meda)\b/i, uso: "Artículo de higiene o desechable de uso cotidiano." },
+  { re: /\b(leche|cereal|at[uú]n|aceite|arroz|az[uú]car|sal\b|harina|frijol|pasta\s+sopa)\b/i, uso: "Alimento o abarrotes de consumo diario. No es medicamento." },
 ];
+
+/** Categorías de minisuper / impulso: nunca deben sugerir “consultar al químico”. */
+const CATS_NO_MEDICINAL = new Set([
+  "bebidas",
+  "basicos",
+  "abarrotes",
+  "minisuper",
+]);
+
+const USO_POR_CATEGORIA = {
+  bebidas: "Bebida para hidratación o consumo ocasional. No es medicamento.",
+  basicos: "Artículo básico de abarrotes o aseo. Uso cotidiano; no es medicamento.",
+  abarrotes: "Producto de abarrotes o impulso. Consumo cotidiano u ocasional; no es medicamento.",
+  minisuper: "Producto de minisuper. Consumo cotidiano u ocasional; no es medicamento.",
+  higiene: "Producto de higiene personal para aseo y cuidado diario.",
+  "cuidado personal": "Producto de cuidado personal o cosmético. Uso según indicaciones del envase.",
+  botiquin: "Material de botiquín o curación. Uso tópico o de apoyo según el tipo de artículo.",
+  vitaminas: "Suplemento vitamínico. Apoyo nutricional; no sustituye alimentación ni tratamiento médico.",
+  suplemento: "Suplemento alimenticio. Apoyo nutricional según indicación del envase o profesional de salud.",
+  herbolario: "Producto herbolario o natural de venta libre. Uso según envase; no sustituye valoración médica.",
+  hidratacion: "Producto para rehidratación o aporte de líquidos y electrolitos.",
+  alergia: "Producto para aliviar síntomas de alergia según presentación e indicaciones del envase.",
+  analgesico: "Analgésico. Alivia dolor leve a moderado según presentación e indicaciones del envase.",
+  antiinflamatorio: "Antiinflamatorio. Alivia dolor e inflamación según presentación e indicaciones.",
+  gastro: "Producto digestivo. Uso en molestias gástricas leves según envase o indicación profesional.",
+  respiratorio: "Producto para vías respiratorias (tos, congestión u otras molestias leves) según presentación.",
+  diabetes: "Producto relacionado con diabetes. Uso según indicación médica o del envase.",
+  hipertension: "Producto relacionado con presión arterial. Uso según indicación médica.",
+  cardiovascular: "Producto cardiovascular. Uso exclusivamente según indicación médica.",
+  hormonales: "Producto hormonal. Uso exclusivamente según indicación médica.",
+  antibiotico: "Antibiótico: requiere receta médica. No automedicarse; completar el tratamiento indicado.",
+  "dispositivo medico": "Dispositivo o insumo médico de apoyo. Uso según instrucciones del fabricante.",
+};
 
 function expandSintomaContext(sintoma) {
   const n = normalize(sintoma);
@@ -241,22 +282,70 @@ function suggestPosProductsLocal(sintoma, catalogProducts) {
   return { sugerencias, nota, source: "catalogo" };
 }
 
+function esCategoriaNoMedicinal(product) {
+  const cat = normalize(product?.categoria || "");
+  if (CATS_NO_MEDICINAL.has(cat)) return true;
+  const sub = normalize(product?.subcategoria || "");
+  return /dulcer|golosin|botana|snack|abarro|minisuper|bebida/.test(`${cat} ${sub}`);
+}
+
+function pareceMedicamentoMostrador(product) {
+  if (!product) return false;
+  if (product.requiere_receta || product.controlado) return true;
+  if (String(product.principio_activo || "").trim()) return true;
+  const cat = normalize(product.categoria || "");
+  if (CATS_NO_MEDICINAL.has(cat)) return false;
+  if (/antibiot|analges|antiinflam|gastro|diabetes|hipertens|alergia|vitamin|suplement|herbol|hidrat|respirat|cardio|hormonal|dispositivo/.test(cat)) {
+    return true;
+  }
+  const forma = normalize(product.forma_farmaceutica || "");
+  return Boolean(forma && /capsula|comprimido|tableta|jarabe|suspension|solucion|ampolle|inyect|gotas|crema|unguento|pomada/.test(forma));
+}
+
+/** Descripción breve cuando es dulce/abarrotes y no hay patrón más específico. */
+function describeProductoComercial(product) {
+  const nombre = String(product?.nombre || "").trim();
+  const marca = String(product?.marca || "").trim();
+  const presentacion = String(product?.presentacion || "").trim();
+  const cat = normalize(product?.categoria || "");
+  const blob = normalize(`${nombre} ${marca} ${presentacion}`);
+
+  if (/chocolate|turin/.test(blob)) {
+    const marcaBit = marca ? ` ${marca}` : "";
+    const presBit = presentacion ? ` (${presentacion})` : "";
+    return `Chocolate${marcaBit}${presBit}. Dulce de consumo ocasional; no es medicamento.`.replace(/\s+/g, " ").trim();
+  }
+  if (/dulce|golosin|conejo|galleta|botana|gomita|paleta|caramelo/.test(blob) || /dulcer|golosin|botana/.test(cat)) {
+    const label = nombre || marca || "Dulce o botana";
+    return `${label}. Consumo ocasional; no es medicamento.`;
+  }
+  if (CATS_NO_MEDICINAL.has(cat) || esCategoriaNoMedicinal(product)) {
+    const label = nombre || marca || "Producto de abarrotes";
+    const catLabel = String(product?.categoria || "").trim();
+    return catLabel
+      ? `${label}. Artículo de ${catLabel.toLowerCase()} para consumo o uso cotidiano; no es medicamento.`
+      : `${label}. Artículo de abarrotes o impulso; no es medicamento.`;
+  }
+  return null;
+}
+
 function describePosProductUseLocal(product) {
   if (!product) return null;
   const paNorm = normalize(product.principio_activo || "");
-  if (paNorm) {
+  if (paNorm && !esCategoriaNoMedicinal(product)) {
     if (USO_POR_PRINCIPIO[paNorm]) return USO_POR_PRINCIPIO[paNorm];
     for (const [key, uso] of Object.entries(USO_POR_PRINCIPIO)) {
       if (paNorm.includes(key) || key.includes(paNorm)) return uso;
     }
   }
 
-  const blob = `${product.nombre || ""} ${product.marca || ""} ${product.denominacion_distintiva || ""}`;
+  const blob = `${product.nombre || ""} ${product.marca || ""} ${product.denominacion_distintiva || ""} ${product.presentacion || ""}`;
   for (const { re, uso } of USO_POR_PATRON) {
     if (re.test(blob)) return uso;
   }
 
   const cat = normalize(product.categoria || "");
+  if (USO_POR_CATEGORIA[cat]) return USO_POR_CATEGORIA[cat];
   if (cat.includes("antibiot")) {
     return "Antibiótico: requiere receta médica. No automedicarse; usar solo bajo prescripción y completar el tratamiento.";
   }
@@ -267,6 +356,9 @@ function describePosProductUseLocal(product) {
     return "Producto dermatológico tópico para cuidado o tratamiento de la piel según indicación del envase.";
   }
 
+  const comercial = describeProductoComercial(product);
+  if (comercial) return comercial;
+
   if (product.requiere_receta || product.controlado) {
     const pa = String(product.principio_activo || "").trim();
     return pa
@@ -276,7 +368,7 @@ function describePosProductUseLocal(product) {
 
   const forma = normalize(product.forma_farmaceutica || "");
   if (/capsula|comprimido|tableta/.test(forma)) {
-    return "Medicamento o suplemento oral de venta libre. Seguir indicaciones del envase o del químico farmacéutico.";
+    return "Medicamento o suplemento oral de venta libre. Seguir indicaciones del envase.";
   }
   if (/jarabe|suspension|solucion/.test(forma)) {
     return "Solución o jarabe oral. Uso según edad y dosis del envase.";
@@ -286,12 +378,26 @@ function describePosProductUseLocal(product) {
 }
 
 function describePosProductUseFallback(product) {
-  return (
-    describePosProductUseLocal(product) ||
-    (String(product?.principio_activo || "").trim()
-      ? `${product.principio_activo}: consulta la información del fabricante o al químico farmacéutico.`
-      : "Producto de venta libre. Indica seguir las instrucciones del envase o consultar al químico farmacéutico.")
-  );
+  const local = describePosProductUseLocal(product);
+  if (local) return local;
+
+  if (esCategoriaNoMedicinal(product) || !pareceMedicamentoMostrador(product)) {
+    const nombre = String(product?.nombre || "").trim();
+    const cat = String(product?.categoria || "").trim();
+    if (nombre && cat) {
+      return `${nombre}. Artículo de ${cat.toLowerCase()} para uso o consumo según el envase; no es un medicamento.`;
+    }
+    if (nombre) {
+      return `${nombre}. Producto de venta libre para uso o consumo según el envase; no es un medicamento.`;
+    }
+    return "Producto de venta libre para uso o consumo según el envase. No es un medicamento.";
+  }
+
+  const pa = String(product?.principio_activo || "").trim();
+  if (pa) {
+    return `${pa}: consulta la información del fabricante o al químico farmacéutico.`;
+  }
+  return "Producto de venta libre. Seguir las instrucciones del envase; si hay duda, consulta al químico farmacéutico.";
 }
 
 module.exports = {
