@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,132862,2026-09-21,El Surtidor de su Farmacia,7502004401409,DEXNE GTS NASAL,2,41.25,82.50,,,EQ-OFF008,222.00,ya
+2,132862,2026-09-21,El Surtidor de su Farmacia,7502004401508,DEXNE GTS OT 10ML DEXAMETASONA+NEOM+LIDO,3,46.50,139.50,,,EQ-OFF009,222.00,ya
