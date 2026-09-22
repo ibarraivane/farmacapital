@@ -40,6 +40,7 @@ insert into _fc_mf_48165 (
 ) values
   (1, '7502211783671', 'FC-11783671', 'Erbitrax-T terbinafina 250 mg C/40', 'ERBITRAX 250MG 40TAB', 4, 161.62, 259, 'generico', 'Medicamentos', null, 'Tableta', 'Erbitrax-T', 'Loeffler', 'Caja con 40 tabletas', 'Terbinafina', '250 mg', true, false, null, null, null);
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -74,8 +75,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_mf_48165 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_mf_48165
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -85,8 +91,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_mf_48165 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_mf_48165
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -107,9 +120,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_mf_48165 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_mf_48165
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select

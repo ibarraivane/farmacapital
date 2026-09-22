@@ -1,6 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════
 -- TICKETS 21-SEP-2026 · PEGAR EN SUPABASE (uno por uno o todo)
 -- Ver LEERME_tickets_20260921.md
+-- Fix: DISTINCT ON (ean) en altas (Postday 2 lotes no duplica SKU)
 -- ═══════════════════════════════════════════════════════════════
 
 
@@ -61,6 +62,7 @@ insert into _fc_eq_445246 (
   (11, '7501342803807', 'EQ-BEA368', 'Nifedipino 30 mg C/30 LP', 'BEA368 NIFEDIPINO 30 COMP 30 MG', 5, 39.23, 63, 'generico', 'Medicamentos', null, 'Tableta', 'Be Advance', 'Be Advance', 'Caja con 30 comprimidos LP', 'Nifedipino', '30 mg', true, true, null, null, '6EN186A'),
   (12, '7501249605634', 'FC-49605634', 'Postday levonorgestrel 0.75 mg C/2', 'IFA002 POSTDAY 2 COMP 0.75 MG', 1, 48.57, 78, 'generico', 'Medicamentos', null, 'Tableta', 'Postday', 'IFA Celtics', 'Caja con 2 tabletas', 'Levonorgestrel', '0.75 mg', true, false, null, null, '2603328');
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -95,8 +97,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_eq_445246 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_eq_445246
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -106,8 +113,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_eq_445246 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_eq_445246
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -128,9 +142,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_eq_445246 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_eq_445246
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
@@ -309,6 +331,7 @@ insert into _fc_cf_s324509 (
   (7, '7501065008473', 'FC-5008473', 'Theraflu TD limón resfriado severo C/10', 'THERAFLU VERDE C10 S', 2, 161.77, 203, 'marca', 'Medicamentos', 'Resfriado', 'Sobres', 'Theraflu', 'Haleon', 'Caja con 10 sobres', null, null, false, true, null, null, null),
   (8, '8020030091252', 'FC-30091252', 'Vessel Due-F sulodexida 250 LRU C/50', 'VESSEL DUE F 250 CAP', 1, 576.00, 922, 'generico', 'Medicamentos', null, 'Cápsula', 'Vessel Due-F', 'AlfaSigma', 'Caja con 50 cápsulas', 'Sulodexida', '250 LRU', true, false, null, null, null);
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -343,8 +366,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_cf_s324509 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_cf_s324509
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -354,8 +382,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_cf_s324509 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_cf_s324509
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -376,9 +411,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_cf_s324509 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_cf_s324509
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
@@ -568,6 +611,7 @@ insert into _fc_fl_14173 (
   (18, '7503003406181', 'FC-03406181', 'Cinta micropore Quirmex blanca 2.5 cm × 10 m', 'CINTA MICROPOR QUIRMEX BCO 2.5CMX10M | QUIRMEX', 2, 16.83, 22, 'marca', 'Botiquín', 'Material de curación', 'Cinta', 'Quirmex', 'Quirmex', 'Rollo 2.5 cm × 10 m', null, null, false, false, null, null, null),
   (19, '7506022301789', 'FC-22301789', 'Jeringa Sensimedical 3 mL azul C/100', 'JERINGA SENSIMEDICAL 3 ML AZUL C/100 | JAYOR', 1, 159.50, 200, 'marca', 'Botiquín', 'Material médico', 'Jeringas', 'Sensimedical', 'Jayor', 'Caja 100 jeringas 3 mL', null, null, false, false, null, null, null);
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -602,8 +646,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_fl_14173 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_fl_14173
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -613,8 +662,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_fl_14173 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_fl_14173
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -635,9 +691,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_fl_14173 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_fl_14173
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
@@ -808,6 +872,7 @@ insert into _fc_mf_48165 (
 ) values
   (1, '7502211783671', 'FC-11783671', 'Erbitrax-T terbinafina 250 mg C/40', 'ERBITRAX 250MG 40TAB', 4, 161.62, 259, 'generico', 'Medicamentos', null, 'Tableta', 'Erbitrax-T', 'Loeffler', 'Caja con 40 tabletas', 'Terbinafina', '250 mg', true, false, null, null, null);
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -842,8 +907,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_mf_48165 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_mf_48165
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -853,8 +923,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_mf_48165 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_mf_48165
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -875,9 +952,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_mf_48165 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_mf_48165
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
@@ -1049,6 +1134,7 @@ insert into _fc_sur132862 (
   (1, '7502004401409', 'EQ-OFF008', 'Dexne nasal fenilefrina/dexametasona/neomicina gotas 10 mL', 'DEXNE GTS NASAL', 2, 41.25, 66, 'generico', 'Medicamentos', null, 'Gotas nasales', 'Dexne', 'Offenbach', 'Frasco gotero 10 mL', 'Fenilefrina / dexametasona / neomicina', null, true, true, null, null, null),
   (2, '7502004401508', 'EQ-OFF009', 'Dexne ótico dexametasona/neomicina/lidocaína gotas 10 mL', 'DEXNE GTS OT 10ML DEXAMETASONA+NEOM+LIDO', 3, 46.50, 75, 'generico', 'Medicamentos', null, 'Gotas óticas', 'Dexne', 'Offenbach', 'Frasco gotero 10 mL', 'Dexametasona / neomicina / lidocaína', null, true, true, null, null, null);
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -1083,8 +1169,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_sur132862 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_sur132862
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -1094,8 +1185,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_sur132862 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_sur132862
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -1116,9 +1214,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_sur132862 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_sur132862
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
@@ -1290,6 +1396,7 @@ insert into _fc_sur132821 (
   (1, '7501409601018', 'FC-09601018', 'Lysol desinfectante Crisp Linen 354 g', 'SPRAY LYSOL CHICO 354GR', 2, 100.01, 126, 'marca', 'Higiene', 'Desinfectante', 'Aerosol', 'Lysol', 'Reckitt', 'Aerosol 354 g', null, null, false, false, 'https://www.farmacapital.mx/catalogo-propia/lysol-crisp-linen-354g.jpg', 'lysol-crisp-linen-354g.jpg', null),
   (2, '7501058796882', 'FC-58796882', 'Lysol desinfectante Crisp Linen 475 g', 'SPRAY LYSOL GRANDE 475GR', 4, 130.00, 163, 'marca', 'Higiene', 'Desinfectante', 'Aerosol', 'Lysol', 'Reckitt', 'Aerosol 475 g', null, null, false, true, 'https://www.farmacapital.mx/catalogo-propia/lysol-crisp-linen-475g.jpg', 'lysol-crisp-linen-475g.jpg', null);
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -1324,8 +1431,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_sur132821 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_sur132821
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -1335,8 +1447,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_sur132821 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_sur132821
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -1357,9 +1476,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_sur132821 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_sur132821
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select

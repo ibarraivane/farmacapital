@@ -48,6 +48,7 @@ insert into _fc_cf_s324509 (
   (7, '7501065008473', 'FC-5008473', 'Theraflu TD limón resfriado severo C/10', 'THERAFLU VERDE C10 S', 2, 161.77, 203, 'marca', 'Medicamentos', 'Resfriado', 'Sobres', 'Theraflu', 'Haleon', 'Caja con 10 sobres', null, null, false, true, null, null, null),
   (8, '8020030091252', 'FC-30091252', 'Vessel Due-F sulodexida 250 LRU C/50', 'VESSEL DUE F 250 CAP', 1, 576.00, 922, 'generico', 'Medicamentos', null, 'Cápsula', 'Vessel Due-F', 'AlfaSigma', 'Caja con 50 cápsulas', 'Sulodexida', '250 LRU', true, false, null, null, null);
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -82,8 +83,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_cf_s324509 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_cf_s324509
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -93,8 +99,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_cf_s324509 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_cf_s324509
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -115,9 +128,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_cf_s324509 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_cf_s324509
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select

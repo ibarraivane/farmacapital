@@ -52,6 +52,7 @@ insert into _fc_eq_445246 (
   (11, '7501342803807', 'EQ-BEA368', 'Nifedipino 30 mg C/30 LP', 'BEA368 NIFEDIPINO 30 COMP 30 MG', 5, 39.23, 63, 'generico', 'Medicamentos', null, 'Tableta', 'Be Advance', 'Be Advance', 'Caja con 30 comprimidos LP', 'Nifedipino', '30 mg', true, true, null, null, '6EN186A'),
   (12, '7501249605634', 'FC-49605634', 'Postday levonorgestrel 0.75 mg C/2', 'IFA002 POSTDAY 2 COMP 0.75 MG', 1, 48.57, 78, 'generico', 'Medicamentos', null, 'Tableta', 'Postday', 'IFA Celtics', 'Caja con 2 tabletas', 'Levonorgestrel', '0.75 mg', true, false, null, null, '2603328');
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -86,8 +87,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_eq_445246 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_eq_445246
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -97,8 +103,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_eq_445246 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_eq_445246
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -119,9 +132,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_eq_445246 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_eq_445246
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select

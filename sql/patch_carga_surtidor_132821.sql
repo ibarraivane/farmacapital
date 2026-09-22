@@ -41,6 +41,7 @@ insert into _fc_sur132821 (
   (1, '7501409601018', 'FC-09601018', 'Lysol desinfectante Crisp Linen 354 g', 'SPRAY LYSOL CHICO 354GR', 2, 100.01, 126, 'marca', 'Higiene', 'Desinfectante', 'Aerosol', 'Lysol', 'Reckitt', 'Aerosol 354 g', null, null, false, false, 'https://www.farmacapital.mx/catalogo-propia/lysol-crisp-linen-354g.jpg', 'lysol-crisp-linen-354g.jpg', null),
   (2, '7501058796882', 'FC-58796882', 'Lysol desinfectante Crisp Linen 475 g', 'SPRAY LYSOL GRANDE 475GR', 4, 130.00, 163, 'marca', 'Higiene', 'Desinfectante', 'Aerosol', 'Lysol', 'Reckitt', 'Aerosol 475 g', null, null, false, true, 'https://www.farmacapital.mx/catalogo-propia/lysol-crisp-linen-475g.jpg', 'lysol-crisp-linen-475g.jpg', null);
 
+-- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -75,8 +76,13 @@ select
   t.laboratorio,
   t.imagen,
   t.imagen
-from _fc_sur132821 t
-where public.fc_buscar_producto_escaneo(t.ean) is null;
+from (
+  select distinct on (ean) *
+  from _fc_sur132821
+  order by ean, linea
+) t
+where public.fc_buscar_producto_escaneo(t.ean) is null
+  and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
@@ -86,8 +92,15 @@ set
     when coalesce(p.precio, 0) <= 0 then t.precio
     else p.precio
   end
-from _fc_sur132821 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_sur132821
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
   and (
     p.costo is distinct from t.costo
     or coalesce(p.precio, 0) <= 0
@@ -108,9 +121,17 @@ set
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_sur132821 t
-where p.id = public.fc_buscar_producto_escaneo(t.ean);
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
+from (
+  select distinct on (ean) *
+  from _fc_sur132821
+  order by ean, linea
+) t
+where p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
