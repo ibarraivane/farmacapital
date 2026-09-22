@@ -2,10 +2,8 @@
  * Precio de la TIENDA WEB.
  *
  * - Cada tarjeta: ancla + 3.49% + IVA. POS no se toca.
- * - Una vez por PEDIDO con envío / pago en línea: Servicio $5
- *   (peso entero; cubre el $4+IVA de MP). No es un SKU.
- * - Pick-up en farmacia: $0. El cliente puede pagar en mostrador (BBVA)
- *   y la UI promete «Gratis».
+ * - El Servicio de plataforma ya no se cobra al cliente (CARGO_SERVICIO_MXN = 0).
+ *   Pick-up y envío: sin cargo aparte. La comisión de MP se absorbe en el margen.
  *
  * Espejo: api/_lib/precioOnlineMp.js y public.fc_cargo_plataforma_online().
  */
@@ -14,7 +12,8 @@ export const TASA_MP_ONLINE = 0.040484;
 export const FIJO_MP_MXN = 4;
 export const IVA_MP = 1.16;
 export const FIJO_MP_CON_IVA = FIJO_MP_MXN * IVA_MP; // 4.64
-export const CARGO_SERVICIO_MXN = 5;
+/** Antes $5 por pedido con envío. Ahora $0: no se cobra Servicio al cliente. */
+export const CARGO_SERVICIO_MXN = 0;
 
 export const CONCEPTO_CARGO_PLATAFORMA = "Servicio";
 
@@ -33,20 +32,19 @@ export function precioOnlineMp(precioLista) {
   return Math.ceil(Math.round(bruto * 100) / 100);
 }
 
-/** True si el cliente recoge en farmacia (sin cargo de servicio). */
+/** True si el cliente recoge en farmacia. */
 export function esEntregaPickup(entrega) {
   const e = String(entrega ?? "").toLowerCase().trim();
   return e === "pickup" || e === "recoger" || e === "web_pickup" || e === "pickup_store";
 }
 
 /**
- * Servicio $5 una vez por pedido en línea con envío.
- * Pick-up → $0. Sin opciones → $5 (compat API / totales que ya asumen cargo).
+ * Cargo de plataforma por pedido. Hoy siempre $0 (ya no se cobra Servicio).
+ * Pick-up y envío quedan iguales. Se deja la función para no romper callers.
  * @param {{ entrega?: string, entregaUi?: string, tipo_entrega?: string }} [opts]
  */
 export function cargoPlataformaOnline(opts = {}) {
-  const entrega = opts.entrega ?? opts.entregaUi ?? opts.tipo_entrega;
-  if (esEntregaPickup(entrega)) return 0;
+  void opts;
   return CARGO_SERVICIO_MXN;
 }
 

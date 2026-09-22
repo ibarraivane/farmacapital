@@ -5,7 +5,8 @@ const TASA_MP_ONLINE = 0.040484;
 const FIJO_MP_MXN = 4;
 const IVA_MP = 1.16;
 const FIJO_MP_CON_IVA = FIJO_MP_MXN * IVA_MP;
-const CARGO_SERVICIO_MXN = 5;
+/** Antes $5. Ahora $0: no se cobra Servicio al cliente. */
+const CARGO_SERVICIO_MXN = 0;
 const PRECIO_PLACEHOLDER_MAX = 0.01;
 const CONCEPTO_CARGO_PLATAFORMA = 'Servicio';
 
@@ -26,8 +27,7 @@ function esEntregaPickup(entrega) {
 }
 
 function cargoPlataformaOnline(opts = {}) {
-  const entrega = opts.entrega ?? opts.entregaUi ?? opts.tipo_entrega;
-  if (esEntregaPickup(entrega)) return 0;
+  void opts;
   return CARGO_SERVICIO_MXN;
 }
 

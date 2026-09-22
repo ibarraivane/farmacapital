@@ -3910,7 +3910,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
   const unitTienda = (c) => {
-    // Precio de tarjeta (3.49%+IVA). Servicio $5 una vez por pedido, no por SKU.
+    // Precio de tarjeta (3.49%+IVA). Sin cargo de Servicio aparte.
     return ofertaDeProducto(c, mapaPromos.get(c.id)).oferta;
   };
   const cobroDe=(c)=>unitTienda(c) * (Number(c.qty)||0);
