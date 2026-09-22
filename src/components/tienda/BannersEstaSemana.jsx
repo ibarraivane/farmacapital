@@ -2,6 +2,7 @@ import { bannersEstaSemana, destinoBanner, plantillaBanner, precioBannerProducto
 import { $peso } from "../../utils";
 import { urlImagenPublicaTienda } from "../../utils/tiendaCardImage";
 import { irACatalogoCategoria } from "../../lib/tiendaCatalogoCategorias";
+import { nombrePublicoTienda, presentacionPublicaTienda } from "../../utils/tiendaFarmaciaCatalogo";
 
 function fotoDe(prod) {
   return urlImagenPublicaTienda(prod?.imagen_url) || "";
@@ -18,8 +19,8 @@ function BannerProducto({ banner, producto, promos, onGo }) {
     >
       <div className="farmacapital-bnr-txt">
         <span className="farmacapital-bnr-tag">Esta semana</span>
-        <span className="farmacapital-bnr-t">{producto?.nombre || banner.titulo}</span>
-        <span className="farmacapital-bnr-s">{producto?.presentacion || banner.subtitulo}</span>
+        <span className="farmacapital-bnr-t">{nombrePublicoTienda(producto) || producto?.nombre || banner.titulo}</span>
+        <span className="farmacapital-bnr-s">{presentacionPublicaTienda(producto) || banner.subtitulo}</span>
         <span className="farmacapital-bnr-price">
           {oferta.hayOferta ? <s>{$peso(oferta.lista)}</s> : null}
           <strong>{$peso(oferta.oferta || producto?.precio)}</strong>

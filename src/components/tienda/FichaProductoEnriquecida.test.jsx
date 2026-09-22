@@ -27,6 +27,29 @@ test("sin ficha publicada solo muestra técnica y WhatsApp", () => {
   expect(screen.queryByText("NO")).not.toBeInTheDocument();
   expect(screen.queryByText("¿Para qué sirve?")).not.toBeInTheDocument();
   expect(screen.getByText("Preguntar por WhatsApp")).toBeInTheDocument();
+  expect(screen.queryByText("Código de barras")).not.toBeInTheDocument();
+  expect(screen.queryByText("750123")).not.toBeInTheDocument();
+});
+
+test("Aspirina Eferv no enseña el EAN al cliente", () => {
+  render(
+    <FichaProductoEnriquecida
+      producto={{
+        nombre: "Aspirina Eferv",
+        descripcion: "Aspirina Eferv",
+        principio_activo: "Acidoacetilsalicilico",
+        forma_farmaceutica: "TABLETAS",
+        presentacion: "C/12",
+        marca: "Aspirina",
+        requiere_receta: false,
+        codigo_barras: "7501008496701",
+      }}
+    />
+  );
+  expect(screen.getByText("Caja con 12")).toBeInTheDocument();
+  expect(screen.getByText("Tabletas")).toBeInTheDocument();
+  expect(screen.queryByText("Código de barras")).not.toBeInTheDocument();
+  expect(screen.queryByText("7501008496701")).not.toBeInTheDocument();
 });
 
 test("con monografía publicada muestra acordeones", () => {

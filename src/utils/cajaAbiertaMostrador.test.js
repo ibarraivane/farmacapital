@@ -2,8 +2,11 @@ import {
   cuentaPiezasCajaMostrador,
   descripcionPublicaTienda,
   esNotaInternaCompra,
+  expandirTextoPublicoTienda,
+  nombrePublicoTienda,
   presentacionPublicaTienda,
   productoEsCajaAbiertaMostrador,
+  quitarCodigoBarrasPublico,
   subtituloPublicoTienda,
 } from "./cajaAbiertaMostrador";
 
@@ -360,4 +363,38 @@ test("descripcionPublicaTienda oculta notas de mayoreo y recargo", () => {
       descripcion: "Humecta piel y cabello. Uso tópico.",
     }),
   ).toBe("Humecta piel y cabello. Uso tópico.");
+});
+
+test("nombrePublicoTienda expande Eferv y no corta Tabcin", () => {
+  expect(nombrePublicoTienda({ nombre: "Aspirina Eferv" })).toBe("Aspirina Efervescente");
+  expect(nombrePublicoTienda({ nombre: "Tabcin Eferv" })).toBe("Tabcin Efervescente");
+  expect(expandirTextoPublicoTienda("Aspirina Eferv Tab C/12")).toBe("Aspirina Efervescente tabletas caja con 12");
+});
+
+test("presentacion C/12 se lee como Caja con 12", () => {
+  expect(presentacionPublicaTienda({ presentacion: "C/12" })).toBe("Caja con 12");
+  expect(presentacionPublicaTienda({ presentacion: "C/12 capsulas" })).toBe("Caja con 12 capsulas");
+});
+
+test("descripcionPublicaTienda quita el código de barras y no repite el nombre corto", () => {
+  expect(quitarCodigoBarrasPublico("Aspirina Bayer 500 mg 80 tabletas — EAN 7501008499818"))
+    .toBe("Aspirina Bayer 500 mg 80 tabletas");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Aspirina Bayer 500 mg 80 tabletas",
+      descripcion: "Aspirina Bayer 500 mg 80 tabletas — EAN 7501008499818",
+    }),
+  ).toBe("");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Aspirina Eferv",
+      descripcion: "Aspirina Eferv",
+    }),
+  ).toBe("");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Aspirina Eferv",
+      descripcion: "Aspirina efervescente de Bayer. EAN 7501008496701",
+    }),
+  ).toBe("Aspirina efervescente de Bayer.");
 });

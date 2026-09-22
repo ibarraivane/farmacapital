@@ -123,21 +123,70 @@ export function esNotaInternaCompra(texto) {
   return false;
 }
 
+const ABREV_TICKET_PUBLICO = [
+  [/\bEferv\b/gi, "Efervescente"],
+  [/\bTabs\b/gi, "tabletas"],
+  [/\bTab\b/gi, "tabletas"],
+];
+
+/** Quita EAN / código de barras: el cliente no lo necesita en la ficha. */
+export function quitarCodigoBarrasPublico(texto) {
+  let out = String(texto || "").trim();
+  if (!out) return "";
+  const before = out;
+  out = out.replace(
+    /\b(?:ean|upc|gtin|c[oó]digo(?:\s+de)?\s+barras|c[oó]d\.?\s*barras?)\s*[:#.]?\s*\d{8,14}\b/gi,
+    "",
+  );
+  out = out.replace(/\b\d{8,14}\b/g, "");
+  if (out !== before) {
+    out = out.replace(/\s*[—–\-·]+\s*$/g, "");
+    out = out.replace(/^\s*[—–\-·]+\s*/g, "");
+  }
+  return out.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Expande abreviaciones de ticket (Eferv, C/12, Tab) para la tienda.
+ * No cambia el valor en BD; el POS sigue viendo el nombre corto.
+ */
+export function expandirTextoPublicoTienda(texto) {
+  let out = String(texto || "").trim();
+  if (!out) return "";
+  for (const [re, repl] of ABREV_TICKET_PUBLICO) {
+    out = out.replace(re, repl);
+  }
+  out = out.replace(/\bC\/\s*(\d+)\b/gi, "caja con $1");
+  if (/^caja con \d+/i.test(out)) {
+    out = out.replace(/^caja con/i, "Caja con");
+  }
+  return out.replace(/\s+/g, " ").trim();
+}
+
+/** Nombre de mostrador para el cliente: sin corte de ticket. */
+export function nombrePublicoTienda(p) {
+  return expandirTextoPublicoTienda(p?.nombre || "");
+}
+
 /** Notas de ticket / proveedor: no se muestran al cliente. */
 export function descripcionPublicaTienda(p) {
   const d = String(p?.descripcion || "").trim();
   if (!d || esNotaInternaCompra(d)) return "";
-  const low = normalizarTextoPublico(d);
-  const nombre = normalizarTextoPublico(p?.nombre);
-  if (nombre && low === nombre) return "";
-  return d;
+  const limpia = quitarCodigoBarrasPublico(d);
+  if (!limpia || esNotaInternaCompra(limpia)) return "";
+  const nombrePub = normalizarTextoPublico(nombrePublicoTienda(p));
+  const nombreCrudo = normalizarTextoPublico(p?.nombre);
+  const low = normalizarTextoPublico(limpia);
+  if (nombrePub && low === nombrePub) return "";
+  if (nombreCrudo && low === nombreCrudo) return "";
+  return expandirTextoPublicoTienda(limpia);
 }
 
 /** Presentación comercial; oculta si el campo se usó como nota de ticket. */
 export function presentacionPublicaTienda(p) {
   const d = String(p?.presentacion || "").trim();
   if (!d || esNotaInternaCompra(d)) return "";
-  return d;
+  return expandirTextoPublicoTienda(d);
 }
 
 /** Subtítulo de tarjeta: marca · presentación · concentración · forma. Nunca la nota de compra. */

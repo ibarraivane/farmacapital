@@ -24,6 +24,28 @@ test("sin ficha publicada degrada a ficha técnica", () => {
   expect(ui.resumen).toBe("Texto corto de respaldo");
   expect(ui.mostrarSoloTecnica).toBe(true);
   expect(ui.fichaTecnica.map((r) => r.k)).toContain("Sustancia activa");
+  expect(ui.fichaTecnica.map((r) => r.k)).not.toContain("Código de barras");
+  expect(ui.fichaTecnica.some((r) => r.v === "750123")).toBe(false);
+});
+
+test("ficha de cliente expande C/12 y no muestra el EAN", () => {
+  const ui = mapearFichaTienda({
+    producto: {
+      nombre: "Aspirina Eferv",
+      descripcion: "Aspirina Eferv 7501008496701",
+      principio_activo: "Acidoacetilsalicilico",
+      forma_farmaceutica: "TABLETAS",
+      presentacion: "C/12",
+      marca: "Aspirina",
+      requiere_receta: false,
+      codigo_barras: "7501008496701",
+    },
+  });
+  expect(ui.resumen).toBe("");
+  expect(ui.fichaTecnica.find((r) => r.k === "Forma farmacéutica").v).toBe("Tabletas");
+  expect(ui.fichaTecnica.find((r) => r.k === "Presentación").v).toBe("Caja con 12");
+  expect(ui.fichaTecnica.map((r) => r.k)).not.toContain("Código de barras");
+  expect(ui.fichaTecnica.some((r) => String(r.v).includes("7501008496701"))).toBe(false);
 });
 
 test("con ficha y monografía publicadas arma acordeones", () => {
