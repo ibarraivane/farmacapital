@@ -55,11 +55,17 @@ describe("bandasCatalogoPorCategoria", () => {
 });
 
 describe("irACatalogoCategoria", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
   test("guarda categoría y navega al catálogo", () => {
     const pages = [];
+    sessionStorage.setItem("farmacapital_catalogo_scroll", "900");
     irACatalogoCategoria((p, opts) => pages.push([p, opts]), "Alergia");
     expect(sessionStorage.getItem("farmacapital_cat")).toBe("Alergia");
-    expect(pages).toEqual([["catalogo", { rx: false }]]);
+    expect(sessionStorage.getItem("farmacapital_catalogo_scroll")).toBeNull();
+    expect(pages).toEqual([["catalogo", { rx: false, catalogoScroll: "top" }]]);
   });
 });
 
