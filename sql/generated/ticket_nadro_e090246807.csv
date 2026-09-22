@@ -1,0 +1,4 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,E090246807,2026-09-20,Nadro,7501022112106,EXCELSIOR POM 8 G,3,50.69,152.07,,,FC-22112106,1421.75,nadro
+2,E090246807,2026-09-20,Nadro,7502223111202,LIDOCAINA 10% SPRAY 115 ML LGEN,3,134.34,403.02,,,EQ-QUM014,1421.75,catalogo
+3,E090246807,2026-09-20,Nadro,7502214986659,MIFEPRISTONA 200MG CJA 1 TAB,2,433.33,866.66,,,FC-14986659,1421.75,nadro
