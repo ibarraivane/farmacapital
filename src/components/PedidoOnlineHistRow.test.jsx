@@ -68,3 +68,18 @@ it("reserva las mismas columnas con o sin botón de ruta", () => {
   fireEvent.click(within(rowListo).getByRole("button", { name: /Marcar en ruta/ }));
   expect(onMarcarRuta).toHaveBeenCalledWith(listoRuta);
 });
+
+it("al abrir el folio muestra los productos del pedido", () => {
+  const pedido = {
+    ...listoRuta,
+    direccion: "Calle Río Grijalva 37",
+    pedido_items: [
+      { cantidad: 1, precio_unitario: 56, productos: { nombre: "Roxidolin Doxiciclina 100 mg", ubicacion_texto: "A-1" } },
+    ],
+  };
+  render(<PedidoOnlineHistRow pedido={pedido} />);
+  expect(screen.queryByText(/Roxidolin/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Pedido #453/ }));
+  expect(screen.getByText(/Roxidolin/)).toBeInTheDocument();
+  expect(screen.getByText("A-1")).toBeInTheDocument();
+});
