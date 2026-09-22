@@ -61,6 +61,23 @@ async function fetchDatosTicketPedido(supabaseUrl, serviceKey, pedidoId) {
   return null;
 }
 
+async function fetchClienteAviso(supabaseUrl, serviceKey, clienteId) {
+  if (!clienteId) return null;
+  const headers = {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+  };
+  for (const select of ['id,nombre,telefono,email,email_alt', 'id,nombre,telefono,email']) {
+    const resp = await fetch(
+      `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=${select}&limit=1`,
+      { headers }
+    );
+    const rows = await resp.json().catch(() => []);
+    if (resp.ok && Array.isArray(rows) && rows[0]) return rows[0];
+  }
+  return null;
+}
+
 module.exports = async function handler(req, res) {
   const MP_ACCESS_TOKEN = (process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
   const SUPABASE_URL = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || '');
@@ -355,16 +372,22 @@ module.exports = async function handler(req, res) {
           }
         }
         const emailGuest = String(guest?.guest_email || '').trim();
-        const emailCliente = String(cliente?.email || '').trim();
-        const email = emailGuest.includes('@')
-          ? emailGuest
-          : (emailCliente.includes('@') ? emailCliente : null);
+        const emails = emailsAvisoCliente({
+          guestEmail: emailGuest,
+          email: cliente?.email,
+          emailAlt: cliente?.email_alt,
+        });
         await sendOrderNotifications({
           event,
-          pedido: { ...pedidoBefore, id: pedidoId },
+          pedido: {
+            ...pedidoBefore,
+            id: pedidoId,
+            guest_email: emailGuest || pedidoBefore.guest_email || null,
+            costo_envio: guest?.costo_envio ?? pedidoBefore.costo_envio,
+          },
           cliente: {
             ...(cliente || {}),
-            email,
+            email: emails,
             nombre: cliente?.nombre || guest?.guest_nombre || '',
           },
           items: Array.isArray(itemRows) ? itemRows : [],

@@ -77,6 +77,7 @@ import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../
 import PedidoOnlineCard from "../../../components/PedidoOnlineCard";
 import PedidoOnlineHistRow from "../../../components/PedidoOnlineHistRow";
 import { despacharEnvioPedido } from "../../../lib/envioDomicilioClient";
+import { reenviarTicketCorreoPedido } from "../../../lib/reenviarTicketCorreo";
 
 function mlDePresentacion(producto) {
   const t = `${producto?.presentacion || ""} ${producto?.nombre || ""} ${producto?.concentracion || ""}`;
@@ -3821,6 +3822,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                       bbvaOnlinePedidoRef.current = ped;
                       setBbvaFolio(formatFolioOnline(ped.id));
                       setBbvaModal(true);
+                    }}
+                    onEnviarRecibo={async (ped) => {
+                      const tokU = sessionStorage.getItem("farmacapital_session_token");
+                      const r = await reenviarTicketCorreoPedido({ pedidoId: ped.id, sessionToken: tokU });
+                      if (r.ok) {
+                        const dest = Array.isArray(r.to) ? r.to.join(", ") : "";
+                        showToast(dest ? `Recibo enviado a ${dest}` : "Recibo enviado por correo", "success");
+                      } else {
+                        showToast(
+                          r.error === "missing_email"
+                            ? "Falta el correo del cliente en la ficha."
+                            : `No se envió el recibo: ${r.error || r.detail || "error"}`,
+                          "warning",
+                        );
+                      }
                     }}
                     onMarcarRuta={async (ped) => {
                       const tokU = sessionStorage.getItem("farmacapital_session_token");

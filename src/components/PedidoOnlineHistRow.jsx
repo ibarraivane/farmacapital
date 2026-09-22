@@ -25,6 +25,7 @@ export default function PedidoOnlineHistRow({
   guardando,
   onCobrarBbva,
   onMarcarRuta,
+  onEnviarRecibo,
 }) {
   const C = C_LIGHT;
   const ep = etiquetaPagoPedidoOnline(p, {
@@ -38,6 +39,7 @@ export default function PedidoOnlineHistRow({
     ? BRAND.accent
     : C.green;
   const mostrarBbva = esPedidoPickupPendienteCobro(p) && p.estado === "listo";
+  const mostrarRecibo = String(p.payment_status || "").toLowerCase() === "approved" && typeof onEnviarRecibo === "function";
   const mostrarRuta = p.tipo_entrega === "envio"
     && p.delivery_status !== "in_route"
     && !p.delivery_tracking_url
@@ -91,6 +93,11 @@ export default function PedidoOnlineHistRow({
           {mostrarBbva ? (
             <Btn sm col="#1a237e" dis={guardando} onClick={() => onCobrarBbva?.(p)}>
               🏦 Cobrar BBVA
+            </Btn>
+          ) : null}
+          {mostrarRecibo ? (
+            <Btn sm ol col={C.blue} dis={guardando} onClick={() => onEnviarRecibo?.(p)}>
+              Enviar recibo por correo
             </Btn>
           ) : null}
           {mostrarRuta ? (

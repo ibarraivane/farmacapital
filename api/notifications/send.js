@@ -3,6 +3,7 @@
 const {
   sendWhatsapp,
   sendPosTicketNotification,
+  sendOrderNotifications,
   buildReceiptMessage,
   buildCitaConfirmacionMessage,
   buildOrderTemplateBodyParams,
@@ -18,6 +19,9 @@ const {
   ensurePedidoReciboToken,
   buildReciboPublicUrl,
 } = require('../_lib/receiptTicket');
+const { lineasTicketCorreo } = require('../_lib/envioDomicilio');
+const { ticketPagoAdjunto } = require('../_lib/ticketEnvioPdf');
+const { emailsAvisoCliente } = require('../_lib/clienteEmails');
 
 async function safeJson(req) {
   try {
@@ -35,6 +39,7 @@ function resolveNotificationType(req, body) {
   if (q === 'order' || q === 'order-receipt') return 'order';
   if (q === 'pos-ticket' || q === 'pos_ticket') return 'pos-ticket';
   if (q === 'recibo-ensure' || q === 'recibo_ensure') return 'recibo-ensure';
+  if (q === 'order-email' || q === 'order_email' || q === 'ticket-email' || q === 'ticket_email') return 'order-email';
   if (q === 'whatsapp' || q === 'whatsapp-send') return 'whatsapp';
   if (q === 'solicitud' || q === 'solicitudes' || q === 'conseguir') return 'solicitud';
   const b = String(body?.type || body?.notificationType || '').trim().toLowerCase();
@@ -42,6 +47,7 @@ function resolveNotificationType(req, body) {
   if (b === 'order' || b === 'order-receipt') return 'order';
   if (b === 'pos-ticket' || b === 'pos_ticket') return 'pos-ticket';
   if (b === 'recibo-ensure' || b === 'recibo_ensure') return 'recibo-ensure';
+  if (b === 'order-email' || b === 'order_email' || b === 'ticket-email' || b === 'ticket_email') return 'order-email';
   if (b === 'whatsapp' || b === 'whatsapp-send') return 'whatsapp';
   if (b === 'solicitud' || b === 'solicitudes' || b === 'conseguir') return 'solicitud';
   if (body?.citaId != null && body?.pedidoId == null) return 'cita';
@@ -178,7 +184,7 @@ async function supabaseGetPedidoRow(supabaseUrl, serviceKey, pedidoId, select) {
 /** PostgREST falla si faltan columnas opcionales (whatsapp_recibo, logistics_meta). Reintenta select mínimo. */
 async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
   const base =
-    'id,total,tipo,tipo_entrega,metodo_pago,cliente_id,guest_telefono,created_at';
+    'id,total,tipo,tipo_entrega,metodo_pago,cliente_id,guest_telefono,guest_email,guest_nombre,created_at,payment_status,costo_envio';
   const withItems = `${base},pedido_items(cantidad,precio_unitario,productos(nombre))`;
   const withOptional = `${withItems},whatsapp_recibo,logistics_meta`;
 
@@ -191,6 +197,28 @@ async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
     }
   }
 
+  return null;
+}
+
+async function fetchClienteCorreo(supabaseUrl, serviceKey, clienteId) {
+  if (!clienteId) return null;
+  const selects = [
+    'id,nombre,telefono,email,email_alt',
+    'id,nombre,telefono,email',
+  ];
+  for (const select of selects) {
+    const resp = await fetch(
+      `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=${select}&limit=1`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+      }
+    );
+    const rows = await resp.json().catch(() => []);
+    if (resp.ok && Array.isArray(rows) && rows[0]) return rows[0];
+  }
   return null;
 }
 
@@ -472,6 +500,96 @@ async function handleReciboEnsure(req, res, body) {
   });
 }
 
+/** Empleado: reenvía el ticket/recibo por correo (gracias + PDF). */
+async function handleOrderTicketEmail(req, res, body) {
+  const pedidoId = Number(body?.pedidoId || body?.pedido_id);
+  const employeeToken = String(
+    body?.employeeSessionToken || body?.sessionTokenEmpleado || body?.sessionToken || ''
+  ).trim();
+
+  if (!pedidoId || !Number.isFinite(pedidoId)) {
+    return res.status(400).json({ ok: false, error: 'invalid_pedido_id' });
+  }
+  if (!employeeToken) {
+    return res.status(403).json({ ok: false, error: 'missing_employee_session' });
+  }
+
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ ok: false, error: 'missing_server_env' });
+  }
+
+  const validEmployee = await validateEmployeeSession(supabaseUrl, serviceKey, employeeToken);
+  if (!validEmployee) {
+    return res.status(403).json({ ok: false, error: 'invalid_employee_session' });
+  }
+
+  const pedido = await fetchPedido(supabaseUrl, serviceKey, pedidoId);
+  if (!pedido) {
+    return res.status(404).json({ ok: false, error: 'pedido_not_found' });
+  }
+
+  const cliente = pedido.cliente_id
+    ? await fetchClienteCorreo(supabaseUrl, serviceKey, pedido.cliente_id)
+    : null;
+  const emails = emailsAvisoCliente({
+    guestEmail: pedido.guest_email,
+    email: cliente?.email,
+    emailAlt: cliente?.email_alt,
+  });
+  if (!emails.length) {
+    return res.status(200).json({
+      ok: false,
+      error: 'missing_email',
+      detail: 'El cliente no tiene correo en la ficha ni en el pedido.',
+    });
+  }
+
+  const items = Array.isArray(pedido.pedido_items) ? pedido.pedido_items : [];
+  let ticket = null;
+  let ticketUrl = null;
+  try {
+    const token = await ensurePedidoReciboToken(supabaseUrl, serviceKey, pedidoId);
+    ticketUrl = token ? buildReciboPublicUrl(token) : null;
+    const lineas = lineasTicketCorreo(items);
+    const productos = lineas.reduce((sum, l) => sum + Number(l.importe || 0), 0);
+    ticket = ticketPagoAdjunto({
+      pedidoId,
+      nombre: cliente?.nombre || pedido.guest_nombre,
+      items: lineas,
+      productos,
+      envio: pedido.costo_envio,
+      total: pedido.total,
+      ticketUrl,
+    });
+  } catch (e) {
+    console.warn('[notifications/send:order-email] ticket:', e?.message);
+    ticket = null;
+  }
+
+  const result = await sendOrderNotifications({
+    event: 'payment_approved',
+    pedido,
+    cliente: {
+      ...(cliente || {}),
+      email: emails,
+      nombre: cliente?.nombre || pedido.guest_nombre || '',
+      telefono: cliente?.telefono || pedido.guest_telefono || null,
+    },
+    items,
+    ticket,
+    channels: ['email'],
+  });
+
+  return res.status(200).json({
+    ok: Boolean(result?.email?.sent),
+    pedidoId,
+    ticketUrl,
+    email: result?.email || null,
+    to: emails,
+  });
+}
+
 module.exports = async function handler(req, res) {
   try {
     const body = await safeJson(req);
@@ -496,6 +614,9 @@ module.exports = async function handler(req, res) {
     }
     if (type === 'recibo-ensure') {
       return handleReciboEnsure(req, res, body);
+    }
+    if (type === 'order-email') {
+      return handleOrderTicketEmail(req, res, body);
     }
     if (type === 'whatsapp') {
       return handleWhatsAppManualSend(req, res, body);

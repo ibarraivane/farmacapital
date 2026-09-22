@@ -182,6 +182,10 @@
       "destination": "/api/notifications/send?type=recibo-ensure"
     },
     {
+      "source": "/api/notifications/order-email",
+      "destination": "/api/notifications/send?type=order-email"
+    },
+    {
       "source": "/api/payments/mp/balance",
       "destination": "/api/payments/mp/point?action=balance"
     },

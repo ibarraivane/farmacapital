@@ -1,7 +1,9 @@
 -- FarmaCapital — 2026-09-21
 -- Alejandro Escalante: deja el Gmail en email y pone Hotmail en email_alt.
--- Requiere haber corrido patch_clientes_email_alt_20260921.sql antes.
--- Pegar en Supabase → SQL Editor → Run.
+-- 1) Correr primero sql/patch_clientes_email_alt_20260921.sql
+-- 2) Pegar este archivo en Supabase → SQL Editor → Run
+-- 3) Tras el deploy: en POS → Pedidos online → historial #453 → «Enviar recibo por correo»
+--    (manda gracias + ticket PDF a Gmail y Hotmail).
 
 begin;
 
