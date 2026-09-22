@@ -5404,6 +5404,7 @@ function AvisoPrivacidad({setPage}){
         ["4. Transferencia de datos","Sus datos no serán transferidos a terceros sin su consentimiento, salvo en los casos previstos por la ley o cuando sea necesario para el cumplimiento del servicio contratado (ej. empresas de mensajería)."],
         ["5. Derechos ARCO","Usted tiene derecho a Acceder, Rectificar, Cancelar u Oponerse al tratamiento de sus datos (derechos ARCO). Para ejercerlos, envíe un correo a contacto@farmacapital.mx indicando su nombre, el derecho que desea ejercer y los datos a los que se refiere. Responderemos en un plazo máximo de 20 días hábiles."],
         ["6. Cambios al aviso de privacidad","FarmaCapital se reserva el derecho de modificar el presente aviso. Cualquier cambio será notificado a través de nuestro sitio web farmacapital.com.mx."],
+        ["7. Cookies","Usamos almacenamiento necesario para el carrito, el inicio de sesión y el pago. Si aceptas las cookies en el aviso de la tienda, también recordamos preferencias de navegación. Puedes elegir «Solo necesarias»; el carrito y la cuenta siguen funcionando. El aviso no vuelve a mostrarse hasta que borres los datos del navegador."],
       ].map(([t,c])=>(
         <div key={t} style={{marginBottom:20}}>
           <div style={{color:C.dark,fontWeight:700,marginBottom:6}}>{t}</div>
