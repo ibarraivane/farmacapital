@@ -27,6 +27,7 @@ import {
   CATEGORIAS_PRODUCTO as CATEGORIAS,
   categoriaCanon,
   categoriaPasaFiltro,
+  categoriaVitrinaPasaFiltro,
   opcionesCategoriaSelect,
 } from "./constants/categoriasProducto";
 import {
@@ -3237,7 +3238,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
-    const cat = categoriaPasaFiltro(p.categoria, filtroCategoria);
+    const cat = categoriaVitrinaPasaFiltro(p, filtroCategoria);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"            ? true :

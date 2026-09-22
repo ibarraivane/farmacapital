@@ -20,6 +20,7 @@ CAT_MAP = {
     "Higiene bucal": "Higiene",
     "Higiene personal": "Higiene",
     "Higiene capilar": "Higiene",
+    "Hidratación": "Hidratación",
     "Cuidado personal": "Cuidado personal",
     "Botiquín": "Botiquín",
     "Medicamento": "Otro",
