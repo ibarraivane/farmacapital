@@ -44,7 +44,7 @@ export default function PedidoOnlineHistRow({
             Pedido #{p.id} · {formatFolioOnline(p.id)}
           </div>
           <div className="farmacapital-pedido-hist-row__cliente">
-            {p.clientes?.nombre || "—"}
+            {p.clientes?.nombre || p.guest_nombre || "—"}
             <span className="farmacapital-pedido-hist-row__fecha">
               {" · "}
               {p.created_at ? new Date(p.created_at).toLocaleString("es-MX") : "—"}

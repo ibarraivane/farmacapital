@@ -299,7 +299,7 @@ export function mensajeCorreoEnvioCotizado({ sent, reason, detail, costo } = {})
   if (reason === "email_not_configured") {
     return `${monto} cargado. Falta la llave de Resend en el servidor, por eso no salió el correo.`;
   }
-  if (/domain is not verified|not verified|verificar/i.test(err)) {
+  if (reason === "domain_not_verified" || /domain is not verified|not verified|verificar/i.test(err)) {
     return `${monto} cargado. Resend rechazó contacto@farmacapital.mx: verifica el dominio farmacapital.mx en resend.com/domains y vuelve a guardar.`;
   }
   if (/only send testing emails/i.test(err)) {

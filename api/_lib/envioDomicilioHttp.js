@@ -150,20 +150,6 @@ async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, cos
         from: mail.from,
         replyTo: mail.replyTo,
       });
-      if (!email.sent && email.reason === 'email_provider_error') {
-        const fallbackFrom = String(process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
-        if (fallbackFrom && fallbackFrom !== mail.from) {
-          const otroRemitente = await sendEmail({
-            to: contacto.email,
-            subject: mail.subject,
-            text: mail.text,
-            html: mail.html,
-            from: fallbackFrom,
-            replyTo: mail.replyTo,
-          });
-          if (otroRemitente.sent) email = { ...otroRemitente, fromFallback: true };
-        }
-      }
     } catch (e) {
       email = { sent: false, reason: e?.message || 'email_failed' };
     }
