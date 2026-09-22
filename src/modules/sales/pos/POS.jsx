@@ -48,7 +48,7 @@ import {
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
-import { esPedidoPickupPendienteCobro, etiquetaPagoPedidoOnline, fetchPedidosOnlineMostrador, esErrorColumnaCostoEnvio } from "../../../utils/pedidosTiendaWeb";
+import { fetchPedidosOnlineMostrador, esErrorColumnaCostoEnvio } from "../../../utils/pedidosTiendaWeb";
 import {
   telefonoClientePedido,
   payloadMarcarPedidoListo,
@@ -75,7 +75,7 @@ import {
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import PedidoOnlineCard from "../../../components/PedidoOnlineCard";
-import CronometroPedidoOnline from "../../../components/CronometroPedidoOnline";
+import PedidoOnlineHistRow from "../../../components/PedidoOnlineHistRow";
 import { despacharEnvioPedido } from "../../../lib/envioDomicilioClient";
 
 function mlDePresentacion(producto) {
@@ -3813,54 +3813,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 {pedOnlineHist.length === 0 ? (
                   <div style={{color:C.textDim,fontSize:12,padding:"8px 0"}}>Sin pedidos surtidos recientes</div>
                 ) : pedOnlineHist.map((p)=>(
-                  <Box key={`hist-${p.id}`} style={{padding:12,marginBottom:10,minWidth:0,opacity:.95}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
-                      <div>
-                        <div style={{color:C.text,fontWeight:700,fontSize:13}}>Pedido #{p.id} · {formatFolioOnline(p.id)}</div>
-                        <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{p.clientes?.nombre} · {new Date(p.created_at).toLocaleString("es-MX")}</div>
-                      </div>
-                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                        <Tag
-                          col={p.delivery_status === "ready_for_pickup" || p.estado !== "completado" ? BRAND.accent : C.green}
-                          sm
-                        >
-                          {p.delivery_status === "ready_for_pickup"
-                            ? "Listo"
-                            : p.estado === "completado"
-                              ? "Entregado"
-                              : "Listo"}
-                        </Tag>
-                        {(() => {
-                          const ep = etiquetaPagoPedidoOnline(p, { accent: C.green, amber: C.amber, blue: C.blue, muted: C.textDim });
-                          return <Tag col={ep.col} sm>{ep.label}</Tag>;
-                        })()}
-                        <CronometroPedidoOnline pedido={p} />
-                        <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{$(p.total)}</span>
-                        {esPedidoPickupPendienteCobro(p) && p.estado === "listo" && (
-                          <Btn sm col="#1a237e" dis={guardando} onClick={()=>{
-                            bbvaOnlinePedidoRef.current = p;
-                            setBbvaFolio(formatFolioOnline(p.id));
-                            setBbvaModal(true);
-                          }}>🏦 Cobrar BBVA</Btn>
-                        )}
-                        {p.tipo_entrega==="envio" && !p.delivery_tracking_url && (
-                          <Btn sm col={C.teal} dis={guardando} onClick={async()=>{
-                            const tokU = sessionStorage.getItem("farmacapital_session_token");
-                            const r = await despacharEnvioPedido({ pedidoId: p.id, sessionToken: tokU });
-                            if (r.ok) {
-                              showToast("Marcado en ruta", "success");
-                              setPedOnHist((prev)=>prev.map((x)=>x.id===p.id ? { ...x, delivery_status: "in_route" } : x));
-                            } else {
-                              showToast(r.error === "envio_no_pagado" ? "Falta el pago del envío." : `No se despachó: ${r.error}`, "warning");
-                            }
-                          }}>Marcar en ruta</Btn>
-                        )}
-                        {p.delivery_tracking_url && (
-                          <a href={p.delivery_tracking_url} target="_blank" rel="noreferrer" style={{fontSize:11,fontWeight:700,color:C.blue}}>Tracking</a>
-                        )}
-                      </div>
-                    </div>
-                  </Box>
+                  <PedidoOnlineHistRow
+                    key={`hist-${p.id}`}
+                    pedido={p}
+                    guardando={guardando}
+                    onCobrarBbva={(ped) => {
+                      bbvaOnlinePedidoRef.current = ped;
+                      setBbvaFolio(formatFolioOnline(ped.id));
+                      setBbvaModal(true);
+                    }}
+                    onMarcarRuta={async (ped) => {
+                      const tokU = sessionStorage.getItem("farmacapital_session_token");
+                      const r = await despacharEnvioPedido({ pedidoId: ped.id, sessionToken: tokU });
+                      if (r.ok) {
+                        showToast("Marcado en ruta", "success");
+                        setPedOnHist((prev) => prev.map((x) => x.id === ped.id ? { ...x, delivery_status: "in_route" } : x));
+                      } else {
+                        showToast(r.error === "envio_no_pagado" ? "Falta el pago del envío." : `No se despachó: ${r.error}`, "warning");
+                      }
+                    }}
+                  />
                 ))}
               </div>
             </>

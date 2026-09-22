@@ -834,3 +834,100 @@ details.fc-fold summary:focus-visible {
     animation: none;
   }
 }
+
+/* POS historial surtidos: mismas columnas (estatus, pago, tiempo, precio, acción). */
+.farmacapital-pedido-hist-card { min-width: 0; }
+.farmacapital-pedido-hist-row {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    6.75rem
+    13rem
+    9.5rem
+    6.25rem
+    9.75rem;
+  grid-template-areas: "id estado pago tiempo precio accion";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 8px;
+  min-width: 0;
+}
+.farmacapital-pedido-hist-row__id { grid-area: id; min-width: 0; }
+.farmacapital-pedido-hist-row__folio {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.farmacapital-pedido-hist-row__cliente {
+  color: #475569;
+  font-size: 11px;
+  margin-top: 2px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.farmacapital-pedido-hist-row__estado,
+.farmacapital-pedido-hist-row__pago,
+.farmacapital-pedido-hist-row__tiempo {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.farmacapital-pedido-hist-row__estado { grid-area: estado; }
+.farmacapital-pedido-hist-row__pago { grid-area: pago; }
+.farmacapital-pedido-hist-row__pago > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.farmacapital-pedido-hist-row__tiempo { grid-area: tiempo; }
+.farmacapital-pedido-hist-row__precio {
+  grid-area: precio;
+  color: #1E3ABA;
+  font-weight: 800;
+  font-size: 13px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  justify-self: stretch;
+}
+.farmacapital-pedido-hist-row__accion {
+  grid-area: accion;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.farmacapital-pedido-hist-row__tracking {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1E3ABA;
+}
+@media (max-width: 980px) {
+  .farmacapital-pedido-hist-row {
+    grid-template-columns:
+      6.75rem
+      minmax(0, 1fr)
+      9.5rem
+      6.25rem
+      9.75rem;
+    grid-template-areas:
+      "id id id id id"
+      "estado pago tiempo precio accion";
+  }
+}
+@media (max-width: 640px) {
+  .farmacapital-pedido-hist-row {
+    grid-template-columns: minmax(0, 1fr) 6.25rem;
+    grid-template-areas:
+      "id id"
+      "estado precio"
+      "pago precio"
+      "tiempo accion";
+  }
+  .farmacapital-pedido-hist-row__accion { justify-content: flex-start; }
+}
