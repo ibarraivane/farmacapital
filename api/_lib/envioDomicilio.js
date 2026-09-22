@@ -370,7 +370,7 @@ function correoAvisoEnvioCotizado({
     (cargoN > 0 ? `Servicio: ${servicio}\n` : '') +
     `Envío a domicilio: ${envio}\n` +
     (detalle ? `\n${detalle}` : '') +
-    `\nEl ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.\n\n`
+    `\nEl ticket de compra se crea cuando terminas el pago. Te llega a este correo en cuanto el pago queda hecho.\n\n` +
     `FarmaCapital\n` +
     `Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa\n` +
     `contacto@farmacapital.mx`;
