@@ -77,12 +77,12 @@ export default function EnvioCotizacionPanel({ pedido, showToast, onUpdated }) {
     setBusy(false);
     if (!r.ok) {
       const msg = r.error === "envio_no_pagado"
-        ? "El cliente aún no liquida en la tienda."
+        ? "Este pedido aún no está pagado. El cliente liquida en su cuenta; después marcas en ruta."
         : `No se marcó en ruta: ${r.error}`;
       showToast(msg, "warning");
       return;
     }
-    showToast("Marcado en ruta", "success");
+    showToast("En ruta. Pide el Uber/DiDi y entrega.", "success");
     onUpdated?.(r.envio);
   };
 

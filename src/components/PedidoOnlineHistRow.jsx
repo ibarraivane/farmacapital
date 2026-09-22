@@ -33,6 +33,7 @@ export default function PedidoOnlineHistRow({
     : C.green;
   const mostrarBbva = esPedidoPickupPendienteCobro(p) && p.estado === "listo";
   const mostrarRuta = p.tipo_entrega === "envio"
+    && p.delivery_status !== "in_route"
     && !p.delivery_tracking_url
     && p.estado !== "completado";
 
