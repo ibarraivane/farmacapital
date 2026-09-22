@@ -192,7 +192,12 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
   const RESEND_API_KEY = String(process.env.RESEND_API_KEY || '').trim();
   const notifyFrom = String(process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
   const fromAddr = String(from || notifyFrom).trim();
-  if (!RESEND_API_KEY || !to) return { sent: false, reason: 'email_not_configured' };
+  const recipients = Array.isArray(to)
+    ? to.map((e) => String(e || '').trim()).filter((e) => e.includes('@'))
+    : (String(to || '').trim().includes('@') ? [String(to).trim()] : []);
+  if (!RESEND_API_KEY || !recipients.length) {
+    return { sent: false, reason: RESEND_API_KEY ? 'missing_email' : 'email_not_configured' };
+  }
   const resuelto = await resolverFromVerificado({
     apiKey: RESEND_API_KEY,
     from: fromAddr,
@@ -211,7 +216,7 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
     },
     body: JSON.stringify({
       from: resuelto.from,
-      to: [to],
+      to: recipients,
       subject,
       text,
       ...(html ? { html } : {}),
@@ -224,7 +229,7 @@ async function sendEmail({ to, subject, text, html, from, replyTo, attachments }
     try { detail = await resp.json(); } catch { detail = await resp.text(); }
     return { sent: false, reason: 'email_provider_error', detail, from: resuelto.from };
   }
-  return { sent: true, from: resuelto.from };
+  return { sent: true, from: resuelto.from, to: recipients };
 }
 
 async function sendTwilioWhatsapp({ to, text }) {

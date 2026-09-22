@@ -4,6 +4,7 @@ const { sendOrderNotifications } = require('../../_lib/orderNotifications');
 const { ensurePedidoReciboToken, buildReciboPublicUrl } = require('../../_lib/receiptTicket');
 const { lineasTicketCorreo } = require('../../_lib/envioDomicilio');
 const { ticketPagoAdjunto } = require('../../_lib/ticketEnvioPdf');
+const { emailsAvisoCliente } = require('../../_lib/clienteEmails');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -307,7 +308,7 @@ module.exports = async function handler(req, res) {
       try {
         const [cliResp, itemsResp] = await Promise.all([
           fetch(
-            `${SUPABASE_URL}/rest/v1/clientes?id=eq.${pedidoBefore.cliente_id}&select=id,nombre,telefono,email&limit=1`,
+            `${SUPABASE_URL}/rest/v1/clientes?id=eq.${pedidoBefore.cliente_id}&select=id,nombre,telefono,email,email_alt&limit=1`,
             {
               headers: {
                 apikey: SUPABASE_SERVICE_ROLE_KEY,

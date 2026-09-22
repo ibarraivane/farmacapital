@@ -21,6 +21,7 @@ const {
 } = require('./envioDomicilio');
 const { sendWhatsAppSmart } = require('./whatsappCloud');
 const { sendEmail } = require('./orderNotifications');
+const { emailsAvisoCliente } = require('./clienteEmails');
 
 function getQuery(req) {
   try {
@@ -102,20 +103,24 @@ async function resolvePedidoTelefono(supabaseUrl, serviceKey, pedido) {
 }
 
 async function resolvePedidoContacto(supabaseUrl, serviceKey, pedido) {
-  let email = String(pedido?.guest_email || '').trim();
+  const guestEmail = String(pedido?.guest_email || '').trim();
   let nombre = String(pedido?.guest_nombre || '').trim();
+  let email = '';
+  let emailAlt = '';
   const clienteId = Number(pedido?.cliente_id);
-  if ((!email.includes('@') || !nombre) && Number.isFinite(clienteId) && clienteId > 0) {
+  if (Number.isFinite(clienteId) && clienteId > 0) {
     const resp = await fetch(
-      `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=email,nombre&limit=1`,
+      `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=email,email_alt,nombre&limit=1`,
       { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
     );
     const rows = await resp.json().catch(() => []);
     const row = Array.isArray(rows) ? rows[0] : null;
-    if (!email.includes('@')) email = String(row?.email || '').trim();
+    email = String(row?.email || '').trim();
+    emailAlt = String(row?.email_alt || '').trim();
     if (!nombre) nombre = String(row?.nombre || '').trim();
   }
-  return { email: email.includes('@') ? email : '', nombre };
+  const emails = emailsAvisoCliente({ guestEmail, email, emailAlt });
+  return { email: emails[0] || '', emails, nombre };
 }
 
 async function fetchItemsPedido(supabaseUrl, serviceKey, pedidoId) {
@@ -129,7 +134,7 @@ async function fetchItemsPedido(supabaseUrl, serviceKey, pedidoId) {
 }
 
 async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, costo, itemsTotal }) {
-  const contacto = await resolvePedidoContacto(supabaseUrl, serviceKey, pedido).catch(() => ({ email: '', nombre: '' }));
+  const contacto = await resolvePedidoContacto(supabaseUrl, serviceKey, pedido).catch(() => ({ email: '', emails: [], nombre: '' }));
   const items = await fetchItemsPedido(supabaseUrl, serviceKey, pedido.id).catch(() => []);
   const mail = correoAvisoEnvioCotizado({
     pedidoId: pedido.id,
@@ -140,10 +145,11 @@ async function avisarClienteEnvioCotizado({ supabaseUrl, serviceKey, pedido, cos
     items,
   });
   let email = { sent: false, reason: 'missing_email' };
-  if (contacto.email) {
+  const destinos = Array.isArray(contacto.emails) ? contacto.emails : [];
+  if (destinos.length) {
     try {
       email = await sendEmail({
-        to: contacto.email,
+        to: destinos,
         subject: mail.subject,
         text: mail.text,
         html: mail.html,
