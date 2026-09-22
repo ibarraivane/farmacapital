@@ -6,7 +6,7 @@ import { HORARIO_FARMACIA } from "../../../constants/turnos";
 import { irACatalogoCategoria } from "../../../lib/tiendaCatalogoCategorias";
 import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 
-const PLACEHOLDER = "Producto, sustancia o marca";
+const PLACEHOLDER = "Nombre, principio activo o marca…";
 
 export default function EncabezadoV2({
   page,

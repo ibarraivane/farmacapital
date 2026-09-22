@@ -75,16 +75,20 @@ export function aplicarTiendaV2(el) {
   Object.entries(map).forEach(([k, v]) => el.style.setProperty(`--${k}`, v));
 }
 
-/** Interruptor: la tienda nueva solo se ve si REACT_APP_TIENDA_V2=1 (o ?v2=1 en la vista previa). */
+/**
+ * Interruptor del rediseño. ENCENDIDO por defecto en producción.
+ * - REACT_APP_TIENDA_V2=0 lo apaga para todos (interruptor de emergencia en Vercel).
+ * - ?v2=0 muestra la tienda anterior en esta sesión (para comparar); ?v2=1 la vuelve a encender.
+ */
 export function tiendaV2Activa() {
   try {
-    if (process.env.REACT_APP_TIENDA_V2 === "1") return true;
+    if (process.env.REACT_APP_TIENDA_V2 === "0") return false;
     if (typeof window !== "undefined") {
       const q = new URLSearchParams(window.location.search);
-      if (q.get("v2") === "1") { try { sessionStorage.setItem("fc_v2", "1"); } catch (_) {} return true; }
-      if (q.get("v2") === "0") { try { sessionStorage.removeItem("fc_v2"); } catch (_) {} return false; }
-      try { return sessionStorage.getItem("fc_v2") === "1"; } catch (_) { return false; }
+      if (q.get("v2") === "0") { try { sessionStorage.setItem("fc_v2", "0"); } catch (_) {} return false; }
+      if (q.get("v2") === "1") { try { sessionStorage.removeItem("fc_v2"); } catch (_) {} return true; }
+      try { if (sessionStorage.getItem("fc_v2") === "0") return false; } catch (_) {}
     }
   } catch (_) {}
-  return false;
+  return true;
 }
