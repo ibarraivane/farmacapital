@@ -385,7 +385,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"Pides en la tienda y el pedido llega a Pedidos en línea. El vendedor cotiza el transporte en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, abres el pedido y pagas productos + envío juntos con Pagar ahora. Rappi es otra app." },
+  { p:"¿Cuánto tarda el envío?", r:"Confirmas tu pedido en línea (aún no se cobra). Cotizamos el transporte según tu zona y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta con Pagar ahora. Preparamos y salimos en cuanto esté pagado." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
@@ -2069,7 +2069,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           }}
           onFocus={()=>setBusqFocus(true)}
           onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
-          placeholder="Buscar otro producto (nombre, principio activo, SKU…)"
+          placeholder="Buscar otro producto (nombre, principio activo o marca…)"
           suggestions={suggestions}
           productos={productos}
           onPickSuggestion={(row)=>{
@@ -2307,9 +2307,7 @@ function ContenidoPickup({ C, color }){
       </p>
       <h4 style={sH4(color)}>Horario</h4>
       <ul style={sList}>
-        <li style={sListItem}>Lunes a Viernes: 8:00 – 22:00</li>
-        <li style={sListItem}>Sábado: 8:00 – 20:00</li>
-        <li style={sListItem}>Domingo: 9:00 – 18:00</li>
+        <li style={sListItem}>Todos los días: {HORARIO_FARMACIA.apertura} – {HORARIO_FARMACIA.cierre}</li>
       </ul>
       <h4 style={sH4(color)}>Importante</h4>
       <p style={{margin:0,color:C.textMid,fontSize:13}}>
@@ -2319,30 +2317,32 @@ function ContenidoPickup({ C, color }){
   );
 }
 
-function ContenidoCDMX({ color }){
+function ContenidoCDMX({ C, color }){
+  const horario = `${HORARIO_FARMACIA.apertura} a ${HORARIO_FARMACIA.cierre}`;
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Pides, el vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta, abres el pedido y pagas productos + transporte juntos. Rappi no entrega pedidos de esta tienda.
+        Entrega a domicilio en zona cercana. Confirmas tu pedido en línea sin pagar todavía; cotizamos el transporte según tu dirección y te avisamos por WhatsApp o correo para que pagues productos + envío juntos en Mi cuenta.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
-        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Entrega a domicilio&quot;</li>
-        <li style={sListItem}>Elige &quot;Entrega a domicilio&quot; y paga productos + envío en el mismo checkout</li>
-        <li style={sListItem}>Preparamos el pedido en FarmaCapital</li>
-        <li style={sListItem}>Un servicio de mensajería recoge en la farmacia y lo lleva a tu domicilio</li>
+        <li style={sListItem}>Agrega productos al carrito y elige &quot;Entrega a domicilio&quot;</li>
+        <li style={sListItem}>Confirma tu dirección y registra el pedido (aún no se cobra)</li>
+        <li style={sListItem}>Cotizamos el envío y te escribimos con el total final</li>
+        <li style={sListItem}>Pagas productos + transporte en Mi cuenta con Mercado Pago (un solo cargo)</li>
+        <li style={sListItem}>Preparamos el pedido y un mensajero te lo lleva a domicilio</li>
       </ol>
       <h4 style={sH4(color)}>Cobertura</h4>
       <p style={{margin:"0 0 12px"}}>
-        El vendedor confirma si se puede enviar a tu dirección (DiDi o Uber). Sin tope de km: si no se puede, te lo dice.
+        Zona cercana a la farmacia. Si tu dirección queda fuera de cobertura, te lo decimos antes de cobrar.
       </p>
       <h4 style={sH4(color)}>Costo</h4>
       <p style={{margin:"0 0 12px"}}>
-        El vendedor lo cotiza en DiDi o Uber y te escribe. Pagas productos + envío cuando esté listo en Mi cuenta.
+        El envío depende de la distancia. Lo sumamos al total de productos y lo ves antes de pagar en Mi cuenta.
       </p>
       <h4 style={sH4(color)}>Horario de servicio</h4>
       <p style={{margin:"0 0 12px"}}>
-        Disponible durante el horario de atención de la farmacia.
+        Disponible todos los días de {horario}.
       </p>
       <h4 style={sH4(color)}>Recomendación</h4>
       <p style={{margin:0,color:C.textMid,fontSize:13}}>
@@ -2503,7 +2503,7 @@ function HomeServices({setPage}){
   const servicios = [
     { key:"catalogo", titulo:"Ver catálogo", desc:"Medicamentos y más", color:BRAND.primary, tipo:"page", destino:"catalogo", icon:Pill },
     { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
-    { key:"cdmx", titulo:"Entrega a domicilio", desc:"Zona cercana · se paga en checkout", color:BRAND.secondary, tipo:"modal", icon:Bike },
+    { key:"cdmx", titulo:"Entrega a domicilio", desc:"Zona cercana · cotizamos el envío", color:BRAND.secondary, tipo:"modal", icon:Bike },
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
@@ -2763,11 +2763,9 @@ function TiendaSearchSuggestions({ suggestions, productos, onPick, C }) {
             }}
           >
             <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, lineHeight: 1.35 }}>{s.nombre}</div>
-            <div style={{ color: C.dim, fontSize: 11, marginTop: 3, display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {s.sku ? <span>SKU <strong style={{ color: BRAND.primary }}>{s.sku}</strong></span> : null}
-              {s.codigo_barras ? <span>Cód. {s.codigo_barras}</span> : null}
-              {Number(s.stock) <= 0 ? <span style={{ color: C.red }}>Agotado</span> : null}
-            </div>
+            {Number(s.stock) <= 0 ? (
+              <div style={{ color: C.red, fontSize: 11, marginTop: 3 }}>Agotado</div>
+            ) : null}
           </button>
         );
       })}
@@ -2782,7 +2780,7 @@ function TiendaBusquedaBar({
   onFocus,
   onBlur,
   onKeyDown,
-  placeholder = "Nombre, principio activo, SKU o código de barras…",
+  placeholder = "Nombre, principio activo o marca…",
   suggestions = [],
   productos = [],
   onPickSuggestion,
@@ -3422,7 +3420,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           }}
           onFocus={()=>setBusqFocus(true)}
           onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
-          placeholder="Nombre, principio activo, marca, SKU o código…"
+          placeholder="Nombre, principio activo o marca…"
           suggestions={suggestions}
           productos={productos}
           onPickSuggestion={(row)=>{
@@ -3780,7 +3778,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · lo pagas en el checkout",Icon:Bike}].map(({id,label,sub,Icon})=>(
+          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · cotizamos el envío",Icon:Bike}].map(({id,label,sub,Icon})=>(
             <button
               key={id}
               type="button"
@@ -3799,7 +3797,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden ahora. El vendedor cotiza el envío en DiDi o Uber y te avisa por WhatsApp. Entras a Mi cuenta y pagas productos + transporte.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden sin pagar todavía. Cotizamos el envío y te avisamos por WhatsApp o correo para pagar productos + transporte en Mi cuenta.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -3840,7 +3838,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
               <strong>Encargo bajo pedido.</strong> Apartas el total con tarjeta de crédito y se cobra cuando lo conseguimos (24-48 hrs). Si no lo conseguimos, cancelamos sin cargo.
             </div>
           )}
-          <Btn onClick={()=>setPage("checkout")} col={BRAND.primary} full>{carritoEncargo?"Continuar para apartar →":"Proceder al pago →"}</Btn>
+          <Btn onClick={()=>setPage("checkout")} col={BRAND.primary} full>{carritoEncargo?"Continuar para apartar →":entrega==="cdmx"?"Continuar con el pedido →":"Proceder al pago →"}</Btn>
           <div style={{color:C.dim,fontSize:11,textAlign:"center",marginTop:10}}>
             <IconLabel Icon={Lock} color={C.dim} size={12}>Pago 100% seguro · SSL</IconLabel>
           </div>
@@ -4538,7 +4536,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     const instruccionEntrega = esPickup
       ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioPendienteCotizacion
-        ? "Aún no pagas. El vendedor cotiza el envío en DiDi o Uber y te llega un correo y WhatsApp para pagar productos + transporte juntos."
+        ? "Aún no pagas. Cotizamos el envío y te llega un correo o WhatsApp para pagar productos + transporte juntos en Mi cuenta."
         : lastOrder.envioFee
           ? `Envío ${formatEnvioMoney(lastOrder.envioFee)} en tu pago. Te avisamos cuando salga el mensajero.`
           : "Te avisamos cuando salga el mensajero.";
@@ -4684,7 +4682,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 </div>
                 {necesitaDireccion && (
                   <div style={{fontSize:12,color:C.mid,marginTop:-4,marginBottom:14,lineHeight:1.45}}>
-                    El correo es obligatorio. Cuando el envío esté cotizado te llega desde contacto@farmacapital.mx la liga de tu carrito, con el precio final.
+                    El correo es obligatorio. Cuando coticemos el envío te llega desde contacto@farmacapital.mx la liga para pagar productos + transporte.
                   </div>
                 )}
                 {necesitaDireccion&&(
@@ -4736,7 +4734,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                         )}
                         {direccionOk && (
                           <div style={{fontSize:13,color:"#166534",lineHeight:1.45}}>
-                            El vendedor cotiza el envío en DiDi o Uber y te escribe por WhatsApp. No se cobra ahora.
+                            Cotizamos el envío según tu dirección y te avisamos por WhatsApp o correo. No se cobra ahora.
                           </div>
                         )}
                       </div>
@@ -4752,7 +4750,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div style={{marginTop:14,fontSize:12,color:C.mid}}>
                   {entrega==="pickup"
                     ? "Pick-up: confirmas el pedido ahora y pagas al recoger con tarjeta (terminal BBVA)."
-                    : "Domicilio: confirmas ahora. El vendedor cotiza y te avisa; pagas en Mi cuenta."}
+                    : "Domicilio: confirmas ahora. Cotizamos el envío y te avisamos; pagas en Mi cuenta."}
                 </div>
                 <label
                   style={{
@@ -4814,7 +4812,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 {entrega!=="pickup" && (
                   <div style={{marginTop:4,color:"#92400e",fontWeight:600}}>
                     {entrega!=="pickup"
-                      ? "El vendedor cotiza el envío y te avisa por WhatsApp. El transporte se suma al total de tu pedido en Mi cuenta."
+                      ? "Cotizamos el envío y te avisamos. El transporte se suma al total de tu pedido en Mi cuenta."
                       : null}
                   </div>
                 )}
@@ -4823,7 +4821,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
                     : entrega==="pickup"
                       ? "Pagas al recoger con tarjeta (terminal BBVA)"
-                      : "Confirmas ahora. Cuando el vendedor cargue el transporte, entras a Mi cuenta y pagas productos + envío."}
+                      : "Confirmas ahora. Cuando el envío esté cotizado, entras a Mi cuenta y pagas productos + envío."}
                 </div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>
@@ -5385,7 +5383,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Confirmas ahora y pagas al recoger con tarjeta (terminal BBVA).\n• Entrega a domicilio: confirmas la orden, el vendedor cotiza en DiDi o Uber, te escribe por WhatsApp y pagas productos + envío en Mi cuenta. Sin tope de km: el vendedor decide si se puede enviar.\n• Rappi no es un envío de esta página: los pedidos Rappi se hacen en la app de Rappi."],
+        ["Tipos de entrega disponibles",`• Pick-up en FarmaCapital: Gratis. Confirmas ahora y pagas al recoger con tarjeta (terminal BBVA).\n• Entrega a domicilio: confirmas la orden sin pagar, cotizamos el transporte en zona cercana y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta.\n• Horario de entrega: todos los días ${HORARIO_FARMACIA.apertura}–${HORARIO_FARMACIA.cierre}.`],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
