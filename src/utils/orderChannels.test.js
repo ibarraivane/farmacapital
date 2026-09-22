@@ -2,6 +2,8 @@ import {
   canalIngresoPedido,
   mapUiEntregaToRpc,
   productoPermitidoEnTiendaWeb,
+  productoPermitidoEnvioDomicilio,
+  validarCarritoParaEntrega,
   pedidoCuentaEnVentas,
   FULFILLMENT_TYPE,
 } from "./orderChannels";
@@ -79,5 +81,26 @@ describe("productoPermitidoEnTiendaWeb", () => {
   test("inactivo u oculto no se vende", () => {
     expect(productoPermitidoEnTiendaWeb({ activo: false })).toBe(false);
     expect(productoPermitidoEnTiendaWeb({ activo: true, visible_tienda: false })).toBe(false);
+  });
+
+  test("antibiótico en línea sí entra; a domicilio no (default)", () => {
+    const amoxi = { activo: true, nombre: "Amoxicilina 500", categoria: "Antibiótico" };
+    expect(productoPermitidoEnTiendaWeb(amoxi)).toBe(true);
+    expect(productoPermitidoEnvioDomicilio(amoxi)).toBe(false);
+  });
+
+  test("antibiótico con canal suspendido no entra al carrito", () => {
+    const amoxi = { activo: true, nombre: "Amoxicilina 500", categoria: "Antibiótico" };
+    expect(productoPermitidoEnTiendaWeb(amoxi, { politica: { canal: "suspendido" } })).toBe(false);
+  });
+});
+
+describe("validarCarritoParaEntrega · antibióticos", () => {
+  const amoxi = { id: 1, activo: true, nombre: "Amoxicilina 500", categoria: "Antibiótico" };
+  const stockMap = new Map([[1, amoxi]]);
+
+  test("bloquea domicilio y permite pick-up", () => {
+    expect(validarCarritoParaEntrega([{ id: 1, nombre: amoxi.nombre }], "cdmx", stockMap).ok).toBe(false);
+    expect(validarCarritoParaEntrega([{ id: 1, nombre: amoxi.nombre }], "pickup", stockMap).ok).toBe(true);
   });
 });

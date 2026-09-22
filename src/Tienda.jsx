@@ -31,6 +31,7 @@ import {
   productoEsCajaAbiertaMostrador,
   nombrePublicoTienda,
   subtituloPublicoTienda,
+  descripcionPublicaTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
 import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, categoriaVitrinaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
@@ -123,6 +124,7 @@ import {
   snapshotSalidaCatalogo,
 } from "./lib/tiendaCatalogoPosicion";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
+import { politicaProducto, validarCarritoPolitica, textosPolitica } from "./config/politicaMedicamentos";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
 import { completeClienteOAuth, enabledSocialProviders } from "./utils/clienteOAuth";
@@ -401,7 +403,7 @@ const FAQ_ITEMS = [
   { p:"¿Cuánto tarda el envío?", r:"Confirmas tu pedido en línea (aún no se cobra). Cotizamos el transporte según tu zona y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta con Pagar ahora. Preparamos y salimos en cuanto esté pagado." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
-  { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
+  { p:"¿Qué hago si necesito un medicamento con receta?", r:textosPolitica().faqReceta },
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
@@ -1995,7 +1997,7 @@ function ProductCard({prod,addToCart,onClick}){
               : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"} sm>{d==="inmediato"?"Hoy":"24-48 hrs"}</Tag>
           }
           {prod.tipo==="generico"&&<Tag col={BRAND.secondary} sm>Genérico</Tag>}
-          {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
+          {politicaProducto(prod).requiereReceta&&<Tag col={C.red} sm>{politicaProducto(prod).etiquetaCorta}</Tag>}
         </div>
         <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</div>
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
@@ -2151,7 +2153,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"Disponible hoy":"24-48 hrs"}</Tag>
             }
             {prod.tipo==="generico"&&<Tag col={BRAND.secondary}>Genérico</Tag>}
-            {prod.requiere_receta&&<Tag col={C.red}>Requiere receta</Tag>}
+            {politicaProducto(prod).requiereReceta&&<Tag col={C.red}>{politicaProducto(prod).etiqueta}</Tag>}
             <Tag col={C.mid} sm>{prod.categoria}</Tag>
           </div>
           <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</h1>
@@ -2182,10 +2184,16 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               </div>
             </div>
           )}
-          {prod.requiere_receta&&(
+          {descripcionPublicaTienda(prod)&&(
+            <div style={{background:C.cardDark,borderRadius:12,padding:16,marginBottom:20}}>
+              <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:6}}>Descripción</div>
+              <div style={{color:C.mid,fontSize:14,lineHeight:1.7}}>{descripcionPublicaTienda(prod)}</div>
+            </div>
+          )}
+          {politicaProducto(prod).requiereReceta&&(
             <div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:10,padding:"10px 14px",marginBottom:16}}>
               <div style={{color:C.red,fontWeight:700,fontSize:13}}>
-                <IconLabel Icon={FileText} color={C.red} size={14}>Requiere receta médica. Se solicitará al entregar.</IconLabel>
+                <IconLabel Icon={FileText} color={C.red} size={14}>{politicaProducto(prod).avisoFicha}</IconLabel>
               </div>
             </div>
           )}
@@ -3400,7 +3408,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       {filtroRx && (
         <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}40`,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",justifyContent:"space-between"}}>
           <div style={{color:BRAND.primary,fontSize:13,lineHeight:1.45}}>
-            Medicamentos que requieren receta (Rx / antibióticos). Trae tu receta al recoger.
+            {textosPolitica().catalogoRx}
           </div>
           <Btn sm outline col={BRAND.primary} onClick={()=>onClearRx?.()}>Ver catálogo completo</Btn>
         </div>
@@ -3854,13 +3862,28 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
           ))}
           </div>
           {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Confirmas la orden sin pagar todavía. Cotizamos el envío y te avisamos por WhatsApp o correo para pagar productos + transporte en Mi cuenta.</div></div>)}
-          {entrega==="cdmx"&&(
-            <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
-              <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
-                Algunos productos no se envían (controlados u omitidos para delivery). Si el checkout los rechaza, quítalos o elige <strong>pick-up en tienda</strong>.
+          {entrega!=="pickup"&&(() => {
+            const pol = validarCarritoPolitica(cart, "envio");
+            if (pol.ok) {
+              return (
+                <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+                  <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
+                    {textosPolitica().carritoAviso}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div role="alert" style={{background:C.red+"10",border:`1px solid ${C.red}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+                <div style={{color:C.red,fontSize:12,fontWeight:700,marginBottom:4}}>No se puede enviar a domicilio</div>
+                {pol.bloqueados.map((b)=>(
+                  <div key={String(b.prod?.id ?? b.motivo)} style={{color:C.dark,fontSize:12,lineHeight:1.45}}>• {b.motivo}</div>
+                ))}
+                <div style={{color:C.mid,fontSize:11,lineHeight:1.45,marginTop:8,marginBottom:8}}>Los antibióticos se entregan solo en sucursal, con receta. Recógelo ahí o quítalo del pedido.</div>
+                <Btn sm col={BRAND.primary} onClick={()=>setEntrega("pickup")}>Recoger todo en sucursal</Btn>
               </div>
-            </div>
-          )}
+            );
+          })()}
           {(() => {
             const canje = leerCanjeActivo();
             if (!canje) return null;
@@ -3894,7 +3917,12 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
               <strong>Encargo bajo pedido.</strong> Apartas el total con tarjeta de crédito y se cobra cuando lo conseguimos (24-48 hrs). Si no lo conseguimos, cancelamos sin cargo.
             </div>
           )}
-          <Btn onClick={()=>setPage("checkout")} col={BRAND.primary} full>{carritoEncargo?"Continuar para apartar →":entrega==="cdmx"?"Continuar con el pedido →":"Proceder al pago →"}</Btn>
+          <Btn
+            onClick={()=>setPage("checkout")}
+            col={BRAND.primary}
+            full
+            disabled={entrega!=="pickup" && !validarCarritoPolitica(cart, "envio").ok}
+          >{carritoEncargo?"Continuar para apartar →":entrega==="cdmx"?"Continuar con el pedido →":"Proceder al pago →"}</Btn>
           <div style={{color:C.dim,fontSize:11,textAlign:"center",marginTop:10}}>
             <IconLabel Icon={Lock} color={C.dim} size={12}>Pago 100% seguro · SSL</IconLabel>
           </div>
@@ -4182,7 +4210,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       const [{ data: stockRows }, { data: lotesRowsRaw }] = await Promise.all([
         supabase
           .from("productos")
-          .select("id,stock,precio,descuento_pct,activo,requiere_receta,categoria,bajo_pedido")
+          .select("id,stock,precio,descuento_pct,activo,requiere_receta,categoria,bajo_pedido,controlado")
           .in("id", productIds),
         supabase.rpc("tienda_public_lotes_resumen_checkout", { p_producto_ids: numericIds }),
       ]);
@@ -4262,6 +4290,15 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         return;
       }
 
+      const politica = validarCarritoPolitica(
+        reconciled.map((c) => ({ ...c, ...(stockMap.get(tiendaNormProductId(c.id)) || {}) })),
+        entrega === "pickup" ? "recoger" : "envio"
+      );
+      if (!politica.ok) {
+        notifyCheckout(`Revisa tu carrito:\n${politica.bloqueados.map((b)=>`• ${b.motivo}`).join("\n")}\n\nQuítalo o elige recoger en farmacia.`, "warning");
+        setG(false);
+        return;
+      }
       const { ok, bloqueados } = validarCarritoParaEntrega(reconciled, entrega, stockMap, {
         permiteEnTiendaWeb: productoPermitidoEnTiendaFarmaciaWeb,
         razonNoPermitidoTienda: razonBloqueoProductoTiendaFarmacia,
@@ -5421,7 +5458,7 @@ function TerminosCondiciones({setPage}){
         ["1. Aceptación","Al utilizar la plataforma de FarmaCapital, el usuario acepta los presentes Términos y Condiciones. Si no está de acuerdo, le pedimos que no utilice nuestros servicios."],
         ["2. Productos y precios","Los precios mostrados en la plataforma incluyen IVA y están sujetos a disponibilidad. FarmaCapital se reserva el derecho de modificar precios sin previo aviso, respetando siempre el precio vigente al momento de confirmar el pedido."],
         ["3. Disponibilidad de productos","Indicamos claramente si un producto está disponible de forma inmediata o en 24-48 horas. En caso de no poder surtir un pedido, notificaremos al cliente y realizaremos el reembolso correspondiente en un plazo no mayor a 5 días hábiles."],
-        ["4. Medicamentos con receta","Los medicamentos que requieren receta médica serán entregados únicamente al presentar la receta original vigente. FarmaCapital se reserva el derecho de cancelar pedidos de medicamentos controlados que no cumplan con los requisitos de COFEPRIS."],
+        ["4. Medicamentos con receta",textosPolitica().terminosReceta],
         ["5. Responsabilidad","FarmaCapital no se hace responsable del uso incorrecto de los medicamentos. Se recomienda siempre consultar a un profesional de la salud. La información en nuestra plataforma es de carácter informativo y no sustituye la opinión médica."],
         ["6. Propiedad intelectual","El contenido de la plataforma de FarmaCapital, incluyendo textos, imágenes y logotipos, es propiedad de FarmaCapital y está protegido por las leyes de propiedad intelectual vigentes en México."],
         ["7. Jurisdicción","Para cualquier controversia derivada del uso de esta plataforma, las partes se someten a la jurisdicción de los tribunales competentes de la Ciudad de México."],
@@ -7063,6 +7100,10 @@ export default function TiendaFarmaCapital(){
     }
     if (!productoPermitidoEnTiendaFarmaciaWeb(prod)) {
       alert(razonBloqueoProductoTiendaFarmacia(prod));
+      return false;
+    }
+    if (!politicaProducto(prod).ventaEnLinea) {
+      alert(politicaProducto(prod).avisoFicha || razonBloqueoProductoTiendaFarmacia(prod));
       return false;
     }
     const noMezcla = motivoNoMezclar(cart, prod);
