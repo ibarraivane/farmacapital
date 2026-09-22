@@ -4,6 +4,7 @@ const { isAllowedReturnBase } = require('../../_lib/allowedOrigins');
 const { crearReserva } = require('../../_lib/reservaBajoPedido');
 const { CONCEPTO_CARGO_PLATAFORMA } = require('../../_lib/precioOnlineMp');
 const { itemsPreferenciaPedido } = require('../../_lib/preferenciaPedidoItems');
+const { feeEnvioParaPreferencia, desgloseCuadraPreferencia } = require('../../_lib/preferenciaEnvioGuard');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -147,26 +148,28 @@ module.exports = async function handler(req, res) {
       return res.status(409).json({ ok: false, error: 'amount_mismatch', expected });
     }
 
-    let envioFee = 0;
-    if (pedido.tipo_entrega === 'envio') {
-      const envioEstado = String(pedido.logistics_meta?.envio?.estado || '').toLowerCase();
-      if (!['cotizado', 'link_enviado', 'pagado'].includes(envioEstado) && !(Number(pedido.costo_envio) >= 0)) {
-        return res.status(409).json({ ok: false, error: 'envio_quote_required' });
-      }
-      const metaFee = Number(pedido.logistics_meta?.envio?.costo_cotizado);
-      const fee = Number.isFinite(Number(pedido.costo_envio)) ? Number(pedido.costo_envio) : metaFee;
-      if (!Number.isFinite(fee) || fee < 0) {
-        return res.status(409).json({ ok: false, error: 'envio_quote_required' });
-      }
-      envioFee = Math.round(fee * 100) / 100;
+    const envioRes = feeEnvioParaPreferencia(pedido);
+    if (!envioRes.ok) {
+      return res.status(409).json({ ok: false, error: envioRes.error || 'envio_quote_required' });
     }
+    const envioFee = envioRes.fee;
 
     const siteDefault = String(process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx').replace(/\/+$/, '');
     const safeBase = isAllowedReturnBase(baseUrl) ? String(baseUrl).replace(/\/+$/, '') : siteDefault;
     const externalReference = `FARMACAPITAL-PED-${pedidoId}`;
     const cargoMeta = Number(pedido.logistics_meta?.cargo_plataforma_mxn);
     const cargo = Number.isFinite(cargoMeta) && cargoMeta > 0 ? Math.round(cargoMeta * 100) / 100 : 0;
-    const productsTotal = Math.round((totalDb - envioFee - cargo) * 100) / 100;
+    const desglose = desgloseCuadraPreferencia({ totalDb, envioFee, cargo });
+    if (!desglose.ok) {
+      return res.status(409).json({
+        ok: false,
+        error: desglose.error || 'total_desglose_mismatch',
+        expected: totalDb,
+        envio: envioFee,
+        cargo,
+      });
+    }
+    const productsTotal = desglose.productsTotal;
     let lineasPedido = [];
     try {
       const itemsResp = await fetch(
@@ -186,6 +189,15 @@ module.exports = async function handler(req, res) {
       cargo,
       conceptoCargo: CONCEPTO_CARGO_PLATAFORMA,
     });
+    const sumaItems = Math.round(items.reduce((s, it) => s + Number(it.quantity) * Number(it.unit_price), 0) * 100) / 100;
+    if (Math.abs(sumaItems - totalDb) > 0.01) {
+      return res.status(409).json({
+        ok: false,
+        error: 'preference_items_mismatch',
+        expected: totalDb,
+        items_sum: sumaItems,
+      });
+    }
     const mpPayload = {
       external_reference: externalReference,
       notification_url: `${safeBase}/api/payments/mp/webhook`,
