@@ -217,6 +217,37 @@ test("ocultar en web no implica bajar el SKU del POS", () => {
   expect(p.precio_unidad).toBe(7);
 });
 
+test("subtituloPublicoTienda usa marca y presentación, no la nota de compra", () => {
+  expect(
+    subtituloPublicoTienda({
+      nombre: "Ibuprofeno 400 mg",
+      marca: "Genérico",
+      presentacion: "20 tabletas",
+      concentracion: "400 mg",
+      forma_farmaceutica: "Tabletas",
+      descripcion: "Ticket Nadro · falta EAN",
+    }),
+  ).toBe("20 tabletas · Tabletas");
+  expect(
+    subtituloPublicoTienda({
+      nombre: "Anthelios UV Air",
+      marca: "La Roche-Posay",
+      presentacion: "40 ml",
+      concentracion: "FPS 50+",
+      forma_farmaceutica: "Fluido",
+    }),
+  ).toMatch(/La Roche-Posay/i);
+  expect(
+    subtituloPublicoTienda({
+      nombre: "Anthelios UV Air",
+      marca: "La Roche-Posay",
+      presentacion: "40 ml",
+      concentracion: "FPS 50+",
+      forma_farmaceutica: "Fluido",
+    }),
+  ).toMatch(/40 ml/i);
+});
+
 test("descripcionPublicaTienda oculta notas de ticket", () => {
   expect(
     descripcionPublicaTienda({

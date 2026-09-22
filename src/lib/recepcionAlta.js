@@ -6,6 +6,7 @@
 
 import { roundPrecioVenta } from "./preciosReferencia";
 import { margenSobreVentaPct } from "./margenMarkup";
+import { partirNombreMostrador } from "./nombreMostrador";
 
 export const MARKUP_ALTA_PATENTE = 0.25;
 export const MARKUP_ALTA_GENERICO = 0.6;
@@ -58,17 +59,42 @@ export function skuAltaRecepcion(codigo, now = Date.now()) {
   return `FC-${cola}`;
 }
 
-export function payloadAltaRecepcion({ nombre, codigo, tipo, costo }) {
+function textoFichaAlta(v) {
+  const s = String(v == null ? "" : v).trim();
+  return s || null;
+}
+
+export function payloadAltaRecepcion({
+  nombre,
+  codigo,
+  tipo,
+  costo,
+  marca,
+  presentacion,
+  forma_farmaceutica,
+  principio_activo,
+  concentracion,
+} = {}) {
   const tipoN = tipoAltaNormalizado(tipo);
   const costoN = Number(costo);
   const precio = precioSugeridoAltaRecepcion(costoN, tipoN);
   const codigo_barras = String(codigo || "").replace(/\D/g, "") || null;
+  const parted = partirNombreMostrador(nombre, {
+    presentacion,
+    concentracion,
+    forma: forma_farmaceutica,
+  });
   return {
-    nombre: String(nombre || "").trim(),
+    nombre: parted.nombre || String(nombre || "").trim(),
     sku: skuAltaRecepcion(codigo_barras || codigo),
     codigo_barras,
     tipo: tipoN,
     categoria: "Otro",
+    marca: textoFichaAlta(marca),
+    presentacion: parted.presentacion,
+    forma_farmaceutica: parted.forma,
+    principio_activo: textoFichaAlta(principio_activo),
+    concentracion: parted.concentracion,
     costo: Number.isFinite(costoN) && costoN > 0 ? costoN : null,
     precio,
     activo: true,
