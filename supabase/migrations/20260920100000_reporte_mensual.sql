@@ -305,14 +305,20 @@ create or replace function fn_rep_crecimiento(desde timestamp, hasta timestamp)
 returns jsonb language sql stable security definer set search_path = public as $$
 with sem as (
   select
-    date_trunc('week', fecha_local)::date          as semana,
-    greatest(date_trunc('week', fecha_local)::date, desde::date) as ini,
-    least((date_trunc('week', fecha_local) + interval '6 days')::date, (hasta - interval '1 day')::date) as fin,
-    sum(total)   as venta,
-    count(*)     as tickets
-  from v_rep_venta
-  where fecha_local >= desde and fecha_local < hasta
-  group by 1
+    semana,
+    greatest(semana, desde::date) as ini,
+    least(semana + 6, (hasta - interval '1 day')::date) as fin,
+    venta,
+    tickets
+  from (
+    select
+      date_trunc('week', fecha_local)::date as semana,
+      sum(total) as venta,
+      count(*) as tickets
+    from v_rep_venta
+    where fecha_local >= desde and fecha_local < hasta
+    group by 1
+  ) g
 ),
 sem_n as (
   select *, row_number() over (order by semana) as n,
