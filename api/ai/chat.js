@@ -175,7 +175,8 @@ Explica en 1-3 oraciones claras, para personal de mostrador y pacientes, PARA QU
 Reglas:
 - Español de México, tono informativo; no diagnosticar ni recetar
 - No menciones precios, descuentos, tickets ni datos de compra
-- Si es venta libre (OTC), describe el uso habitual del público
+- Si es medicamento o suplemento de venta libre (OTC), describe el uso habitual
+- Si es dulce, chocolate, botana, bebida, abarrotes o minisuper, describe consumo o uso cotidiano; NO digas "consultar al químico"
 - Si requiere receta, indica la indicación terapéutica general del principio activo
 - Máximo 280 caracteres
 - Solo texto plano, sin markdown ni listas`;
