@@ -36,6 +36,7 @@
     "import:farmac-os:supabase": "node scripts/run-farmac-os-via-pg.js",
     "eject": "react-scripts eject",
     "test:pedidos-mostrador": "node --test src/lib/pedidosMostrador.node.test.js && node scripts/check-pedidos-mostrador.js",
+    "test:cotizaciones": "node --test src/lib/cotizaciones.node.test.js && node scripts/check-cotizaciones.js",
     "test:metodos-pago": "node --test src/utils/pedidosTiendaWeb.node.test.js src/config/metodosPago.node.test.js src/lib/precioCatalogoOnline.node.test.js",
     "test:catalog-enrich": "node --test api/_lib/catalog/enrichJob.test.js"
   },
