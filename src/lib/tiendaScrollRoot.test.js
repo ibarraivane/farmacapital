@@ -31,6 +31,7 @@ describe("tienda scroll root (index.css)", () => {
     expect(css).toMatch(/\.farmacapital-productos-strip\s*\{[^}]*overflow-y:\s*hidden/s);
     expect(css).toMatch(/\.farmacapital-productos-strip\s*\{[^}]*overscroll-behavior-x:\s*contain/s);
     expect(css).toMatch(/@media\s*\(max-width:\s*767px\)\s*\{[^}]*scroll-snap-type:\s*x\s+proximity/s);
+    expect(css).toMatch(/\.farmacapital-catalogo-cats-scroll\s*\{[^}]*overflow-y:\s*hidden/s);
   });
 });
 
