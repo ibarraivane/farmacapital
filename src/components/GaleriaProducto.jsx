@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, Package, ZoomIn } from "lucide-react";
 import { BRAND, C_LIGHT } from "../constants";
+import { aplicarLente, indiceEnRango, LUPA_LENTE_PX, posicionLupa } from "../lib/lupaFoto";
 
 /**
  * Galería de fotos de un producto: flechas ‹ › sobre la imagen y puntos abajo.
@@ -24,6 +25,14 @@ import { BRAND, C_LIGHT } from "../constants";
  *   extra abajo se recortaría y la foto es lo que el vendedor necesita grande.
  * @param {boolean} [mostrarPuntos] Si es false, no pinta la tira de puntos
  *   (tapan la foto). Queda un contador discreto 2/9 y las flechas.
+ * @param {boolean} [lupa] En la tienda: ícono de lupa y, al mover el mouse, un
+ *   círculo que amplía la zona bajo el cursor. El toque abre onImagenClick.
+ *   No depende de hover:hover: en algunos escritorios el navegador dice que
+ *   no hay mouse y la lente nunca salía.
+ * @param {number} [indice] Si viene, la ficha manda qué foto se ve (la lupa y
+ *   la miniatura comparten la misma). Si no, la galería lleva la cuenta.
+ * @param {number} [indiceInicial] Foto al montar cuando nadie controla el índice.
+ * @param {(indice: number) => void} [onIndiceChange]
  */
 export default function GaleriaProducto({
   imagenes = [],
@@ -35,6 +44,10 @@ export default function GaleriaProducto({
   imagenRef,
   puntosFlotantes = false,
   mostrarPuntos = true,
+  lupa = false,
+  indice,
+  indiceInicial = 0,
+  onIndiceChange,
 }) {
   const C = C_LIGHT;
   const fotos = useMemo(
@@ -43,23 +56,43 @@ export default function GaleriaProducto({
   );
   const total = fotos.length;
   const firma = fotos.join("|");
-  const [i, setI] = useState(0);
+  const [i, setI] = useState(() => indiceEnRango(indice ?? indiceInicial, fotos.length));
   const [rotas, setRotas] = useState(() => new Set());
+  const [firmaVista, setFirmaVista] = useState(firma);
+  const [indiceVisto, setIndiceVisto] = useState(indice);
   const touchX = useRef(null);
+  const lenteRef = useRef(null);
+  const toqueRef = useRef(false);
+  const onIndiceChangeRef = useRef(onIndiceChange);
+  onIndiceChangeRef.current = onIndiceChange;
 
-  // Producto distinto (o lista distinta): volver a la primera foto.
-  useEffect(() => { setI(0); setRotas(new Set()); }, [firma]);
+  // Otra lista (otro producto): volver a la foto que toca, sin esperar un efecto
+  // que pintaría un frame de la foto equivocada.
+  if (firma !== firmaVista) {
+    setFirmaVista(firma);
+    setIndiceVisto(indice);
+    setRotas(new Set());
+    setI(indiceEnRango(indice == null ? indiceInicial : indice, fotos.length));
+  } else if (indice !== indiceVisto) {
+    setIndiceVisto(indice);
+    if (indice != null) setI(indiceEnRango(indice, fotos.length));
+  }
 
   const ir = useCallback((delta) => {
     if (total < 2) return;
     setI((prev) => (prev + delta + total) % total);
   }, [total]);
 
+  useEffect(() => {
+    onIndiceChangeRef.current?.(i);
+  }, [i]);
+
   // Precarga la siguiente para que el salto no parpadee.
   useEffect(() => {
-    if (total < 2) return;
+    if (total < 2) return undefined;
     const sig = new Image();
     sig.src = fotos[(i + 1) % total];
+    return undefined;
   }, [i, total, fotos]);
 
   const onKeyDown = (e) => {
@@ -75,6 +108,27 @@ export default function GaleriaProducto({
     if (Math.abs(dx) > 40) ir(dx < 0 ? 1 : -1);
   };
 
+  const moverLente = (e) => {
+    if (e.pointerType === "touch") {
+      toqueRef.current = true;
+      aplicarLente(lenteRef.current, null);
+      return;
+    }
+    if (e.pointerType === "mouse" || e.pointerType === "pen") toqueRef.current = false;
+    if (toqueRef.current) return;
+    const img = e.currentTarget.querySelector("img");
+    if (!img) {
+      aplicarLente(lenteRef.current, null);
+      return;
+    }
+    aplicarLente(
+      lenteRef.current,
+      posicionLupa(img.getBoundingClientRect(), e.clientX, e.clientY),
+      img.currentSrc || img.src,
+    );
+  };
+  const ocultarLente = () => aplicarLente(lenteRef.current, null);
+
   if (!total) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24, ...style }}>
@@ -83,9 +137,10 @@ export default function GaleriaProducto({
     );
   }
 
-  const actual = fotos[i];
+  const actual = fotos[i] || fotos[0];
   const soloUna = total < 2;
   const marcarRota = () => setRotas((prev) => new Set(prev).add(actual));
+  const mostrarLente = Boolean(lupa && onImagenClick);
   const estiloImg = {
     maxWidth: "100%",
     maxHeight: maxAlto,
@@ -119,6 +174,7 @@ export default function GaleriaProducto({
   return (
     <div
       role="group"
+      data-galeria-fotos=""
       aria-roledescription="galería de fotos"
       aria-label={alt || "Fotos del producto"}
       tabIndex={soloUna ? -1 : 0}
@@ -144,9 +200,18 @@ export default function GaleriaProducto({
             type="button"
             ref={imagenRef}
             onClick={onImagenClick}
+            onMouseMove={mostrarLente ? moverLente : undefined}
+            onPointerMove={mostrarLente ? moverLente : undefined}
+            onPointerDown={mostrarLente ? (e) => {
+              if (e.pointerType === "touch") toqueRef.current = true;
+              ocultarLente();
+            } : undefined}
+            onMouseLeave={mostrarLente ? ocultarLente : undefined}
+            onPointerLeave={mostrarLente ? ocultarLente : undefined}
             aria-label={alt ? `Ver foto de ${alt}` : "Ver foto en grande"}
             aria-haspopup="dialog"
             style={{
+              position: "relative",
               border: "none",
               background: "transparent",
               padding: 0,
@@ -157,12 +222,63 @@ export default function GaleriaProducto({
               maxWidth: "100%",
               font: "inherit",
               color: "inherit",
+              touchAction: "manipulation",
+              WebkitTapHighlightColor: "transparent",
             }}
           >
-            <img src={actual} alt={alt} onError={marcarRota} style={estiloImg} />
+            <span style={{ position: "relative", display: "inline-flex", maxWidth: "100%" }}>
+              <img src={actual} alt={alt} draggable={false} onError={marcarRota} style={estiloImg} />
+              {lupa ? (
+                <span
+                  data-lupa=""
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    bottom: 8,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,.92)",
+                    border: `1px solid ${C.border}`,
+                    boxShadow: "0 1px 6px rgba(0,21,52,.14)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: C.text,
+                    pointerEvents: "none",
+                    zIndex: 2,
+                  }}
+                >
+                  <ZoomIn size={18} strokeWidth={2.25} />
+                </span>
+              ) : null}
+              {mostrarLente ? (
+                <span
+                  ref={lenteRef}
+                  data-lupa-lente=""
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    width: LUPA_LENTE_PX,
+                    height: LUPA_LENTE_PX,
+                    borderRadius: "50%",
+                    border: "3px solid rgba(0,21,52,.88)",
+                    boxShadow: "0 6px 20px rgba(0,21,52,.28), inset 0 0 0 1px rgba(0,21,52,.12)",
+                    pointerEvents: "none",
+                    opacity: 0,
+                    backgroundColor: "#fff",
+                    backgroundRepeat: "no-repeat",
+                    zIndex: 1,
+                  }}
+                />
+              ) : null}
+            </span>
           </button>
         ) : (
-          <img src={actual} alt={alt} onError={marcarRota} style={estiloImg} />
+          <img src={actual} alt={alt} draggable={false} onError={marcarRota} style={estiloImg} />
         )}
 
         {!soloUna && (
