@@ -38,3 +38,9 @@ node scripts/generar-alta-mepiel.js      # vuelve a armar el SQL con las fotos n
 ```
 
 SQL en orden: `sql/alta_mepiel_2026/00_staging.sql`, luego `01_…`, luego el `*_aplicar.sql`. No pisa anaquel (stock > 0) ni un precio que el dueño ya haya publicado.
+
+Si el SQL Editor responde `Failed to fetch (api.supabase.com)`, no es el catálogo: el panel no está hablando con Supabase. Carga directo a Postgres (hace falta la URI Session del pooler, puerto 6543, en `DATABASE_URL` o en `.env.local`):
+
+```bash
+node scripts/aplicar-alta-mepiel-pg.js
+```
