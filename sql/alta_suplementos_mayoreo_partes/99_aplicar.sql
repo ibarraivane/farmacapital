@@ -8,11 +8,11 @@ declare
   n int;
 begin
   if to_regclass('public._fc_cat_sm_stg') is null then
-    raise exception 'No existe _fc_cat_sm_stg. Primero pega 01_cargar_a.sql y 02_cargar_b.sql.';
+    raise exception 'No existe _fc_cat_sm_stg. Primero pega los archivos de cargar, en orden.';
   end if;
   select count(*) into n from public._fc_cat_sm_stg;
   if n < 2226 then
-    raise exception 'La tabla temporal tiene % filas y deben ser 2231. Falta pegar 01_cargar_a.sql y luego 02_cargar_b.sql.', n;
+    raise exception 'La tabla temporal tiene % filas y deben ser 2231. Faltan archivos de cargar.', n;
   end if;
 end
 $$;

@@ -202,11 +202,11 @@ declare
   n int;
 begin
   if to_regclass('public._fc_cat_sm_stg') is null then
-    raise exception 'No existe _fc_cat_sm_stg. Primero pega 01_cargar_a.sql y 02_cargar_b.sql.';
+    raise exception 'No existe _fc_cat_sm_stg. Primero pega los archivos de cargar, en orden.';
   end if;
   select count(*) into n from public._fc_cat_sm_stg;
   if n < ${Math.max(1, productos.length - 5)} then
-    raise exception 'La tabla temporal tiene % filas y deben ser ${productos.length}. Falta pegar 01_cargar_a.sql y luego 02_cargar_b.sql.', n;
+    raise exception 'La tabla temporal tiene % filas y deben ser ${productos.length}. Faltan archivos de cargar.', n;
   end if;
 end
 $$;
@@ -290,40 +290,40 @@ from public.productos;
 
   const pegar = path.join(ROOT, "sql/alta_suplementos_mayoreo_pegar");
   fs.mkdirSync(pegar, { recursive: true });
-  const mitad = Math.ceil(groups.length / 2);
+  for (const old of fs.readdirSync(pegar)) {
+    if (old.endsWith(".sql")) fs.unlinkSync(path.join(pegar, old));
+  }
   const leer = (name) => fs.readFileSync(path.join(PARTS, name), "utf8").trim();
-  const filas = (desde, hasta) => {
-    const out = [];
-    for (let i = desde; i <= hasta; i += 1) {
-      out.push(leer(`${String(i).padStart(2, "0")}_filas.sql`));
+  const MAX = 48 * 1024;
+  const piezas = [];
+  let actual = [leer("00_staging.sql")];
+  let bytes = Buffer.byteLength(actual[0], "utf8");
+  for (let i = 1; i <= groups.length; i += 1) {
+    const body = leer(`${String(i).padStart(2, "0")}_filas.sql`);
+    const n = Buffer.byteLength(body, "utf8") + 2;
+    if (actual.length && bytes + n > MAX) {
+      piezas.push(actual.join("\n\n"));
+      actual = [];
+      bytes = 0;
     }
-    return out.join("\n\n");
-  };
+    actual.push(body);
+    bytes += n;
+  }
+  if (actual.length) piezas.push(actual.join("\n\n"));
+  const totalPasos = piezas.length + 1;
+  piezas.forEach((texto, i) => {
+    const nota = i === 0
+      ? "Crea la tabla temporal y carga el primer bloque. Si lo vuelves a correr, vacía lo ya cargado."
+      : "Suma filas. No vacía la tabla. Solo después del archivo anterior.";
+    const nombre = `${String(i + 1).padStart(2, "0")}_cargar.sql`;
+    fs.writeFileSync(
+      path.join(pegar, nombre),
+      `-- Paso ${i + 1} de ${totalPasos}. ${nota}\n\n${texto}\n`,
+    );
+  });
   fs.writeFileSync(
-    path.join(pegar, "01_cargar_a.sql"),
-    `-- Paso 1 de 3. Crea la tabla temporal y carga la primera mitad.
--- Si lo vuelves a correr, vacía lo que ya estaba. Después pega 02_cargar_b.sql.
-
-${leer("00_staging.sql")}
-
-${filas(1, mitad)}
-`,
-  );
-  fs.writeFileSync(
-    path.join(pegar, "02_cargar_b.sql"),
-    `-- Paso 2 de 3. Suma el resto de filas. No vacía la tabla.
--- Solo después de 01_cargar_a.sql.
-
-${filas(mitad + 1, groups.length)}
-`,
-  );
-  fs.writeFileSync(
-    path.join(pegar, "03_aplicar.sql"),
-    `-- Paso 3 de 3. Pasa las filas al inventario.
--- Exige las ${productos.length} filas de la tabla temporal. No la borra.
-
-${merge}
-`,
+    path.join(pegar, `${String(totalPasos).padStart(2, "0")}_aplicar.sql`),
+    `-- Paso ${totalPasos} de ${totalPasos}. Pasa las filas al inventario.\n-- Exige las ${productos.length} filas. No borra la tabla temporal.\n\n${merge}\n`,
   );
 
   const altaCsv = [
