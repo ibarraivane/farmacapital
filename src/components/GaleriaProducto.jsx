@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Package, ZoomIn } from "lucide-react";
 import { BRAND, C_LIGHT } from "../constants";
-import { useMediaQuery } from "../hooks/useMediaQuery";
 import { aplicarLente, indiceEnRango, LUPA_LENTE_PX, posicionLupa } from "../lib/lupaFoto";
 
 /**
@@ -26,8 +25,10 @@ import { aplicarLente, indiceEnRango, LUPA_LENTE_PX, posicionLupa } from "../lib
  *   extra abajo se recortaría y la foto es lo que el vendedor necesita grande.
  * @param {boolean} [mostrarPuntos] Si es false, no pinta la tira de puntos
  *   (tapan la foto). Queda un contador discreto 2/9 y las flechas.
- * @param {boolean} [lupa] En la tienda: ícono de lupa y, con mouse, un círculo
- *   que amplía la zona bajo el cursor. El toque sigue abriendo onImagenClick.
+ * @param {boolean} [lupa] En la tienda: ícono de lupa y, al mover el mouse, un
+ *   círculo que amplía la zona bajo el cursor. El toque abre onImagenClick.
+ *   No depende de hover:hover: en algunos escritorios el navegador dice que
+ *   no hay mouse y la lente nunca salía.
  * @param {number} [indice] Si viene, la ficha manda qué foto se ve (la lupa y
  *   la miniatura comparten la misma). Si no, la galería lleva la cuenta.
  * @param {number} [indiceInicial] Foto al montar cuando nadie controla el índice.
@@ -49,7 +50,6 @@ export default function GaleriaProducto({
   onIndiceChange,
 }) {
   const C = C_LIGHT;
-  const punteroFino = useMediaQuery("(hover: hover) and (pointer: fine)");
   const fotos = useMemo(
     () => (imagenes || []).map((u) => String(u || "").trim()).filter(Boolean),
     [imagenes],
@@ -62,6 +62,7 @@ export default function GaleriaProducto({
   const [indiceVisto, setIndiceVisto] = useState(indice);
   const touchX = useRef(null);
   const lenteRef = useRef(null);
+  const toqueRef = useRef(false);
   const onIndiceChangeRef = useRef(onIndiceChange);
   onIndiceChangeRef.current = onIndiceChange;
 
@@ -108,6 +109,13 @@ export default function GaleriaProducto({
   };
 
   const moverLente = (e) => {
+    if (e.pointerType === "touch") {
+      toqueRef.current = true;
+      aplicarLente(lenteRef.current, null);
+      return;
+    }
+    if (e.pointerType === "mouse" || e.pointerType === "pen") toqueRef.current = false;
+    if (toqueRef.current) return;
     const img = e.currentTarget.querySelector("img");
     if (!img) {
       aplicarLente(lenteRef.current, null);
@@ -119,6 +127,7 @@ export default function GaleriaProducto({
       img.currentSrc || img.src,
     );
   };
+  const ocultarLente = () => aplicarLente(lenteRef.current, null);
 
   if (!total) {
     return (
@@ -131,7 +140,7 @@ export default function GaleriaProducto({
   const actual = fotos[i] || fotos[0];
   const soloUna = total < 2;
   const marcarRota = () => setRotas((prev) => new Set(prev).add(actual));
-  const mostrarLente = Boolean(lupa && punteroFino && onImagenClick);
+  const mostrarLente = Boolean(lupa && onImagenClick);
   const estiloImg = {
     maxWidth: "100%",
     maxHeight: maxAlto,
@@ -192,7 +201,13 @@ export default function GaleriaProducto({
             ref={imagenRef}
             onClick={onImagenClick}
             onMouseMove={mostrarLente ? moverLente : undefined}
-            onMouseLeave={mostrarLente ? () => aplicarLente(lenteRef.current, null) : undefined}
+            onPointerMove={mostrarLente ? moverLente : undefined}
+            onPointerDown={mostrarLente ? (e) => {
+              if (e.pointerType === "touch") toqueRef.current = true;
+              ocultarLente();
+            } : undefined}
+            onMouseLeave={mostrarLente ? ocultarLente : undefined}
+            onPointerLeave={mostrarLente ? ocultarLente : undefined}
             aria-label={alt ? `Ver foto de ${alt}` : "Ver foto en grande"}
             aria-haspopup="dialog"
             style={{
@@ -250,7 +265,7 @@ export default function GaleriaProducto({
                     width: LUPA_LENTE_PX,
                     height: LUPA_LENTE_PX,
                     borderRadius: "50%",
-                    border: "2px solid #fff",
+                    border: "3px solid rgba(0,21,52,.88)",
                     boxShadow: "0 6px 20px rgba(0,21,52,.28), inset 0 0 0 1px rgba(0,21,52,.12)",
                     pointerEvents: "none",
                     opacity: 0,

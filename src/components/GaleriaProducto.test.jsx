@@ -98,37 +98,23 @@ it("muestra la lupa sobre la foto, sin meter las flechas dentro del botón", () 
   const foto = screen.getByLabelText("Ver foto de Nido");
   expect(foto.querySelector("[data-lupa]")).not.toBeNull();
   expect(foto.querySelector("button")).toBeNull();
-  expect(foto.querySelector("[data-lupa-lente]")).toBeNull();
+  expect(foto.querySelector("[data-lupa-lente]").style.opacity).toBe("0");
 });
 
 it("en escritorio la lupa sigue el cursor y se esconde al salir", () => {
-  const original = window.matchMedia;
-  window.matchMedia = (query) => ({
-    matches: String(query).includes("hover: hover"),
-    media: query,
-    addEventListener() {},
-    removeEventListener() {},
-    addListener() {},
-    removeListener() {},
-    dispatchEvent() { return false; },
+  const { container } = render(
+    <GaleriaProducto imagenes={["http://x/unica.webp"]} alt="Nido" lupa onImagenClick={() => {}} />,
+  );
+  const foto = screen.getByLabelText("Ver foto de Nido");
+  const img = container.querySelector("img");
+  img.getBoundingClientRect = () => ({
+    left: 0, top: 0, width: 400, height: 400, right: 400, bottom: 400, x: 0, y: 0, toJSON() { return {}; },
   });
-  try {
-    const { container } = render(
-      <GaleriaProducto imagenes={["http://x/unica.webp"]} alt="Nido" lupa onImagenClick={() => {}} />,
-    );
-    const foto = screen.getByLabelText("Ver foto de Nido");
-    const img = container.querySelector("img");
-    img.getBoundingClientRect = () => ({
-      left: 0, top: 0, width: 400, height: 400, right: 400, bottom: 400, x: 0, y: 0, toJSON() { return {}; },
-    });
-    fireEvent.mouseMove(foto, { clientX: 200, clientY: 180 });
-    const lente = foto.querySelector("[data-lupa-lente]");
-    expect(lente).not.toBeNull();
-    expect(lente.style.opacity).toBe("1");
-    expect(lente.style.backgroundImage).toContain("unica.webp");
-    fireEvent.mouseLeave(foto);
-    expect(lente.style.opacity).toBe("0");
-  } finally {
-    window.matchMedia = original;
-  }
+  fireEvent.mouseMove(foto, { clientX: 200, clientY: 180 });
+  const lente = foto.querySelector("[data-lupa-lente]");
+  expect(lente).not.toBeNull();
+  expect(lente.style.opacity).toBe("1");
+  expect(lente.style.backgroundImage).toContain("unica.webp");
+  fireEvent.mouseLeave(foto);
+  expect(lente.style.opacity).toBe("0");
 });
