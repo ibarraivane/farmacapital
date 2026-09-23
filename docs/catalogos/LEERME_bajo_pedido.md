@@ -29,4 +29,26 @@ Las fotos de terceros (Shopify / Tienda Nube) quedan en `imagen_url` para que la
 
 Espejo 17-sep-2026: **2,231** packshots bajaron a `catalogo-imagenes/bajo-pedido/` (3 rechazadas en `fotos_pendientes_bajo_pedido.csv`). **1,086** SKUs siguen sin foto de origen (`sin_imagen_bajo_pedido.csv`), casi todos Ewafra sin match Promexsa: el alta existe, la foto no está cerrada.
 
-Mepiel: cuando llegue la lista, cruzar por EAN contra Dermaexpress y cargar fuente `mepiel`.
+## Suplementos Birdman: EAN y foto
+
+El CSV de mayoreo no trae código de barras. La ficha pública de [b2b.birdman.com](https://b2b.birdman.com) sí (`/products/{handle}.js` → `variant.barcode` + packshot). El SKU de mayoreo cruza 1 a 1 con esa ficha.
+
+```bash
+node scripts/enriquecer-birdman-ean.js
+```
+
+Eso reescribe `birdman_ean_imagen.csv` y `sql/patch_birdman_ean_imagen_20260923.sql`. Corrida 23-sep-2026: **114 de 117** suplementos traen EAN-13 (dígito verificador ok). Si el mayoreo no trae código, se toma el de la tienda `mx.birdman.com` del mismo SKU. Quedan sin código publicado: shaker negro, shaker rosa y Falcon Pumpkin 510 g (edición limitada). Los 117 tienen packshot.
+
+El parche pone `codigo_barras` y, si la ficha estaba vacía, `imagen_url`. No cambia el SKU `FC-` (si el EAN reescribiera el SKU, el regen duplicaría el producto). No pisa un código o una foto que ya existan. Hay que correrlo en el SQL Editor.
+
+## Mepiel
+
+La fuente `mepiel` sigue reservada: no hay lista de costo en el repo. La tienda `tienda.mepieldistribuidores.com.mx` es WooCommerce y desde aquí responde 403 (Cloudflare), así que no se pueden inventar EAN ni fotos.
+
+Cuando haya export (columnas `ean`, `costo`, `nombre`, y `imagen_url` si la trae):
+
+```bash
+node scripts/cruzar-mepiel-por-ean.js docs/catalogos/catalogo_mepiel.csv
+```
+
+El cruce es por EAN contra Dermaexpress / `codigo_barras`. Si el producto ya está, suma la referencia de compra `mepiel` y solo llena la foto si estaba vacía. Un EAN que no exista no se da de alta solo: queda en el CSV de pendientes.
