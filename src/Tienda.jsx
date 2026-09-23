@@ -55,6 +55,7 @@ import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
 import PieV2 from "./components/tienda/v2/PieV2";
 import InicioV2 from "./components/tienda/v2/InicioV2";
 import CotizarV2 from "./components/tienda/v2/CotizarV2";
+import CatalogoV2, { ordenarCatalogoV2 } from "./components/tienda/v2/CatalogoV2";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
 import { tiendaV2Activa } from "./theme/tiendaV2";
@@ -3360,6 +3361,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const [busqFocus,setBusqFocus]=useState(false);
   const [visibles, setVisibles] = useState(() => leerVisiblesCatalogo(CATALOGO_PAGE_SIZE));
   const [vista, setVista] = useState(() => leerVistaCatalogo());
+  const [ordenV2, setOrdenV2] = useState("relevancia");
   const setVistaCatalogo = (v) => setVista(guardarVistaCatalogo(v));
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
@@ -3422,6 +3424,35 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
     setCat("Todos"); setTipo("todos");
   };
   const busqActiva = busq.trim().length > 0;
+  if (tiendaV2Activa()) {
+    return (
+      <CatalogoV2
+        titulo={filtroRx ? "Surtir receta" : (busqActiva ? "Resultados de búsqueda" : (cat === "Todos" ? "Medicamentos" : cat))}
+        descripcion={busqActiva
+          ? `Búsqueda: «${busq.trim()}»`
+          : "Revisa la presentación, disponibilidad y forma de entrega de cada producto."}
+        productos={ordenarCatalogoV2(fil, ordenV2).slice(0, visibles)}
+        total={fil.length}
+        categorias={cats}
+        categoria={cat}
+        onCategoria={(c) => { setCat(c); setBusq(""); setBusqHero?.(""); }}
+        orden={ordenV2}
+        onOrden={setOrdenV2}
+        hayMas={hayMasCatalogo}
+        onVerMas={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
+        loading={loadingProductos}
+        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle", { productId: prod.id }); }}
+        setPage={setPage}
+        avisoRx={filtroRx ? (
+          <div className="fc-info-box" style={{ marginBottom: 16 }}>
+            <strong>Medicamentos con receta</strong>
+            {textosPolitica().catalogoRx}
+          </div>
+        ) : null}
+      />
+    );
+  }
+
   const catBtnStyle = (c) => ({
     width: stack ? "auto" : "100%",
     flexShrink: 0,
