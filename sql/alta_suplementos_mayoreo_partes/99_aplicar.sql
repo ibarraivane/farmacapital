@@ -42,12 +42,11 @@ select
   t.marca, t.presentacion, t.concentracion, t.forma_farmaceutica, t.subcategoria,
   t.imagen_url, true
 from public._fc_cat_sm_stg t
-where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
-  and not exists (
-    select 1 from public.productos p
-    where (t.ean is not null and p.codigo_barras = t.ean)
-       or p.sku = t.sku
-  );
+where not exists (
+  select 1 from public.productos p
+  where p.sku = t.sku
+     or (t.ean is not null and p.codigo_barras = t.ean)
+);
 
 update public.productos p
    set bajo_pedido = true,
@@ -66,8 +65,8 @@ update public.productos p
   from public._fc_cat_sm_stg t
  where coalesce(p.stock, 0) = 0
    and (
-     (t.ean is not null and (p.codigo_barras = t.ean or p.id = public.fc_buscar_producto_escaneo(t.ean)))
-     or p.sku = t.sku
+     p.sku = t.sku
+     or (t.ean is not null and p.codigo_barras = t.ean)
    );
 
 insert into public.producto_precios_referencia
@@ -77,7 +76,7 @@ select p.id, 'suplementosmayoreo', 'compra', t.costo, t.sku_externo, 'import_csv
   from public._fc_cat_sm_stg t
   join public.productos p
     on p.sku = t.sku
-    or (t.ean is not null and (p.codigo_barras = t.ean or p.id = public.fc_buscar_producto_escaneo(t.ean)))
+    or (t.ean is not null and p.codigo_barras = t.ean)
  where t.costo is not null and t.costo > 0
    and not exists (
      select 1 from public.producto_precios_referencia r
