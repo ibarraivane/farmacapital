@@ -29,8 +29,8 @@ test("copia los valores exactos del prototipo ChatGPT", () => {
 });
 
 test("la cintilla del menú no deja ver el título a través del encabezado fijo", () => {
-  expect(css).toMatch(/\.fc-sticky\{position:sticky;top:0;z-index:80;background-color:#ffffff;overscroll-behavior:none;touch-action:pan-y\}/);
-  expect(css).toMatch(/\.fc-nav\{background-color:#ffffff\}/);
-  expect(css).toMatch(/\.fc-nav button\{background-color:#ffffff\}/);
+  expect(css).toMatch(/\.fc-sticky\{position:sticky;top:0;z-index:80;background:#ffffff !important;isolation:isolate;overscroll-behavior:none;touch-action:pan-y\}/);
+  expect(css).toMatch(/\.fc-sticky::before\{content:"";position:absolute;inset:0;background:#ffffff;z-index:-1\}/);
+  expect(css).toMatch(/\.fc-nav,\.fc-v2 \.fc-nav button\{background:#ffffff !important\}/);
   expect(css).not.toMatch(/fc-sticky\{position:static\}/);
 });
