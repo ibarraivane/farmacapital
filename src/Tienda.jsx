@@ -53,6 +53,7 @@ import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
 import IntroAnimacion from "./components/tienda/IntroAnimacion";
 import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
 import PieV2 from "./components/tienda/v2/PieV2";
+import InicioV2 from "./components/tienda/v2/InicioV2";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
 import { tiendaV2Activa } from "./theme/tiendaV2";
@@ -3169,6 +3170,26 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 
   const useStaticHero =
     bannerMeta.status !== "ok" || bannerMeta.total === 0;
+
+  if (tiendaV2Activa()) {
+    return (
+      <InicioV2
+        productos={productos}
+        loadingProductos={loadingProductos}
+        setPage={setPage}
+        setProdDetalle={setProdDetalle}
+        precioConsulta={precioConsulta}
+        bannersSlot={(
+          <BannersEstaSemana
+            banners={bannersAll}
+            productos={productos}
+            setPage={setPage}
+            setProdDetalle={setProdDetalle}
+          />
+        )}
+      />
+    );
+  }
 
   return(
     <div>
