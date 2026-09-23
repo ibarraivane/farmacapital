@@ -50,4 +50,6 @@ test("el cruce no mueve el SKU y deja fuera un EAN repetido", () => {
   assert.doesNotMatch(sql, /7503057040393/);
   assert.match(sql, /cdn\.shopify\.com/);
   assert.doesNotMatch(sql, /Playera/);
+  assert.match(sql, /_fc_birdman_destino/);
+  assert.doesNotMatch(sql, /from destino\b/);
 });

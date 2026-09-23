@@ -131,34 +131,31 @@ insert into _fc_birdman_ean (sku, sku_externo, ean, imagen_url) values
 ('FC-01633681', 'WSVITDK300', '7503053835498', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/WSUP-VITAD3K2_Render_300Caps_Front_1.png?v=1764705164'),
 ('FC-18820668', 'WSVITAD120CAPS', '7503038209184', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_VITD_120CAPS_120p.jpg?v=1737566159');
 
-with destino as (
-  select distinct on (b.sku_externo)
-    b.sku_externo, b.ean, b.imagen_url, p.id
-  from _fc_birdman_ean b
-  join public.productos p
-    on p.sku = b.sku
-    or p.descripcion = 'Bajo pedido · birdman · ' || b.sku_externo
-  order by b.sku_externo, (p.sku = b.sku) desc, p.id
-),
-ean_libre as (
-  select d.id, d.ean
-  from destino d
-  where d.ean is not null
-    and not exists (
-      select 1 from public.productos o
-      where o.codigo_barras = d.ean
-        and o.id <> d.id
-    )
-)
+-- Tabla real: un WITH solo vive en el enunciado que le sigue.
+create temp table _fc_birdman_destino on commit drop as
+select distinct on (b.sku_externo)
+  b.sku_externo, b.ean, b.imagen_url, p.id
+from _fc_birdman_ean b
+join public.productos p
+  on p.sku = b.sku
+  or p.descripcion = 'Bajo pedido · birdman · ' || b.sku_externo
+order by b.sku_externo, (p.sku = b.sku) desc, p.id;
+
 update public.productos p
-   set codigo_barras = e.ean
-  from ean_libre e
- where p.id = e.id
-   and coalesce(nullif(trim(p.codigo_barras), ''), '') = '';
+   set codigo_barras = d.ean
+  from _fc_birdman_destino d
+ where p.id = d.id
+   and d.ean is not null
+   and coalesce(nullif(trim(p.codigo_barras), ''), '') = ''
+   and not exists (
+     select 1 from public.productos o
+     where o.codigo_barras = d.ean
+       and o.id <> p.id
+   );
 
 update public.productos p
    set imagen_url = d.imagen_url
-  from destino d
+  from _fc_birdman_destino d
  where p.id = d.id
    and coalesce(d.imagen_url, '') <> ''
    and coalesce(nullif(trim(p.imagen_url), ''), '') = '';
