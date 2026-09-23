@@ -580,7 +580,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   return (
     <div style={{ colorScheme: "light" }}>
       <div style={{ marginBottom: 12 }}>
-        <BotonesReporte rol={usuario?.rol} />
+        <BotonesReporte rol={usuario?.rol} mostrarPdf />
       </div>
       <div className="fc-toolbar-filters" style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
