@@ -21,3 +21,12 @@ test("PR 1 exporta las hojas acordadas", () => {
   expect(excel).toContain("cortes");
   expect(excel).toContain("por_hora");
 });
+
+test("botón Excel usa rolEsAdmin (admin o gerente) y el SQL pide fn_require_admin", () => {
+  const botones = readFileSync(join(__dirname, "BotonesReporte.jsx"), "utf8");
+  const patch = readFileSync(join(__dirname, "../../sql/patch_reporte_excel_admin_20260923.sql"), "utf8");
+  expect(botones).toContain("rolEsAdmin");
+  expect(botones).not.toMatch(/rol !== ['"]admin['"]/);
+  expect(patch).toContain("fn_require_admin");
+  expect(patch).toContain("empleado_rpc_transacciones_mes");
+});

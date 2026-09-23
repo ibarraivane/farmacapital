@@ -2,7 +2,7 @@
 // FarmaCapital — Botones de exportación en la vista Transacciones
 //
 // Reemplaza el botón de descarga anterior.
-// Sólo se renderiza para el rol admin, y además el servidor lo valida:
+// Sólo se renderiza para admin/gerente, y además el servidor lo valida:
 // ocultar el botón no es un control de acceso.
 //
 // ExcelJS y pdfmake se cargan con import() dinámico dentro de los
@@ -12,6 +12,7 @@ import { useState, useMemo, useCallback } from 'react';
 import {
   COLOR, MESES, obtenerReporteMensual, registrarAuditoria,
 } from './config';
+import { rolEsAdmin } from '../utils/permissions';
 
 const AHORA = new Date();
 
@@ -62,7 +63,7 @@ export default function BotonesReporte({ rol, mostrarPdf = false }) {
     }
   }, [anio, mes, progreso]);
 
-  if (rol !== 'admin') return null;
+  if (!rolEsAdmin(rol)) return null;
 
   const ocupado = tarea !== null;
 
