@@ -30,38 +30,37 @@ language sql immutable as $$
 $$;
 
 -- FarmaCapital no usa auth.uid(): la sesión es un token de empleado.
--- El wrapper setea farmacapital.session_token antes de llamar los RPC.
+-- Mismo camino que el resto del admin: fn_require_admin(token).
+-- El wrapper setea el GUC y además llama fn_require_admin directo.
 create or replace function fn_rep_es_admin()
 returns boolean
-language plpgsql stable security definer
+language plpgsql
+volatile
+security definer
 set search_path = public, pg_temp as $$
 declare
   v_tok text;
-  v_uid bigint;
-  v_rol text;
 begin
   v_tok := nullif(current_setting('farmacapital.session_token', true), '');
   if v_tok is null then
     return false;
   end if;
   begin
-    v_uid := public.fn_validar_token_empleado(v_tok::uuid);
-  exception when others then
-    return false;
+    perform public.fn_require_admin(v_tok::uuid);
+    return true;
+  exception
+    when sqlstate '28000' then return false;
+    when sqlstate '42501' then return false;
   end;
-  if v_uid is null then
-    return false;
-  end if;
-  select rol into v_rol
-    from public.usuarios
-   where id = v_uid and coalesce(activo, true) and eliminado_at is null;
-  return v_rol = 'admin';
 end;
 $$;
 
 create or replace function fn_rep_exige_admin()
 returns void
-language plpgsql stable as $$
+language plpgsql
+volatile
+security definer
+set search_path = public, pg_temp as $$
 begin
   if not fn_rep_es_admin() then
     raise exception 'ACCESO_DENEGADO: este reporte es exclusivo del rol admin'
@@ -855,10 +854,11 @@ create or replace function public.empleado_rpc_reporte_mensual(
   p_mes int
 )
 returns jsonb
-language plpgsql stable security definer
+language plpgsql volatile security definer
 set search_path = public, pg_temp
 as $$
 begin
+  perform public.fn_require_admin(p_session_token);
   perform set_config('farmacapital.session_token', p_session_token::text, true);
   return public.rpc_reporte_mensual(p_anio, p_mes);
 end;
@@ -873,10 +873,11 @@ create or replace function public.empleado_rpc_transacciones_mes(
   p_limit int default 5000
 )
 returns setof jsonb
-language plpgsql stable security definer
+language plpgsql volatile security definer
 set search_path = public, pg_temp
 as $$
 begin
+  perform public.fn_require_admin(p_session_token);
   perform set_config('farmacapital.session_token', p_session_token::text, true);
   return query
     select * from public.rpc_transacciones_mes(p_anio, p_mes, p_hoja, p_offset, p_limit);

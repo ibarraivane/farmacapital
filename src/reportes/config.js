@@ -158,9 +158,18 @@ export async function obtenerHoja(anio, mes, hoja, onProgreso) {
   return filas;
 }
 
-function traducirError(error) {
+export function traducirError(error) {
   const msg = String(error?.message || '');
-  if (msg.includes('ACCESO_DENEGADO') || error?.code === '42501') {
+  const code = String(error?.code || '');
+  if (msg.includes('Sesión inválida') || msg.includes('expirada') || code === '28000') {
+    return new Error('Sesión expirada. Vuelve a iniciar sesión.');
+  }
+  // Solo el mensaje explícito de admin — no todo 42501 (puede ser otra tabla/vista).
+  if (
+    msg.includes('ACCESO_DENEGADO') ||
+    msg.includes('Requiere rol admin') ||
+    msg.includes('exclusivo del rol admin')
+  ) {
     return new Error('Este reporte es exclusivo del administrador.');
   }
   if (msg.includes('HOJA_DESCONOCIDA')) {
