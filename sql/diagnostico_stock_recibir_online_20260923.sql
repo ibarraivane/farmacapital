@@ -61,28 +61,28 @@ select
   r.id as ticket_id,
   r.proveedor,
   r.estado as ticket_estado,
-  left(coalesce(p.nombre, ri.nombre_ticket, ''), 48) as producto,
-  ri.cantidad_recibida,
+  left(coalesce(p.nombre, ri.nombre_snapshot, ''), 48) as producto,
+  ri.cantidad,
   ri.confirmado,
   ri.lote_id,
-  ri.caducidad_mmaa,
-  ri.updated_at
+  ri.fecha_caducidad,
+  ri.created_at
 from public.recepcion_items ri
 join public.recepciones r on r.id = ri.recepcion_id
 left join public.productos p on p.id = ri.producto_id
 where coalesce(ri.confirmado, false) = true
   and ri.lote_id is null
-  and coalesce(ri.cantidad_recibida, 0) > 0
-order by ri.updated_at desc nulls last
+  and coalesce(ri.cantidad, 0) > 0
+order by ri.created_at desc nulls last
 limit 50;
 
 -- 4) Últimas entradas por Recibir (sí tienen lote) — ¿subió stock?
 select
-  ri.updated_at,
+  ri.created_at,
   r.proveedor,
   p.sku,
   left(p.nombre, 40) as nombre,
-  ri.cantidad_recibida as qty_recibida,
+  ri.cantidad as qty_recibida,
   l.cantidad_actual as lote_qty,
   p.stock as stock_producto,
   ri.lote_id
@@ -92,8 +92,8 @@ join public.productos p on p.id = ri.producto_id
 left join public.lotes l on l.id = ri.lote_id
 where coalesce(ri.confirmado, false) = true
   and ri.lote_id is not null
-  and ri.updated_at > now() - interval '14 days'
-order by ri.updated_at desc
+  and ri.created_at > now() - interval '14 days'
+order by ri.created_at desc
 limit 40;
 
 -- 5) Pedidos online recientes: ¿comprometen stock?
