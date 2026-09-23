@@ -31,6 +31,7 @@ export default function FichaProductoEnriquecida({
   ficha,
   monografia,
   whatsappHref,
+  ocultarFichaTecnica = false,
 }) {
   const ui = mapearFichaTienda({ producto, ficha, monografia });
   const clinica = ui.clinica;
@@ -115,6 +116,7 @@ export default function FichaProductoEnriquecida({
         </>
       ) : null}
 
+      {ocultarFichaTecnica ? null : (
       <Accordion titulo="Ficha técnica" abierta={!clinica && !fab}>
         <div className="farmacapital-ficha-spec">
           {ui.fichaTecnica.map((row) => (
@@ -122,6 +124,7 @@ export default function FichaProductoEnriquecida({
           ))}
         </div>
       </Accordion>
+      )}
 
       {ui.instructivo_url ? (
         <Accordion titulo="Instructivo completo">
