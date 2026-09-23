@@ -39,7 +39,9 @@ async function main() {
     process.exit(1);
   }
   const dir = path.join(__dirname, "..", "sql", "alta_mepiel_2026");
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  const files = fs.readdirSync(dir)
+    .filter((f) => f.endsWith(".sql") && !/^24_aplicar\.sql$/.test(f))
+    .sort();
   const client = new Client({
     connectionString: databaseUrl,
     ssl: /supabase\./i.test(databaseUrl) ? { rejectUnauthorized: false } : undefined,

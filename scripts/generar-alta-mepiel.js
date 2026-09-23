@@ -250,47 +250,56 @@ commit;
   });
 
   const last = String(groups.length + 1).padStart(2, "0");
-  fs.writeFileSync(path.join(SQL_DIR, `${last}_aplicar.sql`), `-- ${last} — pasa staging a productos + referencia mepiel.
--- No pisa anaquel (stock > 0) ni un precio que el dueño ya haya publicado.
--- Si el EAN ya está en Dermaexpress u otro mayoreo, el costo se queda con el más barato.
--- Si el SKU FC-… ya existe (otro producto), este alta usa FC-MP- + el EAN.
--- Si este archivo falló, córrelo otra vez. No vuelvas a correr el 00.
-begin;
+  escribirAplicarMepiel(SQL_DIR, last);
 
-do $$
+  fs.writeFileSync(path.join(DOCS, "mepiel_manifiesto_2026.json"), JSON.stringify({
+    generado: new Date().toISOString().slice(0, 10),
+    conteos,
+    sin_codigo: raw.sin_codigo || [],
+  }, null, 2));
+
+  console.log(JSON.stringify(conteos, null, 2));
+  console.log(`SQL → ${SQL_DIR} (${groups.length + 1} filas + aplicar en 7 archivos)`);
+}
+
+function escribirAplicarMepiel(dir, last) {
+  const falta = `do $$
 begin
   if to_regclass('public._fc_mepiel_stg') is null then
-    raise exception 'Falta la tabla temporal de ME Piel. Avisa antes de volver a correr el 00.';
+    raise exception 'Falta la tabla temporal de ME Piel. No vuelvas a correr el 00.';
   end if;
+end $$;`;
+
+  fs.writeFileSync(path.join(dir, `${last}_aplicar.sql`), `-- Ya no corras este archivo: el editor lo cortaba por tiempo.
+-- Sigue en orden con:
+--   ${last}a_insertar_0.sql … ${last}a_insertar_3.sql
+--   ${last}b_actualizar.sql, ${last}c_referencias.sql, ${last}d_cerrar.sql
+do $$
+begin
+  raise exception 'No corras ${last}_aplicar.sql. Empieza por ${last}a_insertar_0.sql';
 end $$;
+`);
+
+  for (let lote = 0; lote < 4; lote++) {
+    fs.writeFileSync(path.join(dir, `${last}a_insertar_${lote}.sql`), `-- ${last}a lote ${lote} de 4 — da de alta los productos que aún no están.
+-- No vuelvas a correr 00 ni 01…${String(Number(last) - 1).padStart(2, "0")}.
+-- Solo compara código de barras y SKU. No llama fc_buscar_producto_escaneo.
+begin;
+
+${falta}
+
+create index if not exists _fc_mepiel_stg_ean_idx on public._fc_mepiel_stg (ean);
 
 with base as (
-  select distinct on (ean) *
-  from public._fc_mepiel_stg
-  where nullif(btrim(ean), '') is not null
-  order by ean, costo nulls last
+  select distinct on (ean) s.*
+  from public._fc_mepiel_stg s
+  where nullif(btrim(s.ean), '') is not null
+  order by s.ean, s.costo nulls last
 ),
 ranked as (
   select b.*,
          row_number() over (partition by b.sku order by b.ean) as rn
   from base b
-),
-listos as (
-  select r.*,
-         case
-           when r.rn = 1
-            and not exists (select 1 from public.productos p where p.sku = r.sku)
-             then r.sku
-           when not exists (
-             select 1 from public.productos p where p.sku = 'FC-MP-' || r.ean
-           ) then 'FC-MP-' || r.ean
-           else 'FC-MP-' || r.ean || '-' || r.rn::text
-         end as sku_final
-  from ranked r
-  where public.fc_buscar_producto_escaneo(r.ean) is null
-    and not exists (
-      select 1 from public.productos p where p.codigo_barras = r.ean
-    )
 )
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, tipo, descripcion,
@@ -299,21 +308,42 @@ insert into public.productos (
   concentracion, forma_farmaceutica
 )
 select
-  l.nombre,
-  l.sku_final,
-  nullif(l.ean, ''),
-  l.categoria,
+  r.nombre,
+  case
+    when r.rn = 1 and ps.id is null then r.sku
+    when pm.id is null then 'FC-MP-' || r.ean
+    else 'FC-MP-' || r.ean || '-' || r.rn::text
+  end,
+  r.ean,
+  r.categoria,
   'marca',
   'Bajo pedido · mepiel'
-    || coalesce(' · ' || nullif(l.linea, ''), '')
-    || coalesce(' · oferta ' || nullif(l.oferta, ''), ''),
-  l.costo,
+    || coalesce(' · ' || nullif(r.linea, ''), '')
+    || coalesce(' · oferta ' || nullif(r.oferta, ''), ''),
+  r.costo,
   0,
   0, 1, true, false,
-  l.marca, l.presentacion, l.subcategoria, nullif(l.imagen_url, ''), true,
-  nullif(l.concentracion, ''), nullif(l.forma, '')
-from listos l
+  r.marca, r.presentacion, r.subcategoria, nullif(r.imagen_url, ''), true,
+  nullif(r.concentracion, ''), nullif(r.forma, '')
+from ranked r
+left join public.productos pe on pe.codigo_barras = r.ean
+left join public.productos ps on ps.sku = r.sku
+left join public.productos pm on pm.sku = ('FC-MP-' || r.ean)
+where pe.id is null
+  and ((mod(hashtext(r.ean), 4) + 4) % 4) = ${lote}
 on conflict (sku) do nothing;
+
+commit;
+
+select 'lote ${lote}' as paso;
+`);
+  }
+
+  fs.writeFileSync(path.join(dir, `${last}b_actualizar.sql`), `-- ${last}b — a los que ya existían les guarda el costo de ME Piel si es más barato.
+-- No toca anaquel (stock > 0) ni un precio ya publicado.
+begin;
+
+${falta}
 
 update public.productos p
    set bajo_pedido = true,
@@ -329,19 +359,33 @@ update public.productos p
        forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), nullif(t.forma, '')),
        imagen_url = coalesce(nullif(trim(p.imagen_url), ''), nullif(t.imagen_url, '')),
        subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria)
-  from public._fc_mepiel_stg t
- where coalesce(p.stock, 0) = 0
-   and coalesce(p.precio, 0) <= 0.01
-   and (
-     p.codigo_barras = t.ean
-     or p.id = public.fc_buscar_producto_escaneo(t.ean)
-   );
+  from (
+    select distinct on (ean) *
+    from public._fc_mepiel_stg
+    where nullif(btrim(ean), '') is not null
+    order by ean, costo nulls last
+  ) t
+ where p.codigo_barras = t.ean
+   and coalesce(p.stock, 0) = 0
+   and coalesce(p.precio, 0) <= 0.01;
+
+commit;
+
+select 'actualizar' as paso;
+`);
+
+  fs.writeFileSync(path.join(dir, `${last}c_referencias.sql`), `-- ${last}c — anota el precio cliente con IVA como referencia de compra ME Piel.
+begin;
+
+${falta}
 
 delete from public.producto_precios_referencia r
- using public._fc_mepiel_stg t
- join public.productos p
-   on p.codigo_barras = t.ean
-   or p.id = public.fc_buscar_producto_escaneo(t.ean)
+ using (
+   select distinct ean
+   from public._fc_mepiel_stg
+   where nullif(btrim(ean), '') is not null
+ ) t
+ join public.productos p on p.codigo_barras = t.ean
  where r.producto_id = p.id
    and r.fuente = '${FUENTE_MEPIEL}'
    and r.origen = 'import_xlsx'
@@ -354,13 +398,26 @@ select distinct on (p.id)
   'Lista ME Piel 2026 · precio cliente c/IVA'
     || coalesce(' · PVP c/IVA ' || t.techo::text, '')
     || coalesce(' · oferta ' || nullif(t.oferta, ''), '')
-  from public._fc_mepiel_stg t
-  join public.productos p
-    on p.codigo_barras = t.ean
-    or p.id = public.fc_buscar_producto_escaneo(t.ean)
- where t.costo is not null and t.costo > 0
+  from (
+    select distinct on (ean) *
+    from public._fc_mepiel_stg
+    where nullif(btrim(ean), '') is not null
+      and costo is not null
+      and costo > 0
+    order by ean, costo nulls last
+  ) t
+  join public.productos p on p.codigo_barras = t.ean
  order by p.id, t.costo;
 
+commit;
+
+select 'referencias' as paso, count(*) as de_hoy
+from public.producto_precios_referencia
+where fuente = '${FUENTE_MEPIEL}' and fecha = current_date;
+`);
+
+  fs.writeFileSync(path.join(dir, `${last}d_cerrar.sql`), `-- ${last}d — cierra la carga y borra la tabla temporal.
+begin;
 drop table if exists public._fc_mepiel_stg;
 commit;
 
@@ -372,15 +429,6 @@ select
   ) as alta_mepiel_nueva
 from public.productos;
 `);
-
-  fs.writeFileSync(path.join(DOCS, "mepiel_manifiesto_2026.json"), JSON.stringify({
-    generado: new Date().toISOString().slice(0, 10),
-    conteos,
-    sin_codigo: raw.sin_codigo || [],
-  }, null, 2));
-
-  console.log(JSON.stringify(conteos, null, 2));
-  console.log(`SQL → ${SQL_DIR} (${groups.length + 2} archivos)`);
 }
 
 function mediana(nums) {

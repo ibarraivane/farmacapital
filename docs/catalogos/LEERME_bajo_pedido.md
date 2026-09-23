@@ -37,9 +37,9 @@ python3 scripts/buscar_fotos_mepiel.py   # Farmatodo, solo los que siguen sin fo
 node scripts/generar-alta-mepiel.js      # vuelve a armar el SQL con las fotos nuevas
 ```
 
-SQL en orden: `sql/alta_mepiel_2026/00_staging.sql`, luego `01_…`, luego el `*_aplicar.sql`. No pisa anaquel (stock > 0) ni un precio que el dueño ya haya publicado.
+SQL en orden: `sql/alta_mepiel_2026/00_staging.sql`, luego `01_…23`, luego `24a_insertar_0` … `24a_insertar_3`, `24b_actualizar`, `24c_referencias` y `24d_cerrar`. No corras `24_aplicar.sql`: el editor lo cortaba por tiempo porque llamaba `fc_buscar_producto_escaneo` por cada código. No pisa anaquel (stock > 0) ni un precio que el dueño ya haya publicado. Si el `00` ya corrió, no lo vuelvas a correr: vacía la tabla temporal.
 
-Si el SQL Editor responde `Failed to fetch (api.supabase.com)`, no es el catálogo: el panel no está hablando con Supabase. Carga directo a Postgres (hace falta la URI Session del pooler, puerto 6543, en `DATABASE_URL` o en `.env.local`):
+Si el SQL Editor responde `Failed to fetch (api.supabase.com)` o `upstream timeout`, carga directo a Postgres (hace falta la URI Session del pooler, puerto 6543, en `DATABASE_URL` o en `.env.local`):
 
 ```bash
 node scripts/aplicar-alta-mepiel-pg.js
