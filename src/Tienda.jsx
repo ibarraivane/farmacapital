@@ -192,7 +192,10 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
   return Math.max(col, fromLotes);
 }
 
-// Bajo pedido no es «Agotado»: no está en anaquel a propósito (vitrina /conseguir, CTA Ordenar, sin precio).
+// «Agotado» = stock de anaquel en 0. No es una bandera en BD.
+// Recibir sube lotes → trigger → productos.stock. Compra online (SQL
+ // patch_online_stock_al_crear) baja el mismo stock al crear el pedido.
+// Bajo pedido no es agotado: es vitrina /conseguir a propósito.
 const productoAgotadoTienda = (p) => Number(p?.stock) <= 0 && !esBajoPedido(p);
 
 /** Catálogo tienda: activos en línea (incluye agotados, como POS). */
