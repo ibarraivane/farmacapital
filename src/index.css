@@ -12,10 +12,14 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  height: auto;
-  overflow-x: hidden;
+  /* Alto del viewport: Chrome Android solo respeta overscroll-behavior
+     si html es de verdad el scroller. height:auto lo deja en el viewport
+     nativo y el jalón hacia abajo recarga la página. */
+  height: 100%;
+  overflow-x: clip;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
   overscroll-behavior-y: none;
 }
 
@@ -37,8 +41,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   height: auto;
+  min-height: 100%;
   overflow-x: clip;
   overflow-y: visible;
+  overscroll-behavior: none;
   overscroll-behavior-y: none;
   max-width: 100%;
 }

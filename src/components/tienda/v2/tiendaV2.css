@@ -143,7 +143,7 @@
 /* Encabezado fijo. El menú del prototipo trae botones transparentes: sin fondo
    propio, el título de la página se ve a través de esa cintilla al hacer scroll.
    El fondo va en el contenedor y en la cintilla, en celular y en escritorio. */
-.fc-v2 .fc-sticky{position:sticky;top:0;z-index:80;background-color:#ffffff}
+.fc-v2 .fc-sticky{position:sticky;top:0;z-index:80;background-color:#ffffff;overscroll-behavior:none;touch-action:pan-y}
 .fc-v2 .fc-nav{background-color:#ffffff}
 .fc-v2 .fc-nav button{background-color:#ffffff}
 /* Pie: marca, accesos y línea legal. */
