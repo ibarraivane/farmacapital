@@ -22,6 +22,24 @@ test("PR 1 exporta las hojas acordadas", () => {
   expect(excel).toContain("por_hora");
 });
 
+test("la hoja diario no correlaciona v.fecha_local sin agrupar", () => {
+  const sql = readFileSync(join(__dirname, "../../supabase/migrations/20260920100000_reporte_mensual.sql"), "utf8");
+  const copia = readFileSync(join(__dirname, "../../sql/patch_reporte_mensual_20260920.sql"), "utf8");
+  const patch = readFileSync(join(__dirname, "../../sql/patch_reporte_diario_fecha_local_20260923.sql"), "utf8");
+  for (const src of [sql, copia, patch]) {
+    expect(src).not.toMatch(/pa\.fecha_local::date = v\.fecha_local::date/);
+    expect(src).toContain("partidas as");
+  }
+  expect(patch).toContain("public.rpc_transacciones_mes");
+});
+
+test("Dashboard y Transacciones muestran el PDF del mes", () => {
+  const dash = readFileSync(join(__dirname, "../DashboardModule.jsx"), "utf8");
+  const tx = readFileSync(join(__dirname, "../TransaccionesTab.jsx"), "utf8");
+  expect(dash).toMatch(/<BotonesReporte[^>]*mostrarPdf/);
+  expect(tx).toMatch(/<BotonesReporte[^>]*mostrarPdf/);
+});
+
 test("botón Excel usa rolEsAdmin (admin o gerente) y el SQL pide fn_require_admin", () => {
   const botones = readFileSync(join(__dirname, "BotonesReporte.jsx"), "utf8");
   const patch = readFileSync(join(__dirname, "../../sql/patch_reporte_excel_admin_20260923.sql"), "utf8");

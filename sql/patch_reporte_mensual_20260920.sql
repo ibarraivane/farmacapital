@@ -739,22 +739,42 @@ begin
         order by fecha_local offset p_offset limit p_limit) t;
 
   elsif p_hoja = 'diario' then
+    -- Piezas y costo van en un agregado aparte. Una subconsulta correlacionada
+    -- sobre v.fecha_local truena: Postgres no deja usar esa columna si el
+    -- GROUP BY es la expresión fecha_local::date
+    -- ("subquery uses ungrouped column v.fecha_local from outer query").
     return query
       select to_jsonb(t) from (
-        select v.fecha_local::date as fecha, to_char(v.fecha_local,'TMDay') as dia_semana,
-               sum(v.total) as venta_neta, count(*) as tickets,
-               sum(v.total)/count(*) as ticket_promedio,
-               coalesce((select sum(cantidad) from v_rep_partida pa
-                         where pa.fecha_local::date = v.fecha_local::date),0) as piezas,
-               coalesce((select sum(cantidad*costo_unitario) from v_rep_partida pa
-                         where pa.fecha_local::date = v.fecha_local::date),0) as costo,
-               sum(v.total) filter (where metodo_pago='efectivo')    as efectivo,
-               sum(v.total) filter (where metodo_pago='tarjeta')     as tarjeta,
-               sum(v.total) filter (where metodo_pago='spei')        as spei,
-               sum(v.total) filter (where metodo_pago='mercadopago') as mercadopago
-        from v_rep_venta v
-        where v.fecha_local >= d and v.fecha_local < h
-        group by 1,2 order by 1 offset p_offset limit p_limit) t;
+        with ventas as (
+          select v.fecha_local::date as fecha,
+                 to_char(min(v.fecha_local), 'TMDay') as dia_semana,
+                 sum(v.total) as venta_neta,
+                 count(*) as tickets,
+                 sum(v.total)/count(*) as ticket_promedio,
+                 sum(v.total) filter (where v.metodo_pago='efectivo')    as efectivo,
+                 sum(v.total) filter (where v.metodo_pago='tarjeta')     as tarjeta,
+                 sum(v.total) filter (where v.metodo_pago='spei')        as spei,
+                 sum(v.total) filter (where v.metodo_pago='mercadopago') as mercadopago
+          from v_rep_venta v
+          where v.fecha_local >= d and v.fecha_local < h
+          group by v.fecha_local::date
+        ),
+        partidas as (
+          select pa.fecha_local::date as fecha,
+                 coalesce(sum(pa.cantidad), 0) as piezas,
+                 coalesce(sum(pa.cantidad * pa.costo_unitario), 0) as costo
+          from v_rep_partida pa
+          where pa.fecha_local >= d and pa.fecha_local < h
+          group by pa.fecha_local::date
+        )
+        select v.fecha, v.dia_semana, v.venta_neta, v.tickets, v.ticket_promedio,
+               coalesce(p.piezas, 0) as piezas,
+               coalesce(p.costo, 0) as costo,
+               v.efectivo, v.tarjeta, v.spei, v.mercadopago
+        from ventas v
+        left join partidas p on p.fecha = v.fecha
+        order by v.fecha
+        offset p_offset limit p_limit) t;
 
   elsif p_hoja = 'productos' then
     return query

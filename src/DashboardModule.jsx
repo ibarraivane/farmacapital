@@ -963,7 +963,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
           <div className="fc-dash-greet" style={{color:C.textMid,fontSize:12}}><strong style={{color:C.text}}>{saludoUsuario(usuario?.nombre)}</strong> 👋</div>
-          <BotonesReporte rol={usuario?.rol} />
+          <BotonesReporte rol={usuario?.rol} mostrarPdf />
           <button type="button" onClick={()=>{ fetchAll(); if(panelTab==="resumen"||panelTab==="margen") fetchRep(); }} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>
             <RefreshCw size={13} strokeWidth={2.1} aria-hidden />
             Actualizar
