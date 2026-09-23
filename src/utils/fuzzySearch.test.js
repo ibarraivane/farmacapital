@@ -675,6 +675,44 @@ describe("ficha partida: búsqueda no depende de meter todo en el nombre", () =>
     expect(tiendaSearchRelevanceRank(ibuprofenoCorto, "ibuprofeno 20 tabletas")).toBeLessThan(60);
   });
 
+  test("paracetamol 500 mg encuentra por dosis (nombre o concentración)", () => {
+    const para500 = {
+      id: 810,
+      activo: true,
+      nombre: "Paracetamol",
+      marca: "Genérico",
+      principio_activo: "Paracetamol",
+      concentracion: "500 mg",
+      presentacion: "20 tabletas",
+      forma_farmaceutica: "Tabletas",
+    };
+    const para750 = {
+      id: 811,
+      activo: true,
+      nombre: "Paracetamol",
+      marca: "Genérico",
+      principio_activo: "Paracetamol",
+      concentracion: "750 mg",
+      presentacion: "10 tabletas",
+      forma_farmaceutica: "Tabletas",
+    };
+    const tempraName = {
+      id: 812,
+      activo: true,
+      nombre: "Tempra 500 mg tabletas",
+      marca: "Tempra",
+      principio_activo: "Paracetamol",
+    };
+    expect(tiendaProductMatchesBusqueda(para500, "paracetamol 500")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(para500, "paracetamol 500 mg")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(tempraName, "paracetamol 500 mg")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(para750, "paracetamol 500")).toBe(false);
+    expect(tiendaProductMatchesBusqueda(para750, "paracetamol 500 mg")).toBe(false);
+    expect(tiendaSearchRelevanceRank(para500, "paracetamol 500 mg")).toBeLessThan(
+      tiendaSearchRelevanceRank(para750, "paracetamol 500 mg")
+    );
+  });
+
   test("nivea pega por marca aunque el nombre no la repita", () => {
     expect(tiendaProductMatchesBusqueda(niveaGel, "nivea")).toBe(true);
     expect(tiendaSearchRelevanceRank(niveaGel, "nivea")).toBeLessThan(

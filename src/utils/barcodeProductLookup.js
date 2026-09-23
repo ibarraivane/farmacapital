@@ -221,8 +221,13 @@ export function scanDedupeKey(raw, product) {
  * Nueva ráfaga: reemplazar el campo en lugar de concatenar.
  * Bluetooth en iPad mete pausas de 200–350 ms a mitad de un EAN-13;
  * a los 8 dígitos eso pisaba el código y el POS “se borraba”.
+ *
+ * Solo aplica a buffer de pistola (solo dígitos). Si hay letras
+ * (“paracetamol 50” → 13 chars sin espacios) NO es un EAN: pisarlo
+ * borraba la dosis al teclear “paracetamol 500 mg”.
  */
 export function shouldReplaceScanInput(prevRaw, lastKeyTs, now = Date.now()) {
+  if (!isAllDigitsInput(prevRaw)) return false;
   const current = normalizeBarcodeRaw(prevRaw);
   if (!current) return false;
   const gap = now - (lastKeyTs || 0);
