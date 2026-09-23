@@ -17,13 +17,13 @@ delete from public.producto_precios_referencia r
  join public.productos p on p.codigo_barras = t.ean
  where r.producto_id = p.id
    and r.fuente = 'mepiel'
-   and r.origen = 'import_xlsx'
+   and r.origen = 'import_csv'
    and r.fecha = current_date;
 
 insert into public.producto_precios_referencia
   (producto_id, fuente, tipo, precio, sku_externo, origen, notas)
 select distinct on (p.id)
-  p.id, 'mepiel', 'compra', t.costo, t.ean, 'import_xlsx',
+  p.id, 'mepiel', 'compra', t.costo, t.ean, 'import_csv',
   'Lista ME Piel 2026 · precio cliente c/IVA'
     || coalesce(' · PVP c/IVA ' || t.techo::text, '')
     || coalesce(' · oferta ' || nullif(t.oferta, ''), '')
