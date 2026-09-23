@@ -55,6 +55,30 @@ test("bajo pedido no inventa precio y dice Ver encargo", () => {
   expect(onClick).toHaveBeenCalled();
 });
 
+test("grupo de sabores muestra el título sin sabor y la leyenda", () => {
+  render(
+    <TarjetaProducto
+      prod={{
+        id: 2,
+        nombre: "Falcon Protein - Nueva Fórmula - Chocolate 480g",
+        titulo_grupo_publico: "Falcon Protein - Nueva Fórmula - 480g",
+        sabores_publicos: 6,
+        marca: "Birdman",
+        presentacion: "480 g",
+        precio: 0,
+        stock: 0,
+        bajo_pedido: true,
+        categoria: "Suplemento",
+        subcategoria: "Proteína",
+      }}
+      onClick={() => {}}
+    />
+  );
+  expect(screen.getByText("Falcon Protein - Nueva Fórmula - 480g")).toBeInTheDocument();
+  expect(screen.getByText(/6 sabores/)).toBeInTheDocument();
+  expect(screen.queryByText(/Chocolate/)).not.toBeInTheDocument();
+});
+
 test("antibiótico con receta marca Solo recoger", () => {
   render(
     <TarjetaProducto

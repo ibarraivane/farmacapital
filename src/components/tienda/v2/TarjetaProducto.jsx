@@ -3,6 +3,7 @@ import { $peso } from "../../../utils";
 import { tiendaCardImageUrl, urlImagenPublicaTienda } from "../../../utils/tiendaCardImage";
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { esBajoPedido } from "../../../lib/bajoPedido";
+import { leyendaSabores } from "../../../lib/grupoPublico";
 import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta } from "../../../hooks/useProductoImagenes";
 import EstadoDisponibilidad from "./EstadoDisponibilidad";
 
@@ -61,9 +62,13 @@ export default function TarjetaProducto({ prod, onClick }) {
       <EstadoDisponibilidad producto={prod} />
       {marca ? <div className="fc-product-brand">{marca}</div> : null}
       <button type="button" className="fc-product-name" onClick={abrir}>
-        {prod.nombre}
+        {prod.sabores_publicos > 1 && prod.titulo_grupo_publico ? prod.titulo_grupo_publico : prod.nombre}
       </button>
-      {presLinea ? <div className="fc-small">{presLinea}</div> : null}
+      {presLinea || leyendaSabores(prod.sabores_publicos) ? (
+        <div className="fc-small">
+          {[presLinea, leyendaSabores(prod.sabores_publicos)].filter(Boolean).join(" · ")}
+        </div>
+      ) : null}
       <div className="fc-price-row">
         <strong className="fc-price">{precio != null ? $peso(precio) : "Consultar"}</strong>
         <button type="button" className="fc-add" onClick={abrir}>

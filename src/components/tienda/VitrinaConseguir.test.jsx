@@ -78,3 +78,24 @@ test("rubro Dispositivos y tope de banda en Todos", () => {
   fireEvent.click(screen.getByRole("tab", { name: /Dispositivos/i }));
   expect(screen.getAllByText(/Producto /).length).toBe(20);
 });
+
+test("sabores del mismo tamaño son una tarjeta; otro tamaño sigue aparte", () => {
+  const seen = [];
+  render(
+    <VitrinaConseguir
+      productos={[
+        { id: 1, nombre: "Falcon Protein Chocolate 480 g", grupo_publico: "p480", variante_publica: "Chocolate", imagen_url: "https://ejemplo/choco.jpg", activo: true, bajo_pedido: true, precio: 0, stock: 0, categoria: "Suplemento", subcategoria: "Proteína" },
+        { id: 2, nombre: "Falcon Protein Fresa 480 g", grupo_publico: "p480", variante_publica: "Fresa", activo: true, bajo_pedido: true, precio: 0, stock: 0, categoria: "Suplemento", subcategoria: "Proteína" },
+        { id: 3, nombre: "Falcon Protein Chocolate 960 g", grupo_publico: "p960", variante_publica: "Chocolate", activo: true, bajo_pedido: true, precio: 0, stock: 0, categoria: "Suplemento", subcategoria: "Proteína" },
+      ]}
+      renderProducto={(p) => {
+        seen.push(p);
+        return <div>{p.titulo_grupo_publico || p.nombre}</div>;
+      }}
+    />,
+  );
+  expect(screen.getByRole("tab", { name: /Proteína\s+2/ })).toBeInTheDocument();
+  expect(seen.map((p) => p.id)).toEqual([1, 3]);
+  expect(seen[0].sabores_publicos).toBe(2);
+  expect(seen[0].titulo_grupo_publico).not.toMatch(/Chocolate|Fresa/);
+});
