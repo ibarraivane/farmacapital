@@ -2360,7 +2360,16 @@ function renderInventarioColumnCell(colId, ctx) {
           field="sku"
           value={p.sku || ""}
           mono
-          display={<span style={tdEllipsisStyle}>{p.sku || "—"}</span>}
+          display={
+            <span style={{ display: "block", minWidth: 0 }}>
+              <span style={tdEllipsisStyle}>{p.sku || "—"}</span>
+              {refListaMayoristaDesdeNotas(p.notas) ? (
+                <span style={{ display: "block", fontSize: 10, color: C.textMid, fontWeight: 600 }}>
+                  lista {refListaMayoristaDesdeNotas(p.notas)}
+                </span>
+              ) : null}
+            </span>
+          }
           tdStyle={{
             padding: "6px 8px 6px 6px",
             color: C.textMid,
