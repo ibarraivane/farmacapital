@@ -253,8 +253,45 @@ commit;
   fs.writeFileSync(path.join(SQL_DIR, `${last}_aplicar.sql`), `-- ${last} — pasa staging a productos + referencia mepiel.
 -- No pisa anaquel (stock > 0) ni un precio que el dueño ya haya publicado.
 -- Si el EAN ya está en Dermaexpress u otro mayoreo, el costo se queda con el más barato.
+-- Si el SKU FC-… ya existe (otro producto), este alta usa FC-MP- + el EAN.
+-- Si este archivo falló, córrelo otra vez. No vuelvas a correr el 00.
 begin;
 
+do $$
+begin
+  if to_regclass('public._fc_mepiel_stg') is null then
+    raise exception 'Falta la tabla temporal de ME Piel. Avisa antes de volver a correr el 00.';
+  end if;
+end $$;
+
+with base as (
+  select distinct on (ean) *
+  from public._fc_mepiel_stg
+  where nullif(btrim(ean), '') is not null
+  order by ean, costo nulls last
+),
+ranked as (
+  select b.*,
+         row_number() over (partition by b.sku order by b.ean) as rn
+  from base b
+),
+listos as (
+  select r.*,
+         case
+           when r.rn = 1
+            and not exists (select 1 from public.productos p where p.sku = r.sku)
+             then r.sku
+           when not exists (
+             select 1 from public.productos p where p.sku = 'FC-MP-' || r.ean
+           ) then 'FC-MP-' || r.ean
+           else 'FC-MP-' || r.ean || '-' || r.rn::text
+         end as sku_final
+  from ranked r
+  where public.fc_buscar_producto_escaneo(r.ean) is null
+    and not exists (
+      select 1 from public.productos p where p.codigo_barras = r.ean
+    )
+)
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -262,32 +299,21 @@ insert into public.productos (
   concentracion, forma_farmaceutica
 )
 select
-  t.nombre,
-  case
-    when exists (
-      select 1 from public.productos p
-      where p.sku = t.sku
-        and coalesce(p.codigo_barras, '') is distinct from coalesce(t.ean, '')
-    ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
-  end,
-  nullif(t.ean, ''),
-  t.categoria,
+  l.nombre,
+  l.sku_final,
+  nullif(l.ean, ''),
+  l.categoria,
   'marca',
   'Bajo pedido · mepiel'
-    || coalesce(' · ' || nullif(t.linea, ''), '')
-    || coalesce(' · oferta ' || nullif(t.oferta, ''), ''),
-  t.costo,
+    || coalesce(' · ' || nullif(l.linea, ''), '')
+    || coalesce(' · oferta ' || nullif(l.oferta, ''), ''),
+  l.costo,
   0,
   0, 1, true, false,
-  t.marca, t.presentacion, t.subcategoria, nullif(t.imagen_url, ''), true,
-  nullif(t.concentracion, ''), nullif(t.forma, '')
-from public._fc_mepiel_stg t
-where public.fc_buscar_producto_escaneo(t.ean) is null
-  and not exists (
-    select 1 from public.productos p
-    where p.codigo_barras = t.ean or p.sku = t.sku
-  );
+  l.marca, l.presentacion, l.subcategoria, nullif(l.imagen_url, ''), true,
+  nullif(l.concentracion, ''), nullif(l.forma, '')
+from listos l
+on conflict (sku) do nothing;
 
 update public.productos p
    set bajo_pedido = true,
