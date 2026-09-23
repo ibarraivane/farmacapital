@@ -61,7 +61,7 @@ export default function EncabezadoV2({
   };
 
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 50 }}>
+    <div className="fc-sticky">
       <div className="fc-top">
         <span>Farmacia y consultorio · Ciudad de México</span>
         <span>Atención en sucursal · {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}</span>
