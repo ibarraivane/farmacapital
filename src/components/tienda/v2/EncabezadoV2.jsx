@@ -136,7 +136,7 @@ export default function EncabezadoV2({
         <button type="button" onClick={() => go("catalogo", { rx: false })}>Medicamentos</button>
         <button type="button" onClick={() => go("conseguir")}>Dermocosmética</button>
         <button type="button" onClick={() => irACatalogoCategoria(setPage, "Vitaminas")}>Nutrición</button>
-        <button type="button" className="fc-nav-quote" onClick={() => go("conseguir")}>Cotizar especializado</button>
+        <button type="button" className="fc-nav-quote" onClick={() => go("cotizar")}>Cotizar especializado</button>
         <button type="button" className="fc-location" onClick={irSucursal}>
           <MapPin aria-hidden />
           Sucursal CDMX · Ver ubicación

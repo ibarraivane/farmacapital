@@ -1028,7 +1028,7 @@ function BannersAdmin(){
               {form.plantilla==="servicio" && (
                 <div>
                   <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>DESTINO</label>
-                  <select className="farmacapital-field-select" style={inpS} value={form.destino||"cotizar"} onChange={e=>setForm(p=>({...p,destino:e.target.value,pagina:e.target.value==="consultorio"?"cita":"conseguir"}))}>
+                  <select className="farmacapital-field-select" style={inpS} value={form.destino||"cotizar"} onChange={e=>setForm(p=>({...p,destino:e.target.value,pagina:e.target.value==="consultorio"?"cita":"cotizar"}))}>
                     <option value="cotizar">Cotizar especializado</option>
                     <option value="consultorio">Consultorio</option>
                   </select>

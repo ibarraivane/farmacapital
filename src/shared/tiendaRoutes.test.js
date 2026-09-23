@@ -49,6 +49,9 @@ describe("tiendaRoutes", () => {
     expect(resolveTiendaPage("te-lo-conseguimos")).toBe("conseguir");
     expect(tiendaPathnameToPageId("/tarjeta")).toBe("tarjeta");
     expect(tiendaPathnameToPageId("/conseguir")).toBe("conseguir");
+    expect(resolveTiendaPage("cotizar-especializado")).toBe("cotizar");
+    expect(tiendaPathnameToPageId("/cotizar")).toBe("cotizar");
+    expect(pageIdToTiendaPath("cotizar")).toBe("/cotizar");
     expect(tiendaPathnameToPageId("/pagar")).toBe("pagar");
     expect(pageIdToTiendaPath("pagar")).toBe("/pagar");
     expect(resolveTiendaPage("pago")).toBe("checkout");

@@ -54,6 +54,7 @@ import IntroAnimacion from "./components/tienda/IntroAnimacion";
 import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
 import PieV2 from "./components/tienda/v2/PieV2";
 import InicioV2 from "./components/tienda/v2/InicioV2";
+import CotizarV2 from "./components/tienda/v2/CotizarV2";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
 import { tiendaV2Activa } from "./theme/tiendaV2";
@@ -7267,6 +7268,9 @@ export default function TiendaFarmaCapital(){
     envios:        <PoliticaEnvios setPage={setPage}/>,
     "terminos-puntos": <TerminosPuntos setPage={setPage}/>,
     tarjeta:       <FlyerFarmaCapital setPage={setPage}/>,
+    cotizar:       v2
+      ? <CotizarV2 setPage={setPage} user={user} textoInicial={busqHero}/>
+      : <SolicitudCatalogoForm setPage={setPage} textoInicial={busqHero} user={user}/>,
     conseguir: (
       <>
         <VitrinaConseguir
