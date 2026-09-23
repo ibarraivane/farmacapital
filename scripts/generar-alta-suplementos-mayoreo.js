@@ -325,6 +325,17 @@ from public.productos;
     path.join(pegar, `${String(totalPasos).padStart(2, "0")}_aplicar.sql`),
     `-- Paso ${totalPasos} de ${totalPasos}. Pasa las filas al inventario.\n-- Exige las ${productos.length} filas. No borra la tabla temporal.\n\n${merge}\n`,
   );
+  const stagingHeader = [
+    "sku", "ean", "nombre", "marca", "presentacion", "concentracion", "forma_farmaceutica",
+    "categoria", "subcategoria", "tipo", "costo", "precio", "imagen_url", "fuente", "sku_externo",
+  ];
+  fs.writeFileSync(
+    path.join(pegar, "staging.csv"),
+    [
+      stagingHeader.join(","),
+      ...productos.map((p) => stagingHeader.map((k) => csvCell(p[k] ?? "")).join(",")),
+    ].join("\n") + "\n",
+  );
 
   const altaCsv = [
     "sku,ean,codigo,nombre,marca,presentacion,concentracion,forma,categoria,subcategoria,costo,imagen_url,foto_pendiente",
