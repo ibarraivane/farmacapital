@@ -56,6 +56,7 @@ import PieV2 from "./components/tienda/v2/PieV2";
 import InicioV2 from "./components/tienda/v2/InicioV2";
 import CotizarV2 from "./components/tienda/v2/CotizarV2";
 import CatalogoV2, { ordenarCatalogoV2 } from "./components/tienda/v2/CatalogoV2";
+import FichaV2 from "./components/tienda/v2/FichaV2";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
 import { tiendaV2Activa } from "./theme/tiendaV2";
@@ -2113,6 +2114,58 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   };
   const similares=productos.filter(p=>categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod))&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
+  if (tiendaV2Activa()) {
+    const politica = politicaProducto(prod);
+    const nombreFicha = nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre;
+    const infoFicha = (
+      <FichaProductoEnriquecida
+        producto={prod}
+        ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
+        monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
+        whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${nombreFicha || "un producto"}`)}`}
+        ocultarFichaTecnica
+      />
+    );
+    return (
+      <FichaV2
+        prod={{ ...prod, nombre: nombreFicha }}
+        imagen={imgSrc}
+        categoriaLabel={categoriaVitrina(prod) || "Catálogo"}
+        precioSlot={cta ? null : <PrecioOferta prod={prod} promos={promosProd} size="lg" />}
+        estadoCompra={{
+          agotado,
+          permitidoWeb,
+          esEncargo: Boolean(cta),
+          textoBloqueo: productoEsCategoriaMinisuperTienda(prod) ? "Solo minisuper" : "Solo en mostrador",
+        }}
+        requiereReceta={politica.requiereReceta}
+        avisoReceta={politica.avisoFicha}
+        added={added}
+        onAgregar={() => {
+          if (agotado) return;
+          if (!permitidoWeb) { alert(razonBloqueoProductoTiendaFarmacia(prod)); return; }
+          if (addToCart(prod) === false) return;
+          setAdded(true); setTimeout(() => setAdded(false), 1500);
+        }}
+        onComprar={() => {
+          if (agotado || !permitidoWeb) return;
+          if (addToCart(prod) === false) return;
+          setPage("carrito");
+        }}
+        onCotizar={irACotizar}
+        ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
+        monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
+        infoSlot={infoFicha}
+        similares={similares}
+        onProducto={(p) => {
+          setProdDetalle(p);
+          setPage("detalle", { productId: p.id });
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        setPage={setPage}
+      />
+    );
+  }
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:20}}>
