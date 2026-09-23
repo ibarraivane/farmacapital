@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import FichaV2, { fichaTecnicaDe, entregaFicha } from "./FichaV2";
+import FichaV2, { fichaTecnicaDe, entregaFicha, tituloVisibleFicha } from "./FichaV2";
 
 const PROD = {
   id: 7,
@@ -93,6 +93,13 @@ test("el nombre va antes de la foto, no debajo", () => {
   const orden = [...container.querySelectorAll("h1, .fc-detail-photo, .fc-buybox")];
   expect(orden.map((n) => n.tagName === "H1" ? "nombre" : n.className.includes("photo") ? "foto" : "compra"))
     .toEqual(["nombre", "foto", "compra"]);
+});
+
+test("la marca del título público pasa a la línea de abajo", () => {
+  expect(tituloVisibleFicha({ nombre: "Dolver · Ibuprofeno 400 Mg", marca: "Dolver" }))
+    .toBe("Ibuprofeno 400 Mg");
+  expect(tituloVisibleFicha({ nombre: "Omeprazol 20 mg", marca: "Ultra" }))
+    .toBe("Omeprazol 20 mg");
 });
 
 test("cada estado dice cuándo lo tienes", () => {
