@@ -1,4 +1,7 @@
-/** Etiquetas y reglas puras del módulo "Lo que buscan" (pedidos de mostrador). */
+/** Etiquetas y reglas puras del módulo Encargos (antes «Lo que buscan»). */
+
+/** Nombre en el menú y en las pantallas. El piso ya dice «me lo encargas». */
+export const ETIQUETA_ENCARGOS = "Encargos";
 
 export const ESTADOS_SOLICITUD = [
   { id: "pendiente", label: "Pendiente", hint: "Anotado, aún no se decide compra" },

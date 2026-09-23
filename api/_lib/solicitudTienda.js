@@ -60,7 +60,7 @@ function validarSolicitudTienda(raw) {
 function buildStaffEmail({ value, id }) {
   const v = value || {};
   const folio = id != null ? `#LQ-${id}` : 'nueva';
-  const subject = `Lo que buscan (tienda) ${folio}: ${v.texto || 'solicitud'}`;
+  const subject = `Encargos (tienda) ${folio}: ${v.texto || 'solicitud'}`;
   const lines = [
     'Nueva solicitud desde farmacapital.mx — Te lo conseguimos.',
     '',
@@ -74,7 +74,7 @@ function buildStaffEmail({ value, id }) {
     `Dirección: ${v.direccion || '—'}`,
     `Notas: ${v.notas || '—'}`,
     '',
-    'Ya está (o debería estar) en Admin → Lo que buscan.',
+    'Ya está (o debería estar) en Admin → Encargos.',
     'Escríbele por WhatsApp o correo con el costo y la liga de pago.',
     'El envío a domicilio, si aplica, se cobra en el checkout junto con los productos.',
   ];

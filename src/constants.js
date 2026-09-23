@@ -1,4 +1,5 @@
 // FARMACAPITAL — Constantes globales
+import { ETIQUETA_ENCARGOS } from "./lib/pedidosMostrador";
 import {
   LayoutDashboard, ShoppingCart, Package,
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
@@ -97,7 +98,7 @@ export const NAV_ITEMS = [
   {id:"dash",       icon: LayoutDashboard, label:"Dashboard"},
   {id:"promo",      icon: Target,          label:"Promociones"},
   {id:"dev",        icon: Undo2,           label:"Devoluciones"},
-  {id:"ped_mostrador", icon: ClipboardList, label:"Lo que buscan"},
+  {id:"ped_mostrador", icon: ClipboardList, label:ETIQUETA_ENCARGOS},
   {id:"cotiz",         icon: Calculator,     label:"Cotizaciones"},
   {id:"fact",       icon: Receipt,         label:"Facturación"},
   // ══ SISTEMA ═══════════════════════════════

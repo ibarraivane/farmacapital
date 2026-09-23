@@ -28,7 +28,10 @@ function mustInclude(haystack, needle, msg) {
 const sql = read("sql/patch_cotizaciones_20260921.sql");
 const lib = read("src/lib/cotizaciones.js");
 const ui = read("src/CotizacionesModule.jsx");
-const mostrador = read("src/PedidosMostradorModule.jsx");
+const mostrador = [
+  read("src/PedidosMostradorModule.jsx"),
+  read("src/components/FilaSolicitudMostrador.jsx"),
+].join("\n");
 const constants = read("src/constants.js");
 const permissions = read("src/utils/permissions.js");
 const admin = read("src/Admin.jsx");
