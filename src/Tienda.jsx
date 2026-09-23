@@ -120,7 +120,7 @@ import {
   mergeCartLines,
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
-import { bandasCatalogoPorCategoria, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
+import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
 import {
   aplicarPosicionCatalogo,
   guardarVisiblesCatalogo,
@@ -3417,6 +3417,17 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const [ordenV2, setOrdenV2] = useState("relevancia");
   const setVistaCatalogo = (v) => setVista(guardarVistaCatalogo(v));
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
+  useEffect(() => {
+    const sync = () => {
+      let saved = "Todos";
+      try { saved = sessionStorage.getItem("farmacapital_cat") || "Todos"; } catch { /* noop */ }
+      setCat(saved === "Todos" ? "Todos" : (categoriaCanon(saved) || "Todos"));
+      setBusq("");
+      setBusqHero?.("");
+    };
+    window.addEventListener(CATALOGO_CATEGORIA_EVENT, sync);
+    return () => window.removeEventListener(CATALOGO_CATEGORIA_EVENT, sync);
+  }, [setBusqHero]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
   const filtrosCatalogoKey = `${cat}|${tipo}|${String(busq || "").trim()}|${filtroRx ? "1" : "0"}`;
