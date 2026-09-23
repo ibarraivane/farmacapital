@@ -1,3 +1,6 @@
+-- Paso 3 de 3. Pasa las filas al inventario.
+-- Exige las 2231 filas de la tabla temporal. No la borra.
+
 -- Pasa staging a productos + referencia de costo. Idempotente.
 -- No toca anaquel con stock. Precio público = 0.
 -- No borra _fc_cat_sm_stg: si esto falla, las filas siguen ahí.
@@ -91,3 +94,4 @@ select
   count(*) filter (where coalesce(bajo_pedido, false) and descripcion like 'Bajo pedido · suplementosmayoreo%') as filas_sm,
   count(*) filter (where coalesce(bajo_pedido, false) and coalesce(precio, 0) <= 0.01) as ordenar
 from public.productos;
+

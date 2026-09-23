@@ -194,7 +194,22 @@ commit;
 
   const merge = `-- Pasa staging a productos + referencia de costo. Idempotente.
 -- No toca anaquel con stock. Precio público = 0.
+-- No borra _fc_cat_sm_stg: si esto falla, las filas siguen ahí.
 begin;
+
+do $$
+declare
+  n int;
+begin
+  if to_regclass('public._fc_cat_sm_stg') is null then
+    raise exception 'No existe _fc_cat_sm_stg. Primero pega 01_cargar_a.sql y 02_cargar_b.sql.';
+  end if;
+  select count(*) into n from public._fc_cat_sm_stg;
+  if n < ${Math.max(1, productos.length - 5)} then
+    raise exception 'La tabla temporal tiene % filas y deben ser ${productos.length}. Falta pegar 01_cargar_a.sql y luego 02_cargar_b.sql.', n;
+  end if;
+end
+$$;
 
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, tipo, descripcion,
@@ -264,7 +279,6 @@ select p.id, 'suplementosmayoreo', 'compra', t.costo, t.sku_externo, 'import_csv
         and r.fecha = current_date
    );
 
-drop table if exists public._fc_cat_sm_stg;
 commit;
 
 select
@@ -273,6 +287,44 @@ select
 from public.productos;
 `;
   fs.writeFileSync(path.join(PARTS, "99_aplicar.sql"), merge);
+
+  const pegar = path.join(ROOT, "sql/alta_suplementos_mayoreo_pegar");
+  fs.mkdirSync(pegar, { recursive: true });
+  const mitad = Math.ceil(groups.length / 2);
+  const leer = (name) => fs.readFileSync(path.join(PARTS, name), "utf8").trim();
+  const filas = (desde, hasta) => {
+    const out = [];
+    for (let i = desde; i <= hasta; i += 1) {
+      out.push(leer(`${String(i).padStart(2, "0")}_filas.sql`));
+    }
+    return out.join("\n\n");
+  };
+  fs.writeFileSync(
+    path.join(pegar, "01_cargar_a.sql"),
+    `-- Paso 1 de 3. Crea la tabla temporal y carga la primera mitad.
+-- Si lo vuelves a correr, vacía lo que ya estaba. Después pega 02_cargar_b.sql.
+
+${leer("00_staging.sql")}
+
+${filas(1, mitad)}
+`,
+  );
+  fs.writeFileSync(
+    path.join(pegar, "02_cargar_b.sql"),
+    `-- Paso 2 de 3. Suma el resto de filas. No vacía la tabla.
+-- Solo después de 01_cargar_a.sql.
+
+${filas(mitad + 1, groups.length)}
+`,
+  );
+  fs.writeFileSync(
+    path.join(pegar, "03_aplicar.sql"),
+    `-- Paso 3 de 3. Pasa las filas al inventario.
+-- Exige las ${productos.length} filas de la tabla temporal. No la borra.
+
+${merge}
+`,
+  );
 
   const altaCsv = [
     "sku,ean,codigo,nombre,marca,presentacion,concentracion,forma,categoria,subcategoria,costo,imagen_url,foto_pendiente",
