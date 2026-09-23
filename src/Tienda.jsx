@@ -37,6 +37,7 @@ import { productoEsVendible } from "./utils/productoVendible";
 import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, categoriaVitrinaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
+import LupaFotoTienda from "./components/tienda/LupaFotoTienda";
 import PrecioOferta from "./components/PrecioOferta";
 import { mapaPromosPorProducto, ofertaDeProducto } from "./lib/precioOferta";
 import { hoyISOMexico } from "./lib/fecha";
@@ -2049,6 +2050,15 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   const narrowSuggest = useMediaQuery("(max-width: 768px)");
   const [busqFocus,setBusqFocus]=useState(false);
   const [added,setAdded]=useState(false);
+  const [fotoAbierta, setFotoAbierta] = useState(false);
+  const [fotoIndice, setFotoIndice] = useState(0);
+  const fotoBtnRef = useRef(null);
+  const fotoProdId = useRef(prod?.id);
+  if (fotoProdId.current !== prod?.id) {
+    fotoProdId.current = prod?.id;
+    if (fotoAbierta) setFotoAbierta(false);
+    if (fotoIndice !== 0) setFotoIndice(0);
+  }
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const fotoCatalogoDe = useImagenesPrincipales();
   const poolCatalogo = useMemo(
@@ -2110,6 +2120,11 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   };
   const similares=productos.filter(p=>categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod))&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
+  const nombreZoom = nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre || "";
+  const cerrarFoto = () => {
+    setFotoAbierta(false);
+    queueMicrotask(() => fotoBtnRef.current?.focus?.());
+  };
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:20}}>
@@ -2151,15 +2166,33 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
       <button type="button" onClick={()=>{ setProdDetalle(null); setPage("catalogo"); }} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
       <div className="farmacapital-ficha-layout" style={{marginBottom:48,opacity:agotado?0.85:1}}>
         <div>
-        <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20,opacity:agotado?0.42:1}}>
+        <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:20,overflow:"visible",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20,opacity:agotado?0.42:1}}>
           <GaleriaProducto
             imagenes={galeria}
-            alt={prod?.nombre || ""}
+            alt={nombreZoom}
             maxAlto={stack?360:420}
             iconoVacio={88}
             style={{padding:galeria.length?0:(stack?32:48)}}
+            onImagenClick={galeria.length ? () => setFotoAbierta(true) : undefined}
+            imagenRef={fotoBtnRef}
+            lupa={galeria.length > 0}
+            indice={fotoIndice}
+            onIndiceChange={setFotoIndice}
           />
+          {galeria.length ? (
+            <p style={{margin:"10px 0 0",color:C.dim,fontSize:12,textAlign:"center"}}>
+              Pasa el cursor para ampliar, o toca la foto para verla en grande
+            </p>
+          ) : null}
         </div>
+        <LupaFotoTienda
+          open={Boolean(fotoAbierta && galeria.length)}
+          onClose={cerrarFoto}
+          imagenes={galeria}
+          alt={nombreZoom}
+          indice={fotoIndice}
+          onIndiceChange={setFotoIndice}
+        />
         <div style={{marginTop:20}}>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             {cta
