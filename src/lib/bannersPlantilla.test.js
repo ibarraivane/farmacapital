@@ -56,7 +56,7 @@ test("vence y Esta semana toma 1–5 plantillas", () => {
 });
 
 test("destino cotizar y consultorio", () => {
-  expect(destinoBanner({ destino: "cotizar" }).page).toBe("conseguir");
+  expect(destinoBanner({ destino: "cotizar" }).page).toBe("cotizar");
   expect(destinoBanner({ destino: "consultorio" }).page).toBe("cita");
   expect(destinoBanner({ destino: "categoria:Vitaminas" }).categoria).toBe("Vitaminas");
 });

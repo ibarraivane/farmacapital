@@ -75,7 +75,7 @@ export function puedeCrearBannerProducto(producto) {
 export function destinoBanner(banner) {
   const raw = String(banner?.destino || banner?.pagina || "").trim();
   if (!raw) return { page: "catalogo", categoria: "", href: "" };
-  if (raw === "cotizar") return { page: "conseguir", categoria: "", href: "" };
+  if (raw === "cotizar") return { page: "cotizar", categoria: "", href: "" };
   if (raw === "consultorio") return { page: "cita", categoria: "", href: "" };
   if (raw.startsWith("categoria:")) {
     return { page: "catalogo", categoria: raw.slice("categoria:".length).trim(), href: "" };

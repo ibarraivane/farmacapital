@@ -50,9 +50,20 @@ test("el buscador reusa las sugerencias del catálogo", () => {
   expect(setPage).toHaveBeenCalledWith("detalle", { productId: 11 });
 });
 
-test("Cotizar especializado abre conseguir hasta la fase C1", () => {
+test("Cotizar especializado abre la pantalla de cotización", () => {
   const setPage = jest.fn();
   render(<EncabezadoV2 setPage={setPage} cart={[]} />);
   fireEvent.click(screen.getByRole("button", { name: "Cotizar especializado" }));
-  expect(setPage).toHaveBeenCalledWith("conseguir");
+  expect(setPage).toHaveBeenCalledWith("cotizar");
+});
+
+test("Medicamentos limpia la categoría y Nutrición abre suplementos", () => {
+  const setPage = jest.fn();
+  sessionStorage.setItem("farmacapital_cat", "Alergia");
+  render(<EncabezadoV2 setPage={setPage} cart={[]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Medicamentos" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Todos");
+  expect(setPage).toHaveBeenCalledWith("catalogo", { rx: false, catalogoScroll: "top" });
+  fireEvent.click(screen.getByRole("button", { name: "Nutrición" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Suplemento");
 });

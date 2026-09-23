@@ -127,3 +127,83 @@
 }
 .fc-v2 .fc-suggest button:hover,.fc-v2 .fc-suggest button:focus-visible{background:var(--fc-soft)}
 .fc-v2 .fc-product{width:100%;background:none;border-left:0;border-right:0;border-top:0}
+
+/* Fase B — inicio */
+.fc-v2 .fc-inicio{display:block}
+.fc-v2 .fc-encargo{background:var(--fc-white);border:1px solid var(--fc-line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:4px;text-align:left;color:var(--fc-ink);cursor:pointer;min-height:0}
+.fc-v2 .fc-encargo img{width:100%;height:150px;object-fit:contain;mix-blend-mode:multiply;margin-bottom:6px}
+.fc-v2 .fc-encargo-ph{display:block;width:100%;height:150px;border-radius:6px;background:var(--fc-soft);margin-bottom:6px}
+.fc-v2 .fc-encargo-name{font-weight:600;font-size:14px;line-height:1.3}
+.fc-v2 .fc-skeleton{height:250px;border-radius:6px;background:var(--fc-soft)}
+@media(max-width:520px){.fc-v2 .fc-encargo img,.fc-v2 .fc-encargo-ph{height:120px}}
+.fc-v2 .fc-check .fc-textbtn{display:inline;min-height:0;padding:0;font-size:inherit;line-height:inherit}
+.fc-v2 .fc-form .fc-primary{justify-content:center}
+.fc-v2 .fc-quote-link span{flex:1;text-align:left}
+.fc-v2 .fc-quote-link svg{flex:none}
+
+/* Encabezado fijo: fondo propio para que el contenido no se vea a través de la barra. */
+.fc-v2 .fc-sticky{position:sticky;top:0;z-index:50;background:var(--fc-white)}
+.fc-v2 .fc-nav{background:var(--fc-white)}
+/* En celular el encabezado no se queda fijo: ocupaba un tercio de la pantalla. */
+@media(max-width:760px){.fc-v2 .fc-sticky{position:static}}
+/* Pie: marca, accesos y línea legal. */
+.fc-v2 .fc-footer{display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+.fc-v2 .fc-footer-marca{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.fc-v2 .fc-footer-marca .fc-textbtn{color:#9FD9BD}
+.fc-v2 .fc-footer-links{display:flex;flex-wrap:wrap;gap:8px 22px}
+.fc-v2 .fc-footer-links button{background:none;border:0;padding:6px 0;min-height:40px;color:var(--fc-white);font-size:13px;text-align:left;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.fc-v2 .fc-footer-links button:hover{color:#9FD9BD}
+
+/* ---- Ficha de producto (rediseño) -----------------------------------------
+   Orden fijo en toda pantalla: nombre → foto → compra → información.
+   La caja de compra se queda a la vista en escritorio y baja como barra fija
+   en celular, para que el botón nunca quede enterrado al final de la página. */
+.fc-v2 .fc-crumbs{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fc-muted);margin-bottom:14px;flex-wrap:wrap}
+.fc-v2 .fc-crumbs button{background:0;border:0;padding:4px 0;color:var(--fc-muted);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.fc-v2 .fc-crumbs button:hover{color:var(--fc-blue)}
+
+.fc-v2 .fc-ficha .fc-detail{display:grid;grid-template-columns:minmax(0,1fr) 348px;gap:20px 40px;align-items:start;
+  grid-template-areas:"head head" "media compra" "info compra"}
+/* Pantalla ancha: foto, información y caja de compra en tres columnas, para que
+   no quede un hueco muerto a la derecha de la foto. */
+@media(min-width:1180px){
+  .fc-v2 .fc-ficha .fc-detail{grid-template-columns:400px minmax(0,1fr) 348px;
+    grid-template-areas:"head head head" "media info compra"}
+  .fc-v2 .fc-detail-info{margin-top:0}
+}
+.fc-v2 .fc-detail-head{grid-area:head;display:flex;flex-direction:column;gap:8px}
+.fc-v2 .fc-detail-head h1{font-size:34px;letter-spacing:-1px}
+.fc-v2 .fc-detail-media{grid-area:media}
+.fc-v2 .fc-detail-info{grid-area:info;margin-top:14px}
+.fc-v2 .fc-detail-h2{font-size:18px;letter-spacing:-.2px;margin-bottom:2px}
+
+.fc-v2 .fc-ficha .fc-detail-photo{border:1px solid var(--fc-line);border-radius:12px;background:var(--fc-white);padding:24px;
+  display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;min-height:0;width:100%;max-width:430px}
+.fc-v2 .fc-ficha .fc-detail-photo img{height:auto;width:auto;max-height:100%;mix-blend-mode:normal}
+
+.fc-v2 .fc-buybox{grid-area:compra;position:sticky;top:196px;display:flex;flex-direction:column;gap:14px;
+  border:1px solid var(--fc-line);border-radius:12px;background:var(--fc-soft);padding:20px}
+.fc-v2 .fc-buybox-precio .fc-price{font-size:30px}
+.fc-v2 .fc-buybox-cotiza{font-size:19px;font-weight:600}
+.fc-v2 .fc-buybox-entrega{font-size:13px;line-height:1.6;color:var(--fc-muted)}
+.fc-v2 .fc-buybox-entrega strong{display:block;color:var(--fc-ink);font-weight:600}
+.fc-v2 .fc-buybox-acciones{display:flex;flex-direction:column;gap:9px}
+.fc-v2 .fc-buybox-acciones .fc-primary,.fc-v2 .fc-buybox-acciones .fc-secondary{width:100%;min-height:50px}
+.fc-v2 .fc-buybox-receta{font-size:12px;line-height:1.55;color:var(--fc-terra);border-left:3px solid var(--fc-terra);padding-left:10px}
+.fc-v2 .fc-buybox-receta strong{font-weight:600}
+
+.fc-v2 .fc-buybar{display:none}
+
+@media(max-width:900px){
+  .fc-v2 .fc-ficha .fc-detail{grid-template-columns:1fr;gap:18px;grid-template-areas:"head" "media" "compra" "info"}
+  .fc-v2 .fc-buybox{position:static}
+  .fc-v2 .fc-ficha .fc-detail-photo{aspect-ratio:4/3;max-width:none}
+  .fc-v2 .fc-detail-head h1{font-size:27px;letter-spacing:-.6px}
+  .fc-v2 .fc-ficha{padding-bottom:88px}
+  .fc-v2 .fc-buybar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:45;align-items:center;gap:12px;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--fc-white);
+    border-top:1px solid var(--fc-line);box-shadow:0 -6px 20px rgba(0,21,52,.09)}
+  .fc-v2 .fc-buybar-precio{flex:1;min-width:0}
+  .fc-v2 .fc-buybar-precio .fc-price{font-size:21px}
+  .fc-v2 .fc-buybar .fc-primary{flex:none;min-height:46px}
+}

@@ -53,6 +53,10 @@ import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
 import IntroAnimacion from "./components/tienda/IntroAnimacion";
 import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
 import PieV2 from "./components/tienda/v2/PieV2";
+import InicioV2 from "./components/tienda/v2/InicioV2";
+import CotizarV2 from "./components/tienda/v2/CotizarV2";
+import CatalogoV2, { ordenarCatalogoV2 } from "./components/tienda/v2/CatalogoV2";
+import FichaV2 from "./components/tienda/v2/FichaV2";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
 import { tiendaV2Activa } from "./theme/tiendaV2";
@@ -116,7 +120,7 @@ import {
   mergeCartLines,
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
-import { bandasCatalogoPorCategoria, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
+import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
 import {
   aplicarPosicionCatalogo,
   guardarVisiblesCatalogo,
@@ -2110,6 +2114,58 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   };
   const similares=productos.filter(p=>categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod))&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
+  if (tiendaV2Activa()) {
+    const politica = politicaProducto(prod);
+    const nombreFicha = nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre;
+    const infoFicha = (
+      <FichaProductoEnriquecida
+        producto={prod}
+        ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
+        monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
+        whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${nombreFicha || "un producto"}`)}`}
+        ocultarFichaTecnica
+      />
+    );
+    return (
+      <FichaV2
+        prod={{ ...prod, nombre: nombreFicha }}
+        imagen={imgSrc}
+        categoriaLabel={categoriaVitrina(prod) || "Catálogo"}
+        precioSlot={cta ? null : <PrecioOferta prod={prod} promos={promosProd} size="lg" />}
+        estadoCompra={{
+          agotado,
+          permitidoWeb,
+          esEncargo: Boolean(cta),
+          textoBloqueo: productoEsCategoriaMinisuperTienda(prod) ? "Solo minisuper" : "Solo en mostrador",
+        }}
+        requiereReceta={politica.requiereReceta}
+        avisoReceta={politica.avisoFicha}
+        added={added}
+        onAgregar={() => {
+          if (agotado) return;
+          if (!permitidoWeb) { alert(razonBloqueoProductoTiendaFarmacia(prod)); return; }
+          if (addToCart(prod) === false) return;
+          setAdded(true); setTimeout(() => setAdded(false), 1500);
+        }}
+        onComprar={() => {
+          if (agotado || !permitidoWeb) return;
+          if (addToCart(prod) === false) return;
+          setPage("carrito");
+        }}
+        onCotizar={irACotizar}
+        ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
+        monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
+        infoSlot={infoFicha}
+        similares={similares}
+        onProducto={(p) => {
+          setProdDetalle(p);
+          setPage("detalle", { productId: p.id });
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        setPage={setPage}
+      />
+    );
+  }
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:20}}>
@@ -3170,6 +3226,26 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   const useStaticHero =
     bannerMeta.status !== "ok" || bannerMeta.total === 0;
 
+  if (tiendaV2Activa()) {
+    return (
+      <InicioV2
+        productos={productos}
+        loadingProductos={loadingProductos}
+        setPage={setPage}
+        setProdDetalle={setProdDetalle}
+        precioConsulta={precioConsulta}
+        bannersSlot={(
+          <BannersEstaSemana
+            banners={bannersAll}
+            productos={productos}
+            setPage={setPage}
+            setProdDetalle={setProdDetalle}
+          />
+        )}
+      />
+    );
+  }
+
   return(
     <div>
       <HeroCarousel
@@ -3338,8 +3414,20 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const [busqFocus,setBusqFocus]=useState(false);
   const [visibles, setVisibles] = useState(() => leerVisiblesCatalogo(CATALOGO_PAGE_SIZE));
   const [vista, setVista] = useState(() => leerVistaCatalogo());
+  const [ordenV2, setOrdenV2] = useState("relevancia");
   const setVistaCatalogo = (v) => setVista(guardarVistaCatalogo(v));
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
+  useEffect(() => {
+    const sync = () => {
+      let saved = "Todos";
+      try { saved = sessionStorage.getItem("farmacapital_cat") || "Todos"; } catch { /* noop */ }
+      setCat(saved === "Todos" ? "Todos" : (categoriaCanon(saved) || "Todos"));
+      setBusq("");
+      setBusqHero?.("");
+    };
+    window.addEventListener(CATALOGO_CATEGORIA_EVENT, sync);
+    return () => window.removeEventListener(CATALOGO_CATEGORIA_EVENT, sync);
+  }, [setBusqHero]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
   const filtrosCatalogoKey = `${cat}|${tipo}|${String(busq || "").trim()}|${filtroRx ? "1" : "0"}`;
@@ -3400,6 +3488,35 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
     setCat("Todos"); setTipo("todos");
   };
   const busqActiva = busq.trim().length > 0;
+  if (tiendaV2Activa()) {
+    return (
+      <CatalogoV2
+        titulo={filtroRx ? "Surtir receta" : (busqActiva ? "Resultados de búsqueda" : (cat === "Todos" ? "Medicamentos" : cat))}
+        descripcion={busqActiva
+          ? `Búsqueda: «${busq.trim()}»`
+          : "Revisa la presentación, disponibilidad y forma de entrega de cada producto."}
+        productos={ordenarCatalogoV2(fil, ordenV2).slice(0, visibles)}
+        total={fil.length}
+        categorias={cats}
+        categoria={cat}
+        onCategoria={(c) => { setCat(c); setBusq(""); setBusqHero?.(""); }}
+        orden={ordenV2}
+        onOrden={setOrdenV2}
+        hayMas={hayMasCatalogo}
+        onVerMas={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
+        loading={loadingProductos}
+        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle", { productId: prod.id }); }}
+        setPage={setPage}
+        avisoRx={filtroRx ? (
+          <div className="fc-info-box" style={{ marginBottom: 16 }}>
+            <strong>Medicamentos con receta</strong>
+            {textosPolitica().catalogoRx}
+          </div>
+        ) : null}
+      />
+    );
+  }
+
   const catBtnStyle = (c) => ({
     width: stack ? "auto" : "100%",
     flexShrink: 0,
@@ -7246,6 +7363,9 @@ export default function TiendaFarmaCapital(){
     envios:        <PoliticaEnvios setPage={setPage}/>,
     "terminos-puntos": <TerminosPuntos setPage={setPage}/>,
     tarjeta:       <FlyerFarmaCapital setPage={setPage}/>,
+    cotizar:       v2
+      ? <CotizarV2 setPage={setPage} user={user} textoInicial={busqHero}/>
+      : <SolicitudCatalogoForm setPage={setPage} textoInicial={busqHero} user={user}/>,
     conseguir: (
       <>
         <VitrinaConseguir
