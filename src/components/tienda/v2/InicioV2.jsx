@@ -73,11 +73,11 @@ export default function InicioV2({
     setPage?.("detalle");
   };
   const irCategoria = (cat) => irACatalogoCategoria(setPage, cat);
-  const irCotizar = () => setPage?.("conseguir");
+  const irCotizar = () => setPage?.("cotizar");
 
   const categorias = [
     { icon: <Pill aria-hidden="true" />, titulo: "Medicamentos", desc: "Por nombre o sustancia", go: () => irCategoria("Todos") },
-    { icon: <Droplets aria-hidden="true" />, titulo: "Dermocosmética", desc: "Limpieza, hidratación y más", go: irCotizar },
+    { icon: <Droplets aria-hidden="true" />, titulo: "Dermocosmética", desc: "Limpieza, hidratación y más", go: () => setPage?.("conseguir") },
     { icon: <Leaf aria-hidden="true" />, titulo: "Nutrición", desc: "Proteína y suplementos", go: () => irCategoria("Suplemento") },
     { icon: <HeartPulse aria-hidden="true" />, titulo: "Equipo médico", desc: "Consulta disponibilidad", go: () => irCategoria("Dispositivo médico") },
   ];
@@ -99,7 +99,7 @@ export default function InicioV2({
           <button type="button" className="fc-primary" onClick={() => irCategoria("Todos")}>
             Buscar medicamento <ArrowRight aria-hidden="true" />
           </button>
-          <button type="button" className="fc-textbtn" onClick={irCotizar}>
+          <button type="button" className="fc-textbtn" onClick={() => setPage?.("conseguir")}>
             Explorar cuidado de la piel
           </button>
         </div>
@@ -120,7 +120,7 @@ export default function InicioV2({
           ) : null}
           <div className="fc-studio-note">
             <span>Catálogo por encargo</span>
-            <button type="button" className="fc-textbtn" onClick={irCotizar}>Descubrir →</button>
+            <button type="button" className="fc-textbtn" onClick={() => setPage?.("conseguir")}>Descubrir →</button>
           </div>
         </div>
       </section>
@@ -202,7 +202,7 @@ export default function InicioV2({
               <div className="fc-eyebrow" style={{ marginBottom: 7 }}>Catálogo extendido · Por encargo</div>
               <h2>Tu cuidado, a tu manera.</h2>
             </div>
-            <button type="button" className="fc-textbtn" onClick={irCotizar}>Ver catálogo →</button>
+            <button type="button" className="fc-textbtn" onClick={() => setPage?.("conseguir")}>Ver catálogo →</button>
           </div>
           <div className="fc-grid">
             {porEncargo.map((p) => (

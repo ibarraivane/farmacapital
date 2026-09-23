@@ -24,6 +24,7 @@ export const TIENDA_PAGE_IDS = [
   "terminos-puntos",
   "tarjeta",
   "conseguir",
+  "cotizar",
   "pagar",
 ];
 
@@ -45,6 +46,7 @@ export const TIENDA_BANNER_DESTINOS = [
   { id: "terminos-puntos", label: "Términos de puntos" },
   { id: "tarjeta", label: "Flyer / tarjeta WhatsApp" },
   { id: "conseguir", label: "Te lo conseguimos" },
+  { id: "cotizar", label: "Cotizar especializado" },
 ];
 
 const PAGE_TO_SLUG = {
@@ -68,6 +70,7 @@ const PAGE_TO_SLUG = {
   "terminos-puntos": "terminos-puntos",
   tarjeta: "tarjeta",
   conseguir: "conseguir",
+  cotizar: "cotizar",
   pagar: "pagar",
 };
 
@@ -107,6 +110,8 @@ const SLUG_TO_PAGE = {
   hola: "tarjeta",
   conseguir: "conseguir",
   "te-lo-conseguimos": "conseguir",
+  cotizar: "cotizar",
+  "cotizar-especializado": "cotizar",
   pagar: "pagar",
 };
 
