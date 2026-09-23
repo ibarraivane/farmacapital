@@ -10,6 +10,14 @@
 -- La lista blanca vive también en src/lib/resenasProductoCore.cjs.
 -- Receta y medicamento controlado bloquean aunque la categoría esté permitida.
 -- Una categoría nueva queda fuera hasta agregarla a mano en los dos lados.
+--
+-- El ALTER de pedidos pide AccessExclusiveLock. Si ese candado sigue abierto
+-- mientras se crean las llaves hacia productos, choca con un SELECT de la
+-- tienda y Postgres reporta deadlock 40P01. Por eso se suelta antes de seguir.
+-- Si vuelve a fallar por candado, espera unos segundos y corre el script otra vez:
+-- es idempotente.
+
+set lock_timeout = '8s';
 
 begin;
 
@@ -17,9 +25,13 @@ alter table public.pedidos
   add column if not exists resena_token uuid,
   add column if not exists resena_pedida_at timestamptz;
 
+commit;
+
 create unique index if not exists pedidos_resena_token_uidx
   on public.pedidos (resena_token)
   where resena_token is not null;
+
+begin;
 
 create table if not exists public.resenas (
   id bigint generated always as identity primary key,
