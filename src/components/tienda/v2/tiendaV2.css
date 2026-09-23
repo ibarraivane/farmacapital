@@ -140,11 +140,12 @@
 .fc-v2 .fc-form .fc-primary{justify-content:center}
 .fc-v2 .fc-quote-link span{flex:1;text-align:left}
 .fc-v2 .fc-quote-link svg{flex:none}
-/* Encabezado fijo: fondo propio para que el contenido no se vea a través de la barra. */
-.fc-v2 .fc-sticky{position:sticky;top:0;z-index:50;background:var(--fc-white)}
-.fc-v2 .fc-nav{background:var(--fc-white)}
-/* En celular el encabezado no se queda fijo: ocupaba un tercio de la pantalla. */
-@media(max-width:760px){.fc-v2 .fc-sticky{position:static}}
+/* Encabezado fijo. El menú del prototipo trae botones transparentes: sin fondo
+   propio, el título de la página se ve a través de esa cintilla al hacer scroll.
+   El fondo va en el contenedor y en la cintilla, en celular y en escritorio. */
+.fc-v2 .fc-sticky{position:sticky;top:0;z-index:80;background-color:#ffffff}
+.fc-v2 .fc-nav{background-color:#ffffff}
+.fc-v2 .fc-nav button{background-color:#ffffff}
 /* Pie: marca, accesos y línea legal. */
 .fc-v2 .fc-footer{display:flex;flex-direction:column;align-items:flex-start;gap:16px}
 .fc-v2 .fc-footer-marca{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
