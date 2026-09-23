@@ -206,3 +206,5 @@
   .fc-v2 .fc-buybar-precio .fc-price{font-size:21px}
   .fc-v2 .fc-buybar .fc-primary{flex:none;min-height:46px}
 }
+.fc-v2 .fc-stars{display:inline-flex;align-items:center;gap:2px;color:#7A4A1E;font-size:12px;font-weight:700}
+.fc-v2 .fc-stars svg{width:14px;height:14px}

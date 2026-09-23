@@ -2187,6 +2187,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       })) {
         showToast(t.msg, t.tipo);
       }
+      if (estadoHist === "completado") {
+        fetch("/api/notifications/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "pedir-resena",
+            pedidoId: pedido.id,
+            employeeSessionToken: tok,
+          }),
+        }).catch(() => {});
+      }
       recargarPedidosOnline();
     } catch (e) {
       console.error("[POS] surtirOnline:", e);

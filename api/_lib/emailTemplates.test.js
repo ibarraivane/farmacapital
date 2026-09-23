@@ -12,6 +12,21 @@ const items = [
 ];
 
 describe('plantillas de correo v2', () => {
+  it('pedir reseña nombra cada producto y no se publica sola', () => {
+    const m = T.pedirResena({
+      pedidoId: 441,
+      nombre: 'Ivan',
+      urlResena: 'https://www.farmacapital.mx/cuenta?resena=abc',
+      productos: [{ id: 9, nombre: 'Shampoo' }, { id: 10, nombre: 'CeraVe' }],
+    });
+    assert.match(m.subject, /441/);
+    assert.match(m.html, /Shampoo/);
+    assert.match(m.html, /CeraVe/);
+    assert.match(m.html, /resena=abc/);
+    assert.match(m.text, /no se publica sola/);
+    assert.match(m.html, /prefers-color-scheme:dark/);
+  });
+
   it('los 5 correos devuelven asunto, preheader, html y texto', () => {
     const all = [
       T.envioCotizado({ pedidoId: 441, nombre: 'Ivan', items, servicio: 5, envio: 100, total: 307 }),

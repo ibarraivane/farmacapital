@@ -348,6 +348,42 @@ function enCamino(d, cfg = DEFAULTS) {
   return { subject: `Tu pedido va en camino · ${f}`, preheader: 'Ya casi llega', html, text: `Hola ${d.nombre || ''}.\n\nTu pedido ${f} va en camino${d.paqueteria ? ` con ${d.paqueteria}` : ''}.${d.llegada ? `\nLlegada aproximada: ${d.llegada}.` : ''}${d.urlRastreo ? `\nSíguelo: ${d.urlRastreo}` : ''}` };
 }
 
+function pedirResena(d, cfg = DEFAULTS) {
+  const f = folio(d.pedidoId);
+  const url = d.urlResena || `${cfg.baseUrl}/cuenta`;
+  const productos = Array.isArray(d.productos) ? d.productos.filter((p) => p && p.nombre) : [];
+  const botones = productos.map((p) => {
+    const href = `${url}${url.includes('?') ? '&' : '?'}producto=${encodeURIComponent(p.id ?? '')}`;
+    return `<div style="padding-bottom:12px;">${button(`Calificar ${p.nombre}`, href, 'dark', 320)}</div>`;
+  }).join('');
+  const html = layout({
+    cfg, title: '¿Cómo te fue con tu pedido?', top: `Pedido ${f}`,
+    preheader: `Tu pedido ${f} ya se entregó. Si quieres, califica lo que compraste.`,
+    heroHtml: hero({
+      tag: 'Pedido entregado',
+      title: '¿Cómo te fue?',
+      accent: 'Tu opinión queda en revisión.',
+      lead: `Hola ${esc(d.nombre || '')}. Cuéntanos de los productos que sí podemos publicar. Los medicamentos no llevan reseña.`,
+    }),
+    blocks: [
+      sectionTitle('Califica tu pedido') + (botones || `<p class="c-body" style="margin:0;font-family:${SANS};font-size:14px;color:${C.body};">Entra a tu cuenta para ver el pedido.</p>`),
+      `<p class="c-muted" style="margin:0;font-family:${SANS};font-size:13px;line-height:1.5;color:${C.muted};">La reseña no se publica sola: la farmacia la lee antes.</p>`,
+      help(cfg),
+    ],
+  });
+  const text = lines([
+    `Hola ${d.nombre || ''}.`,
+    '',
+    `Tu pedido ${f} ya se entregó. Si quieres, califícalo aquí:`,
+    url,
+    '',
+    ...productos.map((p) => `- ${p.nombre}`),
+    '',
+    'La reseña no se publica sola: la farmacia la lee antes.',
+  ]);
+  return { subject: `¿Cómo te fue con tu pedido? · ${f}`, preheader: 'Tu opinión queda en revisión', html, text };
+}
+
 function cotizacionEspecializado(d, cfg = DEFAULTS) {
   const f = d.folio || 'COT-0000', url = d.urlAceptar || `${cfg.baseUrl}/cuenta`;
   const html = layout({
@@ -369,4 +405,4 @@ function cotizacionEspecializado(d, cfg = DEFAULTS) {
   return { subject: `Tu cotización está lista · ${f}`, preheader: money(d.precio), html, text: `Hola ${d.nombre || ''}.\n\nCotización ${f}: ${d.medicamento} ${d.presentacion || ''} (${d.cantidad || 1}).\nPrecio: ${money(d.precio)}. ${d.disponibilidad || ''}\nVálido hasta: ${d.vigencia || ''}\n\nAcepta aquí: ${url}\nWhatsApp ${cfg.whatsappDisplay}` };
 }
 
-module.exports = { envioCotizado, pagoAprobado, listoParaRecoger, enCamino, cotizacionEspecializado, DEFAULTS, _internals: { desglose, layout, hero, tracker, items, grid, button, money, folio, esc } };
+module.exports = { envioCotizado, pagoAprobado, listoParaRecoger, enCamino, pedirResena, cotizacionEspecializado, DEFAULTS, _internals: { desglose, layout, hero, tracker, items, grid, button, money, folio, esc } };

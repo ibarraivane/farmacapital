@@ -5,6 +5,7 @@ import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta } from "../../../hooks/useProductoImagenes";
 import EstadoDisponibilidad from "./EstadoDisponibilidad";
+import { EstrellasDeProducto } from "../ResenasTienda";
 
 function precioPublicado(prod) {
   const n = Number(prod?.precio);
@@ -63,6 +64,7 @@ export default function TarjetaProducto({ prod, onClick }) {
       <button type="button" className="fc-product-name" onClick={abrir}>
         {prod.nombre}
       </button>
+      <EstrellasDeProducto prod={prod} />
       {presLinea ? <div className="fc-small">{presLinea}</div> : null}
       <div className="fc-price-row">
         <strong className="fc-price">{precio != null ? $peso(precio) : "Consultar"}</strong>

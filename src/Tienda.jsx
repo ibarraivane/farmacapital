@@ -57,6 +57,7 @@ import InicioV2 from "./components/tienda/v2/InicioV2";
 import CotizarV2 from "./components/tienda/v2/CotizarV2";
 import CatalogoV2 from "./components/tienda/v2/CatalogoV2";
 import FichaV2 from "./components/tienda/v2/FichaV2";
+import { ResenasResumenCtx, EstrellasDeProducto, ListaResenasPublicas, BloqueResenaPedido, FormularioResenaToken } from "./components/tienda/ResenasTienda";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
 import { tiendaV2Activa } from "./theme/tiendaV2";
@@ -2020,6 +2021,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
           {politicaProducto(prod).requiereReceta&&<Tag col={C.red} sm>{politicaProducto(prod).etiquetaCorta}</Tag>}
         </div>
         <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</div>
+        <EstrellasDeProducto prod={prod} />
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
         <div style={{marginBottom:10}}>
           {cta
@@ -2222,6 +2224,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             <Tag col={C.mid} sm>{prod.categoria}</Tag>
           </div>
           <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</h1>
+          <EstrellasDeProducto prod={prod} />
+          <ListaResenasPublicas prod={prod} />
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
           <div style={{marginBottom:20}}>
             {cta
@@ -6376,6 +6380,8 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
   const [busyCitaId,setBusyCitaId]=useState(null);
   const [busyPayPedidoId,setBusyPayPedidoId]=useState(null);
   const [apartarPedidoId,setApartarPedidoId]=useState(null);
+  const [misResenas,setMisResenas]=useState([]);
+  const [cerrarResena,setCerrarResena]=useState(false);
   useEffect(()=>{
     if(!user?.id){setC(false);return;}
     const tokCli = getClienteToken();
@@ -6383,9 +6389,11 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
     Promise.all([
       supabase.rpc("cliente_listar_mis_pedidos", { p_session_token: tokCli, p_limite: 150 }),
       supabase.rpc("cliente_listar_mis_citas", { p_session_token: tokCli }),
-    ]).then(([pRes, cRes])=>{
+      supabase.rpc("fn_mis_resenas", { p_session_token: tokCli }),
+    ]).then(([pRes, cRes, rRes])=>{
       setPeds(Array.isArray(pRes.data) ? pRes.data : []);
       setCitas(Array.isArray(cRes.data) ? cRes.data : []);
+      setMisResenas(Array.isArray(rRes.data) ? rRes.data : []);
       setC(false);
     });
   },[user]);
@@ -6487,6 +6495,16 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
       permitido: productoPermitidoEnTiendaFarmaciaWeb,
     }),
     [recompras, productos]
+  );
+  let tokenResena = "";
+  try { tokenResena = new URLSearchParams(window.location.search).get("resena") || ""; } catch { tokenResena = ""; }
+  if (tokenResena && !cerrarResena) return (
+    <div style={{maxWidth:640,margin:"32px auto",padding:"0 24px 48px"}}>
+      <FormularioResenaToken token={tokenResena} />
+      <button type="button" onClick={()=>{ setCerrarResena(true); setPage("cuenta"); }} style={{marginTop:20,background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer"}}>
+        Ir a mi cuenta
+      </button>
+    </div>
   );
   if(!user) return(
     <div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
@@ -6676,6 +6694,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
               </div>
             ) : null}
           </div>
+          <BloqueResenaPedido pedido={p} productos={productos} enviadas={misResenas} />
         </div>
             ))}
           </div>
@@ -7002,6 +7021,7 @@ export default function TiendaFarmaCapital(){
   const skipCartSaveRef = useRef(false);
   const [misPedidos, setMisPedidos] = useState([]);
   const [productos,setProductos] = useState([]);
+  const [resenasResumen,setResenasResumen] = useState({});
   const [cargando,setCargando]   = useState(false);
   const [loadingProductos,setLoadingProductos] = useState(true);
   const [prodDetalle,setProdDRaw] = useState(() => {
@@ -7143,6 +7163,19 @@ export default function TiendaFarmaCapital(){
     return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);
   useCatalogoVivo(() => recargarProductosRef.current());
+
+  useEffect(() => {
+    let cancel = false;
+    supabase.from("resenas_resumen").select("producto_id,promedio,total").then(({ data, error }) => {
+      if (cancel || error || !Array.isArray(data)) return;
+      const map = {};
+      data.forEach((row) => {
+        if (row?.producto_id != null) map[row.producto_id] = row;
+      });
+      setResenasResumen(map);
+    });
+    return () => { cancel = true; };
+  }, []);
 
   // Popup de bienvenida / incentivo de registro: apagado por ahora.
   useEffect(()=>{
@@ -7449,7 +7482,9 @@ export default function TiendaFarmaCapital(){
   return(
     <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>
     <TiendaPromosCtx.Provider value={mapaPromos}>
+    <ResenasResumenCtx.Provider value={resenasResumen}>
     {v2 ? <TiendaV2Shell>{storeTree}</TiendaV2Shell> : storeTree}
+    </ResenasResumenCtx.Provider>
     </TiendaPromosCtx.Provider>
     </TiendaPlaceholderCtx.Provider>
   );

@@ -4,6 +4,7 @@ import EstadoDisponibilidad from "./EstadoDisponibilidad";
 import TarjetaProducto from "./TarjetaProducto";
 import { mapearFichaTienda } from "../../../lib/catalogoFichas/mapearFichaTienda";
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
+import { EstrellasDeProducto, ListaResenasPublicas } from "../ResenasTienda";
 
 /** Renglones de ficha técnica con dato. Vacíos no se muestran. */
 export function fichaTecnicaDe(prod, ficha, monografia) {
@@ -99,6 +100,7 @@ export default function FichaV2({
         <header className="fc-detail-head">
           <EstadoDisponibilidad producto={prod} />
           <h1>{prod.nombre}</h1>
+          <EstrellasDeProducto prod={prod} />
           {subtitulo ? <p className="fc-description">{subtitulo}</p> : null}
         </header>
 
@@ -148,6 +150,7 @@ export default function FichaV2({
             </>
           ) : null}
           {infoSlot}
+          <ListaResenasPublicas prod={prod} />
         </div>
       </section>
 

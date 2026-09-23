@@ -22,6 +22,7 @@ import { canAccessRoute } from "./core/security/routeGuard";
 import { CLAVES_SALDO_MP, fechaLocalMexico, parseSaldoConfig } from "./lib/pagoServicio";
 import ImageUploader from "./components/ImageUploader";
 import FichasRevisionAdmin from "./components/admin/FichasRevisionAdmin";
+import ResenasModeracion from "./components/admin/ResenasModeracion";
 import { puedeCrearBannerProducto } from "./lib/bannersPlantilla";
 import GestionUsuariosTabla from "./components/GestionUsuariosTabla";
 import { GRID_STACK_2COL } from "./constants/layout";
@@ -2420,6 +2421,7 @@ export default function FarmaCapitalAdmin(){
       case "fact":     return <FacturacionModule/>;
       case "banners": return <BannersAdmin/>;
       case "fichas": return <FichasRevisionAdmin/>;
+      case "resenas": return <ResenasModeracion/>;
       case "bot":      return <AsistenteIA/>;
       case "cli":   return <ClientesModule/>;
       case "pwa":       return <InstalarPWA/>;

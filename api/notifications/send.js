@@ -22,6 +22,7 @@ const {
 const { lineasTicketCorreo } = require('../_lib/envioDomicilio');
 const { ticketPagoAdjunto } = require('../_lib/ticketEnvioPdf');
 const { emailsAvisoCliente } = require('../_lib/clienteEmails');
+const { enviarPedidoResena } = require('../_lib/pedirResena');
 
 async function safeJson(req) {
   try {
@@ -42,6 +43,7 @@ function resolveNotificationType(req, body) {
   if (q === 'order-email' || q === 'order_email' || q === 'ticket-email' || q === 'ticket_email') return 'order-email';
   if (q === 'whatsapp' || q === 'whatsapp-send') return 'whatsapp';
   if (q === 'solicitud' || q === 'solicitudes' || q === 'conseguir') return 'solicitud';
+  if (q === 'pedir-resena' || q === 'pedir_resena') return 'pedir-resena';
   const b = String(body?.type || body?.notificationType || '').trim().toLowerCase();
   if (b === 'cita' || b === 'cita-confirmacion') return 'cita';
   if (b === 'order' || b === 'order-receipt') return 'order';
@@ -50,6 +52,7 @@ function resolveNotificationType(req, body) {
   if (b === 'order-email' || b === 'order_email' || b === 'ticket-email' || b === 'ticket_email') return 'order-email';
   if (b === 'whatsapp' || b === 'whatsapp-send') return 'whatsapp';
   if (b === 'solicitud' || b === 'solicitudes' || b === 'conseguir') return 'solicitud';
+  if (b === 'pedir-resena' || b === 'pedir_resena') return 'pedir-resena';
   if (body?.citaId != null && body?.pedidoId == null) return 'cita';
   if (body?.pedidoId != null && body?.citaId == null) return 'order';
   return '';
@@ -590,6 +593,30 @@ async function handleOrderTicketEmail(req, res, body) {
   });
 }
 
+/** Empleado: pide la reseña si el pedido ya quedó entregado (completado). */
+async function handlePedirResena(req, res, body) {
+  const pedidoId = Number(body?.pedidoId || body?.pedido_id);
+  const employeeToken = String(
+    body?.employeeSessionToken || body?.sessionTokenEmpleado || body?.sessionToken || ''
+  ).trim();
+  if (!pedidoId || !Number.isFinite(pedidoId)) {
+    return res.status(400).json({ ok: false, error: 'invalid_pedido_id' });
+  }
+  if (!employeeToken) {
+    return res.status(403).json({ ok: false, error: 'missing_employee_session' });
+  }
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ ok: false, error: 'missing_server_env' });
+  }
+  const validEmployee = await validateEmployeeSession(supabaseUrl, serviceKey, employeeToken);
+  if (!validEmployee) {
+    return res.status(403).json({ ok: false, error: 'invalid_employee_session' });
+  }
+  const result = await enviarPedidoResena({ supabaseUrl, serviceKey, pedidoId });
+  return res.status(200).json({ ok: true, pedidoId, resena: result });
+}
+
 module.exports = async function handler(req, res) {
   try {
     const body = await safeJson(req);
@@ -620,6 +647,9 @@ module.exports = async function handler(req, res) {
     }
     if (type === 'whatsapp') {
       return handleWhatsAppManualSend(req, res, body);
+    }
+    if (type === 'pedir-resena') {
+      return handlePedirResena(req, res, body);
     }
 
     return res.status(400).json({ ok: false, error: 'invalid_notification_type' });

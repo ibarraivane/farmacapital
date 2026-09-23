@@ -3,6 +3,7 @@ import {
   motivoSinResena,
   promedioResenas,
   textoPromedio,
+  resumenVisible,
   CATEGORIAS_CON_RESENA,
 } from "./resenasProducto";
 
@@ -36,6 +37,13 @@ describe("qué productos aceptan reseñas", () => {
     expect(motivoSinResena(P({ categoria: "Higiene", requiere_receta: true }))).toBe("Requiere receta médica");
     expect(productoAceptaResena(P({ categoria: "Suplemento", controlado: true }))).toBe(false);
     expect(productoAceptaResena(P({ categoria: "Suplemento", grupo_controlado: "III" }))).toBe(false);
+  });
+
+  test("el nombre de un medicamento bloquea aunque la categoría diga higiene", () => {
+    expect(productoAceptaResena(P({
+      categoria: "Higiene",
+      nombre: "Ibuprofeno 400 mg",
+    }))).toBe(false);
   });
 
   test("una categoría desconocida queda bloqueada, no abierta", () => {
@@ -74,5 +82,13 @@ describe("promedio", () => {
     expect(textoPromedio(promedioResenas([r(5)]))).toBe("5 de 5 · 1 reseña");
     expect(textoPromedio(promedioResenas([r(5), r(4)]))).toBe("4.5 de 5 · 2 reseñas");
     expect(textoPromedio(null)).toBe("Sin reseñas todavía");
+  });
+
+  test("sin promedio o en un medicamento no hay estrellas que pintar", () => {
+    const fila = { promedio: 4.5, total: 2 };
+    expect(resumenVisible(P({ categoria: "Higiene" }), fila)).toEqual({ promedio: 4.5, total: 2 });
+    expect(resumenVisible(P({ categoria: "Analgésico" }), fila)).toBeNull();
+    expect(resumenVisible(P({ categoria: "Higiene" }), null)).toBeNull();
+    expect(resumenVisible(P({ categoria: "Higiene" }), { promedio: 4, total: 0 })).toBeNull();
   });
 });

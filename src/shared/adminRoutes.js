@@ -36,6 +36,7 @@ const SLUG_TO_PAGE = {
   /** Slugs técnicos (manifest PWA, enlaces directos) */
   inv: "inv",
   caja: "caja",
+  resenas: "resenas",
 };
 
 /** Slug canónico en la barra de direcciones para cada módulo (solo los que pediste + cobrar consulta). */
@@ -52,6 +53,7 @@ const PAGE_TO_SLUG = {
   inv: "inventario",
   recibir: "recibir",
   ayuda: "manual",
+  resenas: "resenas",
 };
 
 /**
