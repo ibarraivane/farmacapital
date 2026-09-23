@@ -41,6 +41,15 @@ Eso reescribe `birdman_ean_imagen.csv` y `sql/patch_birdman_ean_imagen_20260923.
 
 El parche pone `codigo_barras` y, si la ficha estaba vacía, `imagen_url`. No cambia el SKU `FC-` (si el EAN reescribiera el SKU, el regen duplicaría el producto). No pisa un código o una foto que ya existan. Hay que correrlo en el SQL Editor.
 
+## Fotos que faltaban (23-sep-2026)
+
+De los 1,086 sin foto al alta, los dermatológicos y los suplementos/proteína ya tienen packshot:
+
+- **50** dermocosméticos: ficha viva de Dermaexpress (el SKU de la tienda es el EAN). Dos fotos de esa tienda estaban cruzadas (el kit Avène salía como Vichy Mineral 89; el Musti salía como Stelatopia) y se tomaron de Dermamedina y de mustela.com. DermaPharma cubre el lápiz Korff. Las dos tarjetas de regalo no tienen producto.
+- **83** de Birdman (proteína, suplemento y los 5 de merch que también estaban vacíos): packshot del mayoreo. Amazon MX responde por EAN; Mercado Libre corta el acceso automático.
+
+`sql/patch_fotos_derm_suplementos_20260923.sql` solo llena `imagen_url` vacía. Los **951** de Ewafra siguen sin foto: el listado DIS no trae EAN, así que no se pueden cruzar con Dermaexpress ni con Amazon.
+
 ## Mepiel
 
 La fuente `mepiel` sigue reservada: no hay lista de costo en el repo. La tienda `tienda.mepieldistribuidores.com.mx` es WooCommerce y desde aquí responde 403 (Cloudflare), así que no se pueden inventar EAN ni fotos.
