@@ -142,6 +142,17 @@ describe("pistola POS: beep completo vs a medias", () => {
     expect(shouldReplaceScanInput("747589705123", t0, t0 + 450)).toBe(true);
   });
 
+  test("teclear dosis no pisa el buscador (paracetamol 500 mg)", () => {
+    const t0 = 1_000_000;
+    // Sin espacios: "paracetamol5" = 12, "paracetamol50" = 13, "paracetamol500" = 14.
+    // Antes se trataba como EAN y al teclear el siguiente dígito borraba todo.
+    expect(shouldReplaceScanInput("paracetamol 5", t0, t0 + 500)).toBe(false);
+    expect(shouldReplaceScanInput("paracetamol 50", t0, t0 + 500)).toBe(false);
+    expect(shouldReplaceScanInput("paracetamol 500", t0, t0 + 500)).toBe(false);
+    expect(shouldReplaceScanInput("paracetamol 500 mg", t0, t0 + 500)).toBe(false);
+    expect(shouldReplaceScanInput("ibuprofeno 400", t0, t0 + 800)).toBe(false);
+  });
+
   test("UPC-A con cero a la izquierda sigue pegando en idle", () => {
     const upc = { id: 1, activo: true, sku: "X", codigo_barras: "747589705123" };
     expect(findProductExactScan([upc], "0747589705123", { allowNearPrefix: false })?.id).toBe(1);
