@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import FichaV2, { fichaTecnicaDe } from "./FichaV2";
+import FichaV2, { fichaTecnicaDe, entregaFicha } from "./FichaV2";
 
 const PROD = {
   id: 7,
@@ -33,7 +33,7 @@ test("producto en sucursal: se puede agregar y comprar", () => {
     />
   );
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Omeprazol");
-  expect(screen.getByText("Recoger en sucursal")).toBeInTheDocument();
+  expect(screen.getByText("Listo para recoger hoy")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Agregar al carrito/i }));
   fireEvent.click(screen.getByRole("button", { name: /Comprar ahora/i }));
   expect(onAgregar).toHaveBeenCalled();
@@ -77,6 +77,27 @@ test("con receta muestra el aviso", () => {
       setPage={() => {}}
     />
   );
-  expect(screen.getByText("Requiere receta médica")).toBeInTheDocument();
+  expect(screen.getByText(/Requiere receta médica/)).toBeInTheDocument();
   expect(screen.getByText(/La receta se revisa al entregar/)).toBeInTheDocument();
+});
+
+test("el nombre va antes de la foto, no debajo", () => {
+  const { container } = render(
+    <FichaV2
+      prod={PROD}
+      imagen="/foto.jpg"
+      estadoCompra={{ agotado: false, permitidoWeb: true, esEncargo: false }}
+      setPage={() => {}}
+    />
+  );
+  const orden = [...container.querySelectorAll("h1, .fc-detail-photo, .fc-buybox")];
+  expect(orden.map((n) => n.tagName === "H1" ? "nombre" : n.className.includes("photo") ? "foto" : "compra"))
+    .toEqual(["nombre", "foto", "compra"]);
+});
+
+test("cada estado dice cuándo lo tienes", () => {
+  expect(entregaFicha({ esEncargo: true }).titulo).toMatch(/24-48/);
+  expect(entregaFicha({ agotado: true }).titulo).toMatch(/Agotado/);
+  expect(entregaFicha({ permitidoWeb: false, textoBloqueo: "Solo minisuper" }).titulo).toBe("Solo minisuper");
+  expect(entregaFicha({ permitidoWeb: true }).titulo).toMatch(/recoger hoy/);
 });
