@@ -197,7 +197,7 @@ commit;
 begin;
 
 insert into public.productos (
-  nombre, sku, codigo_barras, categoria, tipo, descripcion, notas,
+  nombre, sku, codigo_barras, categoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
   marca, presentacion, concentracion, forma_farmaceutica, subcategoria,
   imagen_url, bajo_pedido
@@ -214,12 +214,7 @@ select
   nullif(t.ean, ''),
   t.categoria,
   t.tipo,
-  'Bajo pedido · suplementosmayoreo' || coalesce(' · ' || t.sku_externo, ''),
-  case
-    when nullif(trim(t.sku_externo), '') is not null
-      then 'Lista SKU origen: ' || trim(t.sku_externo)
-    else null
-  end,
+  'Bajo pedido · suplementosmayoreo' || coalesce(' · ' || nullif(trim(t.sku_externo), ''), ''),
   t.costo,
   0,
   0, 1, true, false,
@@ -243,13 +238,9 @@ update public.productos p
        concentracion = coalesce(nullif(trim(p.concentracion), ''), t.concentracion),
        forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma_farmaceutica),
        imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url),
-       notas = coalesce(
-         nullif(trim(p.notas), ''),
-         case
-           when nullif(trim(t.sku_externo), '') is not null
-             then 'Lista SKU origen: ' || trim(t.sku_externo)
-           else null
-         end
+       descripcion = coalesce(
+         nullif(trim(p.descripcion), ''),
+         'Bajo pedido · suplementosmayoreo' || coalesce(' · ' || nullif(trim(t.sku_externo), ''), '')
        )
   from public._fc_cat_sm_stg t
  where coalesce(p.stock, 0) = 0
