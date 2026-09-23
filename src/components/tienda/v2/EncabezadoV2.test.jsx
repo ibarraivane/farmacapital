@@ -56,3 +56,14 @@ test("Cotizar especializado abre la pantalla de cotización", () => {
   fireEvent.click(screen.getByRole("button", { name: "Cotizar especializado" }));
   expect(setPage).toHaveBeenCalledWith("cotizar");
 });
+
+test("Medicamentos limpia la categoría y Nutrición abre suplementos", () => {
+  const setPage = jest.fn();
+  sessionStorage.setItem("farmacapital_cat", "Alergia");
+  render(<EncabezadoV2 setPage={setPage} cart={[]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Medicamentos" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Todos");
+  expect(setPage).toHaveBeenCalledWith("catalogo", { rx: false, catalogoScroll: "top" });
+  fireEvent.click(screen.getByRole("button", { name: "Nutrición" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Suplemento");
+});

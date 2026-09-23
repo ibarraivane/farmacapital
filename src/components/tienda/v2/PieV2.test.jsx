@@ -10,7 +10,7 @@ test("pie con datos fiscales reales y sin placeholders", () => {
   expect(screen.getByText(/55 6253 0631/)).toBeInTheDocument();
   expect(screen.queryByText(/\[nombre/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/Responsable sanitario/)).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Atención y sucursal" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Ver ubicación de la sucursal/ })).toBeInTheDocument();
 });
 
 test("el responsable sanitario solo aparece si hay dato", () => {
@@ -33,6 +33,15 @@ test("el responsable sanitario solo aparece si hay dato", () => {
 test("Atención y sucursal abre el mapa", () => {
   window.open = jest.fn();
   render(<PieV2 setPage={() => {}} />);
-  fireEvent.click(screen.getByRole("button", { name: "Atención y sucursal" }));
+  fireEvent.click(screen.getByRole("button", { name: /Ver ubicación de la sucursal/ }));
   expect(window.open).toHaveBeenCalled();
+});
+
+test("el pie lleva los enlaces legales y los accesos de la tienda", () => {
+  const setPage = jest.fn();
+  render(<PieV2 setPage={setPage} />);
+  ["Aviso de privacidad", "Términos y condiciones", "Política de envíos", "Preguntas frecuentes", "Mi cuenta"]
+    .forEach((t) => expect(screen.getByRole("button", { name: t })).toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: "Aviso de privacidad" }));
+  expect(setPage).toHaveBeenCalledWith("privacidad");
 });

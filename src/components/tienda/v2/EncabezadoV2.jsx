@@ -61,7 +61,7 @@ export default function EncabezadoV2({
   };
 
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 50 }}>
+    <div className="fc-sticky">
       <div className="fc-top">
         <span>Farmacia y consultorio · Ciudad de México</span>
         <span>Atención en sucursal · {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}</span>
@@ -133,9 +133,9 @@ export default function EncabezadoV2({
         </button>
       </header>
       <nav className="fc-nav" aria-label="Áreas de la tienda">
-        <button type="button" onClick={() => go("catalogo", { rx: false })}>Medicamentos</button>
+        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Todos")}>Medicamentos</button>
         <button type="button" onClick={() => go("conseguir")}>Dermocosmética</button>
-        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Vitaminas")}>Nutrición</button>
+        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Suplemento")}>Nutrición</button>
         <button type="button" className="fc-nav-quote" onClick={() => go("cotizar")}>Cotizar especializado</button>
         <button type="button" className="fc-location" onClick={irSucursal}>
           <MapPin aria-hidden />
