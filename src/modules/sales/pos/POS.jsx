@@ -13,6 +13,8 @@ import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
+import { colapsarListaPublica, etiquetaVariantePublica, productoSinVistaGrupo, tituloGrupoPublico, variantesDelGrupo } from "../../../lib/grupoPublico";
+import SelectorSabores from "../../../components/tienda/SelectorSabores";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
@@ -145,6 +147,7 @@ const POS_PRODUCTOS_SELECT = [
   "forma_farmaceutica", "precio", "precio_unidad", "venta_unidad", "unidades_por_caja",
   "imagen_url", "imagen_mobile_url", "ubicacion_texto", "descripcion", "tipo",
   "denominacion_generica", "denominacion_distintiva", "concentracion",
+  "grupo_publico", "variante_publica",
 ].join(",");
 
 function normalizarListaProductosPos(data) {
@@ -380,6 +383,7 @@ function PosProductoFichaPanel({
   }
 
   const variantes = posVariantesDeProducto(productos, item);
+  const sabores = variantesDelGrupo(productos, item);
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
   const cajaFalsa = productoCajaEsFalsa(item);
@@ -507,7 +511,9 @@ function PosProductoFichaPanel({
               {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockVisible} en stock</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
-              {tituloPublicoProducto(item)}
+              {sabores.length > 1
+                ? [tituloGrupoPublico(item), etiquetaVariantePublica(item)].filter(Boolean).join(" · ")
+                : tituloPublicoProducto(item)}
             </h2>
             {posSubtituloProducto(item) && (
               <div style={{ fontSize: 12, color: C.textMid, marginTop: 6, lineHeight: 1.4 }}>
@@ -530,6 +536,21 @@ function PosProductoFichaPanel({
               {uso}
             </p>
           </div>
+
+          <SelectorSabores
+            variantes={sabores}
+            activoId={item.id}
+            onElegir={onSelectVariante}
+            colores={{
+              borde: C.border,
+              activo: C.blue,
+              fondo: C.bg,
+              fondoActivo: C.blueDim,
+              texto: C.text,
+              textoActivo: C.blue,
+              etiqueta: C.textDim,
+            }}
+          />
 
           {variantes.length > 1 && (
             <div>
@@ -1270,6 +1291,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return fil.filter((p) => !idsEnGrupoEquivalentes.has(p.id));
   }, [fil, idsEnGrupoEquivalentes]);
 
+  // Nombre: una fila por sabor. La pistola no pasa por aquí (srchEsEscaneo abre el EAN).
+  const filVista = React.useMemo(() => {
+    if (srchEsEscaneo) return fil;
+    return colapsarListaPublica(fil, { universo: productos, preferirCoincidencia: true });
+  }, [fil, productos, srchEsEscaneo]);
+  const filFueraVista = React.useMemo(
+    () => (srchEsEscaneo
+      ? filFueraDelGrupo
+      : colapsarListaPublica(filFueraDelGrupo, { universo: productos, preferirCoincidencia: true })),
+    [filFueraDelGrupo, productos, srchEsEscaneo],
+  );
+
   const clearPosSearch = useCallback(() => {
     setSrch("");
     setFichaProd(null);
@@ -1379,6 +1412,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   };
 
   const add = (item, esUnidad=false) => {
+    item = productoSinVistaGrupo(item);
     if (!productoEsVendible(item)) {
       showToast(`"${item?.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
       return false;
@@ -3567,16 +3601,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 {grupoEquivalentes ? (
                   <TableroEquivalentes
                     grupo={grupoEquivalentes}
-                    onSelect={setFichaProd}
+                    onSelect={(p) => setFichaProd(productoSinVistaGrupo(p))}
                     onAdd={(it) => add(it, false)}
                     estadoStock={estadoStockPos}
                   />
                 ) : null}
-                {(!grupoEquivalentes || filFueraDelGrupo.length > 0) ? (
+                {(!grupoEquivalentes || filFueraVista.length > 0) ? (
                   <TableroResultados
-                    productos={(grupoEquivalentes ? filFueraDelGrupo : fil).slice(0, 80)}
-                    titulo={grupoEquivalentes ? (filFueraDelGrupo.length === 1 ? "También coincide con tu búsqueda" : `También coinciden · ${filFueraDelGrupo.length}`) : tituloResultados}
-                    onSelect={setFichaProd}
+                    productos={(grupoEquivalentes ? filFueraVista : filVista).slice(0, 80)}
+                    titulo={grupoEquivalentes ? (filFueraVista.length === 1 ? "También coincide con tu búsqueda" : `También coinciden · ${filFueraVista.length}`) : tituloResultados}
+                    onSelect={(p) => setFichaProd(productoSinVistaGrupo(p))}
                     onAdd={(it) => add(it, false)}
                     estadoStock={estadoStockPos}
                   />

@@ -59,6 +59,17 @@ import { tiendaV2Activa } from "./theme/tiendaV2";
 import "./components/tienda/v2/tiendaV2.css";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
+  claveGrupoPublico,
+  colapsarListaPublica,
+  colapsarSugerenciasPublicas,
+  etiquetaVariantePublica,
+  leyendaSabores,
+  productoSinVistaGrupo,
+  tituloGrupoPublico,
+  variantesDelGrupo,
+} from "./lib/grupoPublico";
+import SelectorSabores from "./components/tienda/SelectorSabores";
+import {
   CANTIDAD_MAX_BAJO_PEDIDO,
   CONSEGUIR_UI,
   cantidadMaximaLinea,
@@ -1709,7 +1720,10 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
   const poolHeader = useMemo(() => poolCatalogoTienda(productos || []), [productos]);
   const headerSuggestions = useMemo(
     () => (busqFocus && String(busqHero || "").trim().length >= 2
-      ? tiendaCatalogSearchSuggestions(poolHeader, busqHero, { limit: 8 })
+      ? colapsarSugerenciasPublicas(
+        tiendaCatalogSearchSuggestions(poolHeader, busqHero, { limit: 8 }),
+        poolHeader,
+      )
       : []),
     [poolHeader, busqHero, busqFocus]
   );
@@ -2015,8 +2029,11 @@ function ProductCardClasica({prod,addToCart,onClick}){
           {prod.tipo==="generico"&&<Tag col={BRAND.secondary} sm>Genérico</Tag>}
           {politicaProducto(prod).requiereReceta&&<Tag col={C.red} sm>{politicaProducto(prod).etiquetaCorta}</Tag>}
         </div>
-        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</div>
-        <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
+        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.sabores_publicos > 1 && prod.titulo_grupo_publico ? prod.titulo_grupo_publico : (nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre)}</div>
+        <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>
+          {subtituloPublicoTienda(prod)}
+          {leyendaSabores(prod.sabores_publicos) ? `${subtituloPublicoTienda(prod) ? " · " : ""}${leyendaSabores(prod.sabores_publicos)}` : ""}
+        </div>
         <div style={{marginBottom:10}}>
           {cta
             ? null
@@ -2056,7 +2073,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     [productos]
   );
   const suggestions = useMemo(
-    ()=>(busqFocus&&String(busqHero||"").trim().length>=2?tiendaCatalogSearchSuggestions(poolCatalogo,busqHero,{limit:8}):[]),
+    ()=>(busqFocus&&String(busqHero||"").trim().length>=2
+      ? colapsarSugerenciasPublicas(tiendaCatalogSearchSuggestions(poolCatalogo,busqHero,{limit:8}), poolCatalogo)
+      : []),
     [poolCatalogo,busqHero,busqFocus]
   );
   const irACatalogoBusqueda = ()=>{
@@ -2108,7 +2127,15 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     setBusqHero?.(String(prod.nombre || ""));
     setPage("conseguir", { search: String(prod.nombre || "") });
   };
-  const similares=productos.filter(p=>categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod))&&p.id!==prod.id).slice(0,4);
+  const claveGrupo = claveGrupoPublico(prod);
+  const sabores = variantesDelGrupo(productos, prod);
+  const tituloFicha = sabores.length > 1
+    ? [tituloGrupoPublico(prod), etiquetaVariantePublica(prod)].filter(Boolean).join(" · ")
+    : (nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre);
+  const similares = colapsarListaPublica(
+    productos.filter((p) => categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod)) && p.id !== prod.id && (!claveGrupo || claveGrupoPublico(p) !== claveGrupo)),
+    { universo: productos, preferirCoincidencia: false },
+  ).slice(0, 4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
@@ -2172,8 +2199,16 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             {politicaProducto(prod).requiereReceta&&<Tag col={C.red}>{politicaProducto(prod).etiqueta}</Tag>}
             <Tag col={C.mid} sm>{prod.categoria}</Tag>
           </div>
-          <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</h1>
+          <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{tituloFicha}</h1>
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
+          <SelectorSabores
+            variantes={sabores}
+            activoId={prod.id}
+            onElegir={(v) => {
+              setProdDetalle(v);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
           <div style={{marginBottom:20}}>
             {cta
               ? null
@@ -2244,7 +2279,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           producto={prod}
           ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
           monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
-          whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre || "un producto"}`)}`}
+          whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${tituloFicha || prod.nombre || "un producto"}`)}`}
         />
       </div>
       {similares.length>0&&(
@@ -2829,7 +2864,10 @@ function TiendaSearchSuggestions({ suggestions, productos, onPick, C }) {
               fontFamily: "var(--fc-body)",
             }}
           >
-            <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, lineHeight: 1.35 }}>{row ? (nombrePublicoTienda({ nombre: tituloPublicoProducto(row) }) || row.nombre) : s.nombre}</div>
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, lineHeight: 1.35 }}>
+              {row ? (nombrePublicoTienda({ nombre: tituloPublicoProducto(row) }) || row.nombre) : s.nombre}
+              {leyendaSabores(s.sabores_publicos) ? ` · ${leyendaSabores(s.sabores_publicos)}` : ""}
+            </div>
             {Number(s.stock) <= 0 ? (
               <div style={{ color: C.red, fontSize: 11, marginTop: 3 }}>Agotado</div>
             ) : null}
@@ -3045,7 +3083,10 @@ function TiendaBusquedaBar({
 function HomeCatalogoPorCategoria({productos,loadingProductos,addToCart,setProdDetalle,setPage,setBusqHero}){
   const C = useTheme();
   const bandas = useMemo(
-    () => bandasCatalogoPorCategoria(poolCatalogoTienda(productos), { perCat: 12, maxCats: 14 }),
+    () => bandasCatalogoPorCategoria(
+      colapsarListaPublica(poolCatalogoTienda(productos), { preferirCoincidencia: false }),
+      { perCat: 12, maxCats: 14 },
+    ),
     [productos]
   );
   const abrirCategoria = (categoria) => {
@@ -3126,7 +3167,10 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   const heroSuggestions = useMemo(
     () =>
       heroBusqFocus && busqHero.trim().length >= 2
-        ? tiendaCatalogSearchSuggestions(poolHeroStock, busqHero, { limit: 8 })
+        ? colapsarSugerenciasPublicas(
+          tiendaCatalogSearchSuggestions(poolHeroStock, busqHero, { limit: 8 }),
+          poolHeroStock,
+        )
         : [],
     [poolHeroStock, busqHero, heroBusqFocus]
   );
@@ -3371,8 +3415,12 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   [productos,cat,tipo,filtroRx]);
   const fil = useMemo(()=>{
     const arr = basePool.filter((p)=>tiendaProductMatchesBusqueda(p, busq));
-    return sortCatalogoTienda(arr, busq);
-  }, [basePool, busq]);
+    const orden = sortCatalogoTienda(arr, busq);
+    return colapsarListaPublica(orden, {
+      universo: productos,
+      preferirCoincidencia: Boolean(String(busq || "").trim()),
+    });
+  }, [basePool, busq, productos]);
   const pageFil = useMemo(() => fil.slice(0, visibles), [fil, visibles]);
   const hayMasCatalogo = fil.length > visibles;
   const bandasVista = useMemo(
@@ -3384,7 +3432,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
     [productos]
   );
   const suggestions = useMemo(
-    ()=>(busqFocus&&busq.trim().length>=2?tiendaCatalogSearchSuggestions(poolCatalogo,busq,{limit:8}):[]),
+    ()=>(busqFocus&&busq.trim().length>=2
+      ? colapsarSugerenciasPublicas(tiendaCatalogSearchSuggestions(poolCatalogo,busq,{limit:8}), poolCatalogo)
+      : []),
     [poolCatalogo,busq,busqFocus]
   );
   const hayCoincidenciasSinFiltrosLaterales = useMemo(()=>{
@@ -7107,6 +7157,7 @@ export default function TiendaFarmaCapital(){
 
   /** Devuelve false si no se agregó (para que la tarjeta no muestre «✓ Listo»). */
   const addToCart=prod=>{
+    prod = productoSinVistaGrupo(prod);
     const bajoPedido = esBajoPedido(prod);
     if (!prod || !prod.activo) return false;
     if (!bajoPedido && Number(prod.stock||0) <= 0) return false;

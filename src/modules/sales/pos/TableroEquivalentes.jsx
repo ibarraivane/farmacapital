@@ -4,6 +4,7 @@ import { $ } from "../../../utils";
 import { posDestacadoTarjeta, posSubtituloProducto, posTituloProducto } from "../../../utils/posProductDisplay";
 import { etiquetaTipoProducto } from "../../../utils/equivalentesPos";
 import { useImagenesPrincipales } from "../../../hooks/useProductoImagenes";
+import { leyendaSabores } from "../../../lib/grupoPublico";
 
 function etiquetaSustanciaVisible(value) {
   return String(value || "")
@@ -29,7 +30,10 @@ function TarjetaProducto({ producto, onSelect, onAdd, estadoStock, diferencia, f
   const foto = fotoTarjeta(producto, fotoDe);
   const [fotoRota, setFotoRota] = useState(false);
   const mostrarFoto = Boolean(foto) && !fotoRota;
-  const titulo = posTituloProducto(producto) || producto.nombre;
+  const titulo = (producto.sabores_publicos > 1 && producto.titulo_grupo_publico)
+    ? producto.titulo_grupo_publico
+    : (posTituloProducto(producto) || producto.nombre);
+  const leyenda = leyendaSabores(producto.sabores_publicos);
   const tipo = etiquetaTipoProducto(producto);
   const destacado = posDestacadoTarjeta(producto);
   const subtitulo = posSubtituloProducto(producto) || producto.sku;
@@ -67,6 +71,9 @@ function TarjetaProducto({ producto, onSelect, onAdd, estadoStock, diferencia, f
         ) : null}
         {subtitulo ? (
           <div style={{ fontSize: 12, color: C.textMid, lineHeight: 1.3 }}>{subtitulo}</div>
+        ) : null}
+        {leyenda ? (
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.blue, lineHeight: 1.3 }}>{leyenda}</div>
         ) : null}
         {diferencia ? (
           <div style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.25, color: C.amber }}>{diferencia}</div>

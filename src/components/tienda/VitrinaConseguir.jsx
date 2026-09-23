@@ -3,6 +3,7 @@ import { PackageSearch } from "lucide-react";
 import { BRAND } from "../../constants";
 import RecompraStrip from "../RecompraStrip";
 import { CONSEGUIR_UI, RUBROS_BAJO_PEDIDO, STRIP_TOPE_CONSEGUIR, filtrarVitrina, rubroDeProducto } from "../../lib/bajoPedido";
+import { colapsarListaPublica } from "../../lib/grupoPublico";
 
 /**
  * Vitrina de /conseguir: productos bajo pedido por rubro.
@@ -13,13 +14,19 @@ import { CONSEGUIR_UI, RUBROS_BAJO_PEDIDO, STRIP_TOPE_CONSEGUIR, filtrarVitrina,
 export default function VitrinaConseguir({ productos, loading, stack, renderProducto, onIrAFormulario }) {
   const [rubro, setRubro] = useState("");
 
-  const conteo = useMemo(() => {
-    const m = { "": filtrarVitrina(productos).length };
-    RUBROS_BAJO_PEDIDO.forEach((r) => { m[r.id] = filtrarVitrina(productos, r.id).length; });
-    return m;
-  }, [productos]);
+  const vitrina = useMemo(() => filtrarVitrina(productos), [productos]);
+  const tarjetasDe = (items) => colapsarListaPublica(items, { universo: vitrina, preferirCoincidencia: false });
 
-  const lista = useMemo(() => (rubro ? filtrarVitrina(productos, rubro) : []), [productos, rubro]);
+  const conteo = useMemo(() => {
+    const m = { "": tarjetasDe(vitrina).length };
+    RUBROS_BAJO_PEDIDO.forEach((r) => { m[r.id] = tarjetasDe(filtrarVitrina(productos, r.id)).length; });
+    return m;
+  }, [productos, vitrina]);
+
+  const lista = useMemo(
+    () => (rubro ? tarjetasDe(filtrarVitrina(productos, rubro)) : []),
+    [productos, rubro, vitrina],
+  );
   const hayAlgo = conteo[""] > 0;
 
   const chip = (id, label) => {
@@ -99,9 +106,9 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
         )
       ) : (
         [...RUBROS_BAJO_PEDIDO, { id: "__otros", label: "Otros encargos" }].map((r) => {
-          const items = r.id === "__otros"
+          const items = tarjetasDe(r.id === "__otros"
             ? filtrarVitrina(productos).filter((p) => !rubroDeProducto(p))
-            : filtrarVitrina(productos, r.id);
+            : filtrarVitrina(productos, r.id));
           const enBanda = items.slice(0, STRIP_TOPE_CONSEGUIR);
           const verTodo = items.length > 4 && r.id !== "__otros";
           return (
