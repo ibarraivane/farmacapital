@@ -1,7 +1,7 @@
 'use strict';
 
 const { randomUUID } = require('crypto');
-const { productoAceptaResena } = require('../../src/lib/resenasProductoCore.cjs');
+const { productoAceptaResena } = require('../../src/lib/resenasProductoCore');
 const { emailsAvisoCliente } = require('./clienteEmails');
 const emailTemplates = require('./emailTemplates');
 const { sendEmail } = require('./orderNotifications');
