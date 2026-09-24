@@ -149,6 +149,23 @@ export async function enrichPedidosConItems(supabase, sessionToken, pedidos) {
   return out;
 }
 
+/**
+ * Detalle de un corte ya guardado: solo lo que cayó en ESA caja.
+ * El reloj de las 15:30 mete las ventas de quien entró después
+ * (Cinthia) en el corte que la anterior ya cerró (Raquel).
+ * Sin ventana de sesión no hay rango seguro: null, no el día entero.
+ */
+export function ventanaDetalleCorte(corte) {
+  const ini = corte?.ventana_inicio || corte?.abierta_at || null;
+  const fin = corte?.ventana_fin || corte?.cerrada_at || null;
+  if (!ini || !fin) return null;
+  const inicio = new Date(ini);
+  const hasta = new Date(fin);
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(hasta.getTime())) return null;
+  if (hasta.getTime() <= inicio.getTime()) return null;
+  return { inicio: inicio.toISOString(), fin: hasta.toISOString() };
+}
+
 export async function cargarVentasDetalleTurno(supabase, sessionToken, desdeIso, hastaIso) {
   const tok = String(sessionToken || "").trim();
   const { data } = tok
