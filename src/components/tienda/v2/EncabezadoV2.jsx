@@ -61,7 +61,7 @@ export default function EncabezadoV2({
   };
 
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 50 }}>
+    <div className="fc-sticky" style={{ backgroundColor: "#ffffff", position: "sticky", top: 0, zIndex: 80 }}>
       <div className="fc-top">
         <span>Farmacia y consultorio · Ciudad de México</span>
         <span>Atención en sucursal · {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}</span>
@@ -132,7 +132,7 @@ export default function EncabezadoV2({
           <span className="fc-cartnum">{n}</span>
         </button>
       </header>
-      <nav className="fc-nav" aria-label="Áreas de la tienda">
+      <nav className="fc-nav" aria-label="Áreas de la tienda" style={{ backgroundColor: "#ffffff" }}>
         <button type="button" onClick={() => go("catalogo", { rx: false })}>Medicamentos</button>
         <button type="button" onClick={() => go("conseguir")}>Dermocosmética</button>
         <button type="button" onClick={() => irACatalogoCategoria(setPage, "Vitaminas")}>Nutrición</button>

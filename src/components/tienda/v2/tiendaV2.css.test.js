@@ -27,3 +27,10 @@ test("copia los valores exactos del prototipo ChatGPT", () => {
   expect(css).toMatch(/\.fc-nav-quote\{color:var\(--fc-blue\)\}/);
   expect(css).not.toMatch(/(^|\n)\s*body\s*\{/);
 });
+
+test("la cintilla del menú no deja ver el título a través del encabezado fijo", () => {
+  expect(css).toMatch(/\.fc-sticky\{position:sticky;top:0;z-index:80;background:#ffffff !important;isolation:isolate;overscroll-behavior:none;touch-action:pan-y\}/);
+  expect(css).toMatch(/\.fc-sticky::before\{content:"";position:absolute;inset:0;background:#ffffff;z-index:-1\}/);
+  expect(css).toMatch(/\.fc-nav,\.fc-v2 \.fc-nav button\{background:#ffffff !important\}/);
+  expect(css).not.toMatch(/fc-sticky\{position:static\}/);
+});
