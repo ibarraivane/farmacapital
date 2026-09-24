@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, MessagesSquare, ArrowRight } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
 import { esBajoPedido } from "../../../lib/bajoPedido";
-import { irACatalogoCategoria } from "../../../lib/tiendaCatalogoCategorias";
+import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
+import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
 import { urlImagenPublicaTienda, tiendaCardImageUrl } from "../../../utils/tiendaCardImage";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
 import { CONSULTA_PRECIO_DEFAULT } from "../../../utils/consultaConstants";
@@ -72,17 +73,31 @@ export default function InicioV2({
     setProdDetalle?.(prod);
     setPage?.("detalle");
   };
-  const irCategoria = (cat) => irACatalogoCategoria(setPage, cat);
+  const irCategoria = (nombre) => irASeccionVitrina(setPage, nombre);
   const irCotizar = () => setPage?.("cotizar");
+  const iconoSeccion = {
+    "nutricion-deportiva": <Leaf aria-hidden="true" />,
+    dermocosmetica: <Droplets aria-hidden="true" />,
+    medicamentos: <Pill aria-hidden="true" />,
+    higiene: <Package aria-hidden="true" />,
+    vitaminas: <HeartPulse aria-hidden="true" />,
+    botiquin: <Bandage aria-hidden="true" />,
+  };
+  const descSeccion = {
+    "nutricion-deportiva": "Por marca",
+    dermocosmetica: "Por marca y solar",
+    medicamentos: "Por necesidad",
+    higiene: "Cabello, bucal y el día a día",
+    vitaminas: "Vitaminas, herbolarios y clínica",
+    botiquin: "Curación y aparatos",
+  };
 
-  const categorias = [
-    { icon: <Pill aria-hidden="true" />, titulo: "Medicamentos", desc: "Por nombre o sustancia", go: () => irCategoria("Medicamentos") },
-    { icon: <Droplets aria-hidden="true" />, titulo: "Dermocosmética", desc: "Limpieza, hidratación y más", go: () => irCategoria("Dermocosmética") },
-    { icon: <Leaf aria-hidden="true" />, titulo: "Nutrición", desc: "Vitaminas y suplementos", go: () => irCategoria("Nutrición") },
-    { icon: <HeartPulse aria-hidden="true" />, titulo: "Dispositivos médicos", desc: "Glucómetros, tiras y aparatos", go: () => irCategoria("Dispositivos médicos") },
-    { icon: <Bandage aria-hidden="true" />, titulo: "Botiquín", desc: "Gasas, vendas y curación", go: () => irCategoria("Botiquín") },
-    { icon: <Package aria-hidden="true" />, titulo: "Farmacia", desc: "Higiene, sueros y el resto", go: () => irCategoria("Farmacia") },
-  ];
+  const categorias = SECCIONES_VITRINA.map((sec) => ({
+    icon: iconoSeccion[sec.id],
+    titulo: sec.nombre,
+    desc: descSeccion[sec.id],
+    go: () => irCategoria(sec.nombre),
+  }));
 
   const packshots = porEncargo.filter(conFoto).slice(0, 2);
 

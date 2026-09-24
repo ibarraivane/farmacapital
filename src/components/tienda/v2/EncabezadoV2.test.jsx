@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import EncabezadoV2 from "./EncabezadoV2";
+import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
 
 test("franja, menú y buscador del prototipo ChatGPT", () => {
   render(<EncabezadoV2 setPage={() => {}} cart={[]} />);
@@ -11,12 +12,11 @@ test("franja, menú y buscador del prototipo ChatGPT", () => {
   expect(screen.getByLabelText("Buscar producto, sustancia o marca")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Buscar" })).toBeInTheDocument();
   expect(screen.getByLabelText("Ver carrito")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Medicamentos" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Dermocosmética" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Nutrición" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Dispositivos médicos" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Botiquín" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Farmacia" })).toBeInTheDocument();
+  SECCIONES_VITRINA.forEach((sec) => {
+    expect(screen.getByRole("button", { name: sec.nombre })).toBeInTheDocument();
+  });
+  expect(screen.queryByRole("button", { name: "Farmacia" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Otro" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Abrir menú" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Cotizar especializado" })).toHaveClass("fc-nav-quote");
@@ -55,22 +55,18 @@ test("el buscador reusa las sugerencias del catálogo", () => {
   expect(setPage).toHaveBeenCalledWith("detalle", { productId: 11 });
 });
 
-test("Medicamentos y Dermocosmética abren su área, no el catálogo completo", () => {
+test("el menú abre la sección de vitrina, no el catálogo completo", () => {
   const setPage = jest.fn();
   render(<EncabezadoV2 setPage={setPage} cart={[]} />);
   fireEvent.click(screen.getByRole("button", { name: "Medicamentos" }));
-  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Medicamentos");
-  fireEvent.click(screen.getByRole("button", { name: "Dermocosmética" }));
-  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Dermocosmética");
-  fireEvent.click(screen.getByRole("button", { name: "Nutrición" }));
-  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Nutrición");
-  fireEvent.click(screen.getByRole("button", { name: "Dispositivos médicos" }));
-  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Dispositivos médicos");
-  fireEvent.click(screen.getByRole("button", { name: "Botiquín" }));
-  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Botiquín");
-  fireEvent.click(screen.getByRole("button", { name: "Farmacia" }));
-  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Farmacia");
-  expect(setPage).toHaveBeenCalledWith("catalogo", { rx: false, catalogoScroll: "top" });
+  expect(sessionStorage.getItem("farmacapital_vitrina")).toBe("Medicamentos");
+  fireEvent.click(screen.getByRole("button", { name: "Nutrición deportiva" }));
+  expect(sessionStorage.getItem("farmacapital_vitrina")).toBe("Nutrición deportiva");
+  expect(setPage).toHaveBeenCalledWith("catalogo", {
+    rx: false,
+    catalogoScroll: "top",
+    seccion: "Nutrición deportiva",
+  });
 });
 
 test("la cuenta y el menú están en la barra", () => {

@@ -3,8 +3,8 @@ import { MapPin, Menu, Search, ShoppingBag, User } from "lucide-react";
 import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
-import { irACatalogoCategoria } from "../../../lib/tiendaCatalogoCategorias";
-import { AREAS_TIENDA } from "../../../constants/categoriasProducto";
+import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
+import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
 import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 
 const PLACEHOLDER = "Nombre, principio activo o marca…";
@@ -152,8 +152,8 @@ export default function EncabezadoV2({
         </button>
       </header>
       <nav className="fc-nav" aria-label="Áreas de la tienda" style={{ backgroundColor: "#ffffff" }}>
-        {AREAS_TIENDA.map((area) => (
-          <button key={area.id} type="button" onClick={() => irACatalogoCategoria(setPage, area.id)}>{area.id}</button>
+        {SECCIONES_VITRINA.map((sec) => (
+          <button key={sec.id} type="button" onClick={() => irASeccionVitrina(setPage, sec.nombre)}>{sec.nombre}</button>
         ))}
         <button type="button" className="fc-nav-quote" onClick={() => go("cotizar")}>Cotizar especializado</button>
         <button type="button" className="fc-location" onClick={irSucursal}>

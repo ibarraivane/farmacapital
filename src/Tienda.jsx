@@ -36,6 +36,7 @@ import {
 import { productoEsVendible } from "./utils/productoVendible";
 import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
 import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
+import { chipsDeSeccion, productoEnVitrina } from "./constants/vitrinaTienda";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -45,7 +46,7 @@ import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, s
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl, urlImagenPublicaTienda } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
-import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import { pageIdToTiendaPath, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
@@ -122,7 +123,7 @@ import {
   mergeCartLines,
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
-import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
+import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, VITRINA_CHIP_KEY, VITRINA_SECCION_KEY, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
 import {
   aplicarPosicionCatalogo,
   guardarVisiblesCatalogo,
@@ -3402,6 +3403,19 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const stack = useMediaQuery("(max-width: 768px)");
   const busqStickyRef = useRef(null);
   useCssVarHeight(busqStickyRef, "--fc-catalogo-busq-h");
+  const v2 = tiendaV2Activa();
+  const [seccion, setSeccion] = useState(() => {
+    try {
+      return seccionVitrinaFromPath(window.location.pathname)
+        || sessionStorage.getItem(VITRINA_SECCION_KEY)
+        || "";
+    } catch {
+      return "";
+    }
+  });
+  const [chip, setChip] = useState(() => {
+    try { return sessionStorage.getItem(VITRINA_CHIP_KEY) || "Todos"; } catch { return "Todos"; }
+  });
   const [cat,setCat]=useState(()=>{
     try {
       const saved = sessionStorage.getItem("farmacapital_cat") || "Todos";
@@ -3418,10 +3432,25 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const setVistaCatalogo = (v) => setVista(guardarVistaCatalogo(v));
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
   useEffect(() => {
+    try {
+      if (seccion) sessionStorage.setItem(VITRINA_SECCION_KEY, seccion);
+      else sessionStorage.removeItem(VITRINA_SECCION_KEY);
+      sessionStorage.setItem(VITRINA_CHIP_KEY, chip || "Todos");
+    } catch { /* noop */ }
+  }, [seccion, chip]);
+  useEffect(() => {
     const sync = () => {
       let saved = "Todos";
-      try { saved = sessionStorage.getItem("farmacapital_cat") || "Todos"; } catch { /* noop */ }
+      let sec = "";
+      let ch = "Todos";
+      try {
+        saved = sessionStorage.getItem("farmacapital_cat") || "Todos";
+        sec = sessionStorage.getItem(VITRINA_SECCION_KEY) || "";
+        ch = sessionStorage.getItem(VITRINA_CHIP_KEY) || "Todos";
+      } catch { /* noop */ }
       setCat(saved === "Todos" ? "Todos" : (categoriaCanon(saved) || "Todos"));
+      setSeccion(sec);
+      setChip(ch);
       setBusq("");
       setBusqHero?.("");
     };
@@ -3430,7 +3459,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   }, [setBusqHero]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
-  const filtrosCatalogoKey = `${cat}|${tipo}|${String(busq || "").trim()}|${filtroRx ? "1" : "0"}`;
+  const filtrosCatalogoKey = `${cat}|${seccion}|${chip}|${tipo}|${String(busq || "").trim()}|${filtroRx ? "1" : "0"}`;
   const filtrosCatalogoKeyRef = useRef(filtrosCatalogoKey);
   useEffect(() => {
     if (filtrosCatalogoKeyRef.current === filtrosCatalogoKey) return;
@@ -3445,17 +3474,23 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       setBusq(busqHero);
       setTipo("todos");
       setCat("Todos");
+      setSeccion("");
+      setChip("Todos");
     }
   },[busqHero]);
   const cats = useMemo(
-    () => chipsAreaTienda(poolCatalogoTienda(productos), cat),
-    [productos, cat]
+    () => (v2
+      ? chipsDeSeccion(seccion, poolCatalogoTienda(productos))
+      : chipsAreaTienda(poolCatalogoTienda(productos), cat)),
+    [v2, productos, seccion, cat]
   );
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
-    .filter(p=>productoPasaAreaTienda(p, cat === "Cuidado personal" ? AREA_DERMOCOSMETICA : cat))
+    .filter(p => v2
+      ? productoEnVitrina(p, { seccion, chip, busqueda: busq })
+      : productoPasaAreaTienda(p, cat === "Cuidado personal" ? AREA_DERMOCOSMETICA : cat))
     .filter(p=>tipo==="todos"||p.tipo===tipo)
     .filter(p=>!filtroRx || p.requiere_receta || esCategoriaAntibiotico(p.categoria)),
-  [productos,cat,tipo,filtroRx]);
+  [v2, productos, seccion, chip, busq, cat, tipo, filtroRx]);
   const fil = useMemo(()=>{
     const arr = basePool.filter((p)=>tiendaProductMatchesBusqueda(p, busq));
     return sortCatalogoTienda(arr, busq);
@@ -3491,16 +3526,16 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   if (tiendaV2Activa()) {
     return (
       <CatalogoV2
-        titulo={filtroRx ? "Surtir receta" : (busqActiva ? "Resultados de búsqueda" : (cat === "Todos" ? "Catálogo" : (cat === "Cuidado personal" ? AREA_DERMOCOSMETICA : cat)))}
+        titulo={filtroRx ? "Surtir receta" : (busqActiva ? "Resultados de búsqueda" : (seccion || "Catálogo"))}
         descripcion={busqActiva
           ? `Búsqueda: «${busq.trim()}»`
           : "Revisa la presentación, disponibilidad y forma de entrega de cada producto."}
         productos={pageFil}
         total={fil.length}
         categorias={cats}
-        categoria={cat}
+        categoria={chip}
         onCategoria={(c) => {
-          setCat(c === "Cuidado personal" ? AREA_DERMOCOSMETICA : c);
+          setChip(c);
           setBusq("");
           setBusqHero?.("");
         }}
@@ -6883,12 +6918,13 @@ export default function TiendaFarmaCapital(){
   const pageRef = useRef(page);
   pageRef.current = page;
   const catalogoScrollIntentRef = useRef("top");
-  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "" } = {}) => {
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "" } = {}) => {
     const path = pageIdToTiendaPath(target, {
       rx: target === "catalogo" && rx,
       reset: target === "reset-password" ? token : undefined,
       productId: target === "detalle" ? productId : undefined,
       search: target === "conseguir" ? search : undefined,
+      seccion: target === "catalogo" ? seccion : undefined,
     });
     const fn = replace ? window.history.replaceState : window.history.pushState;
     fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
@@ -6933,6 +6969,7 @@ export default function TiendaFarmaCapital(){
         token: resetToken,
         productId: target === "detalle" ? (opts.productId || "") : undefined,
         search: target === "conseguir" ? (opts.search || busqHero || "") : undefined,
+        seccion: target === "catalogo" ? (opts.seccion || "") : "",
       });
     } catch {
       try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
@@ -6981,6 +7018,10 @@ export default function TiendaFarmaCapital(){
         writeTiendaHistory("reset-password", { replace: true, token: reset });
       } else {
         const id = tiendaPathnameToPageId(window.location.pathname) || "home";
+        const seccionInicial = seccionVitrinaFromPath(window.location.pathname);
+        if (seccionInicial) {
+          try { sessionStorage.setItem("farmacapital_vitrina", seccionInicial); } catch (_) { /* noop */ }
+        }
         const rx = tiendaPathSuggestsReceta(window.location.pathname, window.location.search);
         if (rx) {
           setFiltroRx(true);
@@ -6998,7 +7039,11 @@ export default function TiendaFarmaCapital(){
             );
           } catch (_) { /* noop */ }
         } else {
-          writeTiendaHistory(id, { replace: true, rx: rx && id === "catalogo" });
+          writeTiendaHistory(id, {
+            replace: true,
+            rx: rx && id === "catalogo",
+            seccion: id === "catalogo" ? seccionInicial : "",
+          });
         }
       }
     } catch {
