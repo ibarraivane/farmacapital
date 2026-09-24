@@ -68,6 +68,20 @@ export function looksLikeInternalSku(raw) {
   return /^(FC|EQ|FMX)[-_]/i.test(String(raw || "").trim());
 }
 
+/**
+ * Cuándo el POS debe repintar el catálogo por lo que hay en el buscador.
+ * null = no repintar (dígitos a medias de la pistola).
+ * 0 = ya (código cerrado o recuadro vacío).
+ * >0 = texto: esperar a que dejen de teclear, para que la letra salga al momento.
+ */
+export function esperaBusquedaPos(raw) {
+  const v = String(raw ?? "");
+  if (!v.trim()) return 0;
+  if (isAllDigitsInput(v) && !isCompleteBarcodeLength(v)) return null;
+  if (isAllDigitsInput(v) || looksLikeInternalSku(v)) return 0;
+  return 160;
+}
+
 function digitsOnly(raw) {
   return String(raw || "").replace(/\D/g, "");
 }
