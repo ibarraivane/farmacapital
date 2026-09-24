@@ -3,6 +3,7 @@
  * Orden canónico de categorías; dentro de cada banda: con stock primero, luego A–Z.
  */
 import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina } from "../constants/categoriasProducto";
+import { seccionPorSlug, slugSeccion } from "../constants/vitrinaTienda";
 import { resetearPosicionCatalogo } from "./tiendaCatalogoPosicion";
 
 function agotado(p) {
@@ -76,6 +77,29 @@ export function bandasCatalogoPorCategoria(productos, opts = {}) {
 
 /** El catálogo ya abierto escucha esto: si no, el filtro en memoria no cambia. */
 export const CATALOGO_CATEGORIA_EVENT = "fc-catalogo-categoria";
+
+export const VITRINA_SECCION_KEY = "farmacapital_vitrina";
+export const VITRINA_CHIP_KEY = "farmacapital_vitrina_chip";
+
+/** Abre el catálogo en una sección de vitrina. */
+export function irASeccionVitrina(setPage, nombre) {
+  const seccion = seccionPorSlug(nombre) || (slugSeccion(nombre) ? nombre : "");
+  try {
+    if (seccion) sessionStorage.setItem(VITRINA_SECCION_KEY, seccion);
+    else sessionStorage.removeItem(VITRINA_SECCION_KEY);
+    sessionStorage.setItem(VITRINA_CHIP_KEY, "Todos");
+    sessionStorage.removeItem("farmacapital_busq");
+  } catch {
+    /* ignore */
+  }
+  resetearPosicionCatalogo();
+  try {
+    window.dispatchEvent(new Event(CATALOGO_CATEGORIA_EVENT));
+  } catch {
+    /* node sin window */
+  }
+  setPage?.("catalogo", { rx: false, catalogoScroll: "top", seccion });
+}
 
 /** Abre el catálogo filtrado por categoría (sessionStorage + navegación SPA). */
 export function irACatalogoCategoria(setPage, categoria) {
