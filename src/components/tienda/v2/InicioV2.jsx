@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Pill, Droplets, Leaf, HeartPulse, Store, Truck, MessagesSquare, ArrowRight } from "lucide-react";
+import { Pill, Droplets, Leaf, HeartPulse, Package, Store, Truck, MessagesSquare, ArrowRight } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { irACatalogoCategoria } from "../../../lib/tiendaCatalogoCategorias";
@@ -78,8 +78,9 @@ export default function InicioV2({
   const categorias = [
     { icon: <Pill aria-hidden="true" />, titulo: "Medicamentos", desc: "Por nombre o sustancia", go: () => irCategoria("Medicamentos") },
     { icon: <Droplets aria-hidden="true" />, titulo: "Dermocosmética", desc: "Limpieza, hidratación y más", go: () => irCategoria("Dermocosmética") },
-    { icon: <Leaf aria-hidden="true" />, titulo: "Nutrición", desc: "Proteína y suplementos", go: () => irCategoria("Suplemento") },
-    { icon: <HeartPulse aria-hidden="true" />, titulo: "Equipo médico", desc: "Consulta disponibilidad", go: () => irCategoria("Dispositivo médico") },
+    { icon: <Leaf aria-hidden="true" />, titulo: "Nutrición", desc: "Vitaminas y suplementos", go: () => irCategoria("Nutrición") },
+    { icon: <HeartPulse aria-hidden="true" />, titulo: "Dispositivos médicos", desc: "Aparatos y material de curación", go: () => irCategoria("Dispositivos médicos") },
+    { icon: <Package aria-hidden="true" />, titulo: "Farmacia", desc: "Higiene, sueros y el resto", go: () => irCategoria("Farmacia") },
   ];
 
   const packshots = porEncargo.filter(conFoto).slice(0, 2);
@@ -96,10 +97,10 @@ export default function InicioV2({
           <p className="fc-description">
             Medicamentos, cuidado de la piel y nutrición, con el respaldo de nuestra sucursal.
           </p>
-          <button type="button" className="fc-primary" onClick={() => irCategoria("Todos")}>
+          <button type="button" className="fc-primary" onClick={() => irCategoria("Medicamentos")}>
             Buscar medicamento <ArrowRight aria-hidden="true" />
           </button>
-          <button type="button" className="fc-textbtn" onClick={() => setPage?.("conseguir")}>
+          <button type="button" className="fc-textbtn" onClick={() => irCategoria("Dermocosmética")}>
             Explorar cuidado de la piel
           </button>
         </div>
@@ -183,7 +184,7 @@ export default function InicioV2({
               <div className="fc-eyebrow" style={{ marginBottom: 7 }}>Medicamentos · En sucursal</div>
               <h2>Listos para recoger hoy.</h2>
             </div>
-            <button type="button" className="fc-textbtn" onClick={() => irCategoria("Todos")}>
+            <button type="button" className="fc-textbtn" onClick={() => irCategoria("Medicamentos")}>
               Ver medicamentos →
             </button>
           </div>

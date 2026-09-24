@@ -35,7 +35,7 @@ import {
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
 import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
-import { AREA_DERMOCOSMETICA, AREA_MEDICAMENTOS, CATEGORIAS_MEDICAMENTO, CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, esCategoriaAntibiotico, esMedicamentoCatalogo, productoPasaAreaTienda } from "./constants/categoriasProducto";
+import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -3447,18 +3447,10 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       setCat("Todos");
     }
   },[busqHero]);
-  const cats = useMemo(() => {
-    const pool = poolCatalogoTienda(productos);
-    if (cat === AREA_MEDICAMENTOS || CATEGORIAS_MEDICAMENTO.includes(cat)) {
-      const presentes = new Set(pool.filter(esMedicamentoCatalogo).map((p) => categoriaVitrina(p)));
-      return [AREA_MEDICAMENTOS, ...CATEGORIAS_MEDICAMENTO.filter((c) => presentes.has(c))];
-    }
-    if (cat === AREA_DERMOCOSMETICA || cat === "Cuidado personal") {
-      return [AREA_DERMOCOSMETICA];
-    }
-    const presentes = new Set(pool.map((p) => categoriaVitrina(p)).filter(Boolean));
-    return ["Todos", ...CATEGORIAS_PRODUCTO.filter((c) => presentes.has(c))];
-  }, [productos, cat]);
+  const cats = useMemo(
+    () => chipsAreaTienda(poolCatalogoTienda(productos), cat),
+    [productos, cat]
+  );
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
     .filter(p=>productoPasaAreaTienda(p, cat === "Cuidado personal" ? AREA_DERMOCOSMETICA : cat))
     .filter(p=>tipo==="todos"||p.tipo===tipo)

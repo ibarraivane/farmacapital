@@ -120,6 +120,34 @@ export const CATEGORIAS_MEDICAMENTO = Object.freeze([
 
 export const AREA_MEDICAMENTOS = "Medicamentos";
 export const AREA_DERMOCOSMETICA = "Dermocosmética";
+export const AREA_NUTRICION = "Nutrición";
+export const AREA_DISPOSITIVOS = "Dispositivos médicos";
+export const AREA_FARMACIA = "Farmacia";
+
+/** Suplementos y vitaminas. El suero y el herbolario se quedan en Farmacia. */
+export const CATEGORIAS_NUTRICION = Object.freeze(["Suplemento", "Vitaminas"]);
+
+/** Aparatos y material de curación. */
+export const CATEGORIAS_DISPOSITIVOS = Object.freeze(["Dispositivo médico", "Botiquín"]);
+
+/** Lo que no es fármaco, piel, nutrición ni aparato. */
+export const CATEGORIAS_FARMACIA = Object.freeze([
+  "Higiene",
+  "Bebidas",
+  "Básicos",
+  "Abarrotes",
+  "Herbolario",
+  "Hidratación",
+  "Otro",
+]);
+
+export const AREAS_TIENDA = Object.freeze([
+  { id: AREA_MEDICAMENTOS, categorias: CATEGORIAS_MEDICAMENTO },
+  { id: AREA_DERMOCOSMETICA, categorias: Object.freeze(["Cuidado personal"]) },
+  { id: AREA_NUTRICION, categorias: CATEGORIAS_NUTRICION },
+  { id: AREA_DISPOSITIVOS, categorias: CATEGORIAS_DISPOSITIVOS },
+  { id: AREA_FARMACIA, categorias: CATEGORIAS_FARMACIA },
+]);
 
 function normArea(s) {
   return String(s ?? "")
@@ -141,15 +169,40 @@ export function esDermocosmeticoCatalogo(p) {
   return sub.startsWith("dermatolog") || cat.startsWith("dermatolog") || cat.startsWith("dermo");
 }
 
+/** Área del menú que corresponde al filtro activo, o null si es el catálogo entero. */
+export function areaDeFiltro(filtro) {
+  const f = filtro === "Cuidado personal" ? AREA_DERMOCOSMETICA : filtro;
+  const directa = AREAS_TIENDA.find((a) => a.id === f);
+  if (directa) return directa;
+  return AREAS_TIENDA.find((a) => a.categorias.includes(f)) || null;
+}
+
 /**
- * Filtro del catálogo de la tienda. «Medicamentos» y «Dermocosmética» son
- * áreas del menú, no una sola fila de productos.categoria.
+ * Filtro del catálogo de la tienda. Las áreas del menú agrupan varias
+ * filas de productos.categoria; una categoría suelta sigue filtrando igual.
  */
 export function productoPasaAreaTienda(p, filtro) {
   if (!filtro || filtro === "todas" || filtro === "Todos") return true;
-  if (filtro === AREA_MEDICAMENTOS) return esMedicamentoCatalogo(p);
-  if (filtro === AREA_DERMOCOSMETICA) return esDermocosmeticoCatalogo(p);
+  if (filtro === AREA_DERMOCOSMETICA || filtro === "Cuidado personal") return esDermocosmeticoCatalogo(p);
+  const area = AREAS_TIENDA.find((a) => a.id === filtro);
+  if (area) return area.categorias.includes(categoriaVitrina(p));
   return categoriaVitrinaPasaFiltro(p, filtro);
+}
+
+/** Chips del catálogo: dentro de un área, solo las categorías de esa área. */
+export function chipsAreaTienda(pool, filtro) {
+  const area = areaDeFiltro(filtro);
+  if (!area) {
+    const presentes = new Set((pool || []).map((p) => categoriaVitrina(p)).filter(Boolean));
+    return ["Todos", ...CATEGORIAS_PRODUCTO.filter((c) => presentes.has(c))];
+  }
+  if (area.id === AREA_DERMOCOSMETICA) return [AREA_DERMOCOSMETICA];
+  const presentes = new Set(
+    (pool || [])
+      .filter((p) => area.categorias.includes(categoriaVitrina(p)))
+      .map((p) => categoriaVitrina(p))
+  );
+  return [area.id, ...area.categorias.filter((c) => presentes.has(c))];
 }
 
 export function esCategoriaAntibiotico(raw) {

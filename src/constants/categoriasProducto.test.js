@@ -5,6 +5,7 @@ import {
   categoriaPasaFiltro,
   categoriaVitrina,
   categoriaVitrinaPasaFiltro,
+  chipsAreaTienda,
   esDermocosmeticoCatalogo,
   esMedicamentoCatalogo,
   productoPasaAreaTienda,
@@ -70,7 +71,22 @@ describe("categoriasProducto", () => {
     expect(esDermocosmeticoCatalogo(eucerin)).toBe(true);
     expect(productoPasaAreaTienda(eucerin, "Dermocosmética")).toBe(true);
     expect(productoPasaAreaTienda(whey, "Dermocosmética")).toBe(false);
-    expect(productoPasaAreaTienda(ensure, "Suplemento")).toBe(true);
+    expect(productoPasaAreaTienda(ensure, "Nutrición")).toBe(true);
+    const vitamina = { nombre: "Vitamina C 500 mg", categoria: "Vitaminas" };
+    const suero = { nombre: "Electrolit Uva", categoria: "Hidratación" };
+    const tensiometro = { nombre: "Tensiómetro de brazo", categoria: "Dispositivo médico" };
+    const gasa = { nombre: "Gasa estéril", categoria: "Botiquín" };
+    const shampoo = { nombre: "Shampoo neutro", categoria: "Higiene" };
+    expect(productoPasaAreaTienda(vitamina, "Nutrición")).toBe(true);
+    expect(productoPasaAreaTienda(suero, "Nutrición")).toBe(false);
+    expect(productoPasaAreaTienda(suero, "Farmacia")).toBe(true);
+    expect(productoPasaAreaTienda(shampoo, "Farmacia")).toBe(true);
+    expect(productoPasaAreaTienda(tensiometro, "Dispositivos médicos")).toBe(true);
+    expect(productoPasaAreaTienda(gasa, "Dispositivos médicos")).toBe(true);
+    expect(productoPasaAreaTienda(ibuprofeno, "Dispositivos médicos")).toBe(false);
+    expect(productoPasaAreaTienda(ensure, "Farmacia")).toBe(false);
+    expect(chipsAreaTienda([ibuprofeno, ensure, eucerin], "Medicamentos")).toEqual(["Medicamentos", "Antiinflamatorio"]);
+    expect(chipsAreaTienda([tensiometro, gasa], "Dispositivos médicos")).toEqual(["Dispositivos médicos", "Dispositivo médico", "Botiquín"]);
   });
 
   test("el select conserva un valor huérfano para no pisarlo al abrir", () => {
