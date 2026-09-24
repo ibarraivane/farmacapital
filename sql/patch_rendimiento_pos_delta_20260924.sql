@@ -8,15 +8,46 @@
 -- Esto agrega un RPC que devuelve SOLO los productos modificados desde p_desde
 -- (incluye los que quedaron inactivos, para que el cliente los quite).
 -- Los cambios en lotes también llegan porque trg_sync_productos_stock hace
--- UPDATE a productos en cada cambio de lote (y trigger_update_productos_updated_at
--- actualiza updated_at). El cliente además hace refresco completo cada 5 min.
+-- UPDATE a productos en cada cambio de lote, y el trigger de abajo mueve
+-- updated_at. El cliente además hace refresco completo cada 5 min.
 --
--- Seguro: solo CREA una función nueva y un índice. No cambia datos ni la función
--- existente. El POS nuevo funciona sin este RPC (cae al refresco completo).
+-- La base viva NO tenía productos.updated_at (ERROR 42703 al crear el índice).
+-- Este archivo la agrega, rellena las filas viejas con una fecha antigua (para
+-- que el primer delta no baje todo el catálogo) y crea el trigger BEFORE UPDATE.
+-- No toca precio, stock, costo ni lotes. El POS nuevo funciona sin este RPC
+-- (cae al refresco completo).
 -- Pegar en Supabase → SQL Editor → Run. Idempotente.
 -- ============================================================================
 
 begin;
+
+alter table public.productos
+  add column if not exists updated_at timestamptz;
+
+-- Fecha vieja a propósito: si se pusiera now(), el primer delta devolvería
+-- todos los productos. Los cambios de verdad empiezan a partir de este parche.
+update public.productos
+   set updated_at = timestamptz '2000-01-01+00'
+ where updated_at is null;
+
+alter table public.productos
+  alter column updated_at set default now();
+
+create or replace function public.update_productos_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trigger_update_productos_updated_at on public.productos;
+create trigger trigger_update_productos_updated_at
+  before update on public.productos
+  for each row
+  execute function public.update_productos_updated_at();
 
 create index if not exists idx_productos_updated_at
   on public.productos (updated_at);
