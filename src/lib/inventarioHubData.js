@@ -42,6 +42,30 @@ export function stockDesdeLotes(lotes) {
     .reduce((s, l) => s + (Number(l.cantidad_actual) || 0), 0);
 }
 
+/**
+ * Número que pinta la columna Stock: suma de lotes activos (stock_peps).
+ * productos.stock puede ir adelante (Afrín: la celda dice 2 y el input abría 4).
+ */
+export function stockVisibleInventario(p) {
+  const raw = p?.stock_peps != null && p?.stock_peps !== "" ? p.stock_peps : p?.stock;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.trunc(n);
+}
+
+/**
+ * adjust_stock_secure resta contra productos.stock, no contra los lotes de la celda.
+ * Para que el anaquel quede en `deseado`, el absoluto que se manda compensa ese desfase.
+ */
+export function stockObjetivoAjusteInline(producto, deseado) {
+  const col = Number(producto?.stock);
+  const columna = Number.isFinite(col) ? Math.trunc(col) : 0;
+  const visible = stockVisibleInventario(producto);
+  const want = Number(deseado);
+  const objetivoVisible = Number.isFinite(want) ? Math.trunc(want) : visible;
+  return columna + (objetivoVisible - visible);
+}
+
 /** Lote que representa el proveedor visible en Inventario (más piezas, luego el más reciente). */
 export function loteObjetivoProveedor(lotes) {
   const list = (lotes || []).filter((l) => l.activo !== false);
