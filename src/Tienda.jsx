@@ -34,7 +34,8 @@ import {
   descripcionPublicaTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
-import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, categoriaVitrinaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
+import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
+import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, categoriaVitrinaPasaFiltro, esCategoriaAntibiotico } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -2114,7 +2115,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     setBusqHero?.(String(prod.nombre || ""));
     setPage("conseguir", { search: String(prod.nombre || "") });
   };
-  const similares=productos.filter(p=>categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod))&&p.id!==prod.id).slice(0,4);
+  const similares = productosSimilaresTienda(prod, productos);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   if (tiendaV2Activa()) {
     const politica = politicaProducto(prod);

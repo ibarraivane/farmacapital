@@ -89,6 +89,10 @@ export function esNotaInternaCompra(texto) {
   const low = normalizarTextoPublico(texto);
   if (!low) return false;
   if (/^(ticket|factura|alta)\b/.test(low)) return true;
+  // Alta de vitrina: "Bajo pedido · suplementosmayoreo · 10444". El cliente no ve al mayorista.
+  if (/^bajo pedido\b/.test(low)) return true;
+  if (/\bsuplementos?\s*mayoreo\b/.test(low)) return true;
+  if (/\b(dermapharma|derma\s*pharma|promexsa|ewafra)\b/.test(low)) return true;
   if (/^nota\s+t\d/.test(low)) return true;
   if (/\bticket\b/.test(low)) return true;
   if (low.includes("ean pendiente")) return true;

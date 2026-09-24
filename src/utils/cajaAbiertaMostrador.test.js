@@ -328,6 +328,32 @@ test("descripcionPublicaTienda oculta cruce Fahorro / precio lista (no es ficha 
   ).toBe("");
 });
 
+test("descripcionPublicaTienda oculta al mayorista del bajo pedido", () => {
+  expect(esNotaInternaCompra("Bajo pedido · suplementosmayoreo · 10444")).toBe(true);
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Gold Standard 100% Whey",
+      marca: "Optimum Nutrition",
+      descripcion: "Bajo pedido · suplementosmayoreo · 10444",
+      presentacion: "5 lb",
+    }),
+  ).toBe("");
+  expect(
+    descripcionPublicaTienda({
+      nombre: "Birdman creatina 450 g",
+      descripcion: "Bajo pedido · birdman · B2B-450",
+    }),
+  ).toBe("");
+  expect(
+    subtituloPublicoTienda({
+      nombre: "Gold Standard 100% Whey",
+      marca: "Optimum Nutrition",
+      descripcion: "Bajo pedido · suplementosmayoreo · 10444",
+      presentacion: "5 lb",
+    }),
+  ).toBe("Optimum Nutrition · 5 lb");
+});
+
 test("descripcionPublicaTienda oculta notas de mayoreo y recargo", () => {
   const madrid = {
     nombre: "Aceite Madrid",
