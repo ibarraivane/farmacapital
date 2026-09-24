@@ -104,6 +104,27 @@ export function categoriaVitrinaPasaFiltro(p, filtro) {
   return categoriasCoinciden(categoriaVitrina(p), filtro);
 }
 
+/** Lista vacía = todas. Si hay marcas, el producto entra con cualquiera de ellas. */
+export function pasaFiltroCategorias(p, seleccion) {
+  const list = (Array.isArray(seleccion) ? seleccion : []).map((c) => String(c || "").trim()).filter(Boolean);
+  if (!list.length) return true;
+  return list.some((c) => categoriaVitrinaPasaFiltro(p, c));
+}
+
+export function etiquetaFiltroCategorias(seleccion) {
+  const list = Array.isArray(seleccion) ? seleccion : [];
+  if (!list.length) return "Todas las categorías";
+  if (list.length === 1) return list[0];
+  return `${list.length} categorías`;
+}
+
+export function alternarCategoriaFiltro(seleccion, categoria) {
+  const set = new Set(Array.isArray(seleccion) ? seleccion : []);
+  if (set.has(categoria)) set.delete(categoria);
+  else set.add(categoria);
+  return [...set];
+}
+
 /** Rubros de mostrador. Nutrición es «Suplemento»; esto es el resto de la farmacia. */
 export const CATEGORIAS_MEDICAMENTO = Object.freeze([
   "Analgésico",

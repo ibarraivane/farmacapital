@@ -10,6 +10,7 @@ import {
 } from "./utils/fuzzySearch";
 import { findProductExactScan } from "./utils/barcodeProductLookup";
 import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "./ui";
+import FiltroCategoriasCheck from "./components/FiltroCategoriasCheck";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
@@ -27,7 +28,7 @@ import {
   CATEGORIAS_PRODUCTO as CATEGORIAS,
   categoriaCanon,
   categoriaPasaFiltro,
-  categoriaVitrinaPasaFiltro,
+  pasaFiltroCategorias,
   opcionesCategoriaSelect,
 } from "./constants/categoriasProducto";
 import {
@@ -2759,7 +2760,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");
   const [verInactivos,    setVerInactivos]    = useState(false);
-  const [filtroCategoria, setFiltroCategoria] = useState("todas");
+  const [filtroCategorias, setFiltroCategorias] = useState([]);
   const [filtroAlerta,    setFiltroAlerta]    = useState("todos");
   const [modal,           setModal]           = useState(null);
   const [modalRecibir,    setModalRecibir]    = useState(false);
@@ -2860,8 +2861,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   }, []);
 
   // N8: Resetear página al cambiar filtros
-  useEffect(()=>{ setPaginaInv(1); },[filtroCategoria,filtroAlerta,busqueda,verInactivos]);
-  useEffect(()=>{ clearSelection(); },[filtroCategoria,filtroAlerta,busqueda,verInactivos,clearSelection]);
+  useEffect(()=>{ setPaginaInv(1); },[filtroCategorias,filtroAlerta,busqueda,verInactivos]);
+  useEffect(()=>{ clearSelection(); },[filtroCategorias,filtroAlerta,busqueda,verInactivos,clearSelection]);
   const INV_POR_PAG = 50;
 
   const procesarArchivo = (file) => {
@@ -3238,7 +3239,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
-    const cat = categoriaVitrinaPasaFiltro(p, filtroCategoria);
+    const cat = pasaFiltroCategorias(p, filtroCategorias);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"            ? true :
@@ -3252,7 +3253,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       filtroAlerta === "margen_alto" ? esAlertaMargen(auditarMargenProducto(p)) :
       true;
     return cat && alerta;
-  }), [productos, filtroCategoria, filtroAlerta, fotoCatalogoDe]);
+  }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe]);
 
   const filtradosTodosInv = useMemo(() => {
     const q = busqueda.trim();
@@ -4011,7 +4012,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
       <div style={{display:"flex",gap:12,marginBottom:14,flexWrap:"wrap"}}>
         {[
-          {label:"Activos",     val:activos,    col:C.blue,  click:()=>{ setFiltroAlerta("todos"); setFiltroCategoria("todas"); setBusqueda(""); setVerInactivos(false); }, on: filtroAlerta==="todos" && filtroCategoria==="todas" && !busqueda && !verInactivos},
+          {label:"Activos",     val:activos,    col:C.blue,  click:()=>{ setFiltroAlerta("todos"); setFiltroCategorias([]); setBusqueda(""); setVerInactivos(false); }, on: filtroAlerta==="todos" && filtroCategorias.length===0 && !busqueda && !verInactivos},
           {label:"Agotados",    val:agotadosInv, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="agotados"?"todos":"agotados"), on: filtroAlerta==="agotados"},
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="bajo_stock"?"todos":"bajo_stock"), on: filtroAlerta==="bajo_stock"},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
@@ -4070,10 +4071,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:0}}>
         <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" searchMode="inventario" badgeKey="stock" badgeCol="#1E3ABA" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-        <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
-          <option value="todas">Todas las categorías</option>
-          {CATEGORIAS.map(c=><option key={c} value={c}>{c}</option>)}
-        </select>
+        <FiltroCategoriasCheck
+          categorias={CATEGORIAS}
+          value={filtroCategorias}
+          onChange={setFiltroCategorias}
+          style={{ ...inputStyle, maxWidth: 220 }}
+        />
         <select value={filtroAlerta} onChange={e=>setFiltroAlerta(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todos">Todas las alertas</option>
           <option value="agotados">🚨 Agotados</option>
@@ -4094,8 +4097,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           Ver inactivos
         </label>
         )}
-        {(filtroCategoria!=="todas"||filtroAlerta!=="todos"||busqueda)&&(
-          <button onClick={()=>{setFiltroCategoria("todas");setFiltroAlerta("todos");setBusqueda("");}}
+        {(filtroCategorias.length>0||filtroAlerta!=="todos"||busqueda)&&(
+          <button onClick={()=>{setFiltroCategorias([]);setFiltroAlerta("todos");setBusqueda("");}}
             style={{...btnSecondary,padding:"7px 12px",fontSize:11}}>✕ Limpiar filtros</button>
         )}
         {filtrados.length > 0 && !modoConsulta && (
