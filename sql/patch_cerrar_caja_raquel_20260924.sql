@@ -51,8 +51,28 @@ begin
     raise exception 'La caja % de Raquel sigue abierta y hoy no tiene corte. El cierre no se guardó: no la cerré a ciegas.', v_sesion.id;
   end if;
 
-  if v_sesion.abierta_at >= v_corte.created_at then
-    raise exception 'La caja abierta de Raquel (%) empezó después de su corte %. No la cerré.', v_sesion.id, v_corte.id;
+  -- Corte 74 ya está cerrado. La caja 69 se abrió después, otra vez
+  -- a nombre de Raquel. No se pega a ese corte: si no, el alcohol
+  -- de Cinthia entraría en el conteo que Raquel ya declaró.
+  if v_sesion.abierta_at < v_corte.created_at then
+    update public.caja_sesiones
+       set estado = 'cerrada',
+           cerrada_at = v_corte.created_at,
+           corte_id = v_corte.id
+     where id = v_sesion.id
+       and estado = 'abierta';
+  else
+    update public.caja_sesiones
+       set estado = 'cerrada',
+           cerrada_at = now(),
+           corte_id = null,
+           nota_apertura = concat_ws(
+             ' ',
+             nullif(btrim(nota_apertura), ''),
+             '24-sep-2026: se abrió después del corte de Raquel. Se cierra para que Cinthia abra la suya. El corte ya declarado no se toca.'
+           )
+     where id = v_sesion.id
+       and estado = 'abierta';
   end if;
 
   select u.id into v_cinthia
@@ -63,29 +83,17 @@ begin
   order by u.id
   limit 1;
 
-  update public.caja_sesiones
-     set estado = 'cerrada',
-         cerrada_at = v_corte.created_at,
-         corte_id = v_corte.id,
-         nota_apertura = concat_ws(
-           ' ',
-           nullif(btrim(nota_apertura), ''),
-           '24-sep-2026: el corte ya estaba guardado y la sesión seguía abierta. Se cierra en la hora del corte, sin recontar.'
-         )
-   where id = v_sesion.id
-     and estado = 'abierta';
-
   if v_cinthia is not null then
     update public.pedidos p
        set atendido_por = v_cinthia
      where p.atendido_por = v_raquel
-       and p.created_at > v_corte.created_at;
+       and p.created_at >= v_sesion.abierta_at;
     get diagnostics n_ped = row_count;
 
     update public.pagos_servicio ps
        set atendido_por = v_cinthia
      where ps.atendido_por = v_raquel
-       and ps.created_at > v_corte.created_at;
+       and ps.created_at >= v_sesion.abierta_at;
     get diagnostics n_srv = row_count;
   end if;
 
@@ -97,14 +105,14 @@ begin
          v_sesion.id::text,
          jsonb_build_object(
            'corte_id', v_corte.id,
-           'cerrada_at', v_corte.created_at,
+           'sesion_abierta_at', v_sesion.abierta_at,
            'pedidos_a_cinthia', n_ped,
            'servicios_a_cinthia', n_srv
          )
     from public.usuarios u
    where u.id = v_raquel;
 
-  raise notice 'Caja % cerrada con el corte %. Pedidos pasados a Cinthia: %. Servicios: %.',
+  raise notice 'Caja % cerrada. Corte % no se modificó. Pedidos pasados a Cinthia: %. Servicios: %.',
     v_sesion.id, v_corte.id, n_ped, n_srv;
 end $$;
 
