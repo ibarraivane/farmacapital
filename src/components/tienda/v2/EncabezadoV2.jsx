@@ -4,6 +4,7 @@ import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
 import { irACatalogoCategoria } from "../../../lib/tiendaCatalogoCategorias";
+import { AREAS_TIENDA } from "../../../constants/categoriasProducto";
 import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 
 const PLACEHOLDER = "Nombre, principio activo o marca…";
@@ -133,9 +134,9 @@ export default function EncabezadoV2({
         </button>
       </header>
       <nav className="fc-nav" aria-label="Áreas de la tienda" style={{ backgroundColor: "#ffffff" }}>
-        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Todos")}>Medicamentos</button>
-        <button type="button" onClick={() => go("conseguir")}>Dermocosmética</button>
-        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Suplemento")}>Nutrición</button>
+        {AREAS_TIENDA.map((area) => (
+          <button key={area.id} type="button" onClick={() => irACatalogoCategoria(setPage, area.id)}>{area.id}</button>
+        ))}
         <button type="button" className="fc-nav-quote" onClick={() => go("cotizar")}>Cotizar especializado</button>
         <button type="button" className="fc-location" onClick={irSucursal}>
           <MapPin aria-hidden />

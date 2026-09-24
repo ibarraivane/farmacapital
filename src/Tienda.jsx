@@ -35,7 +35,7 @@ import {
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
 import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
-import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, categoriaVitrinaPasaFiltro, esCategoriaAntibiotico } from "./constants/categoriasProducto";
+import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -3447,13 +3447,12 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       setCat("Todos");
     }
   },[busqHero]);
-  const cats = useMemo(() => {
-    const pool = poolCatalogoTienda(productos);
-    const presentes = new Set(pool.map((p) => categoriaVitrina(p)).filter(Boolean));
-    return ["Todos", ...CATEGORIAS_PRODUCTO.filter((c) => presentes.has(c))];
-  }, [productos]);
+  const cats = useMemo(
+    () => chipsAreaTienda(poolCatalogoTienda(productos), cat),
+    [productos, cat]
+  );
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
-    .filter(p=>categoriaVitrinaPasaFiltro(p, cat))
+    .filter(p=>productoPasaAreaTienda(p, cat === "Cuidado personal" ? AREA_DERMOCOSMETICA : cat))
     .filter(p=>tipo==="todos"||p.tipo===tipo)
     .filter(p=>!filtroRx || p.requiere_receta || esCategoriaAntibiotico(p.categoria)),
   [productos,cat,tipo,filtroRx]);
@@ -3492,7 +3491,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   if (tiendaV2Activa()) {
     return (
       <CatalogoV2
-        titulo={filtroRx ? "Surtir receta" : (busqActiva ? "Resultados de búsqueda" : (cat === "Todos" ? "Medicamentos" : cat))}
+        titulo={filtroRx ? "Surtir receta" : (busqActiva ? "Resultados de búsqueda" : (cat === "Todos" ? "Catálogo" : (cat === "Cuidado personal" ? AREA_DERMOCOSMETICA : cat)))}
         descripcion={busqActiva
           ? `Búsqueda: «${busq.trim()}»`
           : "Revisa la presentación, disponibilidad y forma de entrega de cada producto."}
@@ -3500,7 +3499,11 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         total={fil.length}
         categorias={cats}
         categoria={cat}
-        onCategoria={(c) => { setCat(c); setBusq(""); setBusqHero?.(""); }}
+        onCategoria={(c) => {
+          setCat(c === "Cuidado personal" ? AREA_DERMOCOSMETICA : c);
+          setBusq("");
+          setBusqHero?.("");
+        }}
         orden={ordenV2}
         onOrden={setOrdenV2}
         hayMas={hayMasCatalogo}

@@ -14,6 +14,8 @@ test("franja, menú y buscador del prototipo ChatGPT", () => {
   expect(screen.getByRole("button", { name: "Medicamentos" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Dermocosmética" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Nutrición" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Dispositivos médicos" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Farmacia" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Cotizar especializado" })).toHaveClass("fc-nav-quote");
   expect(screen.getByRole("button", { name: /Sucursal CDMX · Ver ubicación/ })).toBeInTheDocument();
 });
@@ -48,6 +50,22 @@ test("el buscador reusa las sugerencias del catálogo", () => {
   fireEvent.click(screen.getByRole("option", { name: /Omeprazol/ }));
   expect(setProdDetalle).toHaveBeenCalled();
   expect(setPage).toHaveBeenCalledWith("detalle", { productId: 11 });
+});
+
+test("Medicamentos y Dermocosmética abren su área, no el catálogo completo", () => {
+  const setPage = jest.fn();
+  render(<EncabezadoV2 setPage={setPage} cart={[]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Medicamentos" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Medicamentos");
+  fireEvent.click(screen.getByRole("button", { name: "Dermocosmética" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Dermocosmética");
+  fireEvent.click(screen.getByRole("button", { name: "Nutrición" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Nutrición");
+  fireEvent.click(screen.getByRole("button", { name: "Dispositivos médicos" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Dispositivos médicos");
+  fireEvent.click(screen.getByRole("button", { name: "Farmacia" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Farmacia");
+  expect(setPage).toHaveBeenCalledWith("catalogo", { rx: false, catalogoScroll: "top" });
 });
 
 test("Cotizar especializado abre la pantalla de cotización", () => {
