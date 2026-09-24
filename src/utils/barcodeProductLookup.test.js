@@ -7,6 +7,7 @@ import {
   isCompleteBarcodeLength,
   shouldClearScanMiss,
   shouldReplaceScanInput,
+  esperaBusquedaPos,
 } from "./barcodeProductLookup";
 
 describe("queryCatalogoDesdeInputPos", () => {
@@ -140,6 +141,15 @@ describe("pistola POS: beep completo vs a medias", () => {
     expect(shouldReplaceScanInput("4001895928765", t0, t0 + 250)).toBe(false);
     expect(shouldReplaceScanInput("4001895928765", t0, t0 + 450)).toBe(true);
     expect(shouldReplaceScanInput("747589705123", t0, t0 + 450)).toBe(true);
+  });
+
+  test("el tecleo no repinta el catálogo en cada letra ni a mitad del EAN", () => {
+    expect(esperaBusquedaPos("")).toBe(0);
+    expect(esperaBusquedaPos("p")).toBe(160);
+    expect(esperaBusquedaPos("para")).toBe(160);
+    expect(esperaBusquedaPos("7501")).toBe(null);
+    expect(esperaBusquedaPos("7501234567890")).toBe(0);
+    expect(esperaBusquedaPos("FC-123")).toBe(0);
   });
 
   test("teclear dosis no pisa el buscador (paracetamol 500 mg)", () => {

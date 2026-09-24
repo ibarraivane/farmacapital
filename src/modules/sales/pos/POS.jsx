@@ -11,7 +11,7 @@ import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearc
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
 import { mergeCatalogoDelta } from "../../../lib/catalogoDeltaPos";
-import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
+import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput, esperaBusquedaPos } from "../../../utils/barcodeProductLookup";
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
@@ -756,6 +756,81 @@ function PosProductoFichaPanel({
   );
 }
 
+function PosCampoBusqueda({ committed, onCommit, onClear, inputRef, onKeyDown, onFocus, onBlur, onTouchStart, onMouseDown, isNarrow, C }) {
+  const [texto, setTexto] = useState(committed || "");
+  const localRef = useRef(texto);
+  useEffect(() => {
+    const next = committed ?? "";
+    if (next !== localRef.current) {
+      localRef.current = next;
+      setTexto(next);
+    }
+  }, [committed]);
+  const hay = texto.trim().length > 0;
+  return (
+    <>
+      <input
+        ref={inputRef}
+        className="farmacapital-pos-srch farmacapital-field-input"
+        data-tour="pos-buscador"
+        inputMode="text"
+        enterKeyHint="enter"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        value={texto}
+        onTouchStart={onTouchStart}
+        onMouseDown={onMouseDown}
+        onChange={(e) => {
+          const v = e.currentTarget.value;
+          localRef.current = v;
+          setTexto(v);
+          onCommit(v);
+        }}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
+        placeholder="Código, SKU, nombre o molestia"
+        style={{ width: "100%", boxSizing: "border-box", padding: hay ? "9px 38px 9px 13px" : "9px 13px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#ffffff", color: C.text, WebkitTextFillColor: C.text, caretColor: C.text, colorScheme: "light", fontSize: isNarrow ? 16 : 13, outline: "none", fontFamily: "var(--fc-body)", touchAction: "manipulation", minHeight: 44 }}
+      />
+      {hay && (
+        <button
+          type="button"
+          onClick={() => {
+            localRef.current = "";
+            setTexto("");
+            onClear();
+          }}
+          aria-label="Borrar búsqueda"
+          title="Borrar búsqueda"
+          style={{
+            position: "absolute",
+            right: 8,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            border: "none",
+            background: "transparent",
+            color: C.textDim,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 18,
+            lineHeight: 1,
+            padding: 0,
+          }}
+        >
+          ×
+        </button>
+      )}
+    </>
+  );
+}
+
 export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSesionExpirada,onCerrarSesion}){
   const exigeCaja = esVendedor(usuario);
   const [cajaAbierta, setCajaAbierta] = useState(() => !esVendedor(usuario));
@@ -778,6 +853,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   }, [cart.length]);
   const [srch,setSrch]       = useState("");
   const srchRef = useRef(null);
+  const busquedaTimerRef = useRef(null);
   const srchWrapRef = useRef(null);
   /** Tour POS: botón "?" va en la barra de carrito (no FAB esquina). */
   const posTourRef = useRef(null);
@@ -1348,10 +1424,30 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   }, [fil, idsEnGrupoEquivalentes]);
 
   const clearPosSearch = useCallback(() => {
+    clearTimeout(busquedaTimerRef.current);
     setSrch("");
     setFichaProd(null);
     srchRef.current?.focus();
   }, []);
+
+  const aplicarBusqueda = useCallback((v) => {
+    clearTimeout(busquedaTimerRef.current);
+    const espera = esperaBusquedaPos(v);
+    if (espera == null) return;
+    const run = () => {
+      setSrch(v);
+      if (!String(v || "").trim()) {
+        setFichaProd(null);
+        return;
+      }
+      const scanKey = normalizeBarcodeRaw(v) || String(v).trim();
+      const exact = findProductExactScan(productos, scanKey);
+      if (exact) setFichaProd(exact);
+      else if (!isAllDigitsInput(v) || isCompleteBarcodeLength(v) || looksLikeInternalSku(v)) setFichaProd(null);
+    };
+    if (espera === 0) run();
+    else busquedaTimerRef.current = setTimeout(run, espera);
+  }, [productos]);
 
   const srchAnteriorRef = useRef(srch);
   useEffect(() => {
@@ -3496,37 +3592,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <form ref={srchWrapRef} onSubmit={(e)=>{ e.preventDefault(); e.stopPropagation(); }} style={{flex:1,minWidth:0,position:"relative"}}>
-              <input ref={(el)=>{ srchRef.current = el; }} className="farmacapital-pos-srch farmacapital-field-input" value={srch}
-                data-tour="pos-buscador"
-                inputMode="text"
-                enterKeyHint="enter"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
+              <PosCampoBusqueda
+                committed={srch}
+                onCommit={aplicarBusqueda}
+                onClear={clearPosSearch}
+                inputRef={srchRef}
+                isNarrow={isNarrow}
+                C={C}
                 onTouchStart={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
                 onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
-                onChange={e=>{
-                  const v = e.currentTarget.value;
-                  // El input es controlado: si no guardamos cada dígito, React lo borra
-                  // y la pistola "no pega" el código. La búsqueda sí espera a que cierre.
-                  setSrch(v);
-                  if (!v.trim()) {
-                    setFichaProd(null);
-                    return;
-                  }
-                  if (isAllDigitsInput(v) && !isCompleteBarcodeLength(v)) return;
-                  const scanKey = normalizeBarcodeRaw(v) || v.trim();
-                  const exact = findProductExactScan(productos, scanKey);
-                  if (exact) {
-                    setFichaProd(exact);
-                  } else if (!isAllDigitsInput(v) || isCompleteBarcodeLength(v) || looksLikeInternalSku(v)) {
-                    setFichaProd(null);
-                  }
-                }}
                 onFocus={(e)=>{
                   unlockInputForTouchKeyboard(e.currentTarget);
-                  if (isAllDigitsInput(srch)) e.currentTarget.select();
+                  if (isAllDigitsInput(e.currentTarget.value)) e.currentTarget.select();
                 }}
                 onBlur={(e)=>{
                   lockInputAfterTouchKeyboard(e.currentTarget);
@@ -3537,6 +3614,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                     const enCaja = e.currentTarget.value;
                     if (shouldReplaceScanInput(enCaja, scanLastKeyTsRef.current, now)) {
                       e.preventDefault();
+                      clearTimeout(busquedaTimerRef.current);
                       setSrch(e.key);
                       setFichaProd(null);
                       scanLastKeyTsRef.current = now;
@@ -3560,42 +3638,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                       }
                       if (shouldClearScanMiss(raw, { fromEnter: true })) {
                         showToast("Código de barras no encontrado en inventario.","warning");
+                        clearTimeout(busquedaTimerRef.current);
                         setSrch("");
                       }
                     }
                   }
                 }}
-                placeholder="Código, SKU, nombre o molestia"
-                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isNarrow?16:13,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation",minHeight:44}}/>
-              {srch.trim() && (
-                <button
-                  type="button"
-                  onClick={clearPosSearch}
-                  aria-label="Borrar búsqueda"
-                  title="Borrar búsqueda"
-                  style={{
-                    position: "absolute",
-                    right: 8,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    border: "none",
-                    background: "transparent",
-                    color: C.textDim,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 18,
-                    lineHeight: 1,
-                    padding: 0,
-                  }}
-                >
-                  ×
-                </button>
-              )}
+              />
               </form>
               {!isMobilePos && (
               <button onClick={()=>setCartOpen(p=>!p)} style={{
