@@ -756,16 +756,17 @@ function PosProductoFichaPanel({
   );
 }
 
-function PosCampoBusqueda({ committed, onCommit, onClear, inputRef, onKeyDown, onFocus, onBlur, onTouchStart, onMouseDown, isNarrow, C }) {
-  const [texto, setTexto] = useState(committed || "");
-  const localRef = useRef(texto);
+function PosCampoBusqueda({ forzar, onCommit, onClear, inputRef, onKeyDown, onFocus, onBlur, onTouchStart, onMouseDown, isNarrow, C }) {
+  const [texto, setTexto] = useState("");
+  const localRef = useRef("");
+  const vistoRef = useRef(0);
   useEffect(() => {
-    const next = committed ?? "";
-    if (next !== localRef.current) {
-      localRef.current = next;
-      setTexto(next);
-    }
-  }, [committed]);
+    if (!forzar || forzar.n === vistoRef.current) return;
+    vistoRef.current = forzar.n;
+    const next = forzar.value ?? "";
+    localRef.current = next;
+    setTexto(next);
+  }, [forzar]);
   const hay = texto.trim().length > 0;
   return (
     <>
@@ -854,6 +855,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [srch,setSrch]       = useState("");
   const srchRef = useRef(null);
   const busquedaTimerRef = useRef(null);
+  const forzarBusquedaN = useRef(0);
+  const [forzarBusqueda, setForzarBusqueda] = useState({ n: 0, value: "" });
+  const fijarTextoBusqueda = useCallback((value) => {
+    clearTimeout(busquedaTimerRef.current);
+    const next = value ?? "";
+    setSrch(next);
+    forzarBusquedaN.current += 1;
+    setForzarBusqueda({ n: forzarBusquedaN.current, value: next });
+  }, []);
   const srchWrapRef = useRef(null);
   /** Tour POS: botón "?" va en la barra de carrito (no FAB esquina). */
   const posTourRef = useRef(null);
@@ -1424,11 +1434,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   }, [fil, idsEnGrupoEquivalentes]);
 
   const clearPosSearch = useCallback(() => {
-    clearTimeout(busquedaTimerRef.current);
-    setSrch("");
+    fijarTextoBusqueda("");
     setFichaProd(null);
     srchRef.current?.focus();
-  }, []);
+  }, [fijarTextoBusqueda]);
 
   const aplicarBusqueda = useCallback((v) => {
     clearTimeout(busquedaTimerRef.current);
@@ -1735,12 +1744,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const mismoEscaneo = prev.raw === raw && now - prev.ts < 400;
     escaneoOkRef.current = true;
     setFichaProd(exact);
-    setSrch("");
+    fijarTextoBusqueda("");
     srchRef.current?.focus();
     if (mismoEscaneo) return;
     lastScanBurstRef.current = { raw, ts: now };
     add(exact, false);
-  }, [add]);
+  }, [add, fijarTextoBusqueda]);
 
   const onHidScan = useCallback((raw) => {
     const exact = findProductExactScan(productos, raw);
@@ -1772,7 +1781,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (!exact) {
         if (shouldClearScanMiss(raw, { fromEnter: false })) {
           showToast("Código de barras no encontrado en inventario.", "warning");
-          setSrch("");
+          fijarTextoBusqueda("");
         }
         return;
       }
@@ -1780,7 +1789,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     }, 140);
 
     return () => clearTimeout(scanAddTimerRef.current);
-  }, [srch, productos, tab, finalizarEscaneoExitoso]);
+  }, [srch, productos, tab, finalizarEscaneoExitoso, fijarTextoBusqueda]);
 
 
   const getLoteCantidadDisponible = (lote) => {
@@ -3593,7 +3602,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <form ref={srchWrapRef} onSubmit={(e)=>{ e.preventDefault(); e.stopPropagation(); }} style={{flex:1,minWidth:0,position:"relative"}}>
               <PosCampoBusqueda
-                committed={srch}
+                forzar={forzarBusqueda}
                 onCommit={aplicarBusqueda}
                 onClear={clearPosSearch}
                 inputRef={srchRef}
@@ -3614,8 +3623,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                     const enCaja = e.currentTarget.value;
                     if (shouldReplaceScanInput(enCaja, scanLastKeyTsRef.current, now)) {
                       e.preventDefault();
-                      clearTimeout(busquedaTimerRef.current);
-                      setSrch(e.key);
+                      fijarTextoBusqueda(e.key);
                       setFichaProd(null);
                       scanLastKeyTsRef.current = now;
                       return;
@@ -3638,8 +3646,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                       }
                       if (shouldClearScanMiss(raw, { fromEnter: true })) {
                         showToast("Código de barras no encontrado en inventario.","warning");
-                        clearTimeout(busquedaTimerRef.current);
-                        setSrch("");
+                        fijarTextoBusqueda("");
                       }
                     }
                   }
