@@ -18,6 +18,21 @@ function renderVitrina(items = productos) {
   );
 }
 
+it("manda a cotizar lo que no está en la lista, sin formulario en esta página", () => {
+  const onIrAFormulario = jest.fn();
+  render(
+    <VitrinaConseguir
+      productos={productos}
+      onIrAFormulario={onIrAFormulario}
+      renderProducto={(p) => <div>{p.nombre}</div>}
+    />
+  );
+  fireEvent.click(screen.getByRole("button", { name: /Cotízalo/i }));
+  expect(onIrAFormulario).toHaveBeenCalled();
+  expect(screen.queryByText(/Pídelo abajo/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/formulario de abajo/i)).not.toBeInTheDocument();
+});
+
 it("explica que se ordena sin publicar precio", () => {
   renderVitrina();
   expect(screen.getByText(/Ordenar/)).toBeInTheDocument();

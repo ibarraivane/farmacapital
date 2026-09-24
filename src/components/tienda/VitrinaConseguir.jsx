@@ -67,7 +67,7 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
         Productos <strong>bajo pedido</strong>: te los conseguimos en 24-48 hrs. Toca <strong>Ordenar</strong> y te cotizamos; todavía no publicamos el precio.{" "}
         {typeof onIrAFormulario === "function" ? (
           <button type="button" onClick={onIrAFormulario} style={{ background: "none", border: "none", padding: 0, color: BRAND.secondary, fontWeight: 700, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
-            ¿No está en la lista? Pídelo abajo.
+            ¿No está en la lista? Cotízalo.
           </button>
         ) : null}
       </p>
@@ -94,7 +94,7 @@ export default function VitrinaConseguir({ productos, loading, stack, renderProd
           </div>
         ) : (
           <div style={{ color: "#64748b", fontSize: 14, padding: "8px 0 20px" }}>
-            Aún no hay productos en este rubro. Pídelo en el formulario de abajo.
+            Aún no hay productos en este rubro. Cotízalo en Cotizar especializado.
           </div>
         )
       ) : (

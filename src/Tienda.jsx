@@ -2108,12 +2108,15 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   const cta = ctaBajoPedido(prod); // bajo pedido: "ordenar"
   const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
   const irACotizar = () => {
-    try {
-      sessionStorage.setItem("farmacapital_busq", String(prod.nombre || ""));
-      sessionStorage.setItem(CONSEGUIR_FORM_FLAG, "1");
-    } catch (_) { /* noop */ }
-    setBusqHero?.(String(prod.nombre || ""));
-    setPage("conseguir", { search: String(prod.nombre || "") });
+    const nombre = String(prod.nombre || "");
+    try { sessionStorage.setItem("farmacapital_busq", nombre); } catch (_) { /* noop */ }
+    setBusqHero?.(nombre);
+    if (tiendaV2Activa()) {
+      setPage("cotizar");
+      return;
+    }
+    try { sessionStorage.setItem(CONSEGUIR_FORM_FLAG, "1"); } catch (_) { /* noop */ }
+    setPage("conseguir", { search: nombre });
   };
   const similares = productosSimilaresTienda(prod, productos);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
@@ -7399,12 +7402,17 @@ export default function TiendaFarmaCapital(){
           productos={productosVistaTiendaFarmacia}
           loading={loadingProductos}
           stack={stackPaginas}
-          onIrAFormulario={()=>document.getElementById("conseguir-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          onIrAFormulario={() => {
+            if (v2) { setPage("cotizar"); return; }
+            document.getElementById("conseguir-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
           renderProducto={(p)=>(
             <ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdD(p);setPage("detalle", { productId: p.id });}}/>
           )}
         />
-        <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina={productosVistaTiendaFarmacia.some(esBajoPedido)}/>
+        {v2 ? null : (
+          <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina={productosVistaTiendaFarmacia.some(esBajoPedido)}/>
+        )}
       </>
     ),
     pagar: <PagarPedidoInvitado />,
