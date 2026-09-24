@@ -9,6 +9,7 @@ import { SkeletonTable, Paginador, SearchDropdown, showToast } from "./ui";
 import { nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar } from "./utils";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { validarPasswordTienda, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
+import { pesosDePuntos } from "./utils/puntosCanje";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -277,7 +278,7 @@ function ClienteDetalle({ cliente, onReload, onDeleted }) {
         <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
           {[
             { label:"Puntos", val:(cliente.puntos||0).toLocaleString(), col:C.amber },
-            { label:"Vale en pesos", val:`$${((cliente.puntos||0)*0.5).toFixed(2)}`, col:C.green },
+            { label:"Vale en pesos", val:fmt(pesosDePuntos(cliente.puntos)), col:C.green },
             { label:"Total compras", val:fmt(cliente.total_compras), col:C.blue },
           ].map(s=>(
             <div key={s.label} style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:8, padding:"8px 14px", minWidth:100 }}>
@@ -422,7 +423,7 @@ function ClienteDetalle({ cliente, onReload, onDeleted }) {
             <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:20, marginBottom:16, textAlign:"center" }}>
               <div style={{ color:C.textMid, fontSize:11, fontWeight:700, marginBottom:6 }}>SALDO ACTUAL</div>
               <div style={{ color:C.amber, fontWeight:800, fontSize:40 }}>{(cliente.puntos||0).toLocaleString()}</div>
-              <div style={{ color:C.textMid, fontSize:12, marginTop:4 }}>puntos · Vale {fmt((cliente.puntos||0)*0.5)}</div>
+              <div style={{ color:C.textMid, fontSize:12, marginTop:4 }}>puntos · Vale {fmt(pesosDePuntos(cliente.puntos))}</div>
             </div>
             <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:20, marginBottom:16 }}>
               <div style={{ color:C.text, fontWeight:700, fontSize:13, marginBottom:14 }}>⭐ Ajustar puntos</div>

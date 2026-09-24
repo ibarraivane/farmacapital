@@ -82,11 +82,13 @@ describe("categoriasProducto", () => {
     expect(productoPasaAreaTienda(suero, "Farmacia")).toBe(true);
     expect(productoPasaAreaTienda(shampoo, "Farmacia")).toBe(true);
     expect(productoPasaAreaTienda(tensiometro, "Dispositivos médicos")).toBe(true);
-    expect(productoPasaAreaTienda(gasa, "Dispositivos médicos")).toBe(true);
+    expect(productoPasaAreaTienda(gasa, "Dispositivos médicos")).toBe(false);
+    expect(productoPasaAreaTienda(gasa, "Botiquín")).toBe(true);
     expect(productoPasaAreaTienda(ibuprofeno, "Dispositivos médicos")).toBe(false);
     expect(productoPasaAreaTienda(ensure, "Farmacia")).toBe(false);
     expect(chipsAreaTienda([ibuprofeno, ensure, eucerin], "Medicamentos")).toEqual(["Medicamentos", "Antiinflamatorio"]);
-    expect(chipsAreaTienda([tensiometro, gasa], "Dispositivos médicos")).toEqual(["Dispositivos médicos", "Dispositivo médico", "Botiquín"]);
+    expect(chipsAreaTienda([tensiometro, gasa], "Dispositivos médicos")).toEqual(["Dispositivos médicos"]);
+    expect(chipsAreaTienda([gasa], "Botiquín")).toEqual(["Botiquín"]);
   });
 
   test("el select conserva un valor huérfano para no pisarlo al abrir", () => {

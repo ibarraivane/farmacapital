@@ -122,13 +122,14 @@ export const AREA_MEDICAMENTOS = "Medicamentos";
 export const AREA_DERMOCOSMETICA = "Dermocosmética";
 export const AREA_NUTRICION = "Nutrición";
 export const AREA_DISPOSITIVOS = "Dispositivos médicos";
+export const AREA_BOTIQUIN = "Botiquín";
 export const AREA_FARMACIA = "Farmacia";
 
 /** Suplementos y vitaminas. El suero y el herbolario se quedan en Farmacia. */
 export const CATEGORIAS_NUTRICION = Object.freeze(["Suplemento", "Vitaminas"]);
 
-/** Aparatos y material de curación. */
-export const CATEGORIAS_DISPOSITIVOS = Object.freeze(["Dispositivo médico", "Botiquín"]);
+/** Aparatos. El material de curación es su propia área. */
+export const CATEGORIAS_DISPOSITIVOS = Object.freeze(["Dispositivo médico"]);
 
 /** Lo que no es fármaco, piel, nutrición ni aparato. */
 export const CATEGORIAS_FARMACIA = Object.freeze([
@@ -146,6 +147,7 @@ export const AREAS_TIENDA = Object.freeze([
   { id: AREA_DERMOCOSMETICA, categorias: Object.freeze(["Cuidado personal"]) },
   { id: AREA_NUTRICION, categorias: CATEGORIAS_NUTRICION },
   { id: AREA_DISPOSITIVOS, categorias: CATEGORIAS_DISPOSITIVOS },
+  { id: AREA_BOTIQUIN, categorias: Object.freeze(["Botiquín"]) },
   { id: AREA_FARMACIA, categorias: CATEGORIAS_FARMACIA },
 ]);
 
@@ -196,7 +198,7 @@ export function chipsAreaTienda(pool, filtro) {
     const presentes = new Set((pool || []).map((p) => categoriaVitrina(p)).filter(Boolean));
     return ["Todos", ...CATEGORIAS_PRODUCTO.filter((c) => presentes.has(c))];
   }
-  if (area.id === AREA_DERMOCOSMETICA) return [AREA_DERMOCOSMETICA];
+  if (area.categorias.length <= 1) return [area.id];
   const presentes = new Set(
     (pool || [])
       .filter((p) => area.categorias.includes(categoriaVitrina(p)))

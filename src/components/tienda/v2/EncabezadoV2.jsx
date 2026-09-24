@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, Search, ShoppingBag } from "lucide-react";
+import { MapPin, Menu, Search, ShoppingBag, User } from "lucide-react";
 import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
@@ -19,6 +19,8 @@ export default function EncabezadoV2({
   setProdDetalle,
   aviso,
   avisoCarrito,
+  user,
+  onMenu,
 }) {
   const [busqFocus, setBusqFocus] = useState(false);
   const n = (cart || []).reduce((a, c) => a + (Number(c.qty) || 0), 0);
@@ -123,6 +125,22 @@ export default function EncabezadoV2({
             </div>
           )}
         </form>
+        <button
+          type="button"
+          className="fc-iconbtn"
+          aria-label={user ? "Mi cuenta" : "Iniciar sesión"}
+          onClick={() => go(user ? "cuenta" : "login")}
+        >
+          <User aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="fc-iconbtn"
+          aria-label="Abrir menú"
+          onClick={() => onMenu?.()}
+        >
+          <Menu aria-hidden />
+        </button>
         <button
           type="button"
           className="fc-iconbtn"
