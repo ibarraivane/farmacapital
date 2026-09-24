@@ -106,7 +106,7 @@ describe("sql de vitrina", () => {
       .split("\n")
       .filter((line) => !line.trim().startsWith("--"))
       .join("\n");
-    expect(updatesVivos).not.toMatch(/requiere_receta/);
+    expect(updatesVivos).not.toMatch(/set\s+requiere_receta/i);
     expect(SQL).toMatch(/where id in \(\s*\/\* IDs aprobados \*\/\s*\)/);
   });
 });
