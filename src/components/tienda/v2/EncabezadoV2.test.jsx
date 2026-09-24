@@ -16,6 +16,8 @@ test("franja, menú y buscador del prototipo ChatGPT", () => {
   expect(screen.getByRole("button", { name: "Nutrición" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Cotizar especializado" })).toHaveClass("fc-nav-quote");
   expect(screen.getByRole("button", { name: /Sucursal CDMX · Ver ubicación/ })).toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: "Áreas de la tienda" })).toHaveStyle({ backgroundColor: "#ffffff" });
+  expect(document.querySelector(".fc-sticky")).toHaveStyle({ backgroundColor: "#ffffff", position: "sticky" });
 });
 
 test("el contador del carrito y el logo abren las pantallas", () => {
