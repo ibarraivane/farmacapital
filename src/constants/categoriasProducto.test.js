@@ -5,6 +5,9 @@ import {
   categoriaPasaFiltro,
   categoriaVitrina,
   categoriaVitrinaPasaFiltro,
+  pasaFiltroCategorias,
+  etiquetaFiltroCategorias,
+  alternarCategoriaFiltro,
   chipsAreaTienda,
   esDermocosmeticoCatalogo,
   esMedicamentoCatalogo,
@@ -89,6 +92,21 @@ describe("categoriasProducto", () => {
     expect(chipsAreaTienda([ibuprofeno, ensure, eucerin], "Medicamentos")).toEqual(["Medicamentos", "Antiinflamatorio"]);
     expect(chipsAreaTienda([tensiometro, gasa], "Dispositivos médicos")).toEqual(["Dispositivos médicos"]);
     expect(chipsAreaTienda([gasa], "Botiquín")).toEqual(["Botiquín"]);
+  });
+
+  test("el inventario puede marcar varias categorías a la vez", () => {
+    const analg = { nombre: "Paracetamol 500 mg", categoria: "Analgésico" };
+    const gastro = { nombre: "Omeprazol 20 mg", categoria: "Gastro" };
+    const vita = { nombre: "Vitamina C", categoria: "Vitaminas" };
+    expect(pasaFiltroCategorias(analg, [])).toBe(true);
+    expect(pasaFiltroCategorias(analg, ["Analgésico", "Gastro"])).toBe(true);
+    expect(pasaFiltroCategorias(gastro, ["Analgésico", "Gastro"])).toBe(true);
+    expect(pasaFiltroCategorias(vita, ["Analgésico", "Gastro"])).toBe(false);
+    expect(etiquetaFiltroCategorias([])).toBe("Todas las categorías");
+    expect(etiquetaFiltroCategorias(["Gastro"])).toBe("Gastro");
+    expect(etiquetaFiltroCategorias(["Gastro", "Alergia"])).toBe("2 categorías");
+    expect(alternarCategoriaFiltro(["Gastro"], "Alergia")).toEqual(["Gastro", "Alergia"]);
+    expect(alternarCategoriaFiltro(["Gastro", "Alergia"], "Gastro")).toEqual(["Alergia"]);
   });
 
   test("el select conserva un valor huérfano para no pisarlo al abrir", () => {
