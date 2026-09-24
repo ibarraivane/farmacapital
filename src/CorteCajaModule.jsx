@@ -8,6 +8,7 @@ import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { TURNOS, TURNOS_LISTA, rangoTurno, inferirTurno, turnoDePerfil } from "./constants/turnos";
 import { esVendedor, fetchSesionCajaAbierta, fetchJornadaHoy } from "./utils/cajaSesion";
+import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { GRID_STACK_2COL } from "./constants/layout";
 import {
@@ -161,6 +162,13 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
   }, [turno]);
 
   useEffect(() => { fetchTotalesElectronicos(); }, [fetchTotalesElectronicos]);
+
+  // Un deploy no puede recargar a mitad del conteo: si no, al volver pide abrir caja.
+  useEffect(() => {
+    const cerrando = vendedorFijo && tab === "nuevo" && !resultado;
+    setBloqueaReloadApp(cerrando, "corte");
+    return () => setBloqueaReloadApp(false, "corte");
+  }, [vendedorFijo, tab, resultado]);
 
   // Se refrescan justo antes de guardar para que lo que ve el cajero coincida
   // con lo que va a quedar registrado. Aun así, el número que se guarda lo

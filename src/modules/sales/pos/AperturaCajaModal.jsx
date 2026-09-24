@@ -3,7 +3,7 @@ import { C_LIGHT, BRAND } from "../../../constants";
 import { etiquetaTurno, turnoDePerfil } from "../../../constants/turnos";
 import { hayPiezasDenominacion } from "../../../constants/caja";
 import ArqueoDenominaciones from "../../../components/ArqueoDenominaciones";
-import { abrirSesionCaja, fetchJornadaHoy } from "../../../utils/cajaSesion";
+import { abrirSesionCaja, fetchJornadaHoy, yaTuvoCajaYNoCubreAmbos } from "../../../utils/cajaSesion";
 import { showToast } from "../../../ui";
 import { writeAdminUser, readAdminUser } from "../../../utils";
 
@@ -45,7 +45,8 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
   const turnoAbrir = jornadaListo ? (jornada?.turno_abrir || null) : null;
   const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
   const ocupadaPor = jornadaListo ? (jornada?.caja_ocupada_por || null) : null;
-  const noPuedeAbrir = jornadaListo && !turnoAbrir && !!turnoAsignado;
+  const cajaDeHoySinSegundoTurno = jornadaListo && yaTuvoCajaYNoCubreAmbos(jornada);
+  const noPuedeAbrir = jornadaListo && !!turnoAsignado && (!turnoAbrir || cajaDeHoySinSegundoTurno);
 
   const cargarJornada = useCallback(async () => {
     const { jornada: j, error } = await fetchJornadaHoy();
@@ -139,17 +140,17 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
             Turno cerrado
           </div>
           <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
-            {jornada?.ya_cerro_turno
+            {jornada?.ya_cerro_turno || cajaDeHoySinSegundoTurno
               ? `Ya cerraste, ${nombre}`
               : `Ahora no te toca, ${nombre}`}
           </h1>
           <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
-            {jornada?.ya_cerro_turno
+            {jornada?.ya_cerro_turno || cajaDeHoySinSegundoTurno
               ? <>
                   {jornada?.mi_corte_hora
                     ? <>Hiciste tu corte a las <strong>{jornada.mi_corte_hora}</strong>. </>
-                    : <>Tu turno de hoy ya tiene corte. </>}
-                  Un turno se cierra una sola vez al día.
+                    : <>Tu caja de hoy ya quedó registrada. </>}
+                  Un reinicio no abre otro turno ni pide contar el fondo otra vez.
                 </>
               : <>Ahora no hay turno libre para abrir (¿la caja sigue ocupada o ya cortaste los dos?). Tu perfil RH es <strong>{habitual}</strong>.</>}
           </p>
