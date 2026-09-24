@@ -58,10 +58,12 @@ select
     l.costo_unitario,
     pr.costo
   )::numeric as costo_unitario,
-  coalesce(vp.costo_origen, case when l.costo_unitario is not null then 'lote' else 'catalogo_actual' end) as costo_origen,
+  -- costo_es_historico se queda en su lugar: CREATE OR REPLACE no puede
+  -- renombrar ni insertar columnas en medio de una vista que ya existe.
   (coalesce(vp.costo_origen, '') in ('lote', 'lote_estimado', 'caja_abierta')) as costo_es_historico,
   l.numero_lote                         as lote,
-  l.fecha_caducidad                     as caducidad
+  l.fecha_caducidad                     as caducidad,
+  coalesce(vp.costo_origen, case when l.costo_unitario is not null then 'lote' else 'catalogo_actual' end) as costo_origen
 from public.pedido_items pi
 join public.v_rep_venta v on v.venta_id = pi.pedido_id
 left join public.productos pr on pr.id = pi.producto_id
