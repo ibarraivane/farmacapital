@@ -101,9 +101,6 @@ export default function InicioV2({
           <button type="button" className="fc-primary" onClick={() => irCategoria("Medicamentos")}>
             Buscar medicamento <ArrowRight aria-hidden="true" />
           </button>
-          <button type="button" className="fc-textbtn" onClick={() => irCategoria("Dermocosmética")}>
-            Explorar cuidado de la piel
-          </button>
         </div>
         <div className="fc-studio">
           <div>
