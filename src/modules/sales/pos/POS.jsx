@@ -10,6 +10,7 @@ import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
+import { mergeCatalogoDelta } from "../../../lib/catalogoDeltaPos";
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
@@ -199,6 +200,35 @@ async function fetchProductosCatalogoPos(sessionToken) {
     return { data: [], error: fallback.error };
   }
   return { data: fallback.data || [], error: null };
+}
+
+/**
+ * Margen al pedir cambios: solo cubre un commit tardío (updated_at anterior a `ahora`).
+ * Corto a propósito: si fuera grande, cada evento volvería a bajar todo lo tocado en esa ventana.
+ * Lo que se escape lo recoge el refresco completo periódico.
+ */
+const CATALOGO_DELTA_MARGEN_MS = 30 * 1000;
+/** Refresco completo de seguridad aunque los deltas vayan bien. */
+const CATALOGO_FULL_CADA_MS = 5 * 60 * 1000;
+
+/**
+ * Solo los productos que cambiaron desde `desde` (ISO). Devuelve null si el RPC
+ * no existe todavía o falla: quien llama cae al refresco completo de siempre.
+ */
+async function fetchCatalogoDeltaPos(sessionToken, desde) {
+  if (!sessionToken || !desde) return null;
+  try {
+    const { data, error } = await supabase.rpc("empleado_listar_productos_pos_delta", {
+      p_session_token: sessionToken,
+      p_desde: desde,
+    });
+    if (error || !data || typeof data !== "object") return null;
+    const productos = Array.isArray(data.productos) ? data.productos : null;
+    if (!productos || !data.ahora) return null;
+    return { ahora: data.ahora, productos };
+  } catch {
+    return null;
+  }
 }
 
 function enrichPosProductosConLotes(prodsRaw, lotesByProducto = {}, hoy = hoyISOMexico()) {
@@ -1107,11 +1137,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return () => clearTimeout(tmr);
   }, [tel]);
 
+  // Estado de sincronización del catálogo: desde cuándo pedir deltas y cuándo fue el último refresco completo.
+  const catalogoSyncRef = useRef({ desde: null, fullAt: 0, enCurso: false, pendiente: false });
+
   useEffect(()=>{
     const cargar = async () => {
       setLoad(true);
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
+        const inicioCargaMs = Date.now();
         const tok = sessionStorage.getItem("farmacapital_session_token");
         const [prodsRes, shown, lotesMap, especialesMap] = await Promise.all([
           tok
@@ -1139,6 +1173,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
         const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
         setProds(enrichPosProductosConLotes(prodsRaw, lotesMap));
+        catalogoSyncRef.current.desde = new Date(inicioCargaMs - CATALOGO_DELTA_MARGEN_MS).toISOString();
+        catalogoSyncRef.current.fullAt = Date.now();
         setPedOn(shown.cola || []);
         setPedOnHist(shown.hist || []);
 
@@ -1153,10 +1189,38 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     cargar();
   },[refrescarCitasPOS]);
 
+  /**
+   * Refresco del catálogo tras un cambio (venta, recepción, edición…).
+   * Antes: bajaba TODO el catálogo (+ lotes) en cada evento, de cada terminal.
+   * Ahora: pide solo los productos cambiados (RPC delta) y los mezcla; cada 5 min
+   * o si el RPC no existe/falla, hace el refresco completo de siempre.
+   * Un solo refresco a la vez: si llegan eventos durante uno, se repite una vez al final.
+   */
   const refrescarCatalogoPos = useCallback(async () => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) return;
+    const sync = catalogoSyncRef.current;
+    if (sync.enCurso) {
+      sync.pendiente = true;
+      return;
+    }
+    sync.enCurso = true;
     try {
+      const inicioMs = Date.now();
+      const requiereFull = !sync.desde || inicioMs - sync.fullAt > CATALOGO_FULL_CADA_MS;
+      if (!requiereFull) {
+        const delta = await fetchCatalogoDeltaPos(tok, sync.desde);
+        if (delta) {
+          if (delta.productos.length) {
+            const especialesMap = await fetchEspecialesCaducidadPos(tok);
+            especialesRef.current = especialesMap || {};
+            const enriquecidos = enrichPosProductosConLotes(delta.productos, {});
+            setProds((prev) => mergeCatalogoDelta(prev, enriquecidos));
+          }
+          sync.desde = new Date(new Date(delta.ahora).getTime() - CATALOGO_DELTA_MARGEN_MS).toISOString();
+          return;
+        }
+      }
       const [prodsRes, lotesMap, especialesMap] = await Promise.all([
         fetchProductosCatalogoPos(tok),
         fetchLotesMapPos(tok),
@@ -1165,10 +1229,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (prodsRes?.error) return;
       especialesRef.current = especialesMap || {};
       setProds(enrichPosProductosConLotes(Array.isArray(prodsRes.data) ? prodsRes.data : [], lotesMap));
+      sync.desde = new Date(inicioMs - CATALOGO_DELTA_MARGEN_MS).toISOString();
+      sync.fullAt = Date.now();
     } catch (_) { /* se queda el catálogo que ya está en pantalla */ }
+    finally {
+      sync.enCurso = false;
+      if (sync.pendiente) {
+        sync.pendiente = false;
+        setTimeout(() => refrescarCatalogoRef.current?.(), 0);
+      }
+    }
   }, []);
+  const refrescarCatalogoRef = useRef(null);
+  refrescarCatalogoRef.current = refrescarCatalogoPos;
 
-  useCatalogoVivo(refrescarCatalogoPos);
+  useCatalogoVivo(refrescarCatalogoPos, { debounceMs: 1500 });
 
   useEffect(() => {
     setFichaProd((prev) => {
