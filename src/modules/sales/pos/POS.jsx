@@ -3508,14 +3508,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
                 onChange={e=>{
                   const v = e.currentTarget.value;
-                  // Cada dígito de la pistola re-pintaba todo el POS y buscaba el catálogo.
-                  // Los dígitos se quedan en el input hasta que el EAN cierra (8/12/13/14).
-                  if (isAllDigitsInput(v) && !isCompleteBarcodeLength(v)) return;
+                  // El input es controlado: si no guardamos cada dígito, React lo borra
+                  // y la pistola "no pega" el código. La búsqueda sí espera a que cierre.
                   setSrch(v);
                   if (!v.trim()) {
                     setFichaProd(null);
                     return;
                   }
+                  if (isAllDigitsInput(v) && !isCompleteBarcodeLength(v)) return;
                   const scanKey = normalizeBarcodeRaw(v) || v.trim();
                   const exact = findProductExactScan(productos, scanKey);
                   if (exact) {
