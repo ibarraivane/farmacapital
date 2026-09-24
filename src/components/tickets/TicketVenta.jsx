@@ -2,6 +2,7 @@ import React, { forwardRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { BRAND_LOGO } from "../../brand";
 import { mergeFarmaciaConfig } from "../../constants/farmaciaFiscal";
+import { pesosDePuntos } from "../../utils/puntosCanje";
 import "../../styles/ticket.css";
 
 /**
@@ -145,7 +146,7 @@ const TicketVenta = forwardRef(({
       {mostrarPuntos && ptsG > 0 && (
         <div className="ticket-puntos">
           ★ +{ptsG} PUNTOS FARMACAPITAL GANADOS
-          {cliente&&<div>Saldo: {(cliente.puntos||0)+ptsG} pts = ${(((cliente.puntos||0)+ptsG)*0.5).toFixed(0)}</div>}
+          {cliente&&<div>Saldo: {(cliente.puntos||0)+ptsG} pts = ${pesosDePuntos((cliente.puntos||0)+ptsG)}</div>}
         </div>
       )}
 

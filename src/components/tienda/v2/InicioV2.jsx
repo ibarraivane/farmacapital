@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Pill, Droplets, Leaf, HeartPulse, Package, Store, Truck, MessagesSquare, ArrowRight } from "lucide-react";
+import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, MessagesSquare, ArrowRight } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { irACatalogoCategoria } from "../../../lib/tiendaCatalogoCategorias";
@@ -79,7 +79,8 @@ export default function InicioV2({
     { icon: <Pill aria-hidden="true" />, titulo: "Medicamentos", desc: "Por nombre o sustancia", go: () => irCategoria("Medicamentos") },
     { icon: <Droplets aria-hidden="true" />, titulo: "Dermocosmética", desc: "Limpieza, hidratación y más", go: () => irCategoria("Dermocosmética") },
     { icon: <Leaf aria-hidden="true" />, titulo: "Nutrición", desc: "Vitaminas y suplementos", go: () => irCategoria("Nutrición") },
-    { icon: <HeartPulse aria-hidden="true" />, titulo: "Dispositivos médicos", desc: "Aparatos y material de curación", go: () => irCategoria("Dispositivos médicos") },
+    { icon: <HeartPulse aria-hidden="true" />, titulo: "Dispositivos médicos", desc: "Glucómetros, tiras y aparatos", go: () => irCategoria("Dispositivos médicos") },
+    { icon: <Bandage aria-hidden="true" />, titulo: "Botiquín", desc: "Gasas, vendas y curación", go: () => irCategoria("Botiquín") },
     { icon: <Package aria-hidden="true" />, titulo: "Farmacia", desc: "Higiene, sueros y el resto", go: () => irCategoria("Farmacia") },
   ];
 

@@ -15,7 +15,10 @@ test("franja, menú y buscador del prototipo ChatGPT", () => {
   expect(screen.getByRole("button", { name: "Dermocosmética" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Nutrición" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Dispositivos médicos" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Botiquín" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Farmacia" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Abrir menú" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Cotizar especializado" })).toHaveClass("fc-nav-quote");
   expect(screen.getByRole("button", { name: /Sucursal CDMX · Ver ubicación/ })).toBeInTheDocument();
 });
@@ -63,9 +66,24 @@ test("Medicamentos y Dermocosmética abren su área, no el catálogo completo", 
   expect(sessionStorage.getItem("farmacapital_cat")).toBe("Nutrición");
   fireEvent.click(screen.getByRole("button", { name: "Dispositivos médicos" }));
   expect(sessionStorage.getItem("farmacapital_cat")).toBe("Dispositivos médicos");
+  fireEvent.click(screen.getByRole("button", { name: "Botiquín" }));
+  expect(sessionStorage.getItem("farmacapital_cat")).toBe("Botiquín");
   fireEvent.click(screen.getByRole("button", { name: "Farmacia" }));
   expect(sessionStorage.getItem("farmacapital_cat")).toBe("Farmacia");
   expect(setPage).toHaveBeenCalledWith("catalogo", { rx: false, catalogoScroll: "top" });
+});
+
+test("la cuenta y el menú están en la barra", () => {
+  const setPage = jest.fn();
+  const onMenu = jest.fn();
+  const { rerender } = render(<EncabezadoV2 setPage={setPage} cart={[]} onMenu={onMenu} />);
+  fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+  expect(setPage).toHaveBeenCalledWith("login");
+  fireEvent.click(screen.getByRole("button", { name: "Abrir menú" }));
+  expect(onMenu).toHaveBeenCalled();
+  rerender(<EncabezadoV2 setPage={setPage} cart={[]} user={{ nombre: "Ivan" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Mi cuenta" }));
+  expect(setPage).toHaveBeenCalledWith("cuenta");
 });
 
 test("Cotizar especializado abre la pantalla de cotización", () => {
