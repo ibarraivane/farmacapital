@@ -74,6 +74,9 @@ export function bandasCatalogoPorCategoria(productos, opts = {}) {
   return ordered.slice(0, maxCats);
 }
 
+/** El catálogo ya abierto escucha esto: si no, el filtro en memoria no cambia. */
+export const CATALOGO_CATEGORIA_EVENT = "fc-catalogo-categoria";
+
 /** Abre el catálogo filtrado por categoría (sessionStorage + navegación SPA). */
 export function irACatalogoCategoria(setPage, categoria) {
   const cat = categoriaCanon(categoria) || "Todos";
@@ -84,6 +87,11 @@ export function irACatalogoCategoria(setPage, categoria) {
     /* ignore */
   }
   resetearPosicionCatalogo();
+  try {
+    window.dispatchEvent(new Event(CATALOGO_CATEGORIA_EVENT));
+  } catch {
+    /* node sin window */
+  }
   setPage?.("catalogo", { rx: false, catalogoScroll: "top" });
 }
 

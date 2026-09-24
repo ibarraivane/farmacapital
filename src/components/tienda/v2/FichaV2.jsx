@@ -19,6 +19,21 @@ export function fichaTecnicaDe(prod, ficha, monografia) {
  * Texto de entrega de la caja de compra.
  * Una sola línea: el cliente necesita saber cuándo lo tiene, no leer un párrafo.
  */
+/**
+ * El título público a veces antepone «Marca · ». En la ficha la marca va en la
+ * línea de abajo, así que el nombre no la repite.
+ */
+export function tituloVisibleFicha(prod) {
+  const marca = String(prod?.marca || "").trim();
+  const titulo = String(prod?.nombre || "").trim();
+  if (!marca || !titulo) return titulo;
+  const prefijo = `${marca} · `;
+  if (titulo.toLowerCase().startsWith(prefijo.toLowerCase())) {
+    return titulo.slice(prefijo.length).trim();
+  }
+  return titulo;
+}
+
 export function entregaFicha({ esEncargo, agotado, permitidoWeb, textoBloqueo }) {
   if (esEncargo) {
     return { titulo: "Por encargo · 24-48 hrs", detalle: "Confirmamos precio y fecha con el proveedor antes de cobrar." };
@@ -99,7 +114,7 @@ export default function FichaV2({
       <section className="fc-detail">
         <header className="fc-detail-head">
           <EstadoDisponibilidad producto={prod} />
-          <h1>{prod.nombre}</h1>
+          <h1>{tituloVisibleFicha(prod)}</h1>
           <EstrellasDeProducto prod={prod} />
           {subtitulo ? <p className="fc-description">{subtitulo}</p> : null}
         </header>
