@@ -19,6 +19,15 @@ test("Pedido 27: dos tabletas no usan el costo de dos cajas", () => {
   expect(costoLineaVenta(aspirina)).toBeCloseTo(5.8633, 3);
 });
 
+test("el costo congelado de la venta manda sobre el costo actual del catálogo", () => {
+  const vendido = {
+    ...aspirina,
+    costo_vendido: 3.2,
+    costo_origen: "lote",
+  };
+  expect(costoLineaVenta(vendido)).toBeCloseTo(3.2, 4);
+});
+
 test("venta de caja usa el costo completo", () => {
   const caja = {
     precio_unitario: 48,
