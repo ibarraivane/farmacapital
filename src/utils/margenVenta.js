@@ -33,8 +33,23 @@ export function lineaEsVentaUnidad(item) {
   return false;
 }
 
+/**
+ * Costo de la línea. Si la venta ya trae costo congelado, ese manda.
+ * Si no, se estima con el costo actual del catálogo (caja o pieza).
+ */
+export function costoLineaDesdeConsumo(item) {
+  if (item?.costo_vendido == null || item.costo_vendido === "") return null;
+  const n = num(item.costo_vendido, NaN);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** Costo unitario (por renglón) ya ajustado a caja o pieza. */
 export function costoUnitarioLinea(item) {
+  const congelado = costoLineaDesdeConsumo(item);
+  if (congelado != null) {
+    const qty = int(item?.cantidad, 1);
+    return qty > 0 ? congelado / qty : congelado;
+  }
   const prod = item?.productos || {};
   const costoCaja = num(prod.costo);
   const upc = int(prod.unidades_por_caja, 0);
