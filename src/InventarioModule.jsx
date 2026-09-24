@@ -23,6 +23,7 @@ import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
+import { capasCostoVivas, textoCapaCosto } from "./lib/capasCosto";
 import { productoEsVendible } from "./utils/productoVendible";
 import {
   CATEGORIAS_PRODUCTO as CATEGORIAS,
@@ -465,7 +466,7 @@ const INV_COLUMN_DEFS = {
   min: { label: "Mín", hint: "" },
   precio: { label: "Precio", hint: "" },
   costo: { label: "Costo", hint: "" },
-  margen: { label: "Margen", hint: "Arriba: % de lo que cobraste. Abajo: recargo sobre el costo." },
+  margen: { label: "Margen", hint: "Margen de cada capa viva contra el precio de anaquel. Arriba el % de lo cobrado; si hay un solo costo de catálogo, abajo el recargo." },
   cad: { label: "Cad.", hint: "Mes/año del lote más próximo — clic para editar" },
   agot: { label: "Agot. (días)", hint: "" },
   desc: { label: "Desc%", hint: "" },
@@ -2575,10 +2576,19 @@ function renderInventarioColumnCell(colId, ctx) {
     case "margen": {
       const audit = auditarMargenProducto(p);
       const recargo = ctx.mgnRecargo;
+      const capas = capasCostoVivas(p.lotes_activos || p.lotes, p.precio);
       return (
         <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg, ...w("margen") }}>
-          {mgn}
-          {recargo && recargo !== "—" ? (
+          {capas.length ? (
+            capas.map((capa) => (
+              <div key={capa.costo} style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.35 }} title={textoCapaCosto(capa)}>
+                {capa.piezas}×${Number(capa.costo).toFixed(2)} · {capa.margenPct == null ? "—" : `${capa.margenPct.toFixed(1)}%`}
+              </div>
+            ))
+          ) : (
+            mgn
+          )}
+          {!capas.length && recargo && recargo !== "—" ? (
             <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.8 }}>+{recargo} costo</div>
           ) : null}
           {audit.accion === "bajar" && audit.sugerido != null ? (
