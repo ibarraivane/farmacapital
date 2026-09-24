@@ -1308,6 +1308,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const fil = React.useMemo(() => {
     const s = queryCatalogoDesdeInputPos(srch);
     if (!s) return [];
+    // Dígitos a medias (la pistola aún no cierra el EAN): no recorras el catálogo.
+    if (isAllDigitsInput(srch) && !looksLikeCompleteScanInput(srch)) return [];
     const exact = findProductExactScan(productos, normalizeBarcodeRaw(srch) || s);
     if (exact) return [exact];
     if (isAllDigitsInput(srch)) return [];
@@ -1357,6 +1359,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const cambioBusqueda = srchAnteriorRef.current !== srch;
     srchAnteriorRef.current = srch;
     const s = queryCatalogoDesdeInputPos(srch);
+    if (isAllDigitsInput(srch) && !looksLikeCompleteScanInput(srch)) return;
     if (!s) {
       // Tras un beep bueno vaciamos el recuadro pero la ficha se queda.
       // Si no, el efecto ve "" y borra lo que acaba de abrir.
@@ -3505,6 +3508,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
                 onChange={e=>{
                   const v = e.currentTarget.value;
+                  // Cada dígito de la pistola re-pintaba todo el POS y buscaba el catálogo.
+                  // Los dígitos se quedan en el input hasta que el EAN cierra (8/12/13/14).
+                  if (isAllDigitsInput(v) && !isCompleteBarcodeLength(v)) return;
                   setSrch(v);
                   if (!v.trim()) {
                     setFichaProd(null);

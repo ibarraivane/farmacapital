@@ -1119,7 +1119,15 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           nombre: form.nombre, precio: form.precio
         });
       }
-      onSaved();
+      onSaved({
+        id: form.id || null,
+        ...productoFields,
+        costo: costoNum,
+        stock: stockInt,
+        proveedor: proveedorTxt,
+        imagen_url: urlNow || null,
+        imagen_mobile_url: urlNow || null,
+      });
     } catch (unexpected) {
       console.error("ProductoModal guardar:", unexpected);
       showToast("Error al guardar: " + (unexpected?.message || String(unexpected)), "error");
@@ -3236,7 +3244,24 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   }, [verInactivos, modoConsulta]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
-  useCatalogoVivo(() => fetchProductos({ silencioso: true }));
+
+  // Tras guardar, el realtime vuelve a pedir TODO el catálogo. Con esto la
+  // pantalla que acaba de grabar no espera esa descarga: pinta el renglón y
+  // ignora el eco unos segundos. Las otras terminales sí se refrescan.
+  const silencioCatalogoRef = useRef(0);
+  const callarCatalogoLocal = useCallback(() => {
+    silencioCatalogoRef.current = Date.now() + 8000;
+  }, []);
+  const pintarProductoLocal = useCallback((id, patch) => {
+    if (id == null || !patch) return;
+    setProductos((prev) => prev.map((p) => (
+      String(p.id) === String(id) ? { ...p, ...patch } : p
+    )));
+  }, []);
+  useCatalogoVivo(() => {
+    if (Date.now() < silencioCatalogoRef.current) return;
+    fetchProductos({ silencioso: true });
+  });
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
     const cat = pasaFiltroCategorias(p, filtroCategorias);
@@ -3378,7 +3403,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           showToast("No se pudo quitar la caducidad.", "error");
           return false;
         }
-        await fetchProductos();
+        callarCatalogoLocal();
+        pintarProductoLocal(product.id, {
+          min_caducidad_lotes: null,
+          lotes: (product.lotes || []).map((l) => (
+            l.id === loteId ? { ...l, fecha_caducidad: null } : l
+          )),
+        });
+        avisarCatalogoCambio({ origen: "inventario" });
         showToast("Fecha de caducidad eliminada", "success");
         return true;
       }
@@ -3392,7 +3424,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         showToast("No se pudo guardar la caducidad.", "error");
         return false;
       }
-      await fetchProductos();
+      callarCatalogoLocal();
+      pintarProductoLocal(product.id, {
+        min_caducidad_lotes: fecha,
+        lotes: (product.lotes || []).map((l) => (
+          l.id === loteId ? { ...l, fecha_caducidad: fecha } : l
+        )),
+      });
+      avisarCatalogoCambio({ origen: "inventario" });
       showToast(
         resp.accion === "crear_referencia"
           ? "Caducidad guardada (lote de referencia, sin stock)"
@@ -3417,7 +3456,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         showToast(resp.error || "No se pudo guardar el proveedor.", "error");
         return false;
       }
-      await fetchProductos();
+      callarCatalogoLocal();
+      pintarProductoLocal(product.id, { proveedor: next });
+      avisarCatalogoCambio({ origen: "inventario" });
       showToast("Proveedor guardado en el lote", "success");
       return true;
     }
@@ -3439,7 +3480,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         showToast(error.message, "error");
         return false;
       }
-      await fetchProductos();
+      callarCatalogoLocal();
+      pintarProductoLocal(product.id, { stock: n });
+      avisarCatalogoCambio({ origen: "inventario" });
       showToast("Stock actualizado", "success");
       return true;
     }
@@ -3468,7 +3511,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           showToast(data?.error || "No se pudo guardar el código.", "error");
           return false;
         }
-        await fetchProductos();
+        callarCatalogoLocal();
+        pintarProductoLocal(product.id, { codigo_barras: patchValue });
+        avisarCatalogoCambio({ origen: "inventario" });
         showToast("Código de barras guardado", "success");
         return true;
       }
@@ -3523,10 +3568,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       showToast(error.message, "error");
       return false;
     }
-    await fetchProductos();
+    callarCatalogoLocal();
+    pintarProductoLocal(product.id, { [patchKey]: patchValue });
+    avisarCatalogoCambio({ origen: "inventario" });
     showToast("Guardado", "success");
     return true;
-  }, [fetchProductos, modoConsulta]);
+  }, [modoConsulta, callarCatalogoLocal, pintarProductoLocal]);
 
   const commitInlineEdit = useCallback(async (draftOverride) => {
     if (!inlineEdit || inlineSaving) return;
@@ -4450,7 +4497,17 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           key={modal.id ?? "nuevo"}
           initial={modal}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); fetchProductos(); avisarCatalogoCambio({ origen: "inventario" }); }}
+          onSaved={(saved) => {
+            setModal(null);
+            if (saved?.id) {
+              callarCatalogoLocal();
+              pintarProductoLocal(saved.id, saved);
+              avisarCatalogoCambio({ origen: "inventario" });
+              return;
+            }
+            fetchProductos();
+            avisarCatalogoCambio({ origen: "inventario" });
+          }}
           onEditarCaducidad={modal.id ? abrirLotesDesdeEdicion : undefined}
           onRecibirMercancia={modal.id ? abrirRecibirDesdeEdicion : undefined}
           onCaducidadSaved={modal.id ? refrescarProductoEnEdicion : undefined}
