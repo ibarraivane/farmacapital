@@ -104,6 +104,54 @@ export function categoriaVitrinaPasaFiltro(p, filtro) {
   return categoriasCoinciden(categoriaVitrina(p), filtro);
 }
 
+/** Rubros de mostrador. Nutrición es «Suplemento»; esto es el resto de la farmacia. */
+export const CATEGORIAS_MEDICAMENTO = Object.freeze([
+  "Analgésico",
+  "Antiinflamatorio",
+  "Antibiótico",
+  "Gastro",
+  "Diabetes",
+  "Hipertensión",
+  "Alergia",
+  "Cardiovascular",
+  "Hormonales",
+  "Respiratorio",
+]);
+
+export const AREA_MEDICAMENTOS = "Medicamentos";
+export const AREA_DERMOCOSMETICA = "Dermocosmética";
+
+function normArea(s) {
+  return String(s ?? "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+export function esMedicamentoCatalogo(p) {
+  return CATEGORIAS_MEDICAMENTO.includes(categoriaVitrina(p));
+}
+
+/** Cuidado personal y fichas marcadas como dermatología. Sin vitaminas ni proteína. */
+export function esDermocosmeticoCatalogo(p) {
+  if (categoriaVitrina(p) === "Cuidado personal") return true;
+  const sub = normArea(p?.subcategoria);
+  const cat = normArea(p?.categoria);
+  return sub.startsWith("dermatolog") || cat.startsWith("dermatolog") || cat.startsWith("dermo");
+}
+
+/**
+ * Filtro del catálogo de la tienda. «Medicamentos» y «Dermocosmética» son
+ * áreas del menú, no una sola fila de productos.categoria.
+ */
+export function productoPasaAreaTienda(p, filtro) {
+  if (!filtro || filtro === "todas" || filtro === "Todos") return true;
+  if (filtro === AREA_MEDICAMENTOS) return esMedicamentoCatalogo(p);
+  if (filtro === AREA_DERMOCOSMETICA) return esDermocosmeticoCatalogo(p);
+  return categoriaVitrinaPasaFiltro(p, filtro);
+}
+
 export function esCategoriaAntibiotico(raw) {
   return categoriaCanon(raw) === "Antibiótico";
 }

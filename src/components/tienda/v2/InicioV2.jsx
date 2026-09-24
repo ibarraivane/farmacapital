@@ -76,8 +76,8 @@ export default function InicioV2({
   const irCotizar = () => setPage?.("cotizar");
 
   const categorias = [
-    { icon: <Pill aria-hidden="true" />, titulo: "Medicamentos", desc: "Por nombre o sustancia", go: () => irCategoria("Todos") },
-    { icon: <Droplets aria-hidden="true" />, titulo: "Dermocosmética", desc: "Limpieza, hidratación y más", go: () => setPage?.("conseguir") },
+    { icon: <Pill aria-hidden="true" />, titulo: "Medicamentos", desc: "Por nombre o sustancia", go: () => irCategoria("Medicamentos") },
+    { icon: <Droplets aria-hidden="true" />, titulo: "Dermocosmética", desc: "Limpieza, hidratación y más", go: () => irCategoria("Dermocosmética") },
     { icon: <Leaf aria-hidden="true" />, titulo: "Nutrición", desc: "Proteína y suplementos", go: () => irCategoria("Suplemento") },
     { icon: <HeartPulse aria-hidden="true" />, titulo: "Equipo médico", desc: "Consulta disponibilidad", go: () => irCategoria("Dispositivo médico") },
   ];

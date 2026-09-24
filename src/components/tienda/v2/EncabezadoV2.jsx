@@ -133,8 +133,8 @@ export default function EncabezadoV2({
         </button>
       </header>
       <nav className="fc-nav" aria-label="Áreas de la tienda" style={{ backgroundColor: "#ffffff" }}>
-        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Todos")}>Medicamentos</button>
-        <button type="button" onClick={() => go("conseguir")}>Dermocosmética</button>
+        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Medicamentos")}>Medicamentos</button>
+        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Dermocosmética")}>Dermocosmética</button>
         <button type="button" onClick={() => irACatalogoCategoria(setPage, "Suplemento")}>Nutrición</button>
         <button type="button" className="fc-nav-quote" onClick={() => go("cotizar")}>Cotizar especializado</button>
         <button type="button" className="fc-location" onClick={irSucursal}>

@@ -5,6 +5,9 @@ import {
   categoriaPasaFiltro,
   categoriaVitrina,
   categoriaVitrinaPasaFiltro,
+  esDermocosmeticoCatalogo,
+  esMedicamentoCatalogo,
+  productoPasaAreaTienda,
   esCategoriaAntibiotico,
   esMedicamentoControlado,
   esProductoHidratacionOral,
@@ -52,6 +55,22 @@ describe("categoriasProducto", () => {
     expect(categoriaVitrinaPasaFiltro(electrolit, "Higiene")).toBe(false);
     expect(categoriaVitrina(shampoo)).toBe("Higiene");
     expect(categoriaVitrinaPasaFiltro(shampoo, "Hidratación")).toBe(false);
+  });
+
+  test("Medicamentos y Dermocosmética no arrastran nutrición ni la vitrina entera", () => {
+    const ibuprofeno = { nombre: "Ibuprofeno 400 mg", categoria: "Analgésico" };
+    const ensure = { nombre: "Ensure vainilla", categoria: "Suplemento" };
+    const eucerin = { nombre: "Eucerin pH5", categoria: "Cuidado personal", subcategoria: "Dermatología" };
+    const whey = { nombre: "Whey Gold", categoria: "Suplemento", subcategoria: "Proteína", bajo_pedido: true };
+    expect(esMedicamentoCatalogo(ibuprofeno)).toBe(true);
+    expect(esMedicamentoCatalogo(ensure)).toBe(false);
+    expect(productoPasaAreaTienda(ibuprofeno, "Medicamentos")).toBe(true);
+    expect(productoPasaAreaTienda(ensure, "Medicamentos")).toBe(false);
+    expect(productoPasaAreaTienda(eucerin, "Medicamentos")).toBe(false);
+    expect(esDermocosmeticoCatalogo(eucerin)).toBe(true);
+    expect(productoPasaAreaTienda(eucerin, "Dermocosmética")).toBe(true);
+    expect(productoPasaAreaTienda(whey, "Dermocosmética")).toBe(false);
+    expect(productoPasaAreaTienda(ensure, "Suplemento")).toBe(true);
   });
 
   test("el select conserva un valor huérfano para no pisarlo al abrir", () => {
