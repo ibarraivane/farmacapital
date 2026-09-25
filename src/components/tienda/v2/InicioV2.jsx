@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, MessagesSquare, ArrowRight } from "lucide-react";
+import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, MessagesSquare, ArrowRight, MessageCircleQuestion, BadgePercent, ShieldCheck } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
+import HeroCarrusel from "./HeroCarrusel";
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
 import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
@@ -9,8 +10,73 @@ import { HORARIO_FARMACIA } from "../../../constants/turnos";
 import { CONSULTA_PRECIO_DEFAULT } from "../../../utils/consultaConstants";
 import { $peso } from "../../../utils";
 import { nombrePublicoTienda, presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
+import { normalizeCategoriaKey } from "../../../constants/categoriasProducto";
 
 const MAX_FILA = 4;
+
+/**
+ * Marcas de dermocosmética real, para la foto del carrusel. "Cuidado personal"
+ * también trae gel para el cabello y acetona; sin esta lista el carrusel podía
+ * tocarle enseñar cualquiera de los dos al azar.
+ */
+const DERMO_MARCAS = [
+  "la roche posay", "la roche-posay", "isdin", "bioderma", "sesderma",
+  "eucerin", "avène", "avene", "cetaphil", "cerave", "martiderm",
+  "neostrata", "uriage", "ducray", "a-derma", "aderma", "darrow",
+];
+
+function esDermoReal(prod) {
+  return DERMO_MARCAS.includes(String(prod?.marca || "").trim().toLowerCase());
+}
+
+/** Dónde se busca genérico o marca original. Nunca en dermocosmética ni deportiva. */
+const MED_CATEGORIAS_VITRINA = [
+  "Medicamentos", "Medicamento", "Medicamentos OTC", "Analgésico", "Antiinflamatorio",
+  "Antibiótico", "Antiviral", "Gastro", "Diabetes", "Hipertensión", "Cardiovascular",
+  "Alergia", "Respiratorio", "Hormonales",
+];
+
+/**
+ * Laboratorios genéricos mexicanos reconocibles en el inventario, verificados
+ * contra el catálogo real. No es una lista legal de "genérico intercambiable":
+ * es solo para elegir qué 3 fotos entran al carrusel.
+ */
+const GENERICO_MARCAS = [
+  "maver", "amsa", "gelpharma", "cloxan", "collins", "serral", "quifa",
+  "novag", "biomep", "son's", "alpharma", "ultra", "wermar", "quimpharma",
+  "randall", "raam",
+];
+
+/** Marcas de patente reconocibles a nivel internacional. Misma idea: solo para la foto. */
+const PATENTE_MARCAS = [
+  "bayer", "aspirina", "tempra", "advil", "motrin", "theraflu", "afrin",
+  "alka-seltzer", "tylenol", "flanax",
+];
+
+function normMarca(prod) {
+  return String(prod?.marca || "").trim().toLowerCase();
+}
+
+function esMedVitrina(prod) {
+  return MED_CATEGORIAS_VITRINA.some((c) => normalizeCategoriaKey(c) === normalizeCategoriaKey(prod?.categoria));
+}
+
+/**
+ * Genérico real: laboratorio genérico conocido, en una categoría de
+ * medicamento, y el nombre del producto es básicamente su sustancia activa
+ * (no trae una marca de fantasía). Ese último punto es lo que de verdad
+ * distingue a un genérico de una marca — no basta con el laboratorio.
+ */
+export function esGenericoReal(prod) {
+  if (!esMedVitrina(prod) || !GENERICO_MARCAS.includes(normMarca(prod))) return false;
+  const pa = normalizeCategoriaKey(prod?.principio_activo).replace(/\s+/g, "").slice(0, 8);
+  const nombre = normalizeCategoriaKey(prod?.nombre).replace(/\s+/g, "");
+  return pa.length > 3 && nombre.includes(pa);
+}
+
+export function esPatenteReal(prod) {
+  return esMedVitrina(prod) && PATENTE_MARCAS.includes(normMarca(prod));
+}
 
 function fotoDe(prod) {
   const url = urlImagenPublicaTienda(prod?.imagen_url);
@@ -67,6 +133,18 @@ export default function InicioV2({
   const enSucursal = useMemo(() => productosEnSucursal(productos), [productos]);
   const porEncargo = useMemo(() => productosPorEncargo(productos), [productos]);
   const consulta = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
+  const fotosDermo = useMemo(
+    () => (productos || []).filter((p) => p?.activo !== false && esDermoReal(p) && conFoto(p)).slice(0, 3),
+    [productos]
+  );
+  const fotosGenericos = useMemo(
+    () => (productos || []).filter((p) => p?.activo !== false && esGenericoReal(p) && conFoto(p)).slice(0, 3),
+    [productos]
+  );
+  const fotosPatente = useMemo(
+    () => (productos || []).filter((p) => p?.activo !== false && esPatenteReal(p) && conFoto(p)).slice(0, 3),
+    [productos]
+  );
 
   const abrirProducto = (prod) => {
     if (!prod) return;
@@ -99,7 +177,61 @@ export default function InicioV2({
     go: () => irCategoria(sec.nombre),
   }));
 
-  const packshots = porEncargo.filter(conFoto).slice(0, 2);
+  const slidesHero = [
+    {
+      id: "dermo",
+      tono: "cream",
+      eyebrow: "Cuidado de la piel",
+      titulo: "Un espacio para",
+      acento: "tu rutina.",
+      imagenes: fotosDermo.length ? fotosDermo.map((p) => ({ id: p.id, src: fotoDe(p), marca: String(p.marca || "").trim() })) : undefined,
+      icono: <Droplets aria-hidden="true" />,
+      nota: "Catálogo por encargo",
+      cta: "Descubrir",
+      onIr: () => setPage?.("conseguir"),
+    },
+    {
+      id: "cotizar",
+      tono: "ink",
+      eyebrow: "Cotización sin costo",
+      titulo: "Dinos qué buscas,",
+      acento: "te lo cotizamos.",
+      icono: <MessageCircleQuestion aria-hidden="true" />,
+      nota: "Precio y disponibilidad por WhatsApp",
+      cta: "Cotizar",
+      onIr: irCotizar,
+    },
+    // Copy de genéricos y marca original compara medicamentos: el responsable
+    // sanitario tiene que revisarlo antes de darlo por cerrado en producción.
+    {
+      id: "genericos",
+      tono: "jade",
+      eyebrow: "Mismo principio activo",
+      titulo: "El genérico,",
+      acento: "otra opción de precio.",
+      imagenes: fotosGenericos.length >= 2
+        ? fotosGenericos.map((p) => ({ id: p.id, src: fotoDe(p), marca: String(p.marca || "").trim() }))
+        : undefined,
+      icono: <BadgePercent aria-hidden="true" />,
+      nota: "Pregunta por la alternativa a tu receta",
+      cta: "Ver medicamentos",
+      onIr: () => irCategoria("Medicamentos"),
+    },
+    {
+      id: "patente",
+      tono: "terra",
+      eyebrow: "Marca original",
+      titulo: "El medicamento",
+      acento: "que ya conoces.",
+      imagenes: fotosPatente.length >= 2
+        ? fotosPatente.map((p) => ({ id: p.id, src: fotoDe(p), marca: String(p.marca || "").trim() }))
+        : undefined,
+      icono: <ShieldCheck aria-hidden="true" />,
+      nota: "Laboratorio original, disponibilidad en sucursal",
+      cta: "Ver medicamentos",
+      onIr: () => irCategoria("Medicamentos"),
+    },
+  ];
 
   return (
     <div className="fc-body fc-inicio">
@@ -117,26 +249,7 @@ export default function InicioV2({
             Buscar medicamento <ArrowRight aria-hidden="true" />
           </button>
         </div>
-        <div className="fc-studio">
-          <div>
-            <div className="fc-eyebrow">Cuidado de la piel</div>
-            <h2>
-              Un espacio para<br />
-              <span className="fc-serif">tu rutina.</span>
-            </h2>
-          </div>
-          {packshots.length ? (
-            <div className="fc-packshots">
-              {packshots.map((p) => (
-                <img key={p.id} src={fotoDe(p)} alt="" loading="lazy" decoding="async" />
-              ))}
-            </div>
-          ) : null}
-          <div className="fc-studio-note">
-            <span>Catálogo por encargo</span>
-            <button type="button" className="fc-textbtn" onClick={() => setPage?.("conseguir")}>Descubrir →</button>
-          </div>
-        </div>
+        <HeroCarrusel slides={slidesHero} />
       </section>
 
       <div className="fc-benefits">
