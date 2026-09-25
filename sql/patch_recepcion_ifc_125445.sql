@@ -28,7 +28,7 @@ insert into _fc_rx_ifc125445 (linea, ean, sku, nombre, qty, costo) values
   -- Ya existía FC-578F060C (EAN 3311000003739); no usar FC-IFC-1400724.
   (8, '3311000003739', 'FC-578F060C', 'Mercurio bórax polvo C/50', 1, 53.00),
   (9, null, 'FC-IFC-PULEFIN100', 'Lima de uñas Pulefin C/100', 1, 94.50),
-  (10, null, 'FC-IFC-82943', 'Mercurio pomada manzana C/25', 4, 9.50);
+  (10, null, 'FC-MER-MANZANA', 'Mercurio pomada manzana', 4, 9.50);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select

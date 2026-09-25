@@ -2152,35 +2152,20 @@ update public.productos set
 where sku = 'FC-IFC-PULEFIN100'
 ;
 
--- FC-IFC-82943 | Mercurio pomada manzana C/25
-insert into public.productos (
-  nombre, sku, codigo_barras, categoria, tipo, descripcion,
-  costo, precio, stock, stock_minimo, activo, requiere_receta,
-  marca, presentacion, forma_farmaceutica, imagen_url
-)
-select
-  'Mercurio pomada manzana C/25',
-  'FC-IFC-82943',
-  null,
-  'Cuidado personal',
-  'marca',
-  'Ticket IFC 125445 · MERCURIO POMADA MANZANA C/25 2530123 82943',
-  9.50, 12, 0, 1, true, false,
-  'Mercurio',
-  'C/25',
-  'Pomada',
-  'https://www.farmacapital.mx/catalogo-propia/mercurio-pomada-manzana-50g.jpg'
-where public.fc_buscar_producto_escaneo('FC-IFC-82943') is null
-  and not exists (select 1 from public.productos where sku = 'FC-IFC-82943');
-
+-- FC-MER-MANZANA | Mercurio pomada manzana — YA EN CATÁLOGO (IFC 122576).
+-- No crear FC-IFC-82943. Ver sql/patch_merge_mercurio_ifc_125445_duplicados.sql
 update public.productos set
-  costo = 9.50,
-  precio = case when coalesce(precio, 0) <= 0 then 12 else precio end,
+  costo = case when coalesce(costo, 0) <= 0 then 9.50 else costo end,
+  precio = case when coalesce(precio, 0) <= 0 then 16 else precio end,
   marca = coalesce(nullif(btrim(marca), ''), 'Mercurio'),
-  presentacion = coalesce(nullif(btrim(presentacion), ''), 'C/25'),
+  presentacion = coalesce(nullif(btrim(presentacion), ''), '50 g'),
   forma_farmaceutica = coalesce(nullif(btrim(forma_farmaceutica), ''), 'Pomada'),
-  imagen_url = coalesce(nullif(btrim(imagen_url), ''), 'https://www.farmacapital.mx/catalogo-propia/mercurio-pomada-manzana-50g.jpg')
-where sku = 'FC-IFC-82943'
+  imagen_url = coalesce(
+    nullif(btrim(imagen_url), ''),
+    'https://www.farmacapital.mx/catalogo-propia/mercurio-pomada-manzana-50g.jpg'
+  ),
+  activo = true
+where sku = 'FC-MER-MANZANA'
 ;
 
 commit;
@@ -2221,7 +2206,7 @@ insert into _fc_rx_ifc125445 (linea, ean, sku, nombre, qty, costo) values
   -- Ya existía FC-578F060C (EAN 3311000003739); no usar FC-IFC-1400724.
   (8, '3311000003739', 'FC-578F060C', 'Mercurio bórax polvo C/50', 1, 53.00),
   (9, null, 'FC-IFC-PULEFIN100', 'Lima de uñas Pulefin C/100', 1, 94.50),
-  (10, null, 'FC-IFC-82943', 'Mercurio pomada manzana C/25', 4, 9.50);
+  (10, null, 'FC-MER-MANZANA', 'Mercurio pomada manzana', 4, 9.50);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
