@@ -115,22 +115,32 @@ begin
     activo = true
   where id = v_pid;
 
-  -- Caja ya abierta en mostrador: vendieron 1 pieza fuera del sistema → 99 sueltas.
-  if exists (
-    select 1 from public.lotes l
-    where l.producto_id = v_pid
-      and l.numero_lote = '503500048'
-      and coalesce(l.cantidad_actual, 0) >= 1
-  ) and coalesce((select stock_unidades from public.productos where id = v_pid), 0) = 0 then
-    update public.lotes set
-      cantidad_actual = greatest(0, coalesce(cantidad_actual, 0) - 1),
-      activo = case
-        when greatest(0, coalesce(cantidad_actual, 0) - 1) <= 0 then false
-        else activo
-      end
-    where producto_id = v_pid
-      and numero_lote = '503500048'
-      and coalesce(activo, true);
+  -- Venta por pieza exige stock_unidades. Sin esto el POS dice
+  -- «piezas sueltas insuficientes» aunque haya 1 caja C/100.
+  -- Caja ya abierta en mostrador: −1 vendida fuera del sistema → 99 sueltas.
+  if coalesce((select stock_unidades from public.productos where id = v_pid), 0) = 0 then
+    if exists (
+      select 1 from public.lotes l
+      where l.producto_id = v_pid
+        and coalesce(l.activo, true)
+        and coalesce(l.cantidad_actual, 0) >= 1
+    ) then
+      update public.lotes set
+        cantidad_actual = greatest(0, coalesce(cantidad_actual, 0) - 1),
+        activo = case
+          when greatest(0, coalesce(cantidad_actual, 0) - 1) <= 0 then false
+          else activo
+        end
+      where id = (
+        select l.id from public.lotes l
+        where l.producto_id = v_pid
+          and coalesce(l.activo, true)
+          and coalesce(l.cantidad_actual, 0) >= 1
+        order by case when l.numero_lote = '503500048' then 0 else 1 end,
+                 l.fecha_caducidad nulls first, l.id
+        limit 1
+      );
+    end if;
 
     update public.productos set
       stock = (
