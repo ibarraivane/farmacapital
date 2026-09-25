@@ -2104,35 +2104,21 @@ update public.productos set
 where sku = 'FC-IFC-1660824'
 ;
 
--- FC-IFC-1400724 | Mercurio bórax polvo C/50
-insert into public.productos (
-  nombre, sku, codigo_barras, categoria, tipo, descripcion,
-  costo, precio, stock, stock_minimo, activo, requiere_receta,
-  marca, presentacion, forma_farmaceutica, imagen_url
-)
-select
-  'Mercurio bórax polvo C/50',
-  'FC-IFC-1400724',
-  null,
-  'Cuidado personal',
-  'marca',
-  'Ticket IFC 125445 · MERCURIO BORAX POLVO C/50 1400724',
-  53.00, 67, 0, 1, true, false,
-  'Mercurio',
-  'C/50',
-  'Polvo',
-  null
-where public.fc_buscar_producto_escaneo('FC-IFC-1400724') is null
-  and not exists (select 1 from public.productos where sku = 'FC-IFC-1400724');
-
+-- FC-578F060C | Mercurio bórax polvo (EAN 3311000003739) — YA EN CATÁLOGO.
+-- No crear FC-IFC-1400724. Ver sql/patch_merge_mercurio_borax_ifc_1400724.sql
 update public.productos set
-  costo = 53.00,
-  precio = case when coalesce(precio, 0) <= 0 then 67 else precio end,
+  costo = case when coalesce(costo, 0) <= 0 then 53.00 else costo end,
+  precio = case when coalesce(precio, 0) <= 0 then 85 else precio end,
   marca = coalesce(nullif(btrim(marca), ''), 'Mercurio'),
   presentacion = coalesce(nullif(btrim(presentacion), ''), 'C/50'),
   forma_farmaceutica = coalesce(nullif(btrim(forma_farmaceutica), ''), 'Polvo'),
-  imagen_url = coalesce(nullif(btrim(imagen_url), ''), null)
-where sku = 'FC-IFC-1400724'
+  principio_activo = coalesce(nullif(btrim(principio_activo), ''), 'Bórax'),
+  venta_unidad = true,
+  unidades_por_caja = 50,
+  precio_unidad = case when coalesce(precio_unidad, 0) <= 0 then 7 else precio_unidad end,
+  codigo_barras = coalesce(nullif(btrim(codigo_barras), ''), '3311000003739'),
+  activo = true
+where sku = 'FC-578F060C'
 ;
 
 -- FC-IFC-PULEFIN100 | Lima de uñas Pulefin C/100
@@ -2232,7 +2218,8 @@ insert into _fc_rx_ifc125445 (linea, ean, sku, nombre, qty, costo) values
   (5, null, 'FC-IFC-1490724', 'Mercurio rosa de Castilla C/50', 1, 75.00),
   (6, null, 'FC-IFC-1330723', 'Mercurio almidón cajita C/10', 1, 91.50),
   (7, null, 'FC-IFC-1660824', 'Mercurio anís estrella C/25', 1, 131.00),
-  (8, null, 'FC-IFC-1400724', 'Mercurio bórax polvo C/50', 1, 53.00),
+  -- Ya existía FC-578F060C (EAN 3311000003739); no usar FC-IFC-1400724.
+  (8, '3311000003739', 'FC-578F060C', 'Mercurio bórax polvo C/50', 1, 53.00),
   (9, null, 'FC-IFC-PULEFIN100', 'Lima de uñas Pulefin C/100', 1, 94.50),
   (10, null, 'FC-IFC-82943', 'Mercurio pomada manzana C/25', 4, 9.50);
 
