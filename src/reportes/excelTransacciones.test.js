@@ -40,6 +40,17 @@ test("Dashboard y Transacciones muestran el PDF del mes", () => {
   expect(tx).toMatch(/<BotonesReporte[^>]*mostrarPdf/);
 });
 
+test("el PDF no compara usuarios.id con auth.uid()", () => {
+  const sql = readFileSync(join(__dirname, "../../supabase/migrations/20260920100000_reporte_mensual.sql"), "utf8");
+  const copia = readFileSync(join(__dirname, "../../sql/patch_reporte_mensual_20260920.sql"), "utf8");
+  const patch = readFileSync(join(__dirname, "../../sql/patch_reporte_pdf_generado_por_20260923.sql"), "utf8");
+  for (const src of [sql, copia, patch]) {
+    expect(src).not.toMatch(/id = auth\.uid\(\)/);
+    expect(src).toContain("public.sesiones");
+  }
+  expect(patch).toContain("public.rpc_reporte_mensual");
+});
+
 test("botón Excel usa rolEsAdmin (admin o gerente) y el SQL pide fn_require_admin", () => {
   const botones = readFileSync(join(__dirname, "BotonesReporte.jsx"), "utf8");
   const patch = readFileSync(join(__dirname, "../../sql/patch_reporte_excel_admin_20260923.sql"), "utf8");
