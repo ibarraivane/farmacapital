@@ -405,4 +405,63 @@ function cotizacionEspecializado(d, cfg = DEFAULTS) {
   return { subject: `Tu cotización está lista · ${f}`, preheader: money(d.precio), html, text: `Hola ${d.nombre || ''}.\n\nCotización ${f}: ${d.medicamento} ${d.presentacion || ''} (${d.cantidad || 1}).\nPrecio: ${money(d.precio)}. ${d.disponibilidad || ''}\nVálido hasta: ${d.vigencia || ''}\n\nAcepta aquí: ${url}\nWhatsApp ${cfg.whatsappDisplay}` };
 }
 
-module.exports = { envioCotizado, pagoAprobado, listoParaRecoger, enCamino, pedirResena, cotizacionEspecializado, DEFAULTS, _internals: { desglose, layout, hero, tracker, items, grid, button, money, folio, esc } };
+
+/**
+ * Cotización armada por el admin (oficina de Cotizaciones), con varios productos.
+ * Distinta de cotizacionEspecializado (un solo medicamento, flujo de la tienda web):
+ * aquí `d.items` ya trae el importe de cada renglón (precio_venta × cantidad) y nunca
+ * se manda costo ni margen -- eso es interno y no debe llegar al correo del cliente.
+ */
+function cotizacionAdmin(d, cfg = DEFAULTS) {
+  const f = d.folio || 'C-0';
+  const waHref = d.telefonoWhatsapp ? `https://wa.me/52${d.telefonoWhatsapp}` : null;
+  const itemsHtml = items(
+    (d.items || []).map((it) => ({
+      nombre: it.nombre,
+      detalle: it.confirmado === false ? 'Por confirmar' : undefined,
+      cantidad: it.cantidad,
+      importe: it.importe,
+    })),
+    [{ label: 'Total', value: money(d.total), total: true }],
+  );
+  const hayPorConfirmar = (d.items || []).some((it) => it.confirmado === false);
+  const html = layout({
+    cfg,
+    title: 'Tu cotización',
+    top: `Cotización ${f}`,
+    reason: 'Recibes este correo porque pediste una cotización en FarmaCapital.',
+    preheader: `Tu cotización ${f}: ${money(d.total)}`,
+    heroHtml: hero({
+      tag: 'Cotización',
+      title: 'Tu cotización',
+      accent: f,
+      lead: `Hola ${esc(d.nombre || '')}. Aquí está el detalle de lo que nos pediste.${hayPorConfirmar ? ' Los productos marcados "Por confirmar" pueden variar un poco de precio.' : ''}`,
+      amountLabel: 'Total',
+      amount: money(d.total),
+      cta: waHref ? 'Confirmar por WhatsApp' : null,
+      ctaHref: waHref,
+      note: d.vigencia
+        ? `Precio válido hasta <strong style="color:#FFFFFF;">${esc(d.vigencia)}</strong>. Si vence, te lo recotizamos sin costo.`
+        : '',
+    }),
+    blocks: [
+      sectionTitle('Detalle') + itemsHtml,
+      help(cfg, '¿Dudas con tu cotización?'),
+    ],
+  });
+  const text = [
+    `Hola ${d.nombre || ''}.`,
+    '',
+    `Cotización ${f}:`,
+    ...(d.items || []).map(
+      (it) => `- ${it.nombre} ×${it.cantidad || 1}: ${money(it.importe)}${it.confirmado === false ? ' (por confirmar)' : ''}`,
+    ),
+    '',
+    `Total: ${money(d.total)}`,
+    d.vigencia ? `Válido hasta: ${d.vigencia}` : '',
+    '',
+    `WhatsApp ${cfg.whatsappDisplay}`,
+  ].join('\n');
+  return { subject: `Tu cotización · ${f}`, preheader: money(d.total), html, text };
+}
+module.exports = { envioCotizado, pagoAprobado, listoParaRecoger, enCamino, pedirResena, cotizacionEspecializado, cotizacionAdmin, DEFAULTS, _internals: { desglose, layout, hero, tracker, items, grid, button, money, folio, esc } };

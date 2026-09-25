@@ -343,3 +343,39 @@ export function takeCotizacionAbierta() {
     return null;
   }
 }
+
+/**
+ * Documento para el cliente: ¿este renglón ya tiene precio decidido (fuente elegida)
+ * o todavía se está buscando? Los "por confirmar" se muestran igual en el documento,
+ * pero marcados, para no prometer un precio que puede cambiar.
+ */
+export function itemConfirmadoDocumento(item) {
+  return (
+    ["elegido", "pedir", "pedido", "llego"].includes(item?.estado) && item?.precio_venta != null
+  );
+}
+
+/** Vigencia por default del documento: N días hábiles a partir de hoy, en español. */
+export function vigenciaDefaultTexto(diasHabiles = 5) {
+  const d = new Date();
+  let restantes = Math.max(1, diasHabiles);
+  while (restantes > 0) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) restantes -= 1;
+  }
+  return d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Liga de WhatsApp para avisarle al cliente que su cotización ya está lista. */
+export function buildCotizacionWhatsAppCliente({ telefono, nombre, folio, total, vigencia } = {}) {
+  const digits = String(telefono || "").replace(/\D/g, "").slice(-10);
+  if (digits.length !== 10) return "";
+  const quien = nombre ? ` ${nombre}` : "";
+  const totalTxt = total != null ? ` Total: ${fmtDineroCotiz(total)}.` : "";
+  const vigTxt = vigencia ? ` Precio válido hasta ${vigencia}.` : "";
+  const msg =
+    `Hola${quien}, soy FarmaCapital. Tu cotización ${folio || ""} ya está lista.` +
+    `${totalTxt}${vigTxt} Cualquier duda, contesta este WhatsApp.`;
+  return `https://wa.me/52${digits}?text=${encodeURIComponent(msg)}`;
+}

@@ -23,6 +23,8 @@ const { lineasTicketCorreo } = require('../_lib/envioDomicilio');
 const { ticketPagoAdjunto } = require('../_lib/ticketEnvioPdf');
 const { emailsAvisoCliente } = require('../_lib/clienteEmails');
 const { enviarPedidoResena } = require('../_lib/pedirResena');
+const { sendEmail } = require('../_lib/orderNotifications');
+const { cotizacionAdmin } = require('../_lib/emailTemplates');
 
 async function safeJson(req) {
   try {
@@ -44,6 +46,7 @@ function resolveNotificationType(req, body) {
   if (q === 'whatsapp' || q === 'whatsapp-send') return 'whatsapp';
   if (q === 'solicitud' || q === 'solicitudes' || q === 'conseguir') return 'solicitud';
   if (q === 'pedir-resena' || q === 'pedir_resena') return 'pedir-resena';
+  if (q === 'cotizacion' || q === 'cotizacion-email' || q === 'cotizacion_email') return 'cotizacion';
   const b = String(body?.type || body?.notificationType || '').trim().toLowerCase();
   if (b === 'cita' || b === 'cita-confirmacion') return 'cita';
   if (b === 'order' || b === 'order-receipt') return 'order';
@@ -53,6 +56,7 @@ function resolveNotificationType(req, body) {
   if (b === 'whatsapp' || b === 'whatsapp-send') return 'whatsapp';
   if (b === 'solicitud' || b === 'solicitudes' || b === 'conseguir') return 'solicitud';
   if (b === 'pedir-resena' || b === 'pedir_resena') return 'pedir-resena';
+  if (b === 'cotizacion' || b === 'cotizacion-email' || b === 'cotizacion_email') return 'cotizacion';
   if (body?.citaId != null && body?.pedidoId == null) return 'cita';
   if (body?.pedidoId != null && body?.citaId == null) return 'order';
   return '';
@@ -617,6 +621,60 @@ async function handlePedirResena(req, res, body) {
   return res.status(200).json({ ok: true, pedidoId, resena: result });
 }
 
+/** Admin: manda por correo el documento de una cotización (oficina de Cotizaciones). */
+async function handleCotizacionEmail(req, res, body) {
+  const employeeToken = String(
+    body?.employeeSessionToken || body?.sessionTokenEmpleado || ''
+  ).trim();
+  if (!employeeToken) {
+    return res.status(403).json({ ok: false, error: 'missing_employee_session' });
+  }
+
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ ok: false, error: 'missing_server_env' });
+  }
+
+  const validEmployee = await validateEmployeeSession(supabaseUrl, serviceKey, employeeToken);
+  if (!validEmployee) {
+    return res.status(403).json({ ok: false, error: 'invalid_employee_session' });
+  }
+
+  const cot = body?.cotizacion || {};
+  const to = String(body?.email || cot.cliente_email || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return res.status(400).json({ ok: false, error: 'missing_email' });
+  }
+  const itemsIn = Array.isArray(cot.items) ? cot.items : [];
+  if (!itemsIn.length) {
+    return res.status(400).json({ ok: false, error: 'missing_items' });
+  }
+
+  const telDigits = String(cot.cliente_telefono || '').replace(/\D/g, '');
+  const items = itemsIn.map((it) => ({
+    nombre: String(it?.texto || it?.nombre || '').slice(0, 200),
+    cantidad: Number(it?.cantidad) > 0 ? Number(it.cantidad) : 1,
+    importe: Number(it?.precio_venta || 0) * (Number(it?.cantidad) > 0 ? Number(it.cantidad) : 1),
+    confirmado: ['elegido', 'pedir', 'pedido', 'llego'].includes(it?.estado) && it?.precio_venta != null,
+  }));
+  const total = items.reduce((s, it) => s + (Number.isFinite(it.importe) ? it.importe : 0), 0);
+
+  const tpl = cotizacionAdmin({
+    folio: cot.folio || (cot.id ? `C-${cot.id}` : 'C-0'),
+    nombre: cot.cliente_nombre || '',
+    telefonoWhatsapp: telDigits.length === 10 ? telDigits : (telDigits.slice(-10).length === 10 ? telDigits.slice(-10) : null),
+    items,
+    total: Math.round(total * 100) / 100,
+    vigencia: cot.vigencia_texto || null,
+  });
+
+  const result = await sendEmail({ to: [to], subject: tpl.subject, text: tpl.text, html: tpl.html });
+  if (!result?.sent) {
+    return res.status(502).json({ ok: false, error: result?.reason || 'email_provider_error', detail: result?.detail || null });
+  }
+  return res.status(200).json({ ok: true, to, from: result.from });
+}
+
 module.exports = async function handler(req, res) {
   try {
     const body = await safeJson(req);
@@ -650,6 +708,9 @@ module.exports = async function handler(req, res) {
     }
     if (type === 'pedir-resena') {
       return handlePedirResena(req, res, body);
+    }
+    if (type === 'cotizacion') {
+      return handleCotizacionEmail(req, res, body);
     }
 
     return res.status(400).json({ ok: false, error: 'invalid_notification_type' });
