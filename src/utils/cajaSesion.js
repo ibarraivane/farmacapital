@@ -67,6 +67,16 @@ export function esVendedor(usuario) {
   return usuario?.rol === "vendedor";
 }
 
+/**
+ * Ya hubo caja hoy y no cubre los dos turnos: un reinicio a mitad del cierre
+ * no debe pedir abrir el otro (el fondo y la hora de entrada se perderían).
+ */
+export function yaTuvoCajaYNoCubreAmbos(jornada) {
+  if (!jornada || jornada.cubre_ambos) return false;
+  const turnos = Array.isArray(jornada.turnos_hoy) ? jornada.turnos_hoy : [];
+  return turnos.length >= 1;
+}
+
 export async function fetchJornadaHoy() {
   const tok = getSessionToken();
   if (!tok) return { jornada: null, error: "Sesión expirada.", auth: true };

@@ -1,5 +1,5 @@
 import { supabase } from "../supabase";
-import { fetchSesionCajaAbierta, esErrorTimeoutPostgres } from "./cajaSesion";
+import { fetchSesionCajaAbierta, esErrorTimeoutPostgres, yaTuvoCajaYNoCubreAmbos } from "./cajaSesion";
 
 jest.mock("../supabase", () => ({
   supabase: { rpc: jest.fn() },
@@ -8,6 +8,22 @@ jest.mock("../supabase", () => ({
 beforeEach(() => {
   sessionStorage.setItem("farmacapital_session_token", "tok-caja");
   supabase.rpc.mockReset();
+});
+
+test("si ya hubo caja hoy y no cubre ambos, no pide abrir otra", () => {
+  expect(yaTuvoCajaYNoCubreAmbos({
+    cubre_ambos: false,
+    turnos_hoy: ["matutino"],
+  })).toBe(true);
+  expect(yaTuvoCajaYNoCubreAmbos({
+    cubre_ambos: true,
+    turnos_hoy: ["matutino"],
+  })).toBe(false);
+  expect(yaTuvoCajaYNoCubreAmbos({
+    cubre_ambos: false,
+    turnos_hoy: [],
+  })).toBe(false);
+  expect(yaTuvoCajaYNoCubreAmbos(null)).toBe(false);
 });
 
 test("el timeout de Postgres no se trata como caja cerrada", () => {
