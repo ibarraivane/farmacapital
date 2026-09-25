@@ -304,7 +304,7 @@ PRODUCTOS: dict[str, dict] = {
     # ── Farma Mayoreo ──
     "3014260279264": p(
         "3014260279264",
-        nombre="Oral-B Stages cepillo dental infantil Princesas",
+        nombre="Oral-B Stages cepillo dental infantil 3+ Disney/Pixar",
         tipo="marca",
         categoria="Cuidado personal",
         subcategoria="Bucal",
@@ -315,7 +315,7 @@ PRODUCTOS: dict[str, dict] = {
     ),
     "3014260278922": p(
         "3014260278922",
-        nombre="Oral-B Stages cepillo dental infantil Frozen",
+        nombre="Oral-B Stages cepillo dental infantil 3+ Frozen",
         tipo="marca",
         categoria="Cuidado personal",
         subcategoria="Bucal",
@@ -1208,11 +1208,12 @@ TICKETS = [
             "Farma Mayoreo · ID VENTA 306277 · 2026-09-24 16:35 · Central de Abastos\n"
             "-- Ticket térmico partido (3 fotos). Subtotal $2,841.58 + impuestos $136.85 = $2,978.43.\n"
             "-- P.U. ya trae IVA (suma renglones = total). Kotex Unika EAN 7506425625536 (línea sobreimpresa).\n"
+            "-- Oral-B Stages: Toy Story+Princesas comparten EAN 3014260279264 (×2); Frozen es 3014260278922 (×1).\n"
             "-- Lote de fábrica del papel cuando es legible. Caducidad NO: MMAA de la caja. 0000 inválido."
         ),
         "rows": [
             row("3014260279264", "ORAL B CEPILLO S", 2, 51.83, "6041833520"),
-            row("3014260278922", "ORAL B CEPILLO F", 1, 50.97, "5226833520"),
+            row("3014260278922", "ORAL B CEPILLO F", 1, 50.97, "6037833520"),
             row("7501050623766", "AFRIN NODRIP CSE", 2, 107.90, "2601390"),
             row("7501050624732", "AFRIN NODRIP SPR", 2, 101.98, "251279EA"),
             row("7500435246309", "VICK DROPS SABOR", 1, 37.98, "516202"),
@@ -1418,6 +1419,8 @@ def write_leerme(stats: list[tuple[str, str, int, float]]) -> Path:
         "",
         "- **Farma Mayoreo 306277** viene en 3 fotos; el tramo Colgate/Kotex está sobreimpreso.",
         "  Kotex tampones = EAN `7506425625536` (Unika Regular C/12). Total verificado $2,978.43 / 55 pzas.",
+        "  Oral-B: Toy Story+Princesas = mismo EAN `3014260279264` (×2); Frozen = `3014260278922`.",
+        "  Si ya corriste la carga: `sql/patch_oralb_stages_ean_caja_20260924.sql`.",
         "- **Farmalive 13395**: foto partida. Costo = P.U. neto (2–5% desc.). Suerox EAN canónico 13 dígitos.",
         "- **Nadro 605425063**: CFDI 24-sep. Nido + Ureadin Ultra 20. Costo = PR FAR; total con IVA $383.42.",
         "- Equilibrio 445679: foto partida (inicio + pie). P.U. neto; total con IVA $875.52.",

@@ -824,6 +824,7 @@ commit;
 -- Farma Mayoreo · ID VENTA 306277 · 2026-09-24 16:35 · Central de Abastos
 -- Ticket térmico partido (3 fotos). Subtotal $2,841.58 + impuestos $136.85 = $2,978.43.
 -- P.U. ya trae IVA (suma renglones = total). Kotex Unika EAN 7506425625536 (línea sobreimpresa).
+-- Oral-B Stages: Toy Story+Princesas comparten EAN 3014260279264 (×2); Frozen es 3014260278922 (×1).
 -- Lote de fábrica del papel cuando es legible. Caducidad NO: MMAA de la caja. 0000 inválido.
 -- 23 alta(s) stock 0. 7 ya estaban: solo costo / ficha vacía, no PVP.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -862,8 +863,8 @@ insert into _fc_fm_306277 (
   subcategoria, forma, marca, laboratorio, presentacion, principio_activo,
   concentracion, receta, ya, imagen, foto_file, lote
 ) values
-  (1, '3014260279264', 'FC-60279264', 'Oral-B Stages cepillo dental infantil Princesas', 'ORAL B CEPILLO S', 2, 51.83, 65, 'marca', 'Cuidado personal', 'Bucal', 'Cepillo', 'Oral-B', 'P&G', '1 pieza', null, null, false, false, null, null, '6041833520'),
-  (2, '3014260278922', 'FC-60278922', 'Oral-B Stages cepillo dental infantil Frozen', 'ORAL B CEPILLO F', 1, 50.97, 64, 'marca', 'Cuidado personal', 'Bucal', 'Cepillo', 'Oral-B', 'P&G', '1 pieza', null, null, false, false, null, null, '5226833520'),
+  (1, '3014260279264', 'FC-60279264', 'Oral-B Stages cepillo dental infantil 3+ Disney/Pixar', 'ORAL B CEPILLO S', 2, 51.83, 65, 'marca', 'Cuidado personal', 'Bucal', 'Cepillo', 'Oral-B', 'P&G', '1 pieza', null, null, false, false, null, null, '6041833520'),
+  (2, '3014260278922', 'FC-60278922', 'Oral-B Stages cepillo dental infantil 3+ Frozen', 'ORAL B CEPILLO F', 1, 50.97, 64, 'marca', 'Cuidado personal', 'Bucal', 'Cepillo', 'Oral-B', 'P&G', '1 pieza', null, null, false, false, null, null, '6037833520'),
   (3, '7501050623766', 'FC-05062376', 'Afrin No Drip solución nasal 15 mL', 'AFRIN NODRIP CSE', 2, 107.90, 135, 'marca', 'Medicamentos', null, 'Solución nasal', 'Afrin', 'Bayer', 'Frasco 15 mL', 'Oximetazolina', null, false, true, null, null, '2601390'),
   (4, '7501050624732', 'FC-06247327', 'Afrin No Drip spray nasal extra humectante 15 mL', 'AFRIN NODRIP SPR', 2, 101.98, 128, 'marca', 'Medicamentos', null, 'Spray nasal', 'Afrin', 'Bayer', 'Frasco 15 mL', 'Oximetazolina', null, false, true, null, null, '251279EA'),
   (5, '7500435246309', 'FC-35246309', 'Vick Drops jengibre pastillas C/20', 'VICK DROPS SABOR', 1, 37.98, 48, 'marca', 'Botiquín', null, 'Pastilla', 'Vick', 'P&G', 'C/20', null, null, false, true, null, null, '516202'),

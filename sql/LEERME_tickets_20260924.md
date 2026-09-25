@@ -17,6 +17,8 @@ Fotos Central de Abastos (Palillero). Pegar **cada** SQL en Supabase → SQL Edi
 
 - **Farma Mayoreo 306277** viene en 3 fotos; el tramo Colgate/Kotex está sobreimpreso.
   Kotex tampones = EAN `7506425625536` (Unika Regular C/12). Total verificado $2,978.43 / 55 pzas.
+  Oral-B: Toy Story+Princesas = mismo EAN `3014260279264` (×2); Frozen = `3014260278922`.
+  Si ya corriste la carga: `sql/patch_oralb_stages_ean_caja_20260924.sql`.
 - **Farmalive 13395**: foto partida. Costo = P.U. neto (2–5% desc.). Suerox EAN canónico 13 dígitos.
 - **Nadro 605425063**: CFDI 24-sep. Nido + Ureadin Ultra 20. Costo = PR FAR; total con IVA $383.42.
 - Equilibrio 445679: foto partida (inicio + pie). P.U. neto; total con IVA $875.52.
