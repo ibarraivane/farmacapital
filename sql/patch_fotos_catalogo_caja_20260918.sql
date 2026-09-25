@@ -35,9 +35,10 @@ insert into _fc_foto_caja (sku, ean, file) values
   ('FC-84500522', '7506484500522', 'micropore-blanca-2.5x5-3m.jpg'),
   ('FC-84500607', '7506484500607', 'micropore-blanca-2.5x5-3m.jpg'),
   ('FMX-301138',  null,            'micropore-blanca-2.5x5-3m.jpg'),
-  ('FMX-301139',  '7506484500539', 'cintapore-piel-1.25x5.jpg'),
+  -- Cintapore piel (FMX-301139, FC-84500546) salió de esta lista:
+  -- la caja trae marca de agua «Mayoreo Farmacéutico».
+  -- Ver sql/patch_quitar_marcas_agua_20260925.sql.
   ('FMX-301135',  '7506484500515', 'micropore-blanca-1.25x5-3m.jpg'),
-  ('FC-84500546', '7506484500546', 'cintapore-piel-2.5x5.jpg'),
   ('FC-95337454', '7506295337454', 'clearblue-digital-semanas-7506295337454.jpg'),
   ('EQ-BIO212',   '7501573909958', 'colchicina-biomep-1mg-c30-7501573909958.jpg'),
   ('FC-85171118', '7501685171118', 'sico-invisible-c3-7501685171113.jpg'),
