@@ -201,8 +201,7 @@ export default function InicioV2({
       cta: "Cotizar",
       onIr: irCotizar,
     },
-    // Copy de genéricos y marca original compara medicamentos: el responsable
-    // sanitario tiene que revisarlo antes de darlo por cerrado en producción.
+    // Copy de genéricos y marca original aprobado para producción (2026-09-25).
     {
       id: "genericos",
       tono: "jade",
