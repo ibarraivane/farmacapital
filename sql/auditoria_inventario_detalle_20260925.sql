@@ -5,6 +5,12 @@
 -- Resumen 2026-09-25 (producción):
 --   ifc_activos=29 · stock_sin_lote=0 · caja_y_sueltas=85
 --   ean_multi_sku=2 · borax/manzana IFC ya inactivos ✓
+--
+-- Triage IFC_SOSPECHA_DUP (mismo día):
+--   REAL: FC-IFC-PARCHE-ACNE → FC-07020003 figuras (ticket FIGS)
+--         panda FC-07020004 = otra presentación, no merge
+--   FALSO: rosa Castilla vs Season Love mascarilla (tokens rosa+castilla)
+--   FALSO: parche vs Adaferin/Benzac/Yunneco (tokens para+acné) — stopwords
 -- ============================================================================
 
 -- ── 1. Los 2 EAN con más de un SKU activo (arreglar YA) ─────────────────────
@@ -152,7 +158,10 @@ ifc_tok as (
     '\s+'
   ) t(w)
   where length(t.w) >= 4
-    and t.w not in ('mercurio','paquete','frasco','caja','pomada','polvo','venda','stick','colores')
+    and t.w not in (
+      'mercurio','paquete','frasco','caja','pomada','polvo','venda','stick','colores',
+      'para','con','acne','acné','piel','pieles','tratamiento','gel','crema'
+    )
 ),
 canon_tok as (
   select c.id, c.sku, c.nombre, c.codigo_barras as ean, c.stock, t.w
@@ -162,7 +171,10 @@ canon_tok as (
     '\s+'
   ) t(w)
   where length(t.w) >= 4
-    and t.w not in ('mercurio','paquete','frasco','caja','pomada','polvo','venda','stick','colores')
+    and t.w not in (
+      'mercurio','paquete','frasco','caja','pomada','polvo','venda','stick','colores',
+      'para','con','acne','acné','piel','pieles','tratamiento','gel','crema'
+    )
 )
 select
   'IFC_SOSPECHA_DUP' as seccion,

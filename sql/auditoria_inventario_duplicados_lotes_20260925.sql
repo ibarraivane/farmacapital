@@ -74,7 +74,10 @@ ifc_tok as (
     '\s+'
   ) as t(w)
   where length(t.w) >= 4
-    and t.w not in ('mercurio','paquete','frasco','caja','pomada','polvo','venda','stick')
+    and t.w not in (
+      'mercurio','paquete','frasco','caja','pomada','polvo','venda','stick',
+      'para','con','acne','acné','piel','pieles','tratamiento','gel','crema','colores'
+    )
 ),
 canon_tok as (
   select c.*, t.w
@@ -84,7 +87,10 @@ canon_tok as (
     '\s+'
   ) as t(w)
   where length(t.w) >= 4
-    and t.w not in ('mercurio','paquete','frasco','caja','pomada','polvo','venda','stick')
+    and t.w not in (
+      'mercurio','paquete','frasco','caja','pomada','polvo','venda','stick',
+      'para','con','acne','acné','piel','pieles','tratamiento','gel','crema','colores'
+    )
 )
 select
   'A3_sospechosos_nombre' as seccion,
