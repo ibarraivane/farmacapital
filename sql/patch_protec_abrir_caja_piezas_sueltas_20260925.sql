@@ -66,7 +66,23 @@ begin
   where id = v_pid;
 
   if v_sueltas > 0 then
-    raise notice 'Protec id % ya tiene % sueltas; no se abre otra caja', v_pid, v_sueltas;
+    -- Ya hay sueltas: si quedó stock/caja fantasma (REINTEGRO), limpia.
+    if v_cajas > 0 then
+      update public.lotes set
+        cantidad_actual = 0,
+        activo = false
+      where producto_id = v_pid
+        and coalesce(cantidad_actual, 0) > 0;
+      update public.productos set
+        stock = 0,
+        venta_unidad = true,
+        unidades_por_caja = v_upc,
+        precio_unidad = case when coalesce(precio_unidad, 0) <= 0 then 1 else precio_unidad end
+      where id = v_pid;
+      raise notice 'Protec id %: ya tenía % sueltas; se quitó caja fantasma (stock→0)', v_pid, v_sueltas;
+    else
+      raise notice 'Protec id % ya tiene % sueltas; ok', v_pid, v_sueltas;
+    end if;
     return;
   end if;
 
