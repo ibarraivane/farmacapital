@@ -1121,7 +1121,7 @@ commit;
 -- Farmalive · ticket 13395 · 2026-09-24 16:52 · Club Iztapalapa 1
 -- Total $1,359.31 · 18 artículos / 46 unidades · tarjeta crédito.
 -- Foto partida (inicio + pie). Costo = P.U. neto post-descuento.
--- Ticket trunca Suerox a 12 dígitos; pistola = EAN 650… del catálogo.
+-- Suerox naranja-mango: EAN botella 7501048607214 (no el 650… interno).
 -- Sin lote ni caducidad (MMAA de la caja). No inventar 0000.
 -- 11 alta(s) stock 0. 7 ya estaban: solo costo / ficha vacía, no PVP.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -1162,7 +1162,7 @@ insert into _fc_fl_13395 (
 ) values
   (1, '6502400721541', 'FC-00721541', 'Suerox Vitamins manzana y limón 630 mL', 'SUEROX VITAMINS MANZANA V-LIMON 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
   (2, '6502400663068', 'FC-40066306', 'Suerox 8 iones fresa 630 mL', 'SUEROX 8 IONES FRESA 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
-  (3, '6502400721471', 'FC-00721471', 'Suerox Vitamins naranja-mango 630 mL', 'SUEROX VITAMINS NARANJA-MANGO 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
+  (3, '7501048607214', 'FC-00721471', 'Suerox Vitamins naranja-mango 630 mL', 'SUEROX VITAMINS NARANJA-MANGO 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
   (4, '7501033956690', 'FC-33956690', 'Pedialyte SR45 fresa 500 mL', 'PEDIALYTE SR45 FRESA 500 ML | ABBOTT', 2, 23.81, 30, 'marca', 'Bebidas', 'Electrolitos', 'Suero oral', 'Pedialyte', 'Abbott', 'Frasco 500 mL', null, null, false, true, null, null, null),
   (5, '7501033954740', 'FC-33954740', 'Pedialyte SR60 manzana 500 mL', 'PEDIALYTE SR60 MANZANA 500 ML | ABBOTT', 2, 23.81, 30, 'marca', 'Bebidas', 'Electrolitos', 'Suero oral', 'Pedialyte', 'Abbott', 'Frasco 500 mL', null, null, false, true, null, null, null),
   (6, '7501033956775', 'FC-33956775', 'Pedialyte SR60 uva 500 mL', 'PEDIALYTE SR60 UVA 500 ML | ABBOTT', 2, 23.81, 30, 'marca', 'Bebidas', 'Electrolitos', 'Suero oral', 'Pedialyte', 'Abbott', 'Frasco 500 mL', null, null, false, true, null, null, null),
@@ -1278,7 +1278,7 @@ select
   '2026-09-24',
   1359.31,
   'borrador',
-  'Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · precio neto (2–5% desc.) · Suerox EAN canónico 650… check digit · cola Recibir; stock al confirmar pistola + MMAA'
+  'Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · precio neto (2–5% desc.) · Suerox naranja-mango EAN botella 7501048607214 · cola Recibir; stock al confirmar pistola + MMAA'
 where not exists (
   select 1 from public.recepciones
   where folio = '13395'
@@ -1290,7 +1290,7 @@ set
   total_ticket = 1359.31,
   fecha = '2026-09-24',
   proveedor = 'Farmalive',
-  notas = 'Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · precio neto (2–5% desc.) · Suerox EAN canónico 650… check digit · cola Recibir; stock al confirmar pistola + MMAA',
+  notas = 'Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · precio neto (2–5% desc.) · Suerox naranja-mango EAN botella 7501048607214 · cola Recibir; stock al confirmar pistola + MMAA',
   updated_at = now()
 where folio = '13395'
   and coalesce(proveedor, '') ilike '%farmalive%'
@@ -2104,35 +2104,21 @@ update public.productos set
 where sku = 'FC-IFC-1660824'
 ;
 
--- FC-IFC-1400724 | Mercurio bórax polvo C/50
-insert into public.productos (
-  nombre, sku, codigo_barras, categoria, tipo, descripcion,
-  costo, precio, stock, stock_minimo, activo, requiere_receta,
-  marca, presentacion, forma_farmaceutica, imagen_url
-)
-select
-  'Mercurio bórax polvo C/50',
-  'FC-IFC-1400724',
-  null,
-  'Cuidado personal',
-  'marca',
-  'Ticket IFC 125445 · MERCURIO BORAX POLVO C/50 1400724',
-  53.00, 67, 0, 1, true, false,
-  'Mercurio',
-  'C/50',
-  'Polvo',
-  null
-where public.fc_buscar_producto_escaneo('FC-IFC-1400724') is null
-  and not exists (select 1 from public.productos where sku = 'FC-IFC-1400724');
-
+-- FC-578F060C | Mercurio bórax polvo (EAN 3311000003739) — YA EN CATÁLOGO.
+-- No crear FC-IFC-1400724. Ver sql/patch_merge_mercurio_borax_ifc_1400724.sql
 update public.productos set
-  costo = 53.00,
-  precio = case when coalesce(precio, 0) <= 0 then 67 else precio end,
+  costo = case when coalesce(costo, 0) <= 0 then 53.00 else costo end,
+  precio = case when coalesce(precio, 0) <= 0 then 85 else precio end,
   marca = coalesce(nullif(btrim(marca), ''), 'Mercurio'),
   presentacion = coalesce(nullif(btrim(presentacion), ''), 'C/50'),
   forma_farmaceutica = coalesce(nullif(btrim(forma_farmaceutica), ''), 'Polvo'),
-  imagen_url = coalesce(nullif(btrim(imagen_url), ''), null)
-where sku = 'FC-IFC-1400724'
+  principio_activo = coalesce(nullif(btrim(principio_activo), ''), 'Bórax'),
+  venta_unidad = true,
+  unidades_por_caja = 50,
+  precio_unidad = case when coalesce(precio_unidad, 0) <= 0 then 7 else precio_unidad end,
+  codigo_barras = coalesce(nullif(btrim(codigo_barras), ''), '3311000003739'),
+  activo = true
+where sku = 'FC-578F060C'
 ;
 
 -- FC-IFC-PULEFIN100 | Lima de uñas Pulefin C/100
@@ -2166,35 +2152,20 @@ update public.productos set
 where sku = 'FC-IFC-PULEFIN100'
 ;
 
--- FC-IFC-82943 | Mercurio pomada manzana C/25
-insert into public.productos (
-  nombre, sku, codigo_barras, categoria, tipo, descripcion,
-  costo, precio, stock, stock_minimo, activo, requiere_receta,
-  marca, presentacion, forma_farmaceutica, imagen_url
-)
-select
-  'Mercurio pomada manzana C/25',
-  'FC-IFC-82943',
-  null,
-  'Cuidado personal',
-  'marca',
-  'Ticket IFC 125445 · MERCURIO POMADA MANZANA C/25 2530123 82943',
-  9.50, 12, 0, 1, true, false,
-  'Mercurio',
-  'C/25',
-  'Pomada',
-  'https://www.farmacapital.mx/catalogo-propia/mercurio-pomada-manzana-50g.jpg'
-where public.fc_buscar_producto_escaneo('FC-IFC-82943') is null
-  and not exists (select 1 from public.productos where sku = 'FC-IFC-82943');
-
+-- FC-MER-MANZANA | Mercurio pomada manzana — YA EN CATÁLOGO (IFC 122576).
+-- No crear FC-IFC-82943. Ver sql/patch_merge_mercurio_ifc_125445_duplicados.sql
 update public.productos set
-  costo = 9.50,
-  precio = case when coalesce(precio, 0) <= 0 then 12 else precio end,
+  costo = case when coalesce(costo, 0) <= 0 then 9.50 else costo end,
+  precio = case when coalesce(precio, 0) <= 0 then 16 else precio end,
   marca = coalesce(nullif(btrim(marca), ''), 'Mercurio'),
-  presentacion = coalesce(nullif(btrim(presentacion), ''), 'C/25'),
+  presentacion = coalesce(nullif(btrim(presentacion), ''), '50 g'),
   forma_farmaceutica = coalesce(nullif(btrim(forma_farmaceutica), ''), 'Pomada'),
-  imagen_url = coalesce(nullif(btrim(imagen_url), ''), 'https://www.farmacapital.mx/catalogo-propia/mercurio-pomada-manzana-50g.jpg')
-where sku = 'FC-IFC-82943'
+  imagen_url = coalesce(
+    nullif(btrim(imagen_url), ''),
+    'https://www.farmacapital.mx/catalogo-propia/mercurio-pomada-manzana-50g.jpg'
+  ),
+  activo = true
+where sku = 'FC-MER-MANZANA'
 ;
 
 commit;
@@ -2232,9 +2203,10 @@ insert into _fc_rx_ifc125445 (linea, ean, sku, nombre, qty, costo) values
   (5, null, 'FC-IFC-1490724', 'Mercurio rosa de Castilla C/50', 1, 75.00),
   (6, null, 'FC-IFC-1330723', 'Mercurio almidón cajita C/10', 1, 91.50),
   (7, null, 'FC-IFC-1660824', 'Mercurio anís estrella C/25', 1, 131.00),
-  (8, null, 'FC-IFC-1400724', 'Mercurio bórax polvo C/50', 1, 53.00),
+  -- Ya existía FC-578F060C (EAN 3311000003739); no usar FC-IFC-1400724.
+  (8, '3311000003739', 'FC-578F060C', 'Mercurio bórax polvo C/50', 1, 53.00),
   (9, null, 'FC-IFC-PULEFIN100', 'Lima de uñas Pulefin C/100', 1, 94.50),
-  (10, null, 'FC-IFC-82943', 'Mercurio pomada manzana C/25', 4, 9.50);
+  (10, null, 'FC-MER-MANZANA', 'Mercurio pomada manzana', 4, 9.50);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select

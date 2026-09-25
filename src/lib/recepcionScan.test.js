@@ -320,6 +320,28 @@ describe("GS1 / DataMatrix en Recibir", () => {
     expect(r.tipo).toBe("gris");
   });
 
+  test("Oral-B Stages EAN 301… en DataMatrix GS1 abre el renglón", () => {
+    const ean = "3014260279264";
+    expect(extractGs1Gtin(`010${ean}1729123110ABC`)).toBe(ean);
+    expect(eanPistolaListo(ean)).toBe(true);
+    const item = {
+      confirmado: false,
+      codigo_escaneado: ean,
+      sku: "FC-60279264",
+      origen: "pdf",
+    };
+    expect(itemMatchScan(item, ean, [])).toBe(true);
+    expect(itemMatchScan(item, `010${ean}1729123110LOT1`, [])).toBe(true);
+    const r = resolverEscaneoRecepcion({
+      items: [item],
+      codigo: `]d2010${ean}1729123110LOT1`,
+      productos: [],
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("gris");
+    expect(r.codigo).toBe(ean);
+  });
+
   test("Genomma 12 vs 13: ticket se come un 0, la caja lo trae", () => {
     expect(genommaTicketVsCaja("650240079009", "6502400079009")).toBe(true);
     expect(genommaTicketVsCaja("650240078996", "6502400078996")).toBe(true);

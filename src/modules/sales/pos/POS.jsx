@@ -708,10 +708,18 @@ function PosProductoFichaPanel({
                   outline
                   col={C.green}
                   disabled={stockCajas <= 0 && item.stock_unidades === 0}
-                  onClick={() => {
-                    if (item.stock_unidades > 0) onAddUnidad(item);
-                    else if (stockCajas > 0) onAbrirCaja(item);
-                    else showToast("Sin stock disponible.", "warning");
+                  onClick={async () => {
+                    if ((item.stock_unidades || 0) > 0) {
+                      onAddUnidad(item);
+                      return;
+                    }
+                    if (stockCajas > 0) {
+                      // Abre la caja y agrega la pieza en el mismo gesto.
+                      const abierto = await onAbrirCaja(item);
+                      if (abierto && (abierto.stock_unidades || 0) > 0) onAddUnidad(abierto);
+                      return;
+                    }
+                    showToast("Sin stock disponible.", "warning");
                   }}
                   style={filaIconoBtn({ flex: "1 1 160px" })}
                 >
@@ -1338,6 +1346,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (!next) return prev;
       if (
         next.stock === prev.stock &&
+        next.stock_unidades === prev.stock_unidades &&
         next.precio === prev.precio &&
         next.nombre === prev.nombre &&
         next.min_caducidad_lotes === prev.min_caducidad_lotes
@@ -1915,21 +1924,61 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   };
 
   const abrirCaja = async (item) => {
-    if (getStockCajasPOS(item) <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
+    if (getStockCajasPOS(item) <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return null; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { showToast("Sesión expirada.", "error"); return; }
+    if (!tok) { showToast("Sesión expirada.", "error"); return null; }
     const { data, error } = await supabase.rpc("abrir_caja_secure", {
       p_session_token: tok,
       p_producto_id: item.id,
     });
     if (error) {
       showToast(`Error al abrir caja: ${error.message}`, "error");
-      return;
+      return null;
     }
     const nuevasUnidades =
       data?.[0]?.stock_unidades_nuevo ??
       ((item.stock_unidades || 0) + (item.unidades_por_caja || 0));
+    const nuevoStockCajas =
+      data?.[0]?.stock_nuevo ??
+      Math.max(0, getStockCajasPOS(item) - 1);
+    // Refresca catálogo local: si no, el 2º clic a Pieza sigue viendo 0 sueltas
+    // e intenta abrir otra caja (ya sin stock) en vez de vender.
+    let actualizado = null;
+    setProds((prev) =>
+      prev.map((p) => {
+        if (String(p.id) !== String(item.id)) return p;
+        const lotes = Array.isArray(p.lotes) ? p.lotes.map((l) => ({ ...l })) : [];
+        const idx = lotes.findIndex(
+          (l) => l?.activo !== false && getLoteCantidadDisponible(l) > 0
+        );
+        if (idx >= 0) {
+          const cant = Math.max(0, getLoteCantidadDisponible(lotes[idx]) - 1);
+          lotes[idx] = {
+            ...lotes[idx],
+            cantidad_actual: cant,
+            activo: cant > 0 ? lotes[idx].activo !== false : false,
+          };
+        }
+        actualizado = {
+          ...p,
+          stock: nuevoStockCajas,
+          stock_unidades: nuevasUnidades,
+          lotes,
+        };
+        return actualizado;
+      })
+    );
     showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
+    if (actualizado) {
+      setFichaProd((prev) =>
+        prev && String(prev.id) === String(item.id) ? actualizado : prev
+      );
+    }
+    return actualizado || {
+      ...item,
+      stock: nuevoStockCajas,
+      stock_unidades: nuevasUnidades,
+    };
   };
 
   const RX_IND_PRESETS = ["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"];

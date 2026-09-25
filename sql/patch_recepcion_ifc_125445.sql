@@ -25,9 +25,10 @@ insert into _fc_rx_ifc125445 (linea, ean, sku, nombre, qty, costo) values
   (5, null, 'FC-IFC-1490724', 'Mercurio rosa de Castilla C/50', 1, 75.00),
   (6, null, 'FC-IFC-1330723', 'Mercurio almidón cajita C/10', 1, 91.50),
   (7, null, 'FC-IFC-1660824', 'Mercurio anís estrella C/25', 1, 131.00),
-  (8, null, 'FC-IFC-1400724', 'Mercurio bórax polvo C/50', 1, 53.00),
+  -- Ya existía FC-578F060C (EAN 3311000003739); no usar FC-IFC-1400724.
+  (8, '3311000003739', 'FC-578F060C', 'Mercurio bórax polvo C/50', 1, 53.00),
   (9, null, 'FC-IFC-PULEFIN100', 'Lima de uñas Pulefin C/100', 1, 94.50),
-  (10, null, 'FC-IFC-82943', 'Mercurio pomada manzana C/25', 4, 9.50);
+  (10, null, 'FC-MER-MANZANA', 'Mercurio pomada manzana', 4, 9.50);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select

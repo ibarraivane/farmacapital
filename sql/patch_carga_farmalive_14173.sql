@@ -48,7 +48,7 @@ insert into _fc_fl_14173 (
   (7, '7501019006647', 'FC-19006647', 'Saba buenas noches delgada C/10', 'TOA SANIT SABA U DELGADA NOCT C/A 10 | SCA', 2, 29.83, 38, 'marca', 'Cuidado personal', 'Higiene femenina', 'Toallas', 'Saba', 'SCA', 'Paquete 10 toallas', null, null, false, false, null, null, null),
   (8, '6502400744552', 'FC-40074455', 'Suerox 8 iones uva mora azul 630 mL', 'SUEROX 8 IONES UVA MORA AZUL 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
   (9, '6502400322571', 'FC-00322571', 'Suerox 8 iones manzana 630 mL', 'SUEROX 8 IONES MANZANA 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
-  (10, '6502400721471', 'FC-00721471', 'Suerox Vitamins naranja-mango 630 mL', 'SUEROX VITAMINS NARANJA-MANGO 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
+  (10, '7501048607214', 'FC-00721471', 'Suerox Vitamins naranja-mango 630 mL', 'SUEROX VITAMINS NARANJA-MANGO 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
   (11, '6502400322712', 'FC-40032271', 'Suerox 8 iones uva 630 mL', 'SUEROX 8 IONES UVA 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
   (12, '6502400721541', 'FC-00721541', 'Suerox Vitamins manzana y limón 630 mL', 'SUEROX VITAMINS MANZANA V-LIMON 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
   (13, '7500435231237', 'FC-35231237', 'Head & Shoulders anti comezón shampoo 375 mL', 'SHAM HEAD & S ANTI-COMEZON 375 ML | PG PERF', 1, 86.07, 108, 'marca', 'Cuidado personal', 'Capilar', 'Shampoo', 'Head & Shoulders', 'P&G', 'Frasco 375 mL', null, null, false, true, null, null, null),
@@ -158,7 +158,7 @@ select
   '2026-09-21',
   1538.69,
   'borrador',
-  'Ticket Farmalive 14173 · Club Iztapalapa 1 · 21-sep-2026 · precio neto (2–7% desc.) · Suerox EAN canónico 650…2 · cola Recibir; stock al confirmar pistola + MMAA'
+  'Ticket Farmalive 14173 · Club Iztapalapa 1 · 21-sep-2026 · precio neto (2–7% desc.) · Suerox naranja-mango EAN botella 7501048607214 · cola Recibir; stock al confirmar pistola + MMAA'
 where not exists (
   select 1 from public.recepciones
   where folio = '14173'
@@ -170,7 +170,7 @@ set
   total_ticket = 1538.69,
   fecha = '2026-09-21',
   proveedor = 'Farmalive',
-  notas = 'Ticket Farmalive 14173 · Club Iztapalapa 1 · 21-sep-2026 · precio neto (2–7% desc.) · Suerox EAN canónico 650…2 · cola Recibir; stock al confirmar pistola + MMAA',
+  notas = 'Ticket Farmalive 14173 · Club Iztapalapa 1 · 21-sep-2026 · precio neto (2–7% desc.) · Suerox naranja-mango EAN botella 7501048607214 · cola Recibir; stock al confirmar pistola + MMAA',
   updated_at = now()
 where folio = '14173'
   and coalesce(proveedor, '') ilike '%farmalive%'

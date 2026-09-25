@@ -19,10 +19,11 @@ Fotos Central de Abastos (Palillero). Pegar **cada** SQL en Supabase → SQL Edi
   Kotex tampones = EAN `7506425625536` (Unika Regular C/12). Total verificado $2,978.43 / 55 pzas.
   Oral-B: Toy Story+Princesas = mismo EAN `3014260279264` (×2); Frozen = `3014260278922`.
   Si ya corriste la carga: `sql/patch_oralb_stages_ean_caja_20260924.sql`.
-- **Farmalive 13395**: foto partida. Costo = P.U. neto (2–5% desc.). Suerox EAN canónico 13 dígitos.
+- **Farmalive 13395**: foto partida. Costo = P.U. neto (2–5% desc.). Suerox naranja-mango EAN botella `7501048607214` (no el 650… interno). Si el borrador ya estaba vivo: `sql/patch_suerox_naranja_mango_ean_botella_20260925.sql`.
 - **Nadro 605425063**: CFDI 24-sep. Nido + Ureadin Ultra 20. Costo = PR FAR; total con IVA $383.42.
 - Equilibrio 445679: foto partida (inicio + pie). P.U. neto; total con IVA $875.52.
 - Cityfarma: pendiente de pago $1,051.12 (subtotal + IVA). Hipebe es **0.4 mg** (ticket dice 4MG).
 - IFC: sin EAN GS1 salvo Tensolastic `7501048690909`. Ligar EAN de caja al escanear.
 - Caducidad: nunca inventar. `0000` inválido. MMAA de la caja al pistolear.
 - Regenerar: `python3 scripts/generar_carga_tickets_20260924.py`
+- Si al escanear no abre (Oral-B / vendas / Suerox): `sql/LEERME_reparar_recibir_20260925.md`
