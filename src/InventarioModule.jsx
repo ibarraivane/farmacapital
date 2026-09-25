@@ -4,6 +4,7 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { logAudit, normalizeForSearch } from "./utils";
 import {
+  codigoListaSkuOrigen,
   inventarioProductMatchesBusqueda,
   inventarioSearchRelevanceRank,
   spellSuggestFromProducts,
@@ -2369,7 +2370,16 @@ function renderInventarioColumnCell(colId, ctx) {
           field="sku"
           value={p.sku || ""}
           mono
-          display={<span style={tdEllipsisStyle}>{p.sku || "—"}</span>}
+          display={
+            <span style={{ display: "block", minWidth: 0 }}>
+              <span style={tdEllipsisStyle}>{p.sku || "—"}</span>
+              {codigoListaSkuOrigen(p) ? (
+                <span style={{ display: "block", fontSize: 10, color: C.textMid, fontWeight: 600 }}>
+                  lista {codigoListaSkuOrigen(p)}
+                </span>
+              ) : null}
+            </span>
+          }
           tdStyle={{
             padding: "6px 8px 6px 6px",
             color: C.textMid,

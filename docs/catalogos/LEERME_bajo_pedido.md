@@ -30,3 +30,18 @@ Las fotos de terceros (Shopify / Tienda Nube) quedan en `imagen_url` para que la
 Espejo 17-sep-2026: **2,231** packshots bajaron a `catalogo-imagenes/bajo-pedido/` (3 rechazadas en `fotos_pendientes_bajo_pedido.csv`). **1,086** SKUs siguen sin foto de origen (`sin_imagen_bajo_pedido.csv`), casi todos Ewafra sin match Promexsa: el alta existe, la foto no está cerrada.
 
 Mepiel: cuando llegue la lista, cruzar por EAN contra Dermaexpress y cargar fuente `mepiel`.
+
+## Suplementos Mayoreo (2026-09-22)
+
+`catalogo_suplementosmayoreo.csv` es el export de suplementosmayoreo.com. La columna `precio` es **costo de mayoreo**. La vitrina queda en `precio = 0` (Ordenar).
+
+```bash
+node scripts/generar-alta-suplementos-mayoreo.js
+```
+
+SQL, después de `patch_bajo_pedido_20260916.sql`:
+
+1. `sql/patch_fuente_suplementosmayoreo_20260922.sql`
+2. `sql/alta_suplementos_mayoreo_partes/` en orden (`00` → filas → `99`)
+
+No usa la staging de Dermaexpress (`_fc_cat_bp_stg`). Hormonales, SARMs, clenbuterol, somatropina, inyectables y merch (playeras, gorras, muestras) no entran. La foto es la del CSV (Firebase del mayorista); el resto queda `foto_pendiente` en `alta_suplementos_mayoreo_20260922.csv`.
