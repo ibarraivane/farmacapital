@@ -26,3 +26,4 @@ Fotos Central de Abastos (Palillero). Pegar **cada** SQL en Supabase → SQL Edi
 - IFC: sin EAN GS1 salvo Tensolastic `7501048690909`. Ligar EAN de caja al escanear.
 - Caducidad: nunca inventar. `0000` inválido. MMAA de la caja al pistolear.
 - Regenerar: `python3 scripts/generar_carga_tickets_20260924.py`
+- Si al escanear no abre (Oral-B / vendas / Suerox): `sql/LEERME_reparar_recibir_20260925.md`

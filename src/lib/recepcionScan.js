@@ -52,7 +52,7 @@ export function extractGs1Gtin(raw) {
     return g.startsWith("0") ? g.slice(1) : g;
   }
 
-  const embebido = digits.match(/750\d{10}|650240\d{6,7}|360\d{10}|361\d{10}|400\d{10}|333\d{10}|366\d{10}|020\d{9}/);
+  const embebido = digits.match(/750\d{10}|650240\d{6,7}|301\d{10}|360\d{10}|361\d{10}|400\d{10}|333\d{10}|366\d{10}|020\d{9}/);
   return embebido ? embebido[0] : null;
 }
 
