@@ -656,8 +656,10 @@ PRODUCTOS: dict[str, dict] = {
         presentacion="Botella 630 mL",
         ya=True,
     ),
-    "6502400721471": p(
-        "6502400721471",
+    # Botella real EAN-13 7501048607214 (ref. Genomma 013443).
+    # El 6502400721471 era código interno Farmalive — la pistola no lo lee.
+    "7501048607214": p(
+        "7501048607214",
         sku="FC-00721471",
         nombre="Suerox Vitamins naranja-mango 630 mL",
         categoria="Bebidas",
@@ -1255,7 +1257,7 @@ TICKETS = [
         "total": 1359.31,
         "notas": (
             "Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · "
-            "precio neto (2–5% desc.) · Suerox EAN canónico 650… check digit · "
+            "precio neto (2–5% desc.) · Suerox naranja-mango EAN botella 7501048607214 · "
             "cola Recibir; stock al confirmar pistola + MMAA"
         ),
         "tmp": "_fc_fl_13395",
@@ -1263,13 +1265,13 @@ TICKETS = [
             "Farmalive · ticket 13395 · 2026-09-24 16:52 · Club Iztapalapa 1\n"
             "-- Total $1,359.31 · 18 artículos / 46 unidades · tarjeta crédito.\n"
             "-- Foto partida (inicio + pie). Costo = P.U. neto post-descuento.\n"
-            "-- Ticket trunca Suerox a 12 dígitos; pistola = EAN 650… del catálogo.\n"
+            "-- Suerox naranja-mango: EAN botella 7501048607214 (no el 650… interno).\n"
             "-- Sin lote ni caducidad (MMAA de la caja). No inventar 0000."
         ),
         "rows": [
             row("6502400721541", "SUEROX VITAMINS MANZANA V-LIMON 630 ML | GENOMMA LAB", 2, 14.73),
             row("6502400663068", "SUEROX 8 IONES FRESA 630 ML | GENOMMA LAB", 2, 14.73),
-            row("6502400721471", "SUEROX VITAMINS NARANJA-MANGO 630 ML | GENOMMA LAB", 2, 14.73),
+            row("7501048607214", "SUEROX VITAMINS NARANJA-MANGO 630 ML | GENOMMA LAB", 2, 14.73),
             row("7501033956690", "PEDIALYTE SR45 FRESA 500 ML | ABBOTT", 2, 23.81),
             row("7501033954740", "PEDIALYTE SR60 MANZANA 500 ML | ABBOTT", 2, 23.81),
             row("7501033956775", "PEDIALYTE SR60 UVA 500 ML | ABBOTT", 2, 23.81),
@@ -1421,7 +1423,9 @@ def write_leerme(stats: list[tuple[str, str, int, float]]) -> Path:
         "  Kotex tampones = EAN `7506425625536` (Unika Regular C/12). Total verificado $2,978.43 / 55 pzas.",
         "  Oral-B: Toy Story+Princesas = mismo EAN `3014260279264` (×2); Frozen = `3014260278922`.",
         "  Si ya corriste la carga: `sql/patch_oralb_stages_ean_caja_20260924.sql`.",
-        "- **Farmalive 13395**: foto partida. Costo = P.U. neto (2–5% desc.). Suerox EAN canónico 13 dígitos.",
+        "- **Farmalive 13395**: foto partida. Costo = P.U. neto (2–5% desc.). "
+        "Suerox naranja-mango EAN botella `7501048607214` (no el 650… interno). "
+        "Si el borrador ya estaba vivo: `sql/patch_suerox_naranja_mango_ean_botella_20260925.sql`.",
         "- **Nadro 605425063**: CFDI 24-sep. Nido + Ureadin Ultra 20. Costo = PR FAR; total con IVA $383.42.",
         "- Equilibrio 445679: foto partida (inicio + pie). P.U. neto; total con IVA $875.52.",
         "- Cityfarma: pendiente de pago $1,051.12 (subtotal + IVA). Hipebe es **0.4 mg** (ticket dice 4MG).",

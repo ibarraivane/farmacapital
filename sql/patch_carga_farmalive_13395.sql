@@ -1,7 +1,7 @@
 -- Farmalive · ticket 13395 · 2026-09-24 16:52 · Club Iztapalapa 1
 -- Total $1,359.31 · 18 artículos / 46 unidades · tarjeta crédito.
 -- Foto partida (inicio + pie). Costo = P.U. neto post-descuento.
--- Ticket trunca Suerox a 12 dígitos; pistola = EAN 650… del catálogo.
+-- Suerox naranja-mango: EAN botella 7501048607214 (no el 650… interno).
 -- Sin lote ni caducidad (MMAA de la caja). No inventar 0000.
 -- 11 alta(s) stock 0. 7 ya estaban: solo costo / ficha vacía, no PVP.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -42,7 +42,7 @@ insert into _fc_fl_13395 (
 ) values
   (1, '6502400721541', 'FC-00721541', 'Suerox Vitamins manzana y limón 630 mL', 'SUEROX VITAMINS MANZANA V-LIMON 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
   (2, '6502400663068', 'FC-40066306', 'Suerox 8 iones fresa 630 mL', 'SUEROX 8 IONES FRESA 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
-  (3, '6502400721471', 'FC-00721471', 'Suerox Vitamins naranja-mango 630 mL', 'SUEROX VITAMINS NARANJA-MANGO 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
+  (3, '7501048607214', 'FC-00721471', 'Suerox Vitamins naranja-mango 630 mL', 'SUEROX VITAMINS NARANJA-MANGO 630 ML | GENOMMA LAB', 2, 14.73, 24, 'generico', 'Bebidas', 'Electrolitos', 'Bebida', 'Suerox', 'Genomma Lab', 'Botella 630 mL', null, null, false, true, null, null, null),
   (4, '7501033956690', 'FC-33956690', 'Pedialyte SR45 fresa 500 mL', 'PEDIALYTE SR45 FRESA 500 ML | ABBOTT', 2, 23.81, 30, 'marca', 'Bebidas', 'Electrolitos', 'Suero oral', 'Pedialyte', 'Abbott', 'Frasco 500 mL', null, null, false, true, null, null, null),
   (5, '7501033954740', 'FC-33954740', 'Pedialyte SR60 manzana 500 mL', 'PEDIALYTE SR60 MANZANA 500 ML | ABBOTT', 2, 23.81, 30, 'marca', 'Bebidas', 'Electrolitos', 'Suero oral', 'Pedialyte', 'Abbott', 'Frasco 500 mL', null, null, false, true, null, null, null),
   (6, '7501033956775', 'FC-33956775', 'Pedialyte SR60 uva 500 mL', 'PEDIALYTE SR60 UVA 500 ML | ABBOTT', 2, 23.81, 30, 'marca', 'Bebidas', 'Electrolitos', 'Suero oral', 'Pedialyte', 'Abbott', 'Frasco 500 mL', null, null, false, true, null, null, null),
@@ -158,7 +158,7 @@ select
   '2026-09-24',
   1359.31,
   'borrador',
-  'Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · precio neto (2–5% desc.) · Suerox EAN canónico 650… check digit · cola Recibir; stock al confirmar pistola + MMAA'
+  'Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · precio neto (2–5% desc.) · Suerox naranja-mango EAN botella 7501048607214 · cola Recibir; stock al confirmar pistola + MMAA'
 where not exists (
   select 1 from public.recepciones
   where folio = '13395'
@@ -170,7 +170,7 @@ set
   total_ticket = 1359.31,
   fecha = '2026-09-24',
   proveedor = 'Farmalive',
-  notas = 'Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · precio neto (2–5% desc.) · Suerox EAN canónico 650… check digit · cola Recibir; stock al confirmar pistola + MMAA',
+  notas = 'Ticket Farmalive 13395 · Club Iztapalapa 1 · 24-sep-2026 16:52 · precio neto (2–5% desc.) · Suerox naranja-mango EAN botella 7501048607214 · cola Recibir; stock al confirmar pistola + MMAA',
   updated_at = now()
 where folio = '13395'
   and coalesce(proveedor, '') ilike '%farmalive%'
