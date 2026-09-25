@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Tickets 24-sep-2026 (fotos Central de Abastos) → cola Recibir.
 
-7 pedidos:
+8 pedidos:
   Cityfarma S325583 · El Surtidor 134730 · IFC 125448 · IFC 125445
-  Equilibrio 445679 · Farma Mayoreo 306277 · Farmalive 13395
+  Equilibrio 445679 · Farma Mayoreo 306277 · Farmalive 13395 · Nadro 605425063
 
 Farma Mayoreo viene en 3 fotos (inicio / medio / final con sobreimpresión).
 Reconstruido por renglones: 30 arts / 55 pzas / total $2,978.43.
@@ -838,6 +838,33 @@ PRODUCTOS: dict[str, dict] = {
         presentacion="2-pack",
         ya=True,
     ),
+    # ── Nadro 605425063 ──
+    "7501059225411": p(
+        "7501059225411",
+        sku="FC-59225411",
+        nombre="Nido Kinder 1+ leche en polvo 360 g",
+        tipo="marca",
+        categoria="Nutrición",
+        subcategoria="Fórmula láctea",
+        forma="Polvo",
+        marca="Nido",
+        laboratorio="Nestlé",
+        presentacion="Bolsa 360 g",
+        ya=True,
+    ),
+    "8470001541871": p(
+        "8470001541871",
+        sku="FC-01541871",
+        nombre="Isdin Ureadin Ultra 20 crema anti-rugosidades 100 ml",
+        tipo="marca",
+        categoria="Cuidado personal",
+        subcategoria="Dermatología",
+        forma="Crema",
+        marca="Ureadin",
+        laboratorio="Isdin",
+        presentacion="Tubo 100 ml",
+        ya=True,
+    ),
 }
 
 
@@ -1262,6 +1289,32 @@ TICKETS = [
         "suma_ok": 1359.31,
         "suma_tol": 0.15,
     },
+    {
+        "key": "nadro_605425063",
+        "folio": "605425063",
+        "proveedor": "Nadro",
+        "proveedor_ilike": "nadro",
+        "fecha": "2026-09-24",
+        "total": 383.42,
+        "notas": (
+            "Factura Nadro 605425063 · México Sur · 24-sep-2026 · "
+            "entrega FarmaCapital · efectivo · cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "tmp": "_fc_nd_605425063",
+        "header": (
+            "Nadro · factura 605425063 · 2026-09-24 · sucursal México Sur\n"
+            "-- CFDI · subtotal $341.45 + IVA 16% $41.97 = $383.42 · 2 renglones / 2 pzas.\n"
+            "-- Costo = valor unitario (PR FAR). Ureadin lleva IVA; Nido IVA 0%.\n"
+            "-- Ureadin lote fábrica L022029 (del CFDI). Caducidad NO: MMAA de la caja. 0000 inválido.\n"
+            "-- Ficha: Nido Nestlé · Isdin Ureadin Ultra 20 (no el código del renglón)."
+        ),
+        "rows": [
+            row("7501059225411", "NIDO KINDER 1+ LECHE 360 G", 1, 79.16),
+            row("8470001541871", "UREADIN ULTRA 20CRA ANTI-RUG100ML", 1, 262.29, "L022029"),
+        ],
+        "piezas": 2,
+        "suma_ok": 341.45,
+    },
 ]
 
 
@@ -1366,6 +1419,7 @@ def write_leerme(stats: list[tuple[str, str, int, float]]) -> Path:
         "- **Farma Mayoreo 306277** viene en 3 fotos; el tramo Colgate/Kotex está sobreimpreso.",
         "  Kotex tampones = EAN `7506425625536` (Unika Regular C/12). Total verificado $2,978.43 / 55 pzas.",
         "- **Farmalive 13395**: foto partida. Costo = P.U. neto (2–5% desc.). Suerox EAN canónico 13 dígitos.",
+        "- **Nadro 605425063**: CFDI 24-sep. Nido + Ureadin Ultra 20. Costo = PR FAR; total con IVA $383.42.",
         "- Equilibrio 445679: foto partida (inicio + pie). P.U. neto; total con IVA $875.52.",
         "- Cityfarma: pendiente de pago $1,051.12 (subtotal + IVA). Hipebe es **0.4 mg** (ticket dice 4MG).",
         "- IFC: sin EAN GS1 salvo Tensolastic `7501048690909`. Ligar EAN de caja al escanear.",
