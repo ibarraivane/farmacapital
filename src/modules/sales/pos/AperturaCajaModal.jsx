@@ -8,8 +8,10 @@ import { showToast } from "../../../ui";
 import { writeAdminUser, readAdminUser } from "../../../utils";
 
 /**
- * Pantalla bloqueante: el vendedor no vende hasta contar el fondo que le entregaron.
- * Esa confirmación es también la hora de entrada.
+ * Pantalla de apertura de caja.
+ * - Vendedor: bloqueante (no vende hasta contar el fondo).
+ * - Admin/gerente (`opcional`): la puede abrir a voluntad sin dejar de vender;
+ *   el backend ya elige matutino/vespertino por reloj si no tiene turno RH.
  */
 function BotonCerrarSesion({ onCerrarSesion, C }) {
   if (!onCerrarSesion) return null;
@@ -29,7 +31,32 @@ function BotonCerrarSesion({ onCerrarSesion, C }) {
   );
 }
 
-export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada, onCerrarSesion }) {
+function BotonCancelarOpcional({ opcional, onCancel, C }) {
+  if (!opcional || !onCancel) return null;
+  return (
+    <button
+      type="button"
+      onClick={onCancel}
+      style={{
+        marginTop: 12, padding: "12px 20px", borderRadius: 10,
+        border: `1px solid ${C.border}`, background: "transparent",
+        color: C.textMid, fontSize: 14, fontWeight: 700,
+        fontFamily: "inherit", cursor: "pointer", width: "100%",
+      }}
+    >
+      Seguir sin abrir caja
+    </button>
+  );
+}
+
+export default function AperturaCajaModal({
+  usuario,
+  onAbierta,
+  onSesionExpirada,
+  onCerrarSesion,
+  opcional = false,
+  onCancel,
+}) {
   const C = C_LIGHT;
   const [denoms, setDenoms] = useState({});
   const [nota, setNota] = useState("");
@@ -43,9 +70,10 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
     turnoDePerfil(usuario) ||
     (jornadaListo ? turnoDePerfil({ turno: jornada?.turno_habitual }) : null);
   const turnoAbrir = jornadaListo ? (jornada?.turno_abrir || null) : null;
-  const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
+  const nombre = (usuario?.nombre || (opcional ? "Admin" : "Vendedor")).split(" ")[0];
   const ocupadaPor = jornadaListo ? (jornada?.caja_ocupada_por || null) : null;
-  const noPuedeAbrir = jornadaListo && !turnoAbrir && !!turnoAsignado;
+  // Admin opcional: sin turno RH igual puede abrir (el RPC usa la hora).
+  const noPuedeAbrir = !opcional && jornadaListo && !turnoAbrir && !!turnoAsignado;
 
   const cargarJornada = useCallback(async () => {
     const { jornada: j, error } = await fetchJornadaHoy();
@@ -91,11 +119,11 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
   };
 
   const confirmar = async () => {
-    if (!turnoAsignado) {
+    if (!opcional && !turnoAsignado) {
       showToast("RH debe asignarte un turno antes de abrir caja.", "warning");
       return;
     }
-    if (!turnoAbrir) {
+    if (!opcional && !turnoAbrir) {
       showToast(
         jornada?.ya_cerro_turno
           ? "Ya cerraste tu turno de hoy. El otro turno es de tu compañera."
@@ -120,7 +148,14 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
       showToast(error, "error");
       return;
     }
-    showToast(sesion?.reanudada ? "Caja reanudada. Ya puedes vender." : "Caja abierta. Ya puedes vender.", "success");
+    showToast(
+      sesion?.reanudada
+        ? "Caja reanudada."
+        : opcional
+          ? "Caja abierta. El fondo queda registrado para el corte."
+          : "Caja abierta. Ya puedes vender.",
+      "success"
+    );
     onAbierta?.(sesion);
   };
 
@@ -159,7 +194,8 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
               al momento{jornada?.mi_corte_id ? <> (corte #{jornada.mi_corte_id})</> : null}.
             </p>
           )}
-          <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />
+          <BotonCancelarOpcional opcional={opcional} onCancel={onCancel} C={C} />
+          {!opcional && <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />}
         </div>
       </div>
     );
@@ -203,11 +239,24 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
           >
             {revisando ? "Revisando…" : "Ya cortó, revisar"}
           </button>
-          <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />
+          <BotonCancelarOpcional opcional={opcional} onCancel={onCancel} C={C} />
+          {!opcional && <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />}
         </div>
       </div>
     );
   }
+
+  const puedeConfirmar = opcional
+    ? jornadaListo && !saving
+    : jornadaListo && !!turnoAsignado && !!turnoAbrir && !saving;
+
+  const etiquetaConfirmar = (() => {
+    if (saving) return "Abriendo…";
+    if (!jornadaListo) return "Revisando turno…";
+    if (opcional) return "Confirmar apertura";
+    if (!turnoAsignado) return "Falta asignar turno en RH";
+    return "Confirmar y empezar turno";
+  })();
 
   return (
     <div style={{
@@ -227,25 +276,39 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
           color: BRAND.primary,
           marginBottom: 8,
         }}>
-          {jornada?.cubre_ambos
-            ? "Día de cobertura · ambos turnos"
-            : (jornada?.cobertura || (turnoAbrir && turnoAsignado && turnoAbrir !== turnoAsignado))
-              ? "Cobertura · abres el turno que está libre"
-              : "Inicio de turno"}
+          {opcional
+            ? "Apertura opcional"
+            : jornada?.cubre_ambos
+              ? "Día de cobertura · ambos turnos"
+              : (jornada?.cobertura || (turnoAbrir && turnoAsignado && turnoAbrir !== turnoAsignado))
+                ? "Cobertura · abres el turno que está libre"
+                : "Inicio de turno"}
         </div>
         <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
-          Abre caja para empezar, {nombre}
+          {opcional ? `Abre caja, ${nombre}` : `Abre caja para empezar, ${nombre}`}
         </h1>
         <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
-          Cuenta las piezas que te entregaron. El total se calcula solo.
-          Esta hora queda como tu entrada.
-          {!turnoAsignado
-            ? " RH aún no te asigna turno (matutino o vespertino): no puedes abrir caja."
-            : jornada?.cubre_ambos
-              ? <> Hoy cubres <strong>los dos turnos</strong>. Este conteo es el <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Al corte, vuelve a abrir el siguiente.</>
-              : (turnoAbrir && turnoAsignado && turnoAbrir !== turnoAsignado)
-                ? <> Tu perfil RH es <strong>{etiquetaTurno(turnoAsignado)}</strong>, pero abres <strong>{etiquetaTurno(turnoAbrir)}</strong> porque esa caja está libre. Quien abre, vende y corta ese turno.</>
-                : <> Turno de caja: <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Quien abre, vende en ese turno.</>}
+          {opcional ? (
+            <>
+              Cuenta el efectivo del cajón. Queda como fondo del turno para el corte.
+              Puedes vender sin abrir; esto solo registra el fondo.
+              {!turnoAsignado
+                ? " El sistema usa matutino o vespertino según la hora."
+                : <> Turno: <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>.</>}
+            </>
+          ) : (
+            <>
+              Cuenta las piezas que te entregaron. El total se calcula solo.
+              Esta hora queda como tu entrada.
+              {!turnoAsignado
+                ? " RH aún no te asigna turno (matutino o vespertino): no puedes abrir caja."
+                : jornada?.cubre_ambos
+                  ? <> Hoy cubres <strong>los dos turnos</strong>. Este conteo es el <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Al corte, vuelve a abrir el siguiente.</>
+                  : (turnoAbrir && turnoAsignado && turnoAbrir !== turnoAsignado)
+                    ? <> Tu perfil RH es <strong>{etiquetaTurno(turnoAsignado)}</strong>, pero abres <strong>{etiquetaTurno(turnoAbrir)}</strong> porque esa caja está libre. Quien abre, vende y corta ese turno.</>
+                    : <> Turno de caja: <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Quien abre, vende en ese turno.</>}
+            </>
+          )}
         </p>
 
         <div style={{
@@ -283,7 +346,9 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
             onChange={(e) => setNota(e.target.value)}
             rows={2}
             maxLength={400}
-            placeholder="Ej. Faltaban dos de $20; me entregaron $1,460"
+            placeholder={opcional
+              ? "Ej. Fondo $4,084 · sobrante $4 del turno anterior"
+              : "Ej. Faltaban dos de $20; me entregaron $1,460"}
             style={{
               width: "100%",
               boxSizing: "border-box",
@@ -302,7 +367,7 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
         <button
           type="button"
           onClick={confirmar}
-          disabled={saving || !turnoAsignado || !jornadaListo || !turnoAbrir}
+          disabled={!puedeConfirmar}
           style={{
             marginTop: 18,
             width: "100%",
@@ -313,18 +378,14 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
             color: "#fff",
             fontWeight: 800,
             fontSize: 15,
-            cursor: saving ? "wait" : "pointer",
+            cursor: saving ? "wait" : (puedeConfirmar ? "pointer" : "not-allowed"),
+            opacity: puedeConfirmar ? 1 : 0.55,
           }}
         >
-          {saving
-            ? "Abriendo…"
-            : !turnoAsignado
-              ? "Falta asignar turno en RH"
-              : !jornadaListo
-                ? "Revisando turno…"
-                : "Confirmar y empezar turno"}
+          {etiquetaConfirmar}
         </button>
-        <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />
+        <BotonCancelarOpcional opcional={opcional} onCancel={onCancel} C={C} />
+        {!opcional && <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />}
       </div>
     </div>
   );
