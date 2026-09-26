@@ -47,6 +47,15 @@ export function blistersPorCaja(unidadesPorCaja, piezasPorBlister) {
   return n >= 2 ? n : 0;
 }
 
+/** Piezas de cada blister a partir de cuántos blisters trae la caja. 0 si no parte entero. */
+export function piezasDesdeBlistersPorCaja(unidadesPorCaja, blisters) {
+  const upc = parseInt(unidadesPorCaja, 10) || 0;
+  const n = parseInt(blisters, 10) || 0;
+  if (n < 2 || upc < 4 || upc % n !== 0) return 0;
+  const ppb = upc / n;
+  return ppb >= 2 ? ppb : 0;
+}
+
 /**
  * Tira por defecto para una caja que ya se vende por pieza.
  * 10 si salen 2 o más tiras; si no, 7; si no, la mitad cuando es par;

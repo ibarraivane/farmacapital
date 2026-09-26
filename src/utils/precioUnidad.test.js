@@ -1,6 +1,7 @@
 import {
   aplicarReglaPrecioUnidad,
   blistersPorCaja,
+  piezasDesdeBlistersPorCaja,
   calcPrecioBlister,
   calcPrecioUnidad,
   margenBrutoPct,
@@ -56,6 +57,10 @@ const cajaBlister = {
 
 test("30 tabletas en blister de 10 parten en 3; 28 no", () => {
   expect(blistersPorCaja(30, 10)).toBe(3);
+  expect(piezasDesdeBlistersPorCaja(24, 2)).toBe(12);
+  expect(piezasDesdeBlistersPorCaja(24, 3)).toBe(8);
+  expect(piezasDesdeBlistersPorCaja(24, 5)).toBe(0);
+  expect(piezasDesdeBlistersPorCaja(30, 3)).toBe(10);
   expect(blistersPorCaja(28, 10)).toBe(0);
   expect(blistersPorCaja(30, 0)).toBe(0);
   expect(blistersPorCaja(30, 1)).toBe(0);
