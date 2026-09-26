@@ -1043,6 +1043,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 <div>
                   <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>EFECTIVO</label>
                   <input
+                    className="farmacapital-field-input"
                     value={editForm.monto_efectivo || ""}
                     onChange={(e) => setEditForm((f) => ({ ...f, monto_efectivo: e.target.value }))}
                     inputMode="decimal"
@@ -1050,8 +1051,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   />
                 </div>
                 <div>
-                  <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>TARJETA</label>
+                  <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>TARJETA BBVA</label>
                   <input
+                    className="farmacapital-field-input"
                     value={editForm.monto_tarjeta || ""}
                     onChange={(e) => setEditForm((f) => ({ ...f, monto_tarjeta: e.target.value }))}
                     inputMode="decimal"

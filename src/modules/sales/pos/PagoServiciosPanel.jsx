@@ -76,7 +76,7 @@ export async function rpcRegistrarPagoServicio(payload) {
   return data;
 }
 
-export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshToken = 0, usuario = null, config = null }) {
+export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarrow, refreshToken = 0, usuario = null, config = null }) {
   const C = C_LIGHT;
   const [selId, setSelId] = useState("telcel");
   const [referencia, setReferencia] = useState("");
@@ -264,6 +264,26 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       return;
     }
     onCobrarPoint?.({ ...buildPayload("tarjeta"), folio });
+  };
+
+  const cobrarTarjetaBbva = () => {
+    if (!validarForm()) return;
+    const folio = `SRV-${Date.now().toString().slice(-8)}`;
+    if (metodoSel === "mixto") {
+      if (!mixtoParts?.ok) {
+        showToast(mensajeErrorMixto(mixtoParts?.reason, total, $), "error");
+        return;
+      }
+      onCobrarBbva?.({
+        ...buildPayload("mixto", mixtoParts),
+        folio,
+        // La terminal BBVA solo cobra la pata tarjeta; el registro guarda el mixto completo.
+        totalBbva: mixtoParts.tarjeta,
+        canalTarjeta: "bbva",
+      });
+      return;
+    }
+    onCobrarBbva?.({ ...buildPayload("tarjeta"), folio, canalTarjeta: "bbva" });
   };
 
   const guardarSaldoAdmin = async () => {
@@ -583,7 +603,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
               ) : mixtoEfectivoStr.trim() !== "" ? (
                 <div style={{ color: C.red, fontSize: 11, fontWeight: 700 }}>{mensajeErrorMixto(mixtoParts?.reason, total, $)}</div>
               ) : (
-                <div style={{ color: C.textDim, fontSize: 11 }}>Indica la parte en efectivo; el resto se cobra con tarjeta.</div>
+                <div style={{ color: C.textDim, fontSize: 11 }}>Indica la parte en efectivo. El resto se cobra en la terminal BBVA.</div>
               )}
             </div>
           )}
@@ -603,6 +623,13 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                 Registrar mixto
               </Btn>
             )}
+            {typeof onCobrarBbva === "function" && (metodoSel === "tarjeta" || metodoSel === "mixto") && (
+              <Btn col="#1a237e" onClick={cobrarTarjetaBbva} dis={guardando || (metodoSel === "mixto" && !mixtoParts?.ok)}>
+                {metodoSel === "mixto" && mixtoParts?.ok
+                  ? `Cobrar ${$(mixtoParts.tarjeta)} en terminal BBVA`
+                  : "Cobrar en terminal BBVA"}
+              </Btn>
+            )}
             {typeof onCobrarPoint === "function" && (metodoSel === "tarjeta" || metodoSel === "mixto") && (
               <Btn ol col={BRAND.secondary} onClick={cobrarTarjetaPoint} dis={guardando || (metodoSel === "mixto" && !mixtoParts?.ok)}>
                 {metodoSel === "mixto" && mixtoParts?.ok
@@ -612,7 +639,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
             )}
           </div>
           <div style={{ color: C.textDim, fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>
-            Efectivo suma al cajón. Tarjeta suma al corte de tarjeta (Point o BBVA). Mixto parte cada monto. Point cobra comisión sobre lo que pases en la terminal.
+            Efectivo suma al cajón. La parte de tarjeta (terminal BBVA o Point) suma al corte de tarjeta. Mixto parte cada monto: el efectivo al cajón y el resto a la terminal.
           </div>
         </Box>
 

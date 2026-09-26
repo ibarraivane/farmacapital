@@ -1010,6 +1010,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const mpCitaRef = useRef(null);
   /** Pago de servicios pendiente de registrar tras cobro Point. */
   const mpServicioRef = useRef(null);
+  /** Pago de servicios pendiente de registrar tras confirmar la terminal BBVA. */
+  const bbvaServicioRef = useRef(null);
   const [serviciosRefresh, setServiciosRefresh] = useState(0);
   const bbvaCitaRef = useRef(null);
   /** Pedido online pickup pendiente de cobro BBVA (no venta de carrito). */
@@ -3553,7 +3555,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       <BBVATerminalModal
         open={bbvaModal}
         total={
-          bbvaOnlinePedidoRef.current
+          bbvaServicioRef.current
+            ? Number(bbvaServicioRef.current.totalBbva ?? bbvaServicioRef.current.montoTarjeta ?? bbvaServicioRef.current.total) || 0
+            : bbvaOnlinePedidoRef.current
             ? Number(bbvaOnlinePedidoRef.current.total) || 0
             : bbvaCitaRef.current
             ? totalCobroConsulta(bbvaCitaRef.current)
@@ -3562,14 +3566,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               : (creditoNum > 0 ? aCobrar : total))
         }
         folio={
-          bbvaOnlinePedidoRef.current
+          bbvaServicioRef.current?.folio
+            || (bbvaOnlinePedidoRef.current
             ? formatFolioOnline(bbvaOnlinePedidoRef.current.id)
             : bbvaCitaRef.current
               ? `CONS-${bbvaCitaRef.current.id}`
-              : bbvaFolio
+              : bbvaFolio)
         }
         hint={
-          bbvaOnlinePedidoRef.current
+          bbvaServicioRef.current
+            ? (bbvaServicioRef.current.metodoPago === "mixto"
+              ? `Pago mixto: ingresa solo ${$(bbvaServicioRef.current.totalBbva ?? bbvaServicioRef.current.montoTarjeta)} en la terminal BBVA. El efectivo ya lo capturaste aparte.`
+              : "Ingresa el total del servicio en la terminal BBVA y confirma el voucher. Queda como tarjeta en el corte, no como efectivo.")
+            : bbvaOnlinePedidoRef.current
             ? "Pick-up online: ingresa el total del pedido en la terminal BBVA, procesa la tarjeta y confirma el voucher aquí. No se crea una venta nueva."
             : pay === "mixto"
             ? `Pago mixto: ingresa solo ${mixtoMontosRef.current?.tarjeta > 0 ? $(mixtoMontosRef.current.tarjeta) : "la parte en tarjeta"} en la terminal BBVA.`
@@ -3609,6 +3618,28 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             }
             return;
           }
+          const servBbva = bbvaServicioRef.current;
+          bbvaServicioRef.current = null;
+          if (servBbva) {
+            try {
+              const data = await rpcRegistrarPagoServicio(servBbva);
+              const como = servBbva.metodoPago === "mixto"
+                ? `Mixto · Ef ${$(servBbva.montoEfectivo)} + BBVA ${$(servBbva.montoTarjeta)}`
+                : "Tarjeta BBVA";
+              showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)} · ${como}`, "success");
+              printServicioTicket({
+                ...servBbva,
+                folio: data.folio,
+                total: data.total_cobrado,
+                comision: data.comision ?? servBbva.comision,
+                canalTarjeta: "bbva",
+              }, config);
+              setServiciosRefresh((n) => n + 1);
+            } catch (e) {
+              showToast(e?.message || "La terminal BBVA ya cobró, pero no se registró el servicio. Regístralo en Mixto.", "error");
+            }
+            return;
+          }
           const citaBbva = bbvaCitaRef.current;
           bbvaCitaRef.current = null;
           if (citaBbva) {
@@ -3627,6 +3658,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           setBbvaModal(false);
           bbvaCitaRef.current = null;
           bbvaOnlinePedidoRef.current = null;
+          bbvaServicioRef.current = null;
           recetaOrigenPendienteRef.current = "no_aplica";
         }}
       />
@@ -4577,9 +4609,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           refreshToken={serviciosRefresh}
           onCobrarPoint={(payload) => {
             mpCitaRef.current = null;
+            bbvaServicioRef.current = null;
             mpServicioRef.current = payload;
             setMpFolio(payload.folio);
             setMpModal(true);
+          }}
+          onCobrarBbva={(payload) => {
+            mpServicioRef.current = null;
+            bbvaCitaRef.current = null;
+            bbvaOnlinePedidoRef.current = null;
+            bbvaServicioRef.current = payload;
+            setBbvaFolio(payload.folio);
+            setBbvaModal(true);
           }}
         />
       )}

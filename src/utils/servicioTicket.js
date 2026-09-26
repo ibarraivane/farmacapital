@@ -12,6 +12,17 @@ function money(n) {
   return `$${parseFloat(n || 0).toFixed(2)}`;
 }
 
+function lineaMetodoServicio(d) {
+  const metodo = String(d.metodoPago || "").toLowerCase();
+  const bbva = String(d.canalTarjeta || "").toLowerCase() === "bbva";
+  if (metodo === "mixto" && Number(d.montoEfectivo) > 0 && Number(d.montoTarjeta) > 0) {
+    const canal = bbva ? "BBVA" : "Tarjeta";
+    return `Mixto · Ef ${money(d.montoEfectivo)} + ${canal} ${money(d.montoTarjeta)}`;
+  }
+  if (metodo === "tarjeta" && bbva) return "Tarjeta BBVA";
+  return labelMetodoServicio(d.metodoPago);
+}
+
 /** Acepta el payload del POS o la fila de pagos_servicio / Transacciones. */
 export function normalizarServicioTicket(src = {}) {
   return {
@@ -25,6 +36,7 @@ export function normalizarServicioTicket(src = {}) {
     metodoPago: src.metodoPago || src.metodo_pago || "efectivo",
     montoEfectivo: src.montoEfectivo ?? src.monto_efectivo ?? 0,
     montoTarjeta: src.montoTarjeta ?? src.monto_tarjeta ?? 0,
+    canalTarjeta: src.canalTarjeta || src.canal_tarjeta || "",
     created_at: src.created_at || Date.now(),
   };
 }
@@ -66,11 +78,7 @@ export function servicioTicketInner(raw, config) {
   <div class="total-line"><div>Recargo:</div><div>${money(d.comision)}</div></div>
   <div class="total-line ticket-total-final"><div>TOTAL:</div><div>${money(d.total)}</div></div>
   <div class="separator"></div>
-  <div class="ticket-block">Método: ${esc(
-    String(d.metodoPago || "").toLowerCase() === "mixto" && Number(d.montoEfectivo) > 0 && Number(d.montoTarjeta) > 0
-      ? `Mixto · Ef ${money(d.montoEfectivo)} + Tarjeta ${money(d.montoTarjeta)}`
-      : labelMetodoServicio(d.metodoPago)
-  )}</div>
+  <div class="ticket-block">Método: ${esc(lineaMetodoServicio(d))}</div>
   <div class="separator"></div>
   <div class="footer">
     <div class="ticket-gracias">Gracias por su compra</div>

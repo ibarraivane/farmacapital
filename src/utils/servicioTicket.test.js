@@ -57,6 +57,23 @@ describe("ticket de recarga", () => {
     expect(html).not.toContain("Efectivo");
   });
 
+  test("un mixto con terminal BBVA imprime efectivo y la parte de tarjeta", () => {
+    const html = servicioTicketInner({
+      folio: "SRV-20260926-000050",
+      proveedor: "Telcel",
+      categoria: "recarga",
+      montoServicio: 50,
+      comision: 0,
+      total: 50,
+      metodoPago: "mixto",
+      montoEfectivo: 30,
+      montoTarjeta: 20,
+      canalTarjeta: "bbva",
+    }, {});
+    expect(html).toContain("Mixto · Ef $30.00 + BBVA $20.00");
+    expect(html).toContain("$50.00");
+  });
+
   test("escapa la referencia para no romper el HTML", () => {
     const html = servicioTicketInner({
       folio: "SRV-1",

@@ -31,6 +31,14 @@ test("Mixto pide desglose de efectivo antes de registrar", async () => {
   expect(screen.getByRole("button", { name: /Registrar mixto/ })).toBeDisabled();
 });
 
+test("la parte de tarjeta del mixto se puede cobrar en la terminal BBVA", async () => {
+  render(<PagoServiciosPanel isNarrow onCobrarBbva={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Mixto/ }));
+  expect(screen.getByRole("button", { name: /terminal BBVA/ })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: /^💳 Tarjeta$/ }));
+  expect(screen.getByRole("button", { name: /Cobrar en terminal BBVA/ })).toBeEnabled();
+});
+
 test("Izzi suma $10 por default y el admin puede editar los recargos", async () => {
   render(<PagoServiciosPanel isNarrow usuario={{ rol: "admin", nombre: "Dueño" }} />);
   expect(await screen.findByRole("button", { name: /Izzi/ })).toBeInTheDocument();
