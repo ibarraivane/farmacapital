@@ -1,6 +1,11 @@
 import {
+  cajasAAbrirParaPiezas,
+  cajasAAbrirPorError,
+  esErrorPiezasSueltas,
+  piezasSueltasDisponibles,
   precioMostradorPos,
   productoCajaEsFalsa,
+  puedeAbrirCajaParaPiezas,
   stockMostradorPos,
 } from "./productoCajaFalsa";
 
@@ -102,6 +107,40 @@ test("óxido de zinc C/50 es frasco, no 50 piezas", () => {
 
 test("sin venta_unidad no aplica", () => {
   expect(productoCajaEsFalsa({ venta_unidad: false, precio: 6, precio_unidad: 6, unidades_por_caja: 60 })).toBe(false);
+});
+
+test("Amox C/12: 3 cajas cubren 2 piezas aunque no haya sueltas", () => {
+  const amox = {
+    venta_unidad: true,
+    unidades_por_caja: 12,
+    precio: 37,
+    precio_unidad: 10,
+    stock_unidades: 0,
+    nombre: "Amoxicilina 500 mg",
+    presentacion: "Caja con 12 cápsulas",
+    forma_farmaceutica: "Cápsula",
+  };
+  expect(puedeAbrirCajaParaPiezas(amox)).toBe(true);
+  expect(piezasSueltasDisponibles(amox, 3)).toBe(36);
+  expect(cajasAAbrirParaPiezas(amox, 3, 2)).toBe(1);
+  const msg = "piezas sueltas insuficientes para producto 1181 (faltan 2)";
+  expect(esErrorPiezasSueltas(msg)).toBe(true);
+  expect(cajasAAbrirPorError(amox, 3, msg)).toBe(1);
+});
+
+test("pote y caja falsa no se abren para vender piezas", () => {
+  const jaloma = {
+    venta_unidad: true,
+    unidades_por_caja: 60,
+    precio: 8,
+    precio_unidad: 6,
+    stock_unidades: 0,
+    nombre: "Jaloma pomada labios sabores 3 g",
+    presentacion: "3 g",
+  };
+  expect(puedeAbrirCajaParaPiezas(jaloma)).toBe(false);
+  expect(piezasSueltasDisponibles(jaloma, 1)).toBe(0);
+  expect(cajasAAbrirParaPiezas(jaloma, 1, 2)).toBe(0);
 });
 
 test("stock y precio de mostrador usan la pieza", () => {
