@@ -26,6 +26,7 @@ function mustInclude(haystack, needle, msg) {
 }
 
 const sql = read("sql/patch_cotizaciones_20260921.sql");
+const sqlDoc = read("sql/patch_cotizaciones_documento_20260925.sql");
 const lib = read("src/lib/cotizaciones.js");
 const ui = read("src/CotizacionesModule.jsx");
 const mostrador = read("src/PedidosMostradorModule.jsx");
@@ -48,6 +49,12 @@ mustInclude(sql, "admin_promover_solicitud_a_cotizacion", "SQL debe promover des
 mustInclude(sql, "solicitud_id", "SQL debe ligar opcionalmente a solicitudes_mostrador");
 mustInclude(sql, "check (origen in ('admin', 'tienda', 'mostrador', 'whatsapp', 'telefono', 'otro'))", "SQL debe restringir origen");
 mustInclude(sql, "check (tipo_margen in ('marca', 'generico'))", "SQL debe restringir tipo_margen");
+mustInclude(sqlDoc, "vigencia_texto", "SQL del documento debe guardar la vigencia");
+mustInclude(sqlDoc, "admin_marcar_cotizacion_enviada", "SQL del documento debe marcar el envío");
+mustInclude(lib, "totalDocumentoCliente", "lib debe sumar el documento sin el costo");
+mustInclude(lib, "escaparHtmlCotizacion", "lib debe escapar el HTML de imprimir");
+mustInclude(ui, "Documento para cliente", "UI debe ofrecer el documento al cliente");
+mustInclude(ui, "totalDocumentoCliente", "UI debe usar el total del documento");
 
 mustInclude(lib, "precioSugeridoCotizacion", "lib debe sugerir precio con recargo Recibir");
 mustInclude(lib, "numerosLineaCotizacion", "lib debe separar recargo y margen");
@@ -76,7 +83,7 @@ mustInclude(manual, 'moduloId: "cotiz"', "Manual debe documentar Cotizaciones");
 
 const uiRpcs = [...ui.matchAll(/supabase\.rpc\("([^"]+)"/g)].map((m) => m[1]);
 const sqlFuncs = new Set(
-  [...sql.matchAll(/function public\.(admin_\w+)/g)].map((m) => m[1]),
+  [...`${sql}\n${sqlDoc}`.matchAll(/function public\.(admin_\w+)/g)].map((m) => m[1]),
 );
 for (const rpc of uiRpcs) {
   if (!sqlFuncs.has(rpc)) fail(`UI llama ${rpc} pero no está en el patch SQL`);

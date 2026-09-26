@@ -651,13 +651,21 @@ async function handleCotizacionEmail(req, res, body) {
   }
 
   const telDigits = String(cot.cliente_telefono || '').replace(/\D/g, '');
-  const items = itemsIn.map((it) => ({
-    nombre: String(it?.texto || it?.nombre || '').slice(0, 200),
-    cantidad: Number(it?.cantidad) > 0 ? Number(it.cantidad) : 1,
-    importe: Number(it?.precio_venta || 0) * (Number(it?.cantidad) > 0 ? Number(it.cantidad) : 1),
-    confirmado: ['elegido', 'pedir', 'pedido', 'llego'].includes(it?.estado) && it?.precio_venta != null,
-  }));
-  const total = items.reduce((s, it) => s + (Number.isFinite(it.importe) ? it.importe : 0), 0);
+  const items = itemsIn.map((it) => {
+    const cantidad = Number(it?.cantidad) > 0 ? Number(it.cantidad) : 1;
+    const precio = Number(it?.precio_venta);
+    const tienePrecio = it?.precio_venta != null && it?.precio_venta !== '' && Number.isFinite(precio) && precio >= 0;
+    return {
+      nombre: String(it?.texto || it?.nombre || '').slice(0, 200),
+      cantidad,
+      importe: tienePrecio ? Math.round(precio * cantidad * 100) / 100 : null,
+      confirmado: ['elegido', 'pedir', 'pedido', 'llego'].includes(it?.estado) && tienePrecio,
+    };
+  });
+  const conPrecio = items.filter((it) => it.importe != null);
+  const total = conPrecio.length
+    ? Math.round(conPrecio.reduce((s, it) => s + it.importe, 0) * 100) / 100
+    : null;
 
   const tpl = cotizacionAdmin({
     folio: cot.folio || (cot.id ? `C-${cot.id}` : 'C-0'),

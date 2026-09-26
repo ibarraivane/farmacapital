@@ -41,6 +41,26 @@ describe('plantillas de correo v2', () => {
     }
   });
 
+  it('la cotización de oficina no inventa $0 si falta el precio', () => {
+    const m = T.cotizacionAdmin({
+      folio: 'C-142',
+      nombre: 'María & López',
+      items: [
+        { nombre: 'Anthelios', cantidad: 2, importe: 160, confirmado: false },
+        { nombre: 'CeraVe', cantidad: 1, importe: null, confirmado: false },
+      ],
+      total: 160,
+      vigencia: '2 de octubre de 2026',
+    });
+    assert.match(m.html, /Anthelios/);
+    assert.match(m.html, /Por confirmar/);
+    assert.match(m.html, /Pendiente/);
+    assert.match(m.html, /María &amp; López/);
+    assert.match(m.text, /Total: \$160\.00/);
+    assert.match(m.text, /CeraVe ×1: Pendiente/);
+    assert.doesNotMatch(m.html, /costo_elegido|margen/i);
+  });
+
   it('el desglose muestra el Servicio y cuadra', () => {
     const m = T.envioCotizado({ pedidoId: 441, items, servicio: 5, envio: 100, total: 307 });
     assert.match(m.text, /Productos: \$202\.00/);

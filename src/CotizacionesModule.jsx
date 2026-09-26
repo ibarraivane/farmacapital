@@ -21,6 +21,7 @@ import {
   TIPOS_MARGEN_COTIZACION,
   URGENCIAS_COTIZACION,
   buildCotizacionWhatsAppCliente,
+  escaparHtmlCotizacion,
   etiquetaEstadoCotizacion,
   etiquetaEstadoItemCotizacion,
   etiquetaLugarCotizacion,
@@ -29,6 +30,7 @@ import {
   folioCotizacion,
   fmtDineroCotiz,
   haceCuanto,
+  importeDocumentoCliente,
   itemCotizacionValido,
   itemConfirmadoDocumento,
   numerosLineaCotizacion,
@@ -36,6 +38,7 @@ import {
   siguientesEstadosCotizacion,
   siguientesEstadosItemCotizacion,
   takeCotizacionAbierta,
+  totalDocumentoCliente,
   totalesCotizacion,
   vigenciaDefaultTexto,
 } from "./lib/cotizaciones";
@@ -212,20 +215,21 @@ function lineaAltaVacia() {
  */
 function imprimirDocumentoCotizacion(detalle, vigenciaTexto) {
   const items = Array.isArray(detalle.items) ? detalle.items : [];
-  const tot = totalesCotizacion(items);
+  const totalCliente = totalDocumentoCliente(items);
+  const esc = escaparHtmlCotizacion;
   const filasHtml = items
     .map((it) => {
       const confirmado = itemConfirmadoDocumento(it);
-      const importe = it.precio_venta != null ? Number(it.precio_venta) * Number(it.cantidad || 1) : null;
+      const importe = importeDocumentoCliente(it);
       return `
       <tr>
         <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">
-          ${it.texto}
+          ${esc(it.texto)}
           ${!confirmado ? '<div style="font-size:11px;color:#B45309;font-weight:700;margin-top:2px;">Por confirmar</div>' : ""}
         </td>
-        <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${it.cantidad || 1}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${esc(it.cantidad || 1)}</td>
         <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;">
-          ${importe != null ? fmtDineroCotiz(importe) : "Pendiente"}
+          ${importe != null ? esc(fmtDineroCotiz(importe)) : "Pendiente"}
         </td>
       </tr>`;
     })
@@ -235,7 +239,7 @@ function imprimirDocumentoCotizacion(detalle, vigenciaTexto) {
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <title>${detalle.folio || folioCotizacion(detalle.id)} — FarmaCapital</title>
+  <title>${esc(detalle.folio || folioCotizacion(detalle.id))} — FarmaCapital</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: Arial, sans-serif; font-size: 13px; color: #001534; padding: 32px; max-width: 700px; margin: 0 auto; }
@@ -259,25 +263,25 @@ function imprimirDocumentoCotizacion(detalle, vigenciaTexto) {
   <div class="header">
     <div class="marca">FarmaCapital</div>
     <div class="folio">
-      <div><strong>Cotización:</strong> ${detalle.folio || folioCotizacion(detalle.id)}</div>
+      <div><strong>Cotización:</strong> ${esc(detalle.folio || folioCotizacion(detalle.id))}</div>
       <div>${new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}</div>
     </div>
   </div>
 
   <div class="cliente">
-    <div class="field"><label>Cliente</label><p>${detalle.cliente_nombre || "—"}</p></div>
-    <div class="field"><label>Contacto</label><p>${detalle.cliente_telefono || detalle.cliente_email || "—"}</p></div>
-    ${detalle.direccion ? `<div class="field" style="grid-column:1/-1"><label>Entrega</label><p>${detalle.direccion}</p></div>` : ""}
+    <div class="field"><label>Cliente</label><p>${esc(detalle.cliente_nombre || "—")}</p></div>
+    <div class="field"><label>Contacto</label><p>${esc(detalle.cliente_telefono || detalle.cliente_email || "—")}</p></div>
+    ${detalle.direccion ? `<div class="field" style="grid-column:1/-1"><label>Entrega</label><p>${esc(detalle.direccion)}</p></div>` : ""}
   </div>
 
   <h4>Detalle</h4>
   <table>
     <thead><tr><th>Producto</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Importe</th></tr></thead>
     <tbody>${filasHtml}</tbody>
-    <tfoot><tr class="total-row"><td colspan="2">Total</td><td style="text-align:right;">${fmtDineroCotiz(tot.venta)}</td></tr></tfoot>
+    <tfoot><tr class="total-row"><td colspan="2">Total</td><td style="text-align:right;">${esc(fmtDineroCotiz(totalCliente))}</td></tr></tfoot>
   </table>
 
-  ${vigenciaTexto ? `<div class="vigencia"><strong>Precio válido hasta ${vigenciaTexto}.</strong> Si vence, te lo recotizamos sin costo.</div>` : ""}
+  ${vigenciaTexto ? `<div class="vigencia"><strong>Precio válido hasta ${esc(vigenciaTexto)}.</strong> Si vence, te lo recotizamos sin costo.</div>` : ""}
 
   <div class="footer">
     Este documento es una cotización, no una factura fiscal.<br>
@@ -755,7 +759,7 @@ export default function CotizacionesModule({ usuario }) {
  */
 function PanelDocumentoCotizacion({ detalle, rpc }) {
   const items = Array.isArray(detalle.items) ? detalle.items : [];
-  const tot = totalesCotizacion(items);
+  const totalCliente = totalDocumentoCliente(items);
   const [vigencia, setVigencia] = useState(detalle.vigencia_texto || vigenciaDefaultTexto());
   const [guardandoVigencia, setGuardandoVigencia] = useState(false);
   const [enviandoCorreo, setEnviandoCorreo] = useState(false);
@@ -782,7 +786,7 @@ function PanelDocumentoCotizacion({ detalle, rpc }) {
       telefono: detalle.cliente_telefono,
       nombre: detalle.cliente_nombre,
       folio: detalle.folio || folioCotizacion(detalle.id),
-      total: tot.venta,
+      total: totalCliente,
       vigencia,
     });
     if (!link) {
@@ -853,7 +857,7 @@ function PanelDocumentoCotizacion({ detalle, rpc }) {
           <tbody>
             {items.map((it) => {
               const confirmado = itemConfirmadoDocumento(it);
-              const importe = it.precio_venta != null ? Number(it.precio_venta) * Number(it.cantidad || 1) : null;
+              const importe = importeDocumentoCliente(it);
               return (
                 <tr key={it.id}>
                   <td style={{ padding: "8px" }}>
@@ -873,7 +877,7 @@ function PanelDocumentoCotizacion({ detalle, rpc }) {
         </table>
       </div>
       <div style={{ textAlign: "right", fontWeight: 800, fontSize: 15, color: C.text, marginBottom: 14 }}>
-        Total: {fmtDineroCotiz(tot.venta)}
+        Total: {fmtDineroCotiz(totalCliente)}
       </div>
 
       <label style={{ display: "block", marginBottom: 12, maxWidth: 360 }}>

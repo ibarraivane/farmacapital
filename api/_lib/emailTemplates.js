@@ -118,7 +118,7 @@ function items(list, sums) {
       <div class="c-ink" style="font-size:15px;font-weight:650;color:${C.ink};">${esc(it.nombre)}</div>
       ${it.detalle ? `<div class="c-muted" style="font-size:13px;color:${C.muted};padding-top:2px;">${esc(it.detalle)}</div>` : ''}</td>
     <td align="center" valign="middle" class="c-ink b-line" style="padding:12px 0;border-bottom:1px solid ${C.line};font-family:${SANS};font-size:15px;color:${C.ink};">${esc(it.cantidad ?? 1)}</td>
-    <td align="right" valign="middle" class="c-ink b-line" style="padding:12px 0;border-bottom:1px solid ${C.line};font-family:${SANS};font-size:15px;font-weight:650;color:${C.ink};white-space:nowrap;">${money(it.importe)}</td></tr>`).join('');
+    <td align="right" valign="middle" class="c-ink b-line" style="padding:12px 0;border-bottom:1px solid ${C.line};font-family:${SANS};font-size:15px;font-weight:650;color:${C.ink};white-space:nowrap;">${it.importeTexto ? esc(it.importeTexto) : money(it.importe)}</td></tr>`).join('');
   const s = (sums || []).map((r) => r.total
     ? `<tr><td colspan="3" class="c-ink" style="padding:14px 0 0;font-family:${SANS};font-size:16px;font-weight:800;color:${C.ink};">${esc(r.label)}</td>
        <td align="right" class="c-ink" style="padding:14px 0 0;font-family:${SANS};font-size:22px;font-weight:800;color:${C.ink};white-space:nowrap;">${esc(r.value)}</td></tr>`
@@ -421,8 +421,9 @@ function cotizacionAdmin(d, cfg = DEFAULTS) {
       detalle: it.confirmado === false ? 'Por confirmar' : undefined,
       cantidad: it.cantidad,
       importe: it.importe,
+      importeTexto: it.importe == null ? 'Pendiente' : undefined,
     })),
-    [{ label: 'Total', value: money(d.total), total: true }],
+    [{ label: 'Total', value: d.total == null ? 'Pendiente' : money(d.total), total: true }],
   );
   const hayPorConfirmar = (d.items || []).some((it) => it.confirmado === false);
   const html = layout({
@@ -430,14 +431,14 @@ function cotizacionAdmin(d, cfg = DEFAULTS) {
     title: 'Tu cotización',
     top: `Cotización ${f}`,
     reason: 'Recibes este correo porque pediste una cotización en FarmaCapital.',
-    preheader: `Tu cotización ${f}: ${money(d.total)}`,
+    preheader: d.total == null ? `Tu cotización ${f}` : `Tu cotización ${f}: ${money(d.total)}`,
     heroHtml: hero({
       tag: 'Cotización',
       title: 'Tu cotización',
       accent: f,
       lead: `Hola ${esc(d.nombre || '')}. Aquí está el detalle de lo que nos pediste.${hayPorConfirmar ? ' Los productos marcados "Por confirmar" pueden variar un poco de precio.' : ''}`,
       amountLabel: 'Total',
-      amount: money(d.total),
+      amount: d.total == null ? 'Pendiente' : money(d.total),
       cta: waHref ? 'Confirmar por WhatsApp' : null,
       ctaHref: waHref,
       note: d.vigencia
@@ -454,14 +455,14 @@ function cotizacionAdmin(d, cfg = DEFAULTS) {
     '',
     `Cotización ${f}:`,
     ...(d.items || []).map(
-      (it) => `- ${it.nombre} ×${it.cantidad || 1}: ${money(it.importe)}${it.confirmado === false ? ' (por confirmar)' : ''}`,
+      (it) => `- ${it.nombre} ×${it.cantidad || 1}: ${it.importe == null ? 'Pendiente' : money(it.importe)}${it.confirmado === false ? ' (por confirmar)' : ''}`,
     ),
     '',
-    `Total: ${money(d.total)}`,
+    `Total: ${d.total == null ? 'Pendiente' : money(d.total)}`,
     d.vigencia ? `Válido hasta: ${d.vigencia}` : '',
     '',
     `WhatsApp ${cfg.whatsappDisplay}`,
   ].join('\n');
-  return { subject: `Tu cotización · ${f}`, preheader: money(d.total), html, text };
+  return { subject: `Tu cotización · ${f}`, preheader: d.total == null ? 'Pendiente' : money(d.total), html, text };
 }
 module.exports = { envioCotizado, pagoAprobado, listoParaRecoger, enCamino, pedirResena, cotizacionEspecializado, cotizacionAdmin, DEFAULTS, _internals: { desglose, layout, hero, tracker, items, grid, button, money, folio, esc } };
