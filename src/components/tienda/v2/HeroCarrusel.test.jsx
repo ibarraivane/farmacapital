@@ -1,5 +1,9 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import HeroCarrusel from "./HeroCarrusel";
+
+function slideActiva(container) {
+  return within(container.querySelector(".fc-studio-slide.is-active"));
+}
 
 const slide = (id, extra = {}) => ({
   id,
@@ -37,11 +41,11 @@ test("las flechas avanzan y regresan", () => {
 });
 
 test("los puntos llevan directo a una slide y marcan la activa", () => {
-  render(<HeroCarrusel slides={[slide("a"), slide("b"), slide("c")]} />);
-  fireEvent.click(screen.getByLabelText("Ver: Slide c"));
-  expect(screen.getByText("Nota c")).toBeInTheDocument();
-  expect(screen.getByLabelText("Ver: Slide c")).toHaveAttribute("aria-current", "true");
-  expect(screen.getByLabelText("Ver: Slide a")).toHaveAttribute("aria-current", "false");
+  const { container } = render(<HeroCarrusel slides={[slide("a"), slide("b"), slide("c")]} />);
+  fireEvent.click(slideActiva(container).getByLabelText("Ver: Slide c"));
+  expect(slideActiva(container).getByText("Nota c")).toBeInTheDocument();
+  expect(slideActiva(container).getByLabelText("Ver: Slide c")).toHaveAttribute("aria-current", "true");
+  expect(slideActiva(container).getByLabelText("Ver: Slide a")).toHaveAttribute("aria-current", "false");
 });
 
 test("las flechas del teclado también cambian de slide", () => {
@@ -54,10 +58,20 @@ test("las flechas del teclado también cambian de slide", () => {
 test("el botón llama al onIr de la slide visible, no al de otra", () => {
   const onA = jest.fn();
   const onB = jest.fn();
-  render(<HeroCarrusel slides={[slide("a", { onIr: onA }), slide("b", { onIr: onB })]} />);
-  fireEvent.click(screen.getByText("Ir a"));
+  const { container } = render(<HeroCarrusel slides={[slide("a", { onIr: onA }), slide("b", { onIr: onB })]} />);
+  fireEvent.click(slideActiva(container).getByText("Ir a"));
   expect(onA).toHaveBeenCalledTimes(1);
   expect(onB).not.toHaveBeenCalled();
+});
+
+test("las historias siguen montadas al cambiar, para que el alto no dependa de la visible", () => {
+  const { container } = render(<HeroCarrusel slides={[slide("a"), slide("b"), slide("c")]} />);
+  expect(container.querySelectorAll(".fc-studio-slide")).toHaveLength(3);
+  expect(container.querySelector(".fc-studio-slide.is-active")).toHaveTextContent("Slide a");
+  expect(container.querySelectorAll(".fc-studio-slide[inert]")).toHaveLength(2);
+  fireEvent.click(screen.getByLabelText("Siguiente"));
+  expect(container.querySelector(".fc-studio-slide.is-active")).toHaveTextContent("Slide b");
+  expect(container.querySelectorAll(".fc-studio-slide")).toHaveLength(3);
 });
 
 test("cada slide aplica el tono que trae, para que cada historia tenga su fondo", () => {
