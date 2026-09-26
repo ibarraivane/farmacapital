@@ -96,6 +96,7 @@ const TicketVenta = forwardRef(({
               {nombre}
               {p.rxI&&<span className="ticket-rx">Rx</span>}
               {p.esUnidad&&<span> (unit)</span>}
+              {p.esBlister&&<span> (blister)</span>}
               {p.lote&&<div className="ticket-lote">Lote: {p.lote}{p.caducidad?` | Cad: ${p.caducidad}`:""}</div>}
             </div>
             <div className="product-row">

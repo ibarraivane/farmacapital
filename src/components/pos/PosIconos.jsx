@@ -40,6 +40,17 @@ export function IconoCaja({ size = 18 }) {
   );
 }
 
+/** Tira: tres celdas, el blister entre la caja y la pieza. */
+export function IconoBlister({ size = 18 }) {
+  return (
+    <Icono size={size}>
+      <rect {...STROKE} x="3.2" y="7.2" width="5.2" height="9.6" rx="1.4" />
+      <rect {...STROKE} x="9.4" y="7.2" width="5.2" height="9.6" rx="1.4" />
+      <rect {...STROKE} x="15.6" y="7.2" width="5.2" height="9.6" rx="1.4" />
+    </Icono>
+  );
+}
+
 /** Una celda: la pieza que se entrega en la mano. */
 export function IconoPieza({ size = 18 }) {
   return (
