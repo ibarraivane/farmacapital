@@ -21,7 +21,7 @@ import {
   metaCompraDeProducto,
   nivelStockUrgencia,
   stockDe,
-  stockVisiblePorNombre,
+  stockVisiblePorIdentidad,
 } from "./lib/reporteReabasto";
 import {
   agruparLotesPorProducto,
@@ -120,7 +120,7 @@ export default function ReabastoModule() {
   useEffect(()=>{ fetchProductos(); },[fetchProductos]);
   useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
-  const stockPorNombre = useMemo(() => stockVisiblePorNombre(productos), [productos]);
+  const stockPorNombre = useMemo(() => stockVisiblePorIdentidad(productos), [productos]);
 
   const alertas = useMemo(() => (
     productos

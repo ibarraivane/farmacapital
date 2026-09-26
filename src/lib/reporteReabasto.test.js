@@ -39,11 +39,14 @@ describe("urgencia de stock", () => {
     ]).map((p) => p.id)).toEqual([2]);
   });
 
-  test("el código en 0 no es agotado si otro con el mismo nombre tiene stock", () => {
+  test("otra presentación con el mismo nombre sigue en agotados", () => {
     const tabs = prod({
       id: 1,
       nombre: "Clamoxin (Amoxicilina/Clavulánico 500/125 mg)",
       sku: "FC-5F30F9D4",
+      presentacion: "10 tabletas",
+      concentracion: "500/125 mg",
+      forma_farmaceutica: "Tabletas",
       stock: 4,
       stock_minimo: 5,
       precio: 78,
@@ -52,23 +55,82 @@ describe("urgencia de stock", () => {
       id: 2,
       nombre: "Clamoxin (Amoxicilina/Clavulánico 500/125 mg)",
       sku: "FC-6519183A",
+      presentacion: "60 ml",
+      concentracion: "125/31.25 mg/5 ml",
+      forma_farmaceutica: "Suspensión",
       stock: 0,
       stock_minimo: 5,
       precio: 55,
     });
     const { agotados, bajo, paraPedir } = clasificarAlertas([tabs, susp]);
+    expect(agotados.map((p) => p.id)).toEqual([2]);
+    expect(bajo.map((p) => p.id)).toEqual([1]);
+    expect(paraPedir.map((p) => p.id).sort()).toEqual([1, 2]);
+  });
+
+  test("el código repetido de la misma presentación no se pide dos veces", () => {
+    const base = {
+      nombre: "Amlodipino",
+      presentacion: "100 tabletas",
+      concentracion: "5 mg",
+      forma_farmaceutica: "Tabletas",
+      stock_minimo: 5,
+    };
+    const conStock = prod({ ...base, id: 1, sku: "FC-4A0245DA", stock: 4 });
+    const vacio = prod({ ...base, id: 2, sku: "FC-97BEFA1A", stock: 0 });
+    const { agotados, bajo, paraPedir } = clasificarAlertas([conStock, vacio]);
     expect(agotados).toHaveLength(0);
     expect(bajo.map((p) => p.id)).toEqual([1]);
     expect(paraPedir.map((p) => p.id)).toEqual([1]);
-    expect(itemsParaPedir([tabs, susp]).map((x) => x.producto.id)).toEqual([1]);
+    expect(itemsParaPedir([conStock, vacio]).map((x) => x.producto.id)).toEqual([1]);
   });
 
-  test("si todos los códigos del mismo nombre están en 0, siguen agotados", () => {
-    const a = prod({ id: 1, nombre: "Clamoxin (Amoxicilina/Clavulánico 500/125 mg)", stock: 0 });
-    const b = prod({ id: 2, nombre: "Clamoxin (Amoxicilina/Clavulanico 500/125 mg)", stock: 0 });
+  test("dos códigos iguales suman stock y se pide una sola vez", () => {
+    const base = {
+      nombre: "Amlodipino",
+      presentacion: "100 tabletas",
+      concentracion: "5 mg",
+      forma_farmaceutica: "Tabletas",
+      stock_minimo: 5,
+    };
+    const a = prod({ ...base, id: 1, stock: 1 });
+    const b = prod({ ...base, id: 2, stock: 1 });
+    const { criticos, paraPedir } = clasificarAlertas([a, b]);
+    expect(criticos.map((p) => p.id)).toEqual([1]);
+    expect(paraPedir).toHaveLength(1);
+    expect(itemsParaPedir([a, b])[0].cantidad).toBe(13);
+  });
+
+  test("otra dosis con el mismo nombre se pide aunque la otra tenga stock", () => {
+    const baja = prod({
+      id: 1,
+      nombre: "Irbesartan",
+      presentacion: "14 tabletas",
+      concentracion: "150 mg",
+      forma_farmaceutica: "Tabletas",
+      stock: 0,
+      stock_minimo: 5,
+    });
+    const alta = prod({
+      id: 2,
+      nombre: "Irbesartan",
+      presentacion: "14 tabletas",
+      concentracion: "300 mg",
+      forma_farmaceutica: "Tabletas",
+      stock: 4,
+      stock_minimo: 5,
+    });
+    const { agotados, bajo } = clasificarAlertas([baja, alta]);
+    expect(agotados.map((p) => p.id)).toEqual([1]);
+    expect(bajo.map((p) => p.id)).toEqual([2]);
+  });
+
+  test("si la misma presentación está en 0 en todos los códigos, se pide una vez", () => {
+    const a = prod({ id: 1, nombre: "Clamoxin", presentacion: "10 tabletas", concentracion: "500/125 mg", stock: 0 });
+    const b = prod({ id: 2, nombre: "Clamoxin", presentacion: "10 tabletas", concentracion: "500/125 mg", stock: 0 });
     const { agotados, paraPedir } = clasificarAlertas([a, b]);
-    expect(agotados.map((p) => p.id).sort()).toEqual([1, 2]);
-    expect(paraPedir).toHaveLength(2);
+    expect(agotados.map((p) => p.id)).toEqual([1]);
+    expect(paraPedir).toHaveLength(1);
   });
 
   test("sin mínimo usa 5", () => {

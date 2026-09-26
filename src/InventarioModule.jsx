@@ -40,7 +40,7 @@ import {
   patchProductoSinColumnaProveedor,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
-import { hayStockEnOtroCodigo, stockDe, stockVisiblePorNombre } from "./lib/reporteReabasto";
+import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
 import {
   INV_CHECKBOX_COL_WIDTH,
   INV_COL_WIDTHS_DEFAULT,
@@ -2217,6 +2217,7 @@ function renderInventarioColumnCell(colId, ctx) {
     mgnCol,
     marcaDisp,
     nombreTabla,
+    detalleNombre,
     presDisp,
     presInferida,
     provDisp,
@@ -2424,9 +2425,9 @@ function renderInventarioColumnCell(colId, ctx) {
               >
                 {nombreTabla}
               </span>
-              {presDisp && presDisp !== "—" ? (
-                <span style={{ display: "block", marginTop: 2, fontSize: 10, fontWeight: 600, color: C.textDim, ...tdEllipsisStyle }} title={presDisp}>
-                  {presDisp}
+              {detalleNombre ? (
+                <span style={{ display: "block", marginTop: 2, fontSize: 10, fontWeight: 600, color: C.textDim, ...tdEllipsisStyle }} title={detalleNombre}>
+                  {detalleNombre}
                 </span>
               ) : null}
             </span>
@@ -3272,16 +3273,17 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     fetchProductos({ silencioso: true });
   });
 
-  const stockPorNombre = useMemo(() => stockVisiblePorNombre(productos), [productos]);
+  const stockPorIdentidad = useMemo(() => stockVisiblePorIdentidad(productos), [productos]);
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
     const cat = pasaFiltroCategorias(p, filtroCategorias);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
-    const cubierto = hayStockEnOtroCodigo(p, stockPorNombre);
+    const cubierto = esCodigoRepetido(p, stockPorIdentidad);
+    const piezas = stockParaComprar(p, stockPorIdentidad);
     const alerta =
       filtroAlerta === "todos"            ? true :
-      filtroAlerta === "agotados"         ? (p.activo && !p.bajo_pedido && stockDe(p) === 0 && !cubierto) :
-      filtroAlerta === "bajo_stock"       ? (!p.bajo_pedido && !cubierto && p.stock <= (p.stock_minimo??0)) :
+      filtroAlerta === "agotados"         ? (p.activo && !p.bajo_pedido && piezas === 0 && !cubierto) :
+      filtroAlerta === "bajo_stock"       ? (!p.bajo_pedido && !cubierto && piezas <= (p.stock_minimo??0)) :
       filtroAlerta === "bajo_pedido"      ? (p.bajo_pedido === true) :
       filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
@@ -3290,7 +3292,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       filtroAlerta === "margen_alto" ? esAlertaMargen(auditarMargenProducto(p)) :
       true;
     return cat && alerta;
-  }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe, stockPorNombre]);
+  }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe, stockPorIdentidad]);
 
   const filtradosTodosInv = useMemo(() => {
     const q = busqueda.trim();
@@ -3342,8 +3344,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
   const activos    = productos.filter(p => p.activo).length;
   // Bajo pedido no cuenta como faltante de góndola.
-  const agotadosInv = productos.filter(p => p.activo && !p.bajo_pedido && stockDe(p) === 0 && !hayStockEnOtroCodigo(p, stockPorNombre)).length;
-  const bajoStock  = productos.filter(p => p.activo && !p.bajo_pedido && !hayStockEnOtroCodigo(p, stockPorNombre) && p.stock<=(p.stock_minimo??0)).length;
+  const agotadosInv = productos.filter(p => p.activo && !p.bajo_pedido && !esCodigoRepetido(p, stockPorIdentidad) && stockParaComprar(p, stockPorIdentidad) === 0).length;
+  const bajoStock  = productos.filter(p => p.activo && !p.bajo_pedido && !esCodigoRepetido(p, stockPorIdentidad) && stockParaComprar(p, stockPorIdentidad) <= (p.stock_minimo??0)).length;
   const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
@@ -4404,8 +4406,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                 </td></tr>
               )}
               {filtrados.map((p,_rowIdx)=>{
-                const cubierto = hayStockEnOtroCodigo(p, stockPorNombre);
-                const bajo    = p.activo && !cubierto && p.stock<=(p.stock_minimo??0);
+                const cubierto = esCodigoRepetido(p, stockPorIdentidad);
+                const bajo    = p.activo && !cubierto && stockParaComprar(p, stockPorIdentidad) <= (p.stock_minimo??0);
                 const inact   = !p.activo;
                 const proxCad = p.min_caducidad_lotes || resolverLoteCaducidadProducto(p)?.fecha_caducidad;
                 const dias    = diasParaCaducar(proxCad);
@@ -4422,6 +4424,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                 const marcaDisp = (p.marca || "").trim();
                 const { nombre: nombreTabla, presentacion: presInferida } = nombreYPresentacionTabla(p);
                 const presDisp = presInferida || "—";
+                const detalleNombre = [
+                  presDisp !== "—" ? presDisp : "",
+                  String(p.concentracion || "").trim(),
+                ].filter(Boolean).join(" · ");
                 const provDisp = (p.proveedor || "").trim();
                 const principioLine = lineaPrincipioQuimicoTabla(p);
                 const dosisLine = lineaDosisTabla(p);
@@ -4452,6 +4458,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                   mgnCol,
                   marcaDisp,
                   nombreTabla,
+                  detalleNombre,
                   presDisp,
                   presInferida,
                   provDisp,
