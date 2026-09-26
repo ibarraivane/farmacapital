@@ -16,7 +16,17 @@ import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
-import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
+import {
+  cajasAAbrirParaPiezas,
+  cajasAAbrirPorError,
+  esErrorPiezasSueltas,
+  existenciaMostradorPos,
+  piezasSueltasDisponibles,
+  precioMostradorPos,
+  productoCajaEsFalsa,
+  productoIdEnErrorStock,
+  stockMostradorPos,
+} from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
 import { IconoAnaquel, IconoBlister, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
@@ -436,16 +446,14 @@ function PosProductoFichaPanel({
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
   const cajaFalsa = productoCajaEsFalsa(item);
+  const existencia = existenciaMostradorPos(item, stockCajas);
   const stockVisible = stockMostradorPos(item, stockCajas);
   const precioFicha = precioMostradorPos(item);
   const vendeBlister = productoVendeBlister(item);
   const stockBlisters = Number(item.stock_blisters) || 0;
   const stockPiezas = Number(item.stock_unidades) || 0;
-  const agotado = cajaFalsa
-    ? stockVisible <= 0
-    : stockCajas <= 0
-      && (!item.venta_unidad || stockPiezas === 0)
-      && (!vendeBlister || stockBlisters === 0);
+  const agotado = existencia.agotado;
+  const etiquetaStock = existencia.texto;
   const sinPrecio = cajaFalsa ? precioFicha <= 0.01 : !productoEsVendible(item);
   const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
   const usoResuelto = posUsoParaMostrar(item, usoTexto);
@@ -562,7 +570,7 @@ function PosProductoFichaPanel({
               {!esMedicamentoControlado(item) && !esCategoriaAntibiotico(item.categoria) && (
                 <Tag col={C.blue} sm>Venta libre</Tag>
               )}
-              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockVisible} en stock</Tag>}
+              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{etiquetaStock}</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
               {tituloPublicoProducto(item)}
@@ -757,9 +765,9 @@ function PosProductoFichaPanel({
                 <Btn
                   outline
                   col={C.green}
-                  disabled={stockCajas <= 0 && stockPiezas === 0 && (!vendeBlister || stockBlisters === 0)}
+                  disabled={piezasSueltasDisponibles(item, stockCajas) <= 0 && (!vendeBlister || (stockBlisters <= 0 && stockCajas <= 0))}
                   onClick={() => {
-                    if (stockPiezas > 0) onAddUnidad(item);
+                    if (piezasSueltasDisponibles(item, stockCajas) > 0) onAddUnidad(item);
                     else if (vendeBlister && stockBlisters > 0) onAbrirBlister(item);
                     else if (vendeBlister && stockCajas > 0) showToast("Abre un blister primero. La caja suelta blisters, no piezas.", "info");
                     else if (stockCajas > 0) onAbrirCaja(item);
@@ -1660,7 +1668,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       }
     }
     if (esUnidad) {
-      if ((item.stock_unidades || 0) <= 0) {
+      const dispUnidades = piezasSueltasDisponibles(item, getStockFifoDisponible(item));
+      if (dispUnidades <= 0) {
         showToast("Sin unidades disponibles para venta suelta.", "warning");
         return false;
       }
@@ -1668,8 +1677,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       let added = true;
       setCart(p=>{
         const ex = p.find(c=>c.id===keyU);
-        if (ex && ex.qty >= (item.stock_unidades || 0)) {
-          showToast(`Máx unidades sueltas: ${item.stock_unidades || 0}`, "warning");
+        if (ex && ex.qty >= dispUnidades) {
+          showToast(`Máx piezas: ${dispUnidades}`, "warning");
           added = false;
           return p;
         }
@@ -1937,14 +1946,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   /** Mismo criterio que la lista de resultados, para el tablero de equivalentes. */
   const estadoStockPos = (producto) => {
     if (productoSinLotesPEPS(producto)) return { agotado: true, etiqueta: "Sin lotes" };
-    const cajas = getStockCajasPOS(producto);
-    const visible = stockMostradorPos(producto, cajas);
-    const agotado = productoCajaEsFalsa(producto)
-      ? visible <= 0
-      : cajas <= 0
-        && (!producto.venta_unidad || (Number(producto.stock_unidades) || 0) === 0)
-        && (!productoVendeBlister(producto) || (Number(producto.stock_blisters) || 0) === 0);
-    return { agotado, etiqueta: agotado ? "Agotado" : `${visible} disp.` };
+    const existencia = existenciaMostradorPos(producto, getStockCajasPOS(producto));
+    return { agotado: existencia.agotado, etiqueta: existencia.etiqueta };
   };
 
   const getCantidadEnCarrito = (cartActual, productoId, modo = false) => {
@@ -1969,7 +1972,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     }
 
     if (esUnidad) {
-      const disponibleUnidades = Number(item.stock_unidades || 0);
+      const disponibleUnidades = piezasSueltasDisponibles(item, getStockFifoDisponible(item));
       const enCarritoUnidades = getCantidadEnCarrito(cartActual, item.id, true);
 
       if (disponibleUnidades <= 0) {
@@ -1978,7 +1981,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       }
 
       if (enCarritoUnidades + cantidadNueva > disponibleUnidades) {
-        showToast(`Máx unidades sueltas: ${disponibleUnidades}`, "warning");
+        showToast(`Máx piezas: ${disponibleUnidades}`, "warning");
         return false;
       }
 
@@ -2077,6 +2080,31 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     }));
     const piezas = row?.stock_unidades_nuevo ?? ((Number(item.stock_unidades) || 0) + ppb);
     showToast(`Blister abierto. Piezas disponibles: ${piezas}`, "success");
+  };
+
+  /** Abre N cajas cerradas para completar piezas (cobro por unidad). */
+  const abrirCajasDeProducto = async (item, n, tokSesion) => {
+    let actual = item;
+    const veces = Math.max(0, Math.floor(Number(n) || 0));
+    for (let i = 0; i < veces; i += 1) {
+      const { data, error } = await supabase.rpc("abrir_caja_secure", {
+        p_session_token: tokSesion,
+        p_producto_id: item.id,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      const upc = Math.max(1, Number(actual.unidades_por_caja) || 1);
+      const sueltas = row?.stock_unidades_nuevo != null
+        ? Number(row.stock_unidades_nuevo)
+        : (Number(actual.stock_unidades) || 0) + upc;
+      const base = restarUnaCajaLocal(actual, hoyISOMexico());
+      actual = {
+        ...base,
+        stock_unidades: sueltas,
+        stock: row?.stock_nuevo != null ? Number(row.stock_nuevo) : base.stock,
+      };
+    }
+    return actual;
   };
 
   const RX_IND_PRESETS = ["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"];
@@ -2198,7 +2226,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         const requested = Number(c.qty) || 0;
         const modoLinea = modoVentaDeLinea(c);
         const available = modoLinea === "unidad"
-          ? (Number(p?.stock_unidades) || 0)
+          ? piezasSueltasDisponibles(p, getStockFifoDisponible(p))
           : modoLinea === "blister"
             ? (Number(p?.stock_blisters) || 0)
             : getStockFifoDisponible(p);
@@ -2290,7 +2318,37 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           ? { p_monto_efectivo: mixtoEf, p_monto_tarjeta: mixtoTar, p_monto_credito: creditoNum }
           : {}),
       };
-      const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs);
+      const porPieza = new Map();
+      for (const c of cart) {
+        if (modoVentaDeLinea(c) !== "unidad") continue;
+        const pid = String(c.producto_id ?? c.id);
+        porPieza.set(pid, (porPieza.get(pid) || 0) + (Number(c.qty) || 0));
+      }
+      let catalogo = productos;
+      for (const [pid, qtyPieza] of porPieza) {
+        const p = catalogo.find((x) => String(x.id) === pid);
+        if (!p) continue;
+        const nAbrir = cajasAAbrirParaPiezas(p, getStockFifoDisponible(p), qtyPieza);
+        if (nAbrir <= 0) continue;
+        const actual = await abrirCajasDeProducto(p, nAbrir, tok);
+        catalogo = catalogo.map((x) => (String(x.id) === pid ? actual : x));
+      }
+      if (catalogo !== productos) setProds(catalogo);
+
+      let { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs);
+      if (rpcError && esErrorPiezasSueltas(rpcError.message)) {
+        const pidErr = productoIdEnErrorStock(rpcError.message);
+        const pErr = catalogo.find((x) => String(x.id) === String(pidErr));
+        const nErr = pErr
+          ? cajasAAbrirPorError(pErr, getStockFifoDisponible(pErr), rpcError.message)
+          : 0;
+        if (pErr && nErr > 0) {
+          const actual = await abrirCajasDeProducto(pErr, nErr, tok);
+          catalogo = catalogo.map((x) => (String(x.id) === String(pErr.id) ? actual : x));
+          setProds(catalogo);
+          ({ data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs));
+        }
+      }
 
       if (rpcError) throw rpcError;
 
@@ -2804,11 +2862,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <button onClick={()=>setCart(p=>p.map(c=>{
               if(c.id!==item.id) return c;
               if(c.esUnidad || c.esBlister){
-                const prodLive = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
+                const prodLive = productos.find(x=>String(x.id)===String(item.producto_id??item.id)) || c;
                 const maxU = c.esBlister
                   ? (Number(prodLive?.stock_blisters ?? item.stock_blisters) || 0)
-                  : (Number(prodLive?.stock_unidades ?? item.stock_unidades) || 0);
-                if(c.qty>=maxU){ showToast(c.esBlister ? `Máx blisters: ${maxU}` : `Máx unidades: ${maxU}`,"warning"); return c; }
+                  : piezasSueltasDisponibles(prodLive, getStockFifoDisponible(prodLive));
+                if(c.qty>=maxU){ showToast(c.esBlister ? `Máx blisters: ${maxU}` : `Máx piezas: ${maxU}`,"warning"); return c; }
                 return {...c,qty:c.qty+1};
               }
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));

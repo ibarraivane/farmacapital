@@ -29,7 +29,83 @@ const FUENTE_POR_SURTIDOR = {
 };
 
 export function stockDe(p) {
-  return Number(p?.stock_peps ?? p?.stock) || 0;
+  const cajas = Number(p?.stock_peps ?? p?.stock) || 0;
+  if (cajas > 0) return cajas;
+  // Caja ya abierta: hay piezas o blisters → no es “agotado” (0).
+  // Devolvemos 1 (= hay mercancía), no las 40 tabletas como si fueran 40 cajas.
+  if ((Number(p?.stock_unidades) || 0) > 0) return 1;
+  if ((Number(p?.stock_blisters) || 0) > 0) return 1;
+  return 0;
+}
+
+function normCampoCompra(v) {
+  return String(v || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Mismo nombre en pantalla, aunque el precio y el SKU cambien. */
+export function claveNombreVisible(p) {
+  return normCampoCompra(p?.nombre);
+}
+
+/**
+ * Lo que se compra junto: mismo nombre, misma presentación, misma dosis y misma forma.
+ * Otra presentación o otra dosis es otro hueco de anaquel, aunque el nombre se vea igual.
+ */
+export function claveIdentidadCompra(p) {
+  return [
+    claveNombreVisible(p),
+    normCampoCompra(p?.presentacion),
+    normCampoCompra(p?.concentracion),
+    normCampoCompra(p?.forma_farmaceutica),
+  ].join("\u0001");
+}
+
+/**
+ * Suma el stock de cada producto igual. No cuenta vitrina bajo pedido ni inactivos.
+ * principalId = el código con más piezas (si empatan, el id menor): ese es el que se pide.
+ */
+export function stockVisiblePorIdentidad(productos) {
+  const map = new Map();
+  for (const p of productos || []) {
+    if (p?.activo === false || p?.bajo_pedido === true) continue;
+    if (!claveNombreVisible(p)) continue;
+    const key = claveIdentidadCompra(p);
+    const s = Math.max(0, stockDe(p));
+    const g = map.get(key);
+    if (!g) {
+      map.set(key, { total: s, principalId: p.id, principalStock: s, n: 1 });
+      continue;
+    }
+    g.total += s;
+    g.n += 1;
+    const mejor = s > g.principalStock
+      || (s === g.principalStock && String(p.id) < String(g.principalId));
+    if (mejor) {
+      g.principalStock = s;
+      g.principalId = p.id;
+    }
+  }
+  return map;
+}
+
+/** Otro código de la misma presentación ya entra al pedido. Este no se vuelve a comprar. */
+export function esCodigoRepetido(p, stockPorIdentidad) {
+  if (!stockPorIdentidad) return false;
+  const g = stockPorIdentidad.get(claveIdentidadCompra(p));
+  if (!g || g.n < 2) return false;
+  return String(g.principalId) !== String(p.id);
+}
+
+/** Piezas que hay de esa presentación, sumando los códigos repetidos. */
+export function stockParaComprar(p, stockPorIdentidad) {
+  if (!stockPorIdentidad) return stockDe(p);
+  const g = stockPorIdentidad.get(claveIdentidadCompra(p));
+  return g ? g.total : stockDe(p);
 }
 
 export function stockMinimoEfectivo(p) {
@@ -41,11 +117,13 @@ export function filasAlertaStockAnaquel(rows) {
   return (Array.isArray(rows) ? rows : []).filter((p) => p?.bajo_pedido !== true);
 }
 
-export function nivelStockUrgencia(p) {
+export function nivelStockUrgencia(p, stockPorIdentidad) {
   // Bajo pedido no es hueco de anaquel: nunca entra a agotados / stock bajo / pedir.
   if (p?.bajo_pedido === true) return null;
+  // Mismo nombre con otra dosis o presentación se juzga solo. El código repetido no.
+  if (esCodigoRepetido(p, stockPorIdentidad)) return null;
   const min = stockMinimoEfectivo(p);
-  const stock = stockDe(p);
+  const stock = stockParaComprar(p, stockPorIdentidad);
   const pct = min > 0 ? stock / min : 0;
   if (stock === 0) return "AGOTADO";
   if (pct <= 0.5) return "CRÍTICO";
@@ -62,9 +140,10 @@ export function estiloUrgencia(nivel, C) {
   return { nivel: "OK", col: C.textMid, bg: C.cardDark, icon: "·" };
 }
 
-export function cantidadSugerida(p) {
+export function cantidadSugerida(p, stockOverride) {
   const min = stockMinimoEfectivo(p);
-  const base = Math.max(min * 3 - stockDe(p), 0);
+  const stock = stockOverride == null ? stockDe(p) : Number(stockOverride) || 0;
+  const base = Math.max(min * 3 - stock, 0);
   return Math.max(base, 1);
 }
 
@@ -144,8 +223,9 @@ export function metaCompraDeProducto(p, refsMap = {}) {
 
 export function clasificarAlertas(productos) {
   const buckets = { AGOTADO: [], CRÍTICO: [], BAJO: [], PRONTO: [] };
+  const stockPorIdentidad = stockVisiblePorIdentidad(productos);
   for (const p of productos || []) {
-    const nivel = nivelStockUrgencia(p);
+    const nivel = nivelStockUrgencia(p, stockPorIdentidad);
     if (!nivel) continue;
     buckets[nivel].push(p);
   }
@@ -158,17 +238,18 @@ export function clasificarAlertas(productos) {
   };
 }
 
-export function filaReporteDe(p) {
+export function filaReporteDe(p, stockPorIdentidad) {
   const tienda = p.mejorTienda;
+  const stock = stockParaComprar(p, stockPorIdentidad);
   return {
     id: p.id,
     nombre: p.nombre || "",
     sku: p.sku || "",
     codigo_barras: p.codigo_barras || "",
-    stock: stockDe(p),
+    stock,
     stock_minimo: stockMinimoEfectivo(p),
-    sugerido: cantidadSugerida(p),
-    urgencia: nivelStockUrgencia(p),
+    sugerido: cantidadSugerida(p, stock),
+    urgencia: nivelStockUrgencia(p, stockPorIdentidad),
     surtidor: tienda?.label || "",
     surtidorId: tienda?.fuente || "",
     precio: tienda?.precio ?? null,
@@ -181,9 +262,11 @@ export function filaReporteDe(p) {
 }
 
 export function filasReporte(productos) {
+  const stockPorIdentidad = stockVisiblePorIdentidad(productos);
   return (productos || [])
-    .filter((p) => nivelStockUrgencia(p))
-    .map(filaReporteDe)
+    .map((p) => ({ p, nivel: nivelStockUrgencia(p, stockPorIdentidad) }))
+    .filter((x) => x.nivel)
+    .map(({ p, nivel }) => ({ ...filaReporteDe(p, stockPorIdentidad), urgencia: nivel }))
     .sort((a, b) => {
       const d = (ORDEN_URGENCIA[a.urgencia] ?? 9) - (ORDEN_URGENCIA[b.urgencia] ?? 9);
       if (d) return d;
@@ -269,12 +352,13 @@ export function buildReporteReabastoSheets(filas) {
 }
 
 export function itemsParaPedir(productos, { incluirPronto = false } = {}) {
+  const stockPorIdentidad = stockVisiblePorIdentidad(productos);
   return (productos || [])
     .filter((p) => {
-      const n = nivelStockUrgencia(p);
+      const n = nivelStockUrgencia(p, stockPorIdentidad);
       if (!n) return false;
       if (incluirPronto) return true;
       return NIVELES_PEDIDO.includes(n);
     })
-    .map((p) => ({ producto: p, cantidad: cantidadSugerida(p) }));
+    .map((p) => ({ producto: p, cantidad: cantidadSugerida(p, stockParaComprar(p, stockPorIdentidad)) }));
 }
