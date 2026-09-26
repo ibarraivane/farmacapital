@@ -70,15 +70,49 @@ export function productoVendeBlister(producto) {
   return blistersPorCaja(producto.unidades_por_caja, producto.piezas_por_blister) >= 2;
 }
 
-/** Misma regla que la pieza, con divisor = blisters por caja (no piezas). */
-export function calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria = "", tipo = "") {
+/**
+ * Precio del blister, peso entero: punto medio entre la fracción de la caja
+ * y el tope (esas piezas sueltas, sin llegar al precio de la caja).
+ * Por unidad queda más caro que la caja y más barato que la pieza.
+ * La tira sale más cara que una pieza y más barata que la caja.
+ */
+export function precioBlisterIntermedio(precioCaja, precioUnidad, unidadesPorCaja, piezasPorBlister) {
   const n = blistersPorCaja(unidadesPorCaja, piezasPorBlister);
   if (n < 2) return 0;
-  return calcPrecioUnidad(precio, costo, n, categoria, tipo);
+  const caja = Number(precioCaja) || 0;
+  const pieza = Number(precioUnidad) || 0;
+  const upc = parseInt(unidadesPorCaja, 10) || 0;
+  const ppb = parseInt(piezasPorBlister, 10) || 0;
+  if (caja <= 0 || pieza <= 0 || upc <= 0) return 0;
+
+  const prorrateo = (caja * ppb) / upc;
+  const techo = Math.min(pieza * ppb, caja);
+  let precio = Math.round((prorrateo + techo) / 2);
+  let piso = Math.floor(prorrateo) + 1;
+  if (ppb > 1) piso = Math.max(piso, Math.floor(pieza) + 1);
+  let maximo = Math.min(Math.ceil(caja) - 1, Math.floor(pieza * ppb - 1e-9));
+  if (piso > maximo) {
+    piso = Math.floor(prorrateo) + 1;
+    maximo = Math.ceil(caja) - 1;
+    if (piso > maximo) return 0;
+    return piso;
+  }
+  if (precio < piso) precio = piso;
+  if (precio > maximo) precio = maximo;
+  return precio;
 }
 
-export function sugerirPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria = "", tipo = "") {
-  return calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria, tipo);
+/** Sugerido del blister a partir del precio de pieza que sí se cobra. */
+export function calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria = "", tipo = "", precioUnidad) {
+  const n = blistersPorCaja(unidadesPorCaja, piezasPorBlister);
+  if (n < 2) return 0;
+  const pieza = Math.ceil(parseFloat(precioUnidad) || 0)
+    || calcPrecioUnidad(precio, costo, unidadesPorCaja, categoria, tipo);
+  return precioBlisterIntermedio(precio, pieza, unidadesPorCaja, piezasPorBlister);
+}
+
+export function sugerirPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria = "", tipo = "", precioUnidad) {
+  return calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria, tipo, precioUnidad);
 }
 
 /** Precio efectivo del blister: el guardado. La regla solo sugiere. */
@@ -86,13 +120,11 @@ export function precioBlisterParaVenta(producto) {
   if (!productoVendeBlister(producto)) return 0;
   const guardado = Math.ceil(parseFloat(producto.precio_blister) || 0);
   if (guardado > 0) return guardado;
-  return calcPrecioBlister(
+  return precioBlisterIntermedio(
     producto.precio,
-    producto.costo,
+    precioUnidadParaVenta(producto),
     producto.unidades_por_caja,
     producto.piezas_por_blister,
-    producto.categoria,
-    producto.tipo,
   );
 }
 
@@ -150,13 +182,14 @@ export function aplicarReglaPrecioUnidad(fields) {
   const ppb = parseInt(fields.piezas_por_blister, 10) || 0;
   const blisters = blistersPorCaja(upc, ppb);
   const manualBlister = Math.ceil(parseFloat(fields.precio_blister) || 0);
+  const pieza = manual > 0 ? manual : sugerido;
   const sugeridoBlister = blisters >= 2
-    ? calcPrecioUnidad(fields.precio, fields.costo, blisters, fields.categoria, fields.tipo)
+    ? precioBlisterIntermedio(fields.precio, pieza, upc, ppb)
     : 0;
   return {
     ...fields,
     unidades_por_caja: upc,
-    precio_unidad: manual > 0 ? manual : sugerido,
+    precio_unidad: pieza,
     piezas_por_blister: blisters >= 2 ? ppb : 0,
     precio_blister: blisters >= 2 ? (manualBlister > 0 ? manualBlister : sugeridoBlister) : 0,
     stock_blisters: blisters >= 2 ? (parseInt(fields.stock_blisters, 10) || 0) : 0,

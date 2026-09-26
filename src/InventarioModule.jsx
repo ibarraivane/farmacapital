@@ -1171,7 +1171,10 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   const margenCajaPct = form.precio && form.costo ? margenBrutoPct(form.precio, form.costo) : null;
   const precioBlister = Math.ceil(parseFloat(form.precio_blister) || 0);
   const minPrecioBlister = blistersVenta >= 2
-    ? sugerirPrecioBlister(form.precio, form.costo, upcVenta, form.piezas_por_blister, form.categoria, form.tipo)
+    ? sugerirPrecioBlister(
+      form.precio, form.costo, upcVenta, form.piezas_por_blister, form.categoria, form.tipo,
+      precioPieza > 0 ? precioPieza : minPrecioPieza,
+    )
     : 0;
   const margenBlisterPct = precioBlister > 0 && costoBlister > 0 ? margenBrutoPct(precioBlister, costoBlister) : null;
   const inputBlister = {
@@ -1464,10 +1467,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <input type="number" min="1" value={form.unidades_por_caja}
                   onChange={e=>{
                     const u=parseInt(e.target.value,10)||1;
+                    const pieza = sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo);
                     set("unidades_por_caja",e.target.value);
-                    set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo));
+                    set("precio_unidad", pieza);
                     const b = blistersPorCaja(u, form.piezas_por_blister);
-                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, u, form.piezas_por_blister, form.categoria, form.tipo));
+                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, u, form.piezas_por_blister, form.categoria, form.tipo, pieza));
                   }}
                   style={inputStyle} placeholder="20"/>
               </div>
@@ -1481,7 +1485,13 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   ) : null}
                 </label>
                 <input type="number" min="0" step="0.01" value={form.precio_unidad}
-                  onChange={e=>set("precio_unidad",Math.ceil(parseFloat(e.target.value)||0))}
+                  onChange={e=>{
+                    const pieza = Math.ceil(parseFloat(e.target.value)||0);
+                    set("precio_unidad", pieza);
+                    if (blistersPorCaja(form.unidades_por_caja, form.piezas_por_blister) >= 2) {
+                      set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, form.unidades_por_caja, form.piezas_por_blister, form.categoria, form.tipo, pieza));
+                    }
+                  }}
                   style={inputStyle} placeholder="3"/>
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
                   {costoPieza > 0 ? <>Costo/pieza ${costoPieza.toFixed(2)}</> : "Indicá costo y unidades/caja"}
@@ -1505,7 +1515,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                     const raw = e.target.value;
                     set("piezas_por_blister", raw);
                     const b = blistersPorCaja(form.unidades_por_caja, raw);
-                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, form.unidades_por_caja, raw, form.categoria, form.tipo));
+                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, form.unidades_por_caja, raw, form.categoria, form.tipo, form.precio_unidad));
                   }}
                   className="farmacapital-field-input"
                   style={{...inputBlister, borderColor: errors.piezas_por_blister ? C.red : C.border}}
@@ -1546,6 +1556,9 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
                 💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> ·
                 Sugerido: <strong>${upcVenta ? minPrecioPieza : "-"}</strong>/unidad (puedes poner menos)
+                {minPrecioBlister > 0 ? (
+                  <> · blister <strong>${minPrecioBlister}</strong> (entre la caja y la pieza)</>
+                ) : null}
                 {margenPiezaPct != null && margenCajaPct != null ? (
                   <> · margen pieza <strong style={{ color: margenPiezaColor }}>{margenPiezaPct}%</strong> vs caja {margenCajaPct}%</>
                 ) : null}

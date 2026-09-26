@@ -3,6 +3,7 @@ import {
   blistersPorCaja,
   calcPrecioBlister,
   calcPrecioUnidad,
+  precioBlisterIntermedio,
   margenBrutoPct,
   piezasPorBlisterDefault,
   precioBlisterParaVenta,
@@ -63,14 +64,19 @@ test("30 tabletas en blister de 10 parten en 3; 28 no", () => {
   expect(productoVendeBlister({ ...cajaBlister, piezas_por_blister: 10, unidades_por_caja: 28 })).toBe(false);
 });
 
-test("blister usa la regla de pieza con divisor 3: caja $120 → blister $45", () => {
-  expect(calcPrecioBlister(120, 80, 30, 10, "Analgésico", "marca")).toBe(45);
+test("blister es el punto medio entre la fracción de la caja y la pieza", () => {
+  // Caja $120 / 30 = $4. Pieza sugerida $8. Tira de 10: entre $40 y $80 → $60.
   expect(calcPrecioUnidad(120, 80, 30, "Analgésico", "marca")).toBe(8);
+  expect(precioBlisterIntermedio(120, 8, 30, 10)).toBe(60);
+  expect(calcPrecioBlister(120, 80, 30, 10, "Analgésico", "marca")).toBe(60);
+  // Amox: caja $37, pieza $10, tira de 6. Fracción $18.50, tope la caja → $28.
+  expect(precioBlisterIntermedio(37, 10, 12, 6)).toBe(28);
+  expect(calcPrecioBlister(37, 18.36, 12, 6, "Antibiótico", "generico", 10)).toBe(28);
 });
 
-test("POS cobra el precio de blister guardado, o la regla si está en 0", () => {
+test("POS cobra el precio de blister guardado, o el intermedio si está en 0", () => {
   expect(precioBlisterParaVenta({ ...cajaBlister, precio_blister: 40 })).toBe(40);
-  expect(precioBlisterParaVenta({ ...cajaBlister, precio_blister: 0 })).toBe(45);
+  expect(precioBlisterParaVenta({ ...cajaBlister, precio_unidad: 8, precio_blister: 0 })).toBe(60);
   expect(precioBlisterParaVenta({ ...cajaBlister, venta_unidad: false, precio_blister: 40 })).toBe(0);
 });
 
@@ -92,7 +98,7 @@ test("caja que ya se vende por pieza parte en tiras de 10, de 7 o a la mitad", (
 test("abrir caja con blister suma tiras; sin blister suma piezas", () => {
   expect(unidadesAlAbrirCaja(cajaBlister)).toEqual({ stock: "blisters", cantidad: 3 });
   expect(unidadesAlAbrirCaja({ ...gasa })).toEqual({ stock: "unidades", cantidad: 100 });
-  expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 0 }).precio_blister).toBe(45);
+  expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 0 }).precio_blister).toBe(60);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 40 }).precio_blister).toBe(40);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, piezas_por_blister: 0, stock_blisters: 2 }).stock_blisters).toBe(0);
 });
