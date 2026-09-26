@@ -20,6 +20,7 @@ import {
   cajasAAbrirParaPiezas,
   cajasAAbrirPorError,
   esErrorPiezasSueltas,
+  existenciaMostradorPos,
   piezasSueltasDisponibles,
   precioMostradorPos,
   productoCajaEsFalsa,
@@ -422,10 +423,9 @@ function PosProductoFichaPanel({
   const sinLotes = productoSinLotesPEPS(item);
   const cajaFalsa = productoCajaEsFalsa(item);
   const stockVisible = stockMostradorPos(item, stockCajas);
+  const existencia = existenciaMostradorPos(item, stockCajas);
   const precioFicha = precioMostradorPos(item);
-  const agotado = cajaFalsa
-    ? stockVisible <= 0
-    : stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
+  const agotado = existencia.agotado;
   const sinPrecio = cajaFalsa ? precioFicha <= 0.01 : !productoEsVendible(item);
   const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
   const usoResuelto = posUsoParaMostrar(item, usoTexto);
@@ -542,7 +542,7 @@ function PosProductoFichaPanel({
               {!esMedicamentoControlado(item) && !esCategoriaAntibiotico(item.categoria) && (
                 <Tag col={C.blue} sm>Venta libre</Tag>
               )}
-              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockVisible} en stock</Tag>}
+              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{existencia.texto}</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
               {tituloPublicoProducto(item)}
@@ -1856,12 +1856,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   /** Mismo criterio que la lista de resultados, para el tablero de equivalentes. */
   const estadoStockPos = (producto) => {
     if (productoSinLotesPEPS(producto)) return { agotado: true, etiqueta: "Sin lotes" };
-    const cajas = getStockCajasPOS(producto);
-    const visible = stockMostradorPos(producto, cajas);
-    const agotado = productoCajaEsFalsa(producto)
-      ? visible <= 0
-      : cajas <= 0 && (!producto.venta_unidad || producto.stock_unidades === 0);
-    return { agotado, etiqueta: agotado ? "Agotado" : `${visible} disp.` };
+    const existencia = existenciaMostradorPos(producto, getStockCajasPOS(producto));
+    return { agotado: existencia.agotado, etiqueta: existencia.etiqueta };
   };
 
   const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {

@@ -2,6 +2,7 @@ import {
   cajasAAbrirParaPiezas,
   cajasAAbrirPorError,
   esErrorPiezasSueltas,
+  existenciaMostradorPos,
   piezasSueltasDisponibles,
   precioMostradorPos,
   productoCajaEsFalsa,
@@ -126,6 +127,23 @@ test("Amox C/12: 3 cajas cubren 2 piezas aunque no haya sueltas", () => {
   const msg = "piezas sueltas insuficientes para producto 1181 (faltan 2)";
   expect(esErrorPiezasSueltas(msg)).toBe(true);
   expect(cajasAAbrirPorError(amox, 3, msg)).toBe(1);
+});
+
+test("caja abierta: no está agotada mientras queden piezas", () => {
+  const aspirina = {
+    venta_unidad: true,
+    unidades_por_caja: 80,
+    precio: 75,
+    precio_unidad: 3,
+    stock_unidades: 40,
+    nombre: "Aspirina 500 mg",
+    presentacion: "C/80 tabletas 500 mg",
+  };
+  const abierta = existenciaMostradorPos(aspirina, 0);
+  expect(abierta.agotado).toBe(false);
+  expect(abierta.texto).toBe("40 piezas");
+  expect(existenciaMostradorPos({ ...aspirina, stock_unidades: 0 }, 0).agotado).toBe(true);
+  expect(existenciaMostradorPos(aspirina, 2).texto).toBe("2 en stock");
 });
 
 test("pote y caja falsa no se abren para vender piezas", () => {

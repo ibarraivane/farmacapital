@@ -55,6 +55,28 @@ export function stockMostradorPos(p, stockCajas) {
   return num(stockCajas);
 }
 
+/**
+ * Agotado solo cuando no queda caja cerrada ni pieza suelta.
+ * Con la caja ya abierta, el letrero cuenta las piezas (no “0 en stock”).
+ */
+export function existenciaMostradorPos(p, stockCajas) {
+  const cajas = Math.max(0, Math.floor(num(stockCajas)));
+  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  if (productoCajaEsFalsa(p)) {
+    const visible = Math.max(0, Math.floor(stockMostradorPos(p, cajas)));
+    if (visible <= 0) return { agotado: true, etiqueta: "Agotado", texto: "Agotado" };
+    return { agotado: false, etiqueta: `${visible} disp.`, texto: `${visible} en stock` };
+  }
+  const vendePieza = Boolean(p?.venta_unidad);
+  if (cajas <= 0 && (!vendePieza || sueltas <= 0)) {
+    return { agotado: true, etiqueta: "Agotado", texto: "Agotado" };
+  }
+  if (cajas <= 0 && sueltas > 0) {
+    return { agotado: false, etiqueta: `${sueltas} pzas`, texto: `${sueltas} piezas` };
+  }
+  return { agotado: false, etiqueta: `${cajas} disp.`, texto: `${cajas} en stock` };
+}
+
 export function precioMostradorPos(p) {
   if (productoCajaEsFalsa(p)) {
     const uni = precioUnidadParaVenta(p);
