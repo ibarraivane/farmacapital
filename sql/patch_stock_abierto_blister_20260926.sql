@@ -1,20 +1,12 @@
--- Precio del blister: punto medio entre la fracción de la caja y la pieza.
--- Pegar en Supabase → SQL Editor. El POS ya publicado cobra el precio guardado.
+-- Reparte la caja abierta en blisters enteros y el resto cortado.
+-- Pegar en Supabase → SQL Editor.
 --
--- Por unidad, el blister queda más caro que la caja y más barato que la pieza.
--- La tira sale más cara que una pieza y más barata que la caja.
--- No pisa un precio de blister que ya esté capturado (mayor que 0).
---
--- Amox FC-49021570: caja $37, pieza $10, 12 cápsulas, tira de 6.
---   fracción de la caja = 37 * 6/12 = $18.50
---   tope = min(10*6, 37) = $37
---   punto medio = $27.75 → $28
---   por cápsula: caja $3.08 · blister $4.67 · pieza $10
---   las dos tiras ($56) salen más caras que la caja ($37)
+-- Amox FC-49021570 hoy: 10 piezas sueltas, 0 blisters, tira de 6.
+-- 10 = 1 blister + 4 pastillas. La caja trae 2 blisters (12/6).
+-- Cada vez que se vende una pieza o una tira, el stock se vuelve a partir igual.
 
 begin;
 
--- Tiras enteras + resto cortado. 10 piezas con tira de 6 → 1 blister y 4 piezas.
 create or replace function public.stock_abierto_despues_de_venta(
   p_blisters integer,
   p_unidades integer,
@@ -61,87 +53,7 @@ begin
 end;
 $$;
 
-create or replace function public.precio_blister_intermedio(
-  p_precio_caja numeric,
-  p_precio_unidad numeric,
-  p_upc integer,
-  p_ppb integer
-)
-returns integer
-language plpgsql
-immutable
-as $$
-declare
-  v_caja numeric := coalesce(p_precio_caja, 0);
-  v_pieza numeric := coalesce(p_precio_unidad, 0);
-  v_prorrateo numeric;
-  v_techo numeric;
-  v_precio integer;
-  v_piso integer;
-  v_max integer;
-begin
-  if public.blisters_por_caja(p_upc, p_ppb) < 2 or v_caja <= 0 or v_pieza <= 0 then
-    return 0;
-  end if;
-  v_prorrateo := v_caja * p_ppb / p_upc;
-  v_techo := least(v_pieza * p_ppb, v_caja);
-  v_precio := round((v_prorrateo + v_techo) / 2);
-  v_piso := floor(v_prorrateo) + 1;
-  if p_ppb > 1 then
-    v_piso := greatest(v_piso, floor(v_pieza) + 1);
-  end if;
-  v_max := least(ceil(v_caja) - 1, floor(v_pieza * p_ppb - 0.0000001));
-  if v_piso > v_max then
-    v_piso := floor(v_prorrateo) + 1;
-    v_max := ceil(v_caja) - 1;
-    if v_piso > v_max then
-      return 0;
-    end if;
-    return v_piso;
-  end if;
-  if v_precio < v_piso then
-    v_precio := v_piso;
-  end if;
-  if v_precio > v_max then
-    v_precio := v_max;
-  end if;
-  return v_precio;
-end;
-$$;
 
--- 8 argumentos: el último es el precio de pieza que sí se cobra.
--- El de 7 argumentos se borra al final, cuando el cobro ya llama a este.
-create or replace function public.precio_blister_efectivo(
-  p_costo numeric,
-  p_precio_caja numeric,
-  p_upc integer,
-  p_ppb integer,
-  p_categoria text,
-  p_tipo text,
-  p_precio_blister_guardado numeric,
-  p_precio_unidad numeric
-)
-returns numeric
-language sql
-immutable
-as $$
-  select case
-    when public.blisters_por_caja(p_upc, p_ppb) < 2 then 0
-    when coalesce(p_precio_blister_guardado, 0) > 0
-      then ceil(p_precio_blister_guardado)
-    else public.precio_blister_intermedio(
-      p_precio_caja,
-      public.precio_unidad_efectivo(
-        p_costo, p_precio_caja, p_upc, p_categoria, p_tipo, p_precio_unidad
-      ),
-      p_upc,
-      p_ppb
-    )
-  end;
-$$;
-
-
--- Cobro: el blister usa el precio de pieza guardado cuando precio_blister está en 0.
 create or replace function public.create_sale_transaction_v2(
   p_user_id bigint,
   p_metodo_pago text,
@@ -503,44 +415,32 @@ end;
 $$;
 
 
-drop function if exists public.precio_blister_efectivo(numeric, numeric, integer, integer, text, text, numeric);
 
 grant execute on function public.stock_abierto_despues_de_venta(integer, integer, integer, text, integer, bigint)
   to anon, authenticated, service_role;
-grant execute on function public.precio_blister_intermedio(numeric, numeric, integer, integer)
-  to anon, authenticated, service_role;
-grant execute on function public.precio_blister_efectivo(numeric, numeric, integer, integer, text, text, numeric, numeric)
-  to anon, authenticated, service_role;
-
-comment on column public.productos.precio_blister is
-  'Precio de mostrador por blister. 0 = punto medio entre la fracción de la caja y la pieza.';
 
 update public.productos p
-   set precio_blister = public.precio_blister_intermedio(
-         p.precio,
-         public.precio_unidad_efectivo(
-           p.costo, p.precio, p.unidades_por_caja, p.categoria, p.tipo, p.precio_unidad
-         ),
-         p.unidades_por_caja,
-         p.piezas_por_blister
-       )
- where coalesce(p.venta_unidad, false) = true
-   and public.blisters_por_caja(p.unidades_por_caja, p.piezas_por_blister) >= 2
-   and coalesce(p.precio_blister, 0) = 0
-   and public.precio_blister_intermedio(
-         p.precio,
-         public.precio_unidad_efectivo(
-           p.costo, p.precio, p.unidades_por_caja, p.categoria, p.tipo, p.precio_unidad
-         ),
-         p.unidades_por_caja,
-         p.piezas_por_blister
-       ) > 0;
+   set stock_blisters = q.blisters,
+       stock_unidades = q.piezas
+  from (
+    select id,
+           (coalesce(stock_blisters, 0) * piezas_por_blister + coalesce(stock_unidades, 0)) / piezas_por_blister as blisters,
+           (coalesce(stock_blisters, 0) * piezas_por_blister + coalesce(stock_unidades, 0)) % piezas_por_blister as piezas
+      from public.productos
+     where public.blisters_por_caja(unidades_por_caja, piezas_por_blister) >= 2
+       and coalesce(stock_unidades, 0) >= piezas_por_blister
+  ) q
+ where p.id = q.id
+   and (p.stock_blisters is distinct from q.blisters or p.stock_unidades is distinct from q.piezas);
 
 notify pgrst, 'reload schema';
 
 commit;
 
-select sku, left(nombre, 48) as nombre, precio as caja, precio_unidad as pieza,
-       unidades_por_caja as upc, piezas_por_blister as ppb, precio_blister
+select sku, left(nombre, 42) as nombre,
+       unidades_por_caja as upc,
+       piezas_por_blister as por_tira,
+       public.blisters_por_caja(unidades_por_caja, piezas_por_blister) as blisters_por_caja,
+       stock_blisters, stock_unidades
   from public.productos
  where sku = 'FC-49021570';

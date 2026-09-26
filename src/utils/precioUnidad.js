@@ -64,6 +64,43 @@ export function piezasPorBlisterDefault(unidadesPorCaja) {
   return 0;
 }
 
+/**
+ * Stock de caja abierta: tiras enteras + el resto cortado.
+ * 11 piezas con tira de 6 → 1 blister y 5 piezas. Una tira completa cuenta como blister.
+ */
+export function normalizarStockAbierto(stockBlisters, stockUnidades, piezasPorBlister) {
+  const ppb = parseInt(piezasPorBlister, 10) || 0;
+  const b = Math.max(0, parseInt(stockBlisters, 10) || 0);
+  const u = Math.max(0, parseInt(stockUnidades, 10) || 0);
+  if (ppb < 2) return { stock_blisters: b, stock_unidades: u, pool: u };
+  const pool = b * ppb + u;
+  return {
+    stock_blisters: Math.floor(pool / ppb),
+    stock_unidades: pool % ppb,
+    pool,
+  };
+}
+
+/** Pool de la caja abierta. Sin blister configurado, el pool son solo las piezas. */
+export function poolAbierto(producto) {
+  const ppb = parseInt(producto?.piezas_por_blister, 10) || 0;
+  const vende = blistersPorCaja(producto?.unidades_por_caja, ppb) >= 2;
+  return normalizarStockAbierto(
+    producto?.stock_blisters,
+    producto?.stock_unidades,
+    vende ? ppb : 0,
+  );
+}
+
+/** Piezas que ya ocupa el carrito entre sueltas y tiras. */
+export function piezasComprometidas(qtyUnidad, qtyBlister, piezasPorBlister) {
+  const u = Math.max(0, parseInt(qtyUnidad, 10) || 0);
+  const b = Math.max(0, parseInt(qtyBlister, 10) || 0);
+  const ppb = parseInt(piezasPorBlister, 10) || 0;
+  if (ppb < 2) return u;
+  return u + b * ppb;
+}
+
 /** Venta por blister solo dentro de la venta por pieza, y solo si la caja parte bien. */
 export function productoVendeBlister(producto) {
   if (!producto?.venta_unidad) return false;
@@ -186,12 +223,18 @@ export function aplicarReglaPrecioUnidad(fields) {
   const sugeridoBlister = blisters >= 2
     ? precioBlisterIntermedio(fields.precio, pieza, upc, ppb)
     : 0;
+  const abierto = normalizarStockAbierto(
+    fields.stock_blisters,
+    fields.stock_unidades,
+    blisters >= 2 ? ppb : 0,
+  );
   return {
     ...fields,
     unidades_por_caja: upc,
     precio_unidad: pieza,
     piezas_por_blister: blisters >= 2 ? ppb : 0,
     precio_blister: blisters >= 2 ? (manualBlister > 0 ? manualBlister : sugeridoBlister) : 0,
-    stock_blisters: blisters >= 2 ? (parseInt(fields.stock_blisters, 10) || 0) : 0,
+    stock_blisters: blisters >= 2 ? abierto.stock_blisters : 0,
+    stock_unidades: blisters >= 2 ? abierto.stock_unidades : (parseInt(fields.stock_unidades, 10) || 0),
   };
 }

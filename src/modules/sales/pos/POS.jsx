@@ -15,7 +15,7 @@ import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, look
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
-import { modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
+import { blistersPorCaja, modoVentaDeLinea, piezasComprometidas, poolAbierto, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
 import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
 import { IconoAnaquel, IconoBlister, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
@@ -439,8 +439,9 @@ function PosProductoFichaPanel({
   const stockVisible = stockMostradorPos(item, stockCajas);
   const precioFicha = precioMostradorPos(item);
   const vendeBlister = productoVendeBlister(item);
-  const stockBlisters = Number(item.stock_blisters) || 0;
-  const stockPiezas = Number(item.stock_unidades) || 0;
+  const abierto = poolAbierto(item);
+  const stockBlisters = vendeBlister ? abierto.stock_blisters : (Number(item.stock_blisters) || 0);
+  const stockPiezas = vendeBlister ? abierto.stock_unidades : (Number(item.stock_unidades) || 0);
   const agotado = cajaFalsa
     ? stockVisible <= 0
     : stockCajas <= 0
@@ -709,6 +710,7 @@ function PosProductoFichaPanel({
           {vendeBlister && (
             <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>
               {stockCajas} cajas · {stockBlisters} blisters · {stockPiezas} piezas
+              {" · "}{blistersPorCaja(item.unidades_por_caja, item.piezas_por_blister)} blisters por caja
             </div>
           )}
 
@@ -759,9 +761,8 @@ function PosProductoFichaPanel({
                   col={C.green}
                   disabled={stockCajas <= 0 && stockPiezas === 0 && (!vendeBlister || stockBlisters === 0)}
                   onClick={() => {
-                    if (stockPiezas > 0) onAddUnidad(item);
-                    else if (vendeBlister && stockBlisters > 0) onAbrirBlister(item);
-                    else if (vendeBlister && stockCajas > 0) showToast("Abre un blister primero. La caja suelta blisters, no piezas.", "info");
+                    if (abierto.pool > 0) onAddUnidad(item);
+                    else if (vendeBlister && stockCajas > 0) onAbrirCaja(item);
                     else if (stockCajas > 0) onAbrirCaja(item);
                     else showToast("Sin stock disponible.", "warning");
                   }}
@@ -1647,44 +1648,41 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         showToast("Antibiótico: se recomienda receta. No es obligatoria para cobrar.", "info");
       }
     }
-    if (esUnidad) {
-      if ((item.stock_unidades || 0) <= 0) {
-        showToast("Sin unidades disponibles para venta suelta.", "warning");
-        return false;
-      }
-      const keyU = item.id+"_unit";
+    if (esUnidad || esBlister) {
+      const abiertoLinea = poolAbierto(item);
+      const ppbLinea = parseInt(item.piezas_por_blister, 10) || 0;
+      const paso = esBlister && ppbLinea >= 2 ? ppbLinea : 1;
+      const key = esBlister ? item.id + "_blister" : item.id + "_unit";
       let added = true;
-      setCart(p=>{
-        const ex = p.find(c=>c.id===keyU);
-        if (ex && ex.qty >= (item.stock_unidades || 0)) {
-          showToast(`Máx unidades sueltas: ${item.stock_unidades || 0}`, "warning");
+      setCart((p) => {
+        const usado = piezasComprometidas(
+          getCantidadEnCarrito(p, item.id, "unidad"),
+          getCantidadEnCarrito(p, item.id, "blister"),
+          productoVendeBlister(item) ? ppbLinea : 0,
+        );
+        if (usado + paso > abiertoLinea.pool) {
+          const quedan = esBlister
+            ? Math.floor(Math.max(0, abiertoLinea.pool - usado) / paso)
+            : Math.max(0, abiertoLinea.pool - usado);
+          showToast(
+            esBlister
+              ? (quedan <= 0 ? "Sin blisters disponibles." : `Máx blisters sueltos: ${quedan}`)
+              : (quedan <= 0 ? "Sin unidades disponibles para venta suelta." : `Máx unidades sueltas: ${quedan}`),
+            "warning",
+          );
           added = false;
           return p;
         }
-        return ex
-          ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,esBlister:false,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
-      });
-      return added;
-    }
-    if (esBlister) {
-      if ((item.stock_blisters || 0) <= 0) {
-        showToast("Sin blisters disponibles.", "warning");
-        return false;
-      }
-      const keyB = item.id+"_blister";
-      const precioB = precioBlisterParaVenta(item);
-      let added = true;
-      setCart(p=>{
-        const ex = p.find(c=>c.id===keyB);
-        if (ex && ex.qty >= (item.stock_blisters || 0)) {
-          showToast(`Máx blisters sueltos: ${item.stock_blisters || 0}`, "warning");
-          added = false;
-          return p;
+        const ex = p.find((c) => c.id === key);
+        if (esBlister) {
+          const precioB = precioBlisterParaVenta(item);
+          return ex
+            ? p.map((c) => (c.id === key ? { ...c, qty: c.qty + 1 } : c))
+            : [...p, { ...item, id: key, producto_id: item.id, qty: 1, rxI: null, esUnidad: false, esBlister: true, precio: precioB, nombre: `${tituloPublicoProducto(item)} (blister)` }];
         }
         return ex
-          ? p.map(c=>c.id===keyB?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyB,producto_id:item.id,qty:1,rxI:null,esUnidad:false,esBlister:true,precio:precioB,nombre:`${tituloPublicoProducto(item)} (blister)`}];
+          ? p.map((c) => (c.id === key ? { ...c, qty: c.qty + 1 } : c))
+          : [...p, { ...item, id: key, producto_id: item.id, qty: 1, rxI: null, esUnidad: true, esBlister: false, precio: precioUnidadParaVenta(item), nombre: `${tituloPublicoProducto(item)} (unidad)` }];
       });
       return added;
     }
@@ -2179,26 +2177,38 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const ejecutarCobrar = async (recetaOrigen = "no_aplica", metodoPagoOverride = null) => {
     if(!cart.length) return;
     // Prevalidación rápida para evitar mandar una venta imposible al RPC.
-    const faltantes = cart
-      .map((c) => {
-        const pid = c.producto_id ?? c.id;
-        const p = productos.find((x) => String(x.id) === String(pid));
-        const requested = Number(c.qty) || 0;
-        const modoLinea = modoVentaDeLinea(c);
-        const available = modoLinea === "unidad"
-          ? (Number(p?.stock_unidades) || 0)
-          : modoLinea === "blister"
-            ? (Number(p?.stock_blisters) || 0)
-            : getStockFifoDisponible(p);
-        if (!p || requested <= available) return null;
-        return {
-          nombre: p.nombre || c.nombre || `Producto ${pid}`,
+    const faltantes = [];
+    const abiertoUsado = new Map();
+    cart.forEach((c) => {
+      const pid = c.producto_id ?? c.id;
+      const p = productos.find((x) => String(x.id) === String(pid));
+      const requested = Number(c.qty) || 0;
+      const modoLinea = modoVentaDeLinea(c);
+      if (!p) {
+        faltantes.push({ nombre: c.nombre || `Producto ${pid}`, requested, available: 0, unidad: "pza" });
+        return;
+      }
+      if (modoLinea === "caja") {
+        const available = getStockFifoDisponible(p);
+        if (requested > available) {
+          faltantes.push({ nombre: p.nombre, requested, available, unidad: "caja(s)" });
+        }
+        return;
+      }
+      const abierto = poolAbierto(p);
+      const paso = modoLinea === "blister" ? (parseInt(p.piezas_por_blister, 10) || 0) : 1;
+      const ya = abiertoUsado.get(String(p.id)) || 0;
+      const necesita = ya + requested * paso;
+      abiertoUsado.set(String(p.id), necesita);
+      if (necesita > abierto.pool) {
+        faltantes.push({
+          nombre: p.nombre,
           requested,
-          available,
-          unidad: modoLinea === "unidad" ? "unidad(es)" : modoLinea === "blister" ? "blister(s)" : "caja(s)",
-        };
-      })
-      .filter(Boolean);
+          available: Math.max(0, abierto.pool - ya),
+          unidad: modoLinea === "blister" ? "piezas de blister" : "unidad(es)",
+        });
+      }
+    });
     if (faltantes.length) {
       const top = faltantes
         .slice(0, 3)
@@ -2792,11 +2802,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <button onClick={()=>setCart(p=>p.map(c=>{
               if(c.id!==item.id) return c;
               if(c.esUnidad || c.esBlister){
-                const prodLive = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
-                const maxU = c.esBlister
-                  ? (Number(prodLive?.stock_blisters ?? item.stock_blisters) || 0)
-                  : (Number(prodLive?.stock_unidades ?? item.stock_unidades) || 0);
-                if(c.qty>=maxU){ showToast(c.esBlister ? `Máx blisters: ${maxU}` : `Máx unidades: ${maxU}`,"warning"); return c; }
+                const prodLive = productos.find(x=>String(x.id)===String(item.producto_id??item.id)) || c;
+                const abiertoMas = poolAbierto(prodLive);
+                const ppbMas = parseInt(prodLive.piezas_por_blister, 10) || 0;
+                const usado = piezasComprometidas(
+                  getCantidadEnCarrito(p, prodLive.id ?? item.producto_id, "unidad"),
+                  getCantidadEnCarrito(p, prodLive.id ?? item.producto_id, "blister"),
+                  productoVendeBlister(prodLive) ? ppbMas : 0,
+                );
+                const paso = c.esBlister && ppbMas >= 2 ? ppbMas : 1;
+                if (usado + paso > abiertoMas.pool) {
+                  showToast(c.esBlister ? "Sin blisters disponibles." : "Sin unidades disponibles para venta suelta.", "warning");
+                  return c;
+                }
                 return {...c,qty:c.qty+1};
               }
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));

@@ -4,6 +4,8 @@ import {
   calcPrecioBlister,
   calcPrecioUnidad,
   precioBlisterIntermedio,
+  normalizarStockAbierto,
+  piezasComprometidas,
   margenBrutoPct,
   piezasPorBlisterDefault,
   precioBlisterParaVenta,
@@ -93,6 +95,23 @@ test("caja que ya se vende por pieza parte en tiras de 10, de 7 o a la mitad", (
   expect(piezasPorBlisterDefault(3)).toBe(0);
   expect(piezasPorBlisterDefault(7)).toBe(0);
   expect(piezasPorBlisterDefault(1)).toBe(0);
+});
+
+test("pastillas sueltas se rearman en blisters y el resto cortado", () => {
+  // Caja de 12, tira de 6. 11 piezas ya cortadas = 1 tira entera + 5.
+  expect(normalizarStockAbierto(0, 11, 6)).toEqual({ stock_blisters: 1, stock_unidades: 5, pool: 11 });
+  expect(normalizarStockAbierto(2, 0, 6)).toEqual({ stock_blisters: 2, stock_unidades: 0, pool: 12 });
+  expect(normalizarStockAbierto(1, 6, 6)).toEqual({ stock_blisters: 2, stock_unidades: 0, pool: 12 });
+  expect(piezasComprometidas(5, 1, 6)).toBe(11);
+  const guardado = aplicarReglaPrecioUnidad({
+    ...cajaBlister,
+    precio_unidad: 8,
+    precio_blister: 60,
+    stock_blisters: 0,
+    stock_unidades: 25,
+  });
+  expect(guardado.stock_blisters).toBe(2);
+  expect(guardado.stock_unidades).toBe(5);
 });
 
 test("abrir caja con blister suma tiras; sin blister suma piezas", () => {

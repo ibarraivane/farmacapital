@@ -20,7 +20,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
-import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct } from "./utils/precioUnidad";
+import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct, normalizarStockAbierto } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
@@ -903,6 +903,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     };
     for (const k of ["nombre", "sku", "codigo_barras", "proveedor", "lote"]) {
       if (base[k] == null) base[k] = "";
+    }
+    if (blistersPorCaja(base.unidades_por_caja, base.piezas_por_blister) >= 2) {
+      const abierto = normalizarStockAbierto(base.stock_blisters, base.stock_unidades, base.piezas_por_blister);
+      base.stock_blisters = abierto.stock_blisters;
+      base.stock_unidades = abierto.stock_unidades;
     }
     return base;
   });
