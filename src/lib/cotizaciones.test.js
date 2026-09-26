@@ -20,6 +20,7 @@ import {
   payloadPromoverDesdeSolicitud,
   precioSugeridoCotizacion,
   numerosLineaCotizacion,
+  vistaNumerosProducto,
   totalesCotizacion,
   escaparHtmlCotizacion,
   itemConfirmadoDocumento,
@@ -157,6 +158,29 @@ test("marca +25% y genérico +60% sobre costo; muestra recargo y margen", () => 
   expect(gen.recargoPct).toBe(60);
   expect(gen.margenPct).toBe(37.5);
   expect(gen.usaSugerido).toBe(false);
+});
+
+test("la ganancia se ve al teclear costo y precio, antes de guardar", () => {
+  const n = vistaNumerosProducto({
+    costoTexto: "40",
+    precioTexto: "50",
+    costoGuardado: null,
+    precioGuardado: null,
+    cantidad: 2,
+    tipoMargen: "marca",
+  });
+  expect(n.gananciaUnit).toBe(10);
+  expect(n.gananciaTotal).toBe(20);
+  expect(n.recargoPct).toBe(25);
+  const guardado = vistaNumerosProducto({
+    costoTexto: "",
+    precioTexto: "",
+    costoGuardado: 40,
+    precioGuardado: 50,
+    cantidad: 1,
+    tipoMargen: "marca",
+  });
+  expect(guardado.gananciaUnit).toBe(10);
 });
 
 test("totales del proyecto solo suman líneas con costo y venta", () => {

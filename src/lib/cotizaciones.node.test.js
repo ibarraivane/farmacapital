@@ -36,6 +36,7 @@ describe("cotizaciones", async () => {
     payloadPromoverDesdeSolicitud,
     precioSugeridoCotizacion,
     numerosLineaCotizacion,
+    vistaNumerosProducto,
     totalesCotizacion,
     escaparHtmlCotizacion,
     itemConfirmadoDocumento,
@@ -175,6 +176,20 @@ describe("cotizaciones", async () => {
     assert.equal(gen.recargoPct, 60);
     assert.equal(gen.margenPct, 37.5);
     assert.equal(gen.usaSugerido, false);
+  });
+
+  it("la ganancia se ve al teclear costo y precio, antes de guardar", () => {
+    const n = vistaNumerosProducto({
+      costoTexto: "40",
+      precioTexto: "50",
+      costoGuardado: null,
+      precioGuardado: null,
+      cantidad: 2,
+      tipoMargen: "marca",
+    });
+    assert.equal(n.gananciaUnit, 10);
+    assert.equal(n.gananciaTotal, 20);
+    assert.equal(n.recargoPct, 25);
   });
 
   it("totales del proyecto solo suman líneas con costo y venta", () => {
