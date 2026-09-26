@@ -220,6 +220,31 @@ export function precioSugeridoCotizacion(costo, tipoMargen) {
  * Números de un renglón: costo elegido, venta (o sugerida), recargo y margen.
  * Recargo ≠ margen. $100 × 1.25 = $125 (recargo 25%, margen 20%).
  */
+function precioTecleado(texto, guardado) {
+  if (texto === "" || texto == null) return guardado ?? null;
+  return numPrecio(String(texto).replace(",", "."));
+}
+
+/**
+ * Números del renglón mientras se teclea. El costo y el precio de la pantalla
+ * cuentan aunque todavía no se haya pulsado Guardar.
+ */
+export function vistaNumerosProducto({
+  costoTexto,
+  precioTexto,
+  costoGuardado,
+  precioGuardado,
+  cantidad,
+  tipoMargen,
+}) {
+  return numerosLineaCotizacion({
+    costo: precioTecleado(costoTexto, costoGuardado),
+    precioVenta: precioTecleado(precioTexto, precioGuardado),
+    cantidad,
+    tipoMargen,
+  });
+}
+
 export function numerosLineaCotizacion({ costo, precioVenta, cantidad, tipoMargen }) {
   const c = numPrecio(costo);
   const q = Number(cantidad);

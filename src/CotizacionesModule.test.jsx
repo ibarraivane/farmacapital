@@ -63,6 +63,8 @@ it("lista cotizaciones y abre la ficha con comparativa y recargo/margen", async 
   expect(screen.getAllByText(/Dermaexpress/).length).toBeGreaterThan(0);
   expect(screen.getAllByText(/Recargo/).length).toBeGreaterThan(0);
   expect(screen.getByText(/sobre venta/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Guardar" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Quitar" })).toBeInTheDocument();
   await waitFor(() =>
     expect(supabase.rpc).toHaveBeenCalledWith(
       "admin_obtener_cotizacion",
