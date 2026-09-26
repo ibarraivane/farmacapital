@@ -50,22 +50,22 @@ export const NEG = {
 // INVENTARIO: recibir (cajas) + inv (hub: catálogo / lotes / reabasto)
 // DOCTORA: agenda (cons_dr) + expedientes; sin PWA ni consultorio duplicado
 export const NAV_ADMIN = [
-  "dash", "pos", "cli", "caja", "ped_online", "ped_mostrador",
+  "dash", "pos", "cli", "caja", "ped_online", "ped_mostrador", "cotiz",
   "recibir", "inv",
   "agenda", "cons", "exp_dr",
   "cof", "dev", "fact",
-  "promo", "banners", "fichas", "resenas", "cotiz", "bot", "config_cons",
+  "promo", "banners", "fichas", "resenas", "bot", "config_cons",
   "usuarios", "rrhh",
   "ayuda", "pwa",
 ];
 
 /** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
 export const ADMIN_NAV_SECTIONS = [
-  { title: "Operación diaria", ids: ["dash", "pos", "cli", "caja", "ped_online", "ped_mostrador"] },
+  { title: "Operación diaria", ids: ["dash", "pos", "cli", "caja", "ped_online", "ped_mostrador", "cotiz"] },
   { title: "Inventario", ids: ["recibir", "inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
-  { title: "Comercial y crecimiento", ids: ["promo", "banners", "fichas", "resenas", "cotiz", "bot", "config_cons"] },
+  { title: "Comercial y crecimiento", ids: ["promo", "banners", "fichas", "resenas", "bot", "config_cons"] },
   { title: "Administración interna", ids: ["usuarios", "rrhh"] },
   { title: "Sistema", ids: ["ayuda", "pwa"] },
 ];
