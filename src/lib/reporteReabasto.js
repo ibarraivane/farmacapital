@@ -32,6 +32,35 @@ export function stockDe(p) {
   return Number(p?.stock_peps ?? p?.stock) || 0;
 }
 
+/** Mismo nombre en pantalla, aunque el precio y el SKU cambien. */
+export function claveNombreVisible(p) {
+  return String(p?.nombre || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Suma el stock de cada nombre. No cuenta vitrina bajo pedido ni inactivos. */
+export function stockVisiblePorNombre(productos) {
+  const map = new Map();
+  for (const p of productos || []) {
+    if (p?.activo === false || p?.bajo_pedido === true) continue;
+    const key = claveNombreVisible(p);
+    if (!key) continue;
+    map.set(key, (map.get(key) || 0) + Math.max(0, stockDe(p)));
+  }
+  return map;
+}
+
+/** El código está en 0, pero otro con el mismo nombre todavía tiene piezas. */
+export function hayStockEnOtroCodigo(p, stockPorNombre) {
+  if (!stockPorNombre || stockDe(p) > 0) return false;
+  const total = stockPorNombre.get(claveNombreVisible(p)) || 0;
+  return total > 0;
+}
+
 export function stockMinimoEfectivo(p) {
   return Number(p?.stock_minimo) > 0 ? Number(p.stock_minimo) : STOCK_MIN_DEFAULT;
 }
@@ -41,11 +70,13 @@ export function filasAlertaStockAnaquel(rows) {
   return (Array.isArray(rows) ? rows : []).filter((p) => p?.bajo_pedido !== true);
 }
 
-export function nivelStockUrgencia(p) {
+export function nivelStockUrgencia(p, stockPorNombre) {
   // Bajo pedido no es hueco de anaquel: nunca entra a agotados / stock bajo / pedir.
   if (p?.bajo_pedido === true) return null;
   const min = stockMinimoEfectivo(p);
   const stock = stockDe(p);
+  // Mismo nombre, otro precio: si ese código tiene stock, este 0 no se compra.
+  if (stock === 0 && hayStockEnOtroCodigo(p, stockPorNombre)) return null;
   const pct = min > 0 ? stock / min : 0;
   if (stock === 0) return "AGOTADO";
   if (pct <= 0.5) return "CRÍTICO";
@@ -144,8 +175,9 @@ export function metaCompraDeProducto(p, refsMap = {}) {
 
 export function clasificarAlertas(productos) {
   const buckets = { AGOTADO: [], CRÍTICO: [], BAJO: [], PRONTO: [] };
+  const stockPorNombre = stockVisiblePorNombre(productos);
   for (const p of productos || []) {
-    const nivel = nivelStockUrgencia(p);
+    const nivel = nivelStockUrgencia(p, stockPorNombre);
     if (!nivel) continue;
     buckets[nivel].push(p);
   }
@@ -158,7 +190,7 @@ export function clasificarAlertas(productos) {
   };
 }
 
-export function filaReporteDe(p) {
+export function filaReporteDe(p, stockPorNombre) {
   const tienda = p.mejorTienda;
   return {
     id: p.id,
@@ -168,7 +200,7 @@ export function filaReporteDe(p) {
     stock: stockDe(p),
     stock_minimo: stockMinimoEfectivo(p),
     sugerido: cantidadSugerida(p),
-    urgencia: nivelStockUrgencia(p),
+    urgencia: nivelStockUrgencia(p, stockPorNombre),
     surtidor: tienda?.label || "",
     surtidorId: tienda?.fuente || "",
     precio: tienda?.precio ?? null,
@@ -181,9 +213,11 @@ export function filaReporteDe(p) {
 }
 
 export function filasReporte(productos) {
+  const stockPorNombre = stockVisiblePorNombre(productos);
   return (productos || [])
-    .filter((p) => nivelStockUrgencia(p))
-    .map(filaReporteDe)
+    .map((p) => ({ p, nivel: nivelStockUrgencia(p, stockPorNombre) }))
+    .filter((x) => x.nivel)
+    .map(({ p, nivel }) => ({ ...filaReporteDe(p, stockPorNombre), urgencia: nivel }))
     .sort((a, b) => {
       const d = (ORDEN_URGENCIA[a.urgencia] ?? 9) - (ORDEN_URGENCIA[b.urgencia] ?? 9);
       if (d) return d;
@@ -269,9 +303,10 @@ export function buildReporteReabastoSheets(filas) {
 }
 
 export function itemsParaPedir(productos, { incluirPronto = false } = {}) {
+  const stockPorNombre = stockVisiblePorNombre(productos);
   return (productos || [])
     .filter((p) => {
-      const n = nivelStockUrgencia(p);
+      const n = nivelStockUrgencia(p, stockPorNombre);
       if (!n) return false;
       if (incluirPronto) return true;
       return NIVELES_PEDIDO.includes(n);

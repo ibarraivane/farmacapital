@@ -39,6 +39,38 @@ describe("urgencia de stock", () => {
     ]).map((p) => p.id)).toEqual([2]);
   });
 
+  test("el código en 0 no es agotado si otro con el mismo nombre tiene stock", () => {
+    const tabs = prod({
+      id: 1,
+      nombre: "Clamoxin (Amoxicilina/Clavulánico 500/125 mg)",
+      sku: "FC-5F30F9D4",
+      stock: 4,
+      stock_minimo: 5,
+      precio: 78,
+    });
+    const susp = prod({
+      id: 2,
+      nombre: "Clamoxin (Amoxicilina/Clavulánico 500/125 mg)",
+      sku: "FC-6519183A",
+      stock: 0,
+      stock_minimo: 5,
+      precio: 55,
+    });
+    const { agotados, bajo, paraPedir } = clasificarAlertas([tabs, susp]);
+    expect(agotados).toHaveLength(0);
+    expect(bajo.map((p) => p.id)).toEqual([1]);
+    expect(paraPedir.map((p) => p.id)).toEqual([1]);
+    expect(itemsParaPedir([tabs, susp]).map((x) => x.producto.id)).toEqual([1]);
+  });
+
+  test("si todos los códigos del mismo nombre están en 0, siguen agotados", () => {
+    const a = prod({ id: 1, nombre: "Clamoxin (Amoxicilina/Clavulánico 500/125 mg)", stock: 0 });
+    const b = prod({ id: 2, nombre: "Clamoxin (Amoxicilina/Clavulanico 500/125 mg)", stock: 0 });
+    const { agotados, paraPedir } = clasificarAlertas([a, b]);
+    expect(agotados.map((p) => p.id).sort()).toEqual([1, 2]);
+    expect(paraPedir).toHaveLength(2);
+  });
+
   test("sin mínimo usa 5", () => {
     expect(nivelStockUrgencia(prod({ stock: 0, stock_minimo: 0 }))).toBe("AGOTADO");
     expect(nivelStockUrgencia(prod({ stock: 2, stock_minimo: 0 }))).toBe("CRÍTICO");
