@@ -16,7 +16,16 @@ import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
-import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
+import {
+  cajasAAbrirParaPiezas,
+  cajasAAbrirPorError,
+  esErrorPiezasSueltas,
+  piezasSueltasDisponibles,
+  precioMostradorPos,
+  productoCajaEsFalsa,
+  productoIdEnErrorStock,
+  stockMostradorPos,
+} from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
 import { IconoAnaquel, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
@@ -350,7 +359,6 @@ function PosProductoFichaPanel({
   onSelectVariante,
   onAddCaja,
   onAddUnidad,
-  onAbrirCaja,
   getStockCajasPOS,
   productoSinLotesPEPS,
   enCarrito = 0,
@@ -707,10 +715,9 @@ function PosProductoFichaPanel({
                 <Btn
                   outline
                   col={C.green}
-                  disabled={stockCajas <= 0 && item.stock_unidades === 0}
+                  disabled={piezasSueltasDisponibles(item, stockCajas) <= 0}
                   onClick={() => {
-                    if (item.stock_unidades > 0) onAddUnidad(item);
-                    else if (stockCajas > 0) onAbrirCaja(item);
+                    if (piezasSueltasDisponibles(item, stockCajas) > 0) onAddUnidad(item);
                     else showToast("Sin stock disponible.", "warning");
                   }}
                   style={filaIconoBtn({ flex: "1 1 160px" })}
@@ -1587,16 +1594,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       }
     }
     if (esUnidad) {
-      if ((item.stock_unidades || 0) <= 0) {
+      const dispUnidades = piezasSueltasDisponibles(item, getStockFifoDisponible(item));
+      if (dispUnidades <= 0) {
         showToast("Sin unidades disponibles para venta suelta.", "warning");
         return false;
       }
       const keyU = item.id+"_unit";
       let added = true;
+      const abreCaja = (Number(item.stock_unidades) || 0) <= 0;
       setCart(p=>{
         const ex = p.find(c=>c.id===keyU);
-        if (ex && ex.qty >= (item.stock_unidades || 0)) {
-          showToast(`Máx unidades sueltas: ${item.stock_unidades || 0}`, "warning");
+        const enCarrito = Number(ex?.qty || 0);
+        if (enCarrito >= dispUnidades) {
+          showToast(`Máx piezas: ${dispUnidades}`, "warning");
           added = false;
           return p;
         }
@@ -1604,6 +1614,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
           : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
       });
+      if (added && abreCaja) {
+        showToast("Hay cajas cerradas. Al cobrar se abre una para surtir la pieza.", "info");
+      }
       return added;
     }
     if (!validarProductoParaCarrito(item, 1, false)) {
@@ -1872,7 +1885,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     }
 
     if (esUnidad) {
-      const disponibleUnidades = Number(item.stock_unidades || 0);
+      const disponibleUnidades = piezasSueltasDisponibles(item, getStockFifoDisponible(item));
       const enCarritoUnidades = getCantidadEnCarrito(cartActual, item.id, true);
 
       if (disponibleUnidades <= 0) {
@@ -1881,7 +1894,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       }
 
       if (enCarritoUnidades + cantidadNueva > disponibleUnidades) {
-        showToast(`Máx unidades sueltas: ${disponibleUnidades}`, "warning");
+        showToast(`Máx piezas: ${disponibleUnidades}`, "warning");
         return false;
       }
 
@@ -1914,22 +1927,37 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return true;
   };
 
-  const abrirCaja = async (item) => {
-    if (getStockCajasPOS(item) <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { showToast("Sesión expirada.", "error"); return; }
-    const { data, error } = await supabase.rpc("abrir_caja_secure", {
-      p_session_token: tok,
-      p_producto_id: item.id,
-    });
-    if (error) {
-      showToast(`Error al abrir caja: ${error.message}`, "error");
-      return;
+  const abrirCajasDeProducto = async (item, n, tokSesion) => {
+    let actual = item;
+    const veces = Math.max(0, Math.floor(Number(n) || 0));
+    for (let i = 0; i < veces; i += 1) {
+      const { data, error } = await supabase.rpc("abrir_caja_secure", {
+        p_session_token: tokSesion,
+        p_producto_id: item.id,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      const upc = Math.max(1, Number(actual.unidades_por_caja) || 1);
+      const sueltas = row?.stock_unidades_nuevo != null
+        ? Number(row.stock_unidades_nuevo)
+        : (Number(actual.stock_unidades) || 0) + upc;
+      const lotes = Array.isArray(actual.lotes) ? actual.lotes.map((l) => ({ ...l })) : [];
+      const objetivo = ordenarLotesFefo(lotes, hoyISOMexico())[0];
+      const lotesNuevos = objetivo
+        ? lotes.map((l) => {
+            if (String(l.id) !== String(objetivo.id)) return l;
+            const cant = Math.max(0, getLoteCantidadDisponible(l) - 1);
+            return { ...l, cantidad_actual: cant, activo: cant > 0 };
+          })
+        : lotes;
+      actual = {
+        ...actual,
+        stock_unidades: sueltas,
+        stock: row?.stock_nuevo != null ? Number(row.stock_nuevo) : actual.stock,
+        lotes: lotesNuevos,
+      };
     }
-    const nuevasUnidades =
-      data?.[0]?.stock_unidades_nuevo ??
-      ((item.stock_unidades || 0) + (item.unidades_por_caja || 0));
-    showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
+    return actual;
   };
 
   const RX_IND_PRESETS = ["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"];
@@ -2049,7 +2077,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         const pid = c.producto_id ?? c.id;
         const p = productos.find((x) => String(x.id) === String(pid));
         const requested = Number(c.qty) || 0;
-        const available = c.esUnidad ? (Number(p?.stock_unidades) || 0) : getStockFifoDisponible(p);
+        const available = c.esUnidad
+          ? piezasSueltasDisponibles(p, getStockFifoDisponible(p))
+          : getStockFifoDisponible(p);
         if (!p || requested <= available) return null;
         return {
           nombre: p.nombre || c.nombre || `Producto ${pid}`,
@@ -2138,7 +2168,37 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           ? { p_monto_efectivo: mixtoEf, p_monto_tarjeta: mixtoTar, p_monto_credito: creditoNum }
           : {}),
       };
-      const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs);
+      const porPieza = new Map();
+      for (const c of cart) {
+        if (!c.esUnidad) continue;
+        const pid = String(c.producto_id ?? c.id);
+        porPieza.set(pid, (porPieza.get(pid) || 0) + (Number(c.qty) || 0));
+      }
+      let catalogo = productos;
+      for (const [pid, qtyPieza] of porPieza) {
+        const p = catalogo.find((x) => String(x.id) === pid);
+        if (!p) continue;
+        const nAbrir = cajasAAbrirParaPiezas(p, getStockFifoDisponible(p), qtyPieza);
+        if (nAbrir <= 0) continue;
+        const actual = await abrirCajasDeProducto(p, nAbrir, tok);
+        catalogo = catalogo.map((x) => (String(x.id) === pid ? actual : x));
+      }
+      if (catalogo !== productos) setProds(catalogo);
+
+      let { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs);
+      if (rpcError && esErrorPiezasSueltas(rpcError.message)) {
+        const pidErr = productoIdEnErrorStock(rpcError.message);
+        const pErr = catalogo.find((x) => String(x.id) === String(pidErr));
+        const nErr = pErr
+          ? cajasAAbrirPorError(pErr, getStockFifoDisponible(pErr), rpcError.message)
+          : 0;
+        if (pErr && nErr > 0) {
+          const actual = await abrirCajasDeProducto(pErr, nErr, tok);
+          catalogo = catalogo.map((x) => (String(x.id) === String(pErr.id) ? actual : x));
+          setProds(catalogo);
+          ({ data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs));
+        }
+      }
 
       if (rpcError) throw rpcError;
 
@@ -2652,8 +2712,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <button onClick={()=>setCart(p=>p.map(c=>{
               if(c.id!==item.id) return c;
               if(c.esUnidad){
-                const maxU = item.stock_unidades||0;
-                if(c.qty>=maxU){ showToast(`Máx unidades: ${maxU}`,"warning"); return c; }
+                const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id)) || c;
+                const maxU = piezasSueltasDisponibles(prod, getStockFifoDisponible(prod));
+                if(c.qty>=maxU){ showToast(`Máx piezas: ${maxU}`,"warning"); return c; }
                 return {...c,qty:c.qty+1};
               }
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
@@ -3695,7 +3756,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}
               onAddUnidad={(it) => add(it, true)}
-              onAbrirCaja={abrirCaja}
               getStockCajasPOS={getStockCajasPOS}
               productoSinLotesPEPS={productoSinLotesPEPS}
               enCarrito={fichaProd ? getCantidadEnCarrito(cart, fichaProd.id, false) : 0}
@@ -3739,7 +3799,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}
               onAddUnidad={(it) => add(it, true)}
-              onAbrirCaja={abrirCaja}
               getStockCajasPOS={getStockCajasPOS}
               productoSinLotesPEPS={productoSinLotesPEPS}
               enCarrito={0}
