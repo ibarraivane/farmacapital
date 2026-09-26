@@ -162,3 +162,10 @@ export function aplicarReglaPrecioUnidad(fields) {
     stock_blisters: blisters >= 2 ? (parseInt(fields.stock_blisters, 10) || 0) : 0,
   };
 }
+
+/** El precio que escribió el dueño gana. La regla solo llena el campo vacío. */
+export function precioCapturadoOSugerido(capturado, sugerido) {
+  const actual = Math.ceil(parseFloat(capturado) || 0);
+  if (actual > 0) return actual;
+  return Math.ceil(parseFloat(sugerido) || 0);
+}
