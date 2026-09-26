@@ -1,4 +1,20 @@
-import { mapPagoServicio, mergeDetalleTurno, recargoServiciosPorMetodo, snapshotFromCorte } from "./corteTicket";
+import { mapPagoServicio, mergeDetalleTurno, recargoServiciosPorMetodo, snapshotFromCorte, ventanaDetalleCorte } from "./corteTicket";
+
+describe("ventana del corte cerrado", () => {
+  test("usa la caja de Raquel y no el reloj de las 15:30", () => {
+    const v = ventanaDetalleCorte({
+      turno: "matutino",
+      ventana_inicio: "2026-09-24T14:00:00.000Z",
+      ventana_fin: "2026-09-24T21:10:00.000Z",
+    });
+    expect(v.inicio).toBe("2026-09-24T14:00:00.000Z");
+    expect(v.fin).toBe("2026-09-24T21:10:00.000Z");
+  });
+
+  test("sin hora de apertura no inventa el turno completo", () => {
+    expect(ventanaDetalleCorte({ turno: "matutino", fecha: "2026-09-24" })).toBeNull();
+  });
+});
 
 describe("detalle de corte: recargas + ventas", () => {
   test("mapPagoServicio arma un renglón con folio SRV y el cobrado", () => {
