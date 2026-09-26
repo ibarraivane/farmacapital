@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Calculator,
+  ChevronDown,
+  ChevronRight,
   ExternalLink,
   Mail,
   MessageCircle,
@@ -1078,6 +1080,7 @@ function ItemCotizacion({ item, rpc }) {
   const [busq, setBusq] = useState("");
   const [hits, setHits] = useState([]);
   const [guardando, setGuardando] = useState(false);
+  const [abierto, setAbierto] = useState(false);
 
   useEffect(() => {
     setPrecioEdit(item.precio_venta != null ? String(item.precio_venta) : "");
@@ -1251,10 +1254,50 @@ function ItemCotizacion({ item, rpc }) {
         background: C.card,
         border: `1px solid ${C.border}`,
         borderRadius: 14,
-        padding: 14,
-        marginBottom: 12,
+        padding: abierto ? 14 : "10px 12px",
+        marginBottom: 8,
       }}
     >
+      <button
+        type="button"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          textAlign: "left",
+          font: "inherit",
+          padding: 0,
+          color: C.text,
+        }}
+      >
+        {abierto ? <ChevronDown size={16} color={C.textMid} /> : <ChevronRight size={16} color={C.textMid} />}
+        <span
+          style={{
+            fontWeight: 800,
+            flex: "1 1 auto",
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {item.texto}
+          {item.cantidad > 1 ? <span style={{ color: C.textMid }}> ×{item.cantidad}</span> : null}
+        </span>
+        {chip(est.bg, est.color, etiquetaEstadoItemCotizacion(item.estado))}
+        <span style={{ fontWeight: 800, whiteSpace: "nowrap" }}>{fmtDineroCotiz(nums.venta)}</span>
+        <span style={{ color: C.greenDark, fontWeight: 700, fontSize: 12, whiteSpace: "nowrap" }}>
+          {fmtDineroCotiz(nums.gananciaTotal)}
+        </span>
+      </button>
+      {abierto ? (
+      <div style={{ marginTop: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: 12, minWidth: 0, flex: 1 }}>
           <div
@@ -1581,6 +1624,8 @@ function ItemCotizacion({ item, rpc }) {
           </Btn>
         ))}
       </div>
+      </div>
+      ) : null}
     </section>
   );
 }

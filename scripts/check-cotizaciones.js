@@ -61,6 +61,7 @@ mustInclude(sqlProd, "admin_eliminar_cotizacion_item", "SQL debe permitir quitar
 mustInclude(ui, "vistaNumerosProducto", "UI debe calcular la ganancia al teclear");
 mustInclude(ui, "Guardar", "UI debe tener botón Guardar en el producto");
 mustInclude(ui, "Quitar", "UI debe poder quitar un producto");
+mustInclude(ui, "aria-expanded", "Cada producto se despliega al tocarlo y cerrado es una línea");
 
 mustInclude(lib, "precioSugeridoCotizacion", "lib debe sugerir precio con recargo Recibir");
 mustInclude(lib, "numerosLineaCotizacion", "lib debe separar recargo y margen");
