@@ -7,6 +7,7 @@
 
 import { opcionesTiendaCompra, fmtPrecioRef } from "./preciosReferencia";
 import { normalizeProveedorCompra, parseCostoTicket, proveedorCompraVisible } from "./ultimaCompra";
+import { stockAnaquelDeProducto } from "./inventarioHubData";
 
 export const STOCK_MIN_DEFAULT = 5;
 export const NIVELES_PEDIDO = ["AGOTADO", "CRÍTICO", "BAJO"];
@@ -29,7 +30,7 @@ const FUENTE_POR_SURTIDOR = {
 };
 
 export function stockDe(p) {
-  return Number(p?.stock_peps ?? p?.stock) || 0;
+  return stockAnaquelDeProducto(p);
 }
 
 export function stockMinimoEfectivo(p) {

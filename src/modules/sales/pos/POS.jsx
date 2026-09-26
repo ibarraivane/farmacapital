@@ -1890,15 +1890,20 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const getStockFifoDisponible = (producto) => {
     if (!producto) return 0;
     const lotes = Array.isArray(producto.lotes) ? producto.lotes : [];
-    const hayFilasLote = lotes.some((l) => l?.activo !== false);
     // Misma regla que SQL get_lote_fefo: no contar vencidos.
     const fromLots = ordenarLotesFefo(lotes, hoyISOMexico()).reduce(
       (sum, lote) => sum + getLoteCantidadDisponible(lote),
       0
     );
     if (fromLots > 0) return fromLots;
-    // Hay lotes (aunque vencidos o en 0): no usar el caché productos.stock
-    if (hayFilasLote) return 0;
+    // Lotes con piezas pero todos vencidos: no inventar venta desde la columna.
+    const hayLotesConPiezas = lotes.some(
+      (l) => l?.activo !== false && getLoteCantidadDisponible(l) > 0
+    );
+    if (hayLotesConPiezas) return 0;
+    // Solo cascarones qty=0 (o sin lotes): no tapar productos.stock — mismo
+    // criterio que Inventario (`stockAnaquelEfectivo`). Antes un lote vacío
+    // marcaba «Sin lotes» / agotado con mercancía en anaquel.
     return Math.max(0, Number(producto?.stock || 0));
   };
 

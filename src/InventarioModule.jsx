@@ -38,6 +38,7 @@ import {
   enriquecerProductoConLotes,
   fetchLotesInventario,
   patchProductoSinColumnaProveedor,
+  stockAnaquelDeProducto,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import {
@@ -2612,7 +2613,7 @@ function renderInventarioColumnCell(colId, ctx) {
           field="stock"
           value={String(p.stock ?? 0)}
           type="number"
-          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{p.stock_peps ?? p.stock}</span>}
+          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{stockAnaquelDeProducto(p)}</span>}
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("stock") }}
         />
       );
@@ -3347,10 +3348,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
     const cat = pasaFiltroCategorias(p, filtroCategorias);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
+    const stockAnaquel = stockAnaquelDeProducto(p);
     const alerta =
       filtroAlerta === "todos"            ? true :
-      filtroAlerta === "agotados"         ? (p.activo && !p.bajo_pedido && (Number(p.stock_peps ?? p.stock) || 0) === 0) :
-      filtroAlerta === "bajo_stock"       ? (!p.bajo_pedido && p.stock <= (p.stock_minimo??0)) :
+      filtroAlerta === "agotados"         ? (p.activo && !p.bajo_pedido && stockAnaquel === 0) :
+      filtroAlerta === "bajo_stock"       ? (p.activo && !p.bajo_pedido && stockAnaquel <= (p.stock_minimo??0)) :
       filtroAlerta === "bajo_pedido"      ? (p.bajo_pedido === true) :
       filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
@@ -3410,9 +3412,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   };
 
   const activos    = productos.filter(p => p.activo).length;
-  // Bajo pedido no cuenta como faltante de góndola.
-  const agotadosInv = productos.filter(p => p.activo && !p.bajo_pedido && (Number(p.stock_peps ?? p.stock) || 0) === 0).length;
-  const bajoStock  = productos.filter(p => p.activo && !p.bajo_pedido && p.stock<=(p.stock_minimo??0)).length;
+  // Bajo pedido no cuenta como faltante de góndola. Mismo stock que la columna (PEPS ∪ columna).
+  const agotadosInv = productos.filter(p => p.activo && !p.bajo_pedido && stockAnaquelDeProducto(p) === 0).length;
+  const bajoStock  = productos.filter(p => p.activo && !p.bajo_pedido && stockAnaquelDeProducto(p)<=(p.stock_minimo??0)).length;
   const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
@@ -4473,7 +4475,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                 </td></tr>
               )}
               {filtrados.map((p,_rowIdx)=>{
-                const bajo    = p.activo && p.stock<=(p.stock_minimo??0);
+                const stockAnaquel = stockAnaquelDeProducto(p);
+                const bajo    = p.activo && !p.bajo_pedido && stockAnaquel<=(p.stock_minimo??0);
                 const inact   = !p.activo;
                 const proxCad = p.min_caducidad_lotes || resolverLoteCaducidadProducto(p)?.fecha_caducidad;
                 const dias    = diasParaCaducar(proxCad);
@@ -4617,7 +4620,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
               <div>
                 <h3 style={{margin:0,color:C.text,fontSize:15,fontWeight:800}}>📦 Lotes de {modalLotes.nombre}</h3>
                 <div style={{color:C.textMid,fontSize:11,marginTop:2}}>
-                  Stock total: <strong style={{color:C.blue}}>{modalLotes.stock}</strong>
+                  Stock total: <strong style={{color:C.blue}}>{stockAnaquelDeProducto(modalLotes)}</strong>
                   {` · ${(modalLotes.lotes_activos||[]).length} lote(s) activo(s)`}
                 </div>
               </div>

@@ -42,6 +42,24 @@ export function stockDesdeLotes(lotes) {
     .reduce((s, l) => s + (Number(l.cantidad_actual) || 0), 0);
 }
 
+/**
+ * Stock de anaquel para Catálogo / Reabasto / agotados.
+ * GREATEST(productos.stock, suma lotes): si Recibir ya escribió lotes pero el
+ * trigger no refrescó la columna — o al revés, columna con piezas y lotes
+ * fantasma en 0 — no marcamos AGOTADO con mercancía en anaquel.
+ * Misma idea que el checkout online (`greatest(stock, sum_lotes)`).
+ */
+export function stockAnaquelEfectivo(producto, lotes) {
+  const col = Math.max(0, Number(producto?.stock) || 0);
+  const fromLotes = Math.max(0, stockDesdeLotes(lotes));
+  return Math.max(col, fromLotes);
+}
+
+/** Criterio único en UI ya enriquecida (`stock_peps` o columna). */
+export function stockAnaquelDeProducto(p) {
+  return Math.max(0, Number(p?.stock_peps ?? p?.stock) || 0);
+}
+
 /** Lote que representa el proveedor visible en Inventario (más piezas, luego el más reciente). */
 export function loteObjetivoProveedor(lotes) {
   const list = (lotes || []).filter((l) => l.activo !== false);
@@ -136,20 +154,20 @@ export function enriquecerProductoConLotes(p, lotes) {
   const lotesList = lotes || [];
   const lotesActivos = lotesList.filter((l) => l.activo !== false);
   const lotesConStock = lotesActivos.filter((l) => (Number(l.cantidad_actual) || 0) > 0);
-  const stockPeps = stockDesdeLotes(lotesList);
+  const stockPeps = stockAnaquelEfectivo(p, lotesList);
   const minCad = minCaducidadLotes(lotesList);
   const proveedorLote = proveedorDesdeLotes(lotesList);
   return {
     ...p,
     lotes: lotesList,
     lotes_activos: lotesConStock,
-    // Solo lotes con piezas cuentan como PEPS. Un lote vacío (qty 0, activo)
-    // no debe tapar productos.stock: eso marcaba AGOTADO con mercancía en anaquel.
-    stock_peps: lotesConStock.length ? stockPeps : (Number(p.stock) || 0),
+    // GREATEST(columna, suma lotes). Lote vacío no tapa stock; lotes con
+    // piezas no se ignoran aunque productos.stock siga en 0 tras Recibir.
+    stock_peps: stockPeps,
     min_caducidad_lotes: minCad,
     diasCaducidad: diasParaCaducar(minCad),
     proveedor: proveedorLote || "",
-    sinLotePeps: lotesConStock.length === 0 && (Number(p.stock) || 0) > 0,
+    sinLotePeps: lotesConStock.length === 0 && stockPeps > 0,
   };
 }
 

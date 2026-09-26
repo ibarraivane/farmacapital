@@ -19,6 +19,7 @@ select
   ) as tiene_fn_comprometer_stock;
 
 -- 2) Desfase productos.stock vs suma de lotes activos (top 40 peores)
+--    Tras patch_agotados_resync_stock_20260923.sql debería quedar casi todo en 0.
 select
   p.id,
   p.sku,
@@ -54,6 +55,28 @@ order by abs(
   ), 0)
 ) desc
 limit 40;
+
+-- 2b) Falsos agotados: columna dice 0 pero lotes tienen piezas
+select count(*) as falsos_agotados_columna_0_con_lotes
+from public.productos p
+where coalesce(p.activo, true)
+  and not coalesce(p.bajo_pedido, false)
+  and coalesce(p.stock, 0) <= 0
+  and coalesce((
+    select sum(l.cantidad_actual) from public.lotes l
+    where l.producto_id = p.id and coalesce(l.activo, true)
+  ), 0) > 0;
+
+-- 2c) Agotados reales (columna y lotes en 0, sin bajo pedido)
+select count(*) as agotados_reales
+from public.productos p
+where coalesce(p.activo, true)
+  and not coalesce(p.bajo_pedido, false)
+  and coalesce(p.stock, 0) <= 0
+  and coalesce((
+    select sum(l.cantidad_actual) from public.lotes l
+    where l.producto_id = p.id and coalesce(l.activo, true)
+  ), 0) <= 0;
 
 -- 3) Recibir: renglones confirmados SIN lote (verde huérfano = stock no entró)
 select
