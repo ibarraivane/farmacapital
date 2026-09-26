@@ -168,7 +168,7 @@ export const TEMAS = [
     titulo: "Cotizaciones",
     resumen: "Oficina de proyecto: comparativa de dónde lo encontraste, a qué costo, a cuánto lo vendes y cuánto se gana.",
     pasos: [
-      "Abre Cotizaciones en Comercial y crecimiento (solo admin/gerente).",
+      "Abre Cotizaciones en Operación diaria (solo admin/gerente).",
       "Nueva cotización: quién pide, origen (admin, tienda, WhatsApp…), para cuándo y uno o más productos.",
       "En cada renglón anota fuentes (Nadro, Dermaexpress, otro) con costo y link. Elige la compra.",
       "El sugerido es recargo sobre costo: marca +25% / genérico +60%. Puedes pisar el precio de venta.",

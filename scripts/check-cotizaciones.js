@@ -74,6 +74,7 @@ mustInclude(mostrador, "admin_promover_solicitud_a_cotizacion", "Lo que buscan d
 mustInclude(mostrador, "stashCotizacionAbierta", "Lo que buscan debe abrir la ficha");
 
 mustInclude(constants, '"cotiz"', "constants debe registrar cotiz");
+mustInclude(constants, '"ped_mostrador", "cotiz"', "Cotizaciones va en Operación diaria, junto a Lo que buscan");
 mustInclude(constants, "Cotizaciones", "constants debe etiquetar el módulo");
 mustInclude(permissions, '"cotiz"', "permissions debe bloquear cotiz al vendedor");
 mustInclude(admin, "CotizacionesModule", "Admin debe lazy-cargar el módulo");
