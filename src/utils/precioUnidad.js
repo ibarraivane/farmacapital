@@ -240,6 +240,15 @@ export function aplicarReglaPrecioUnidad(fields) {
 }
 
 /**
+ * El precio que escribió el dueño gana. La regla solo llena el campo vacío.
+ */
+export function precioCapturadoOSugerido(capturado, sugerido) {
+  const actual = Math.ceil(parseFloat(capturado) || 0);
+  if (actual > 0) return actual;
+  return Math.ceil(parseFloat(sugerido) || 0);
+}
+
+/**
  * Tras Guardar: el precio que quedó en la fila, si no es el que se envió.
  * null si no hay fila o si sí se guardó.
  */

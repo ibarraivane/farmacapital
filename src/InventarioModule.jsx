@@ -20,7 +20,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
-import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct, normalizarStockAbierto, precioBlisterQueNoQuedo } from "./utils/precioUnidad";
+import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct, normalizarStockAbierto, precioBlisterQueNoQuedo, precioCapturadoOSugerido } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
@@ -1471,10 +1471,17 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
             <input type="checkbox" id="venta_unidad_chk" checked={form.venta_unidad||false}
               onChange={e=>{
                 const on=e.target.checked;
-                set("venta_unidad", on);
-                if (on) {
-                  set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, form.unidades_por_caja || 1, form.categoria, form.tipo));
-                }
+                setForm(f => {
+                  if (!on) return { ...f, venta_unidad: false };
+                  return {
+                    ...f,
+                    venta_unidad: true,
+                    precio_unidad: precioCapturadoOSugerido(
+                      f.precio_unidad,
+                      sugerirPrecioUnidad(f.precio, f.costo, f.unidades_por_caja || 1, f.categoria, f.tipo),
+                    ),
+                  };
+                });
               }} style={{width:16,height:16,cursor:"pointer"}}/>
             <label htmlFor="venta_unidad_chk" style={{...labelStyle,margin:0,cursor:"pointer",fontSize:13,fontWeight:700}}>
               💊 Permite venta por unidad suelta (caja abierta)
@@ -1486,12 +1493,22 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <label style={labelStyle}>Unidades por caja</label>
                 <input type="number" min="1" value={form.unidades_por_caja}
                   onChange={e=>{
-                    const u=parseInt(e.target.value,10)||1;
-                    const pieza = sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo);
-                    set("unidades_por_caja",e.target.value);
-                    set("precio_unidad", pieza);
-                    const b = blistersPorCaja(u, form.piezas_por_blister);
-                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, u, form.piezas_por_blister, form.categoria, form.tipo, pieza));
+                    const raw = e.target.value;
+                    const u=parseInt(raw,10)||1;
+                    setForm(f => {
+                      const pieza = precioCapturadoOSugerido(
+                        f.precio_unidad,
+                        sugerirPrecioUnidad(f.precio, f.costo, u, f.categoria, f.tipo),
+                      );
+                      const next = { ...f, unidades_por_caja: raw, precio_unidad: pieza };
+                      if (blistersPorCaja(u, f.piezas_por_blister) >= 2) {
+                        next.precio_blister = precioCapturadoOSugerido(
+                          f.precio_blister,
+                          sugerirPrecioBlister(f.precio, f.costo, u, f.piezas_por_blister, f.categoria, f.tipo, pieza),
+                        );
+                      }
+                      return next;
+                    });
                   }}
                   style={inputStyle} placeholder="20"/>
               </div>
@@ -1507,10 +1524,16 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <input type="number" min="0" step="0.01" value={form.precio_unidad}
                   onChange={e=>{
                     const pieza = Math.ceil(parseFloat(e.target.value)||0);
-                    set("precio_unidad", pieza);
-                    if (blistersPorCaja(form.unidades_por_caja, form.piezas_por_blister) >= 2) {
-                      set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, form.unidades_por_caja, form.piezas_por_blister, form.categoria, form.tipo, pieza));
-                    }
+                    setForm(f => {
+                      const next = { ...f, precio_unidad: pieza };
+                      if (blistersPorCaja(f.unidades_por_caja, f.piezas_por_blister) >= 2) {
+                        next.precio_blister = precioCapturadoOSugerido(
+                          f.precio_blister,
+                          sugerirPrecioBlister(f.precio, f.costo, f.unidades_por_caja, f.piezas_por_blister, f.categoria, f.tipo, pieza),
+                        );
+                      }
+                      return next;
+                    });
                   }}
                   style={inputStyle} placeholder="3"/>
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
@@ -1533,9 +1556,16 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <input type="number" min="0" value={form.piezas_por_blister ?? ""}
                   onChange={e=>{
                     const raw = e.target.value;
-                    set("piezas_por_blister", raw);
-                    const b = blistersPorCaja(form.unidades_por_caja, raw);
-                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, form.unidades_por_caja, raw, form.categoria, form.tipo, form.precio_unidad));
+                    setForm(f => {
+                      const next = { ...f, piezas_por_blister: raw };
+                      if (blistersPorCaja(f.unidades_por_caja, raw) >= 2) {
+                        next.precio_blister = precioCapturadoOSugerido(
+                          f.precio_blister,
+                          sugerirPrecioBlister(f.precio, f.costo, f.unidades_por_caja, raw, f.categoria, f.tipo, f.precio_unidad),
+                        );
+                      }
+                      return next;
+                    });
                   }}
                   className="farmacapital-field-input"
                   style={{...inputBlister, borderColor: errors.piezas_por_blister ? C.red : C.border}}
