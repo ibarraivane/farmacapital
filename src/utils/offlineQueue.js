@@ -1,4 +1,5 @@
 import { idEmpleadoUsuarios, parseUsuariosBigintId } from "./usuarioId";
+import { modoVentaDeLinea } from "./precioUnidad";
 
 // ═══════════════════════════════════════════════════════════
 // FARMACAPITAL — Offline Sale Queue
@@ -108,7 +109,7 @@ export async function sincronizarVentasPendientes(supabase, usuario) {
         producto_id: i.producto_id ?? i.id,
         cantidad: i.cantidad ?? i.qty ?? 1,
         precio_unitario: i.precio_unitario ?? i.precio_venta ?? i.precio ?? 0,
-        modo_venta: i.esUnidad ? "unidad" : "caja",
+        modo_venta: modoVentaDeLinea(i),
       }));
 
       if (!cartItemsMapped.length) {

@@ -15,10 +15,10 @@ import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, look
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
-import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
+import { modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
 import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
-import { IconoAnaquel, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
+import { IconoAnaquel, IconoBlister, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
 import PrecioOferta from "../../../components/PrecioOferta";
 import { precioLineaCajaPos, ordenarLotesFefo, resumenFefoMostrador } from "../../../lib/precioVentaExclusivo";
@@ -143,10 +143,31 @@ const POS_PRODUCTOS_PAGE = 500;
 const POS_PRODUCTOS_SELECT = [
   "id", "nombre", "sku", "codigo_barras", "categoria", "stock", "stock_minimo",
   "stock_unidades", "activo", "marca", "presentacion", "principio_activo",
-  "forma_farmaceutica", "precio", "precio_unidad", "venta_unidad", "unidades_por_caja",
+  "forma_farmaceutica", "precio", "precio_unidad", "precio_blister", "venta_unidad", "unidades_por_caja",
+  "piezas_por_blister", "stock_blisters",
   "imagen_url", "imagen_mobile_url", "ubicacion_texto", "descripcion", "tipo",
   "denominacion_generica", "denominacion_distintiva", "concentracion",
 ].join(",");
+
+function firmaLotesPos(p) {
+  return (p?.lotes || []).map((l) => `${l.id}:${l.cantidad_actual}:${l.activo}`).join("|");
+}
+
+/** Baja 1 del lote FEFO en memoria, igual que abrir_caja_lote. */
+function restarUnaCajaLocal(producto, hoy) {
+  const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
+  const primero = ordenarLotesFefo(lotes, hoy)[0];
+  if (!primero) return producto;
+  const nextLotes = lotes.map((l) => {
+    const mismo = primero.id != null && l.id != null
+      ? String(l.id) === String(primero.id)
+      : l === primero;
+    if (!mismo) return l;
+    const qty = Math.max(0, (Number(l.cantidad_actual) || 0) - 1);
+    return { ...l, cantidad_actual: qty, activo: qty > 0 ? l.activo !== false : false };
+  });
+  return { ...producto, lotes: nextLotes };
+}
 
 function normalizarListaProductosPos(data) {
   if (Array.isArray(data)) return data;
@@ -350,7 +371,9 @@ function PosProductoFichaPanel({
   onSelectVariante,
   onAddCaja,
   onAddUnidad,
+  onAddBlister,
   onAbrirCaja,
+  onAbrirBlister,
   getStockCajasPOS,
   productoSinLotesPEPS,
   enCarrito = 0,
@@ -415,9 +438,14 @@ function PosProductoFichaPanel({
   const cajaFalsa = productoCajaEsFalsa(item);
   const stockVisible = stockMostradorPos(item, stockCajas);
   const precioFicha = precioMostradorPos(item);
+  const vendeBlister = productoVendeBlister(item);
+  const stockBlisters = Number(item.stock_blisters) || 0;
+  const stockPiezas = Number(item.stock_unidades) || 0;
   const agotado = cajaFalsa
     ? stockVisible <= 0
-    : stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
+    : stockCajas <= 0
+      && (!item.venta_unidad || stockPiezas === 0)
+      && (!vendeBlister || stockBlisters === 0);
   const sinPrecio = cajaFalsa ? precioFicha <= 0.01 : !productoEsVendible(item);
   const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
   const usoResuelto = posUsoParaMostrar(item, usoTexto);
@@ -678,6 +706,12 @@ function PosProductoFichaPanel({
             </div>
           )}
 
+          {vendeBlister && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>
+              {stockCajas} cajas · {stockBlisters} blisters · {stockPiezas} piezas
+            </div>
+          )}
+
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
             {sinPrecio ? (
               <Btn col={C.amber} disabled full>
@@ -700,20 +734,38 @@ function PosProductoFichaPanel({
               </Btn>
             ) : item.venta_unidad ? (
               <>
-                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={filaIconoBtn({ flex: "1 1 160px" })}>
+                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={filaIconoBtn({ flex: "1 1 140px" })}>
                   <IconoCaja size={18} />
                   Caja · {$(item.precio)}
                 </Btn>
+                {vendeBlister && (
+                  <Btn
+                    outline
+                    col={C.blue}
+                    disabled={stockCajas <= 0 && stockBlisters === 0}
+                    onClick={() => {
+                      if (stockBlisters > 0) onAddBlister(item);
+                      else if (stockCajas > 0) onAbrirCaja(item);
+                      else showToast("Sin stock disponible.", "warning");
+                    }}
+                    style={filaIconoBtn({ flex: "1 1 140px" })}
+                  >
+                    <IconoBlister size={18} />
+                    Blister · {$(precioBlisterParaVenta(item))}
+                  </Btn>
+                )}
                 <Btn
                   outline
                   col={C.green}
-                  disabled={stockCajas <= 0 && item.stock_unidades === 0}
+                  disabled={stockCajas <= 0 && stockPiezas === 0 && (!vendeBlister || stockBlisters === 0)}
                   onClick={() => {
-                    if (item.stock_unidades > 0) onAddUnidad(item);
+                    if (stockPiezas > 0) onAddUnidad(item);
+                    else if (vendeBlister && stockBlisters > 0) onAbrirBlister(item);
+                    else if (vendeBlister && stockCajas > 0) showToast("Abre un blister primero. La caja suelta blisters, no piezas.", "info");
                     else if (stockCajas > 0) onAbrirCaja(item);
                     else showToast("Sin stock disponible.", "warning");
                   }}
-                  style={filaIconoBtn({ flex: "1 1 160px" })}
+                  style={filaIconoBtn({ flex: "1 1 140px" })}
                 >
                   <IconoPieza size={18} />
                   Pieza · {$(precioUnidadParaVenta(item))}
@@ -1340,7 +1392,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         next.stock === prev.stock &&
         next.precio === prev.precio &&
         next.nombre === prev.nombre &&
-        next.min_caducidad_lotes === prev.min_caducidad_lotes
+        next.min_caducidad_lotes === prev.min_caducidad_lotes &&
+        Number(next.stock_unidades) === Number(prev.stock_unidades) &&
+        Number(next.stock_blisters) === Number(prev.stock_blisters) &&
+        firmaLotesPos(next) === firmaLotesPos(prev)
       ) return prev;
       return { ...prev, ...next };
     });
@@ -1561,13 +1616,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return (yaPagoConsulta ? 0 : precioBase) + totalCons;
   };
 
-  const add = (item, esUnidad=false) => {
-    if (!productoEsVendible(item)) {
+  const add = (item, modo=false) => {
+    const esUnidad = modo === true || modo === "unidad";
+    const esBlister = modo === "blister";
+    if (esBlister && precioBlisterParaVenta(item) <= 0) {
+      showToast(`"${item?.nombre || "Producto"}" no tiene precio de blister. Cárgalo en Inventario.`, "warning");
+      return false;
+    }
+    if (!esBlister && !productoEsVendible(item)) {
       showToast(`"${item?.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
       return false;
     }
     // Validar lotes vencidos solo si no queda nada vendible por FEFO
-    if (!esUnidad) {
+    if (!esUnidad && !esBlister) {
       const hoy = hoyISOMexico();
       const fefo = ordenarLotesFefo(item.lotes || [], hoy);
       const hayFilasLote = Array.isArray(item.lotes) && item.lotes.some((l) => l?.activo !== false);
@@ -1576,11 +1637,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         return false;
       }
     }
-    if (esMedicamentoControlado(item) && !esUnidad) {
+    if (esMedicamentoControlado(item) && !esUnidad && !esBlister) {
       setRxM(item);
       return false;
     }
-    if (esCategoriaAntibiotico(item.categoria) && !esUnidad) {
+    if (esCategoriaAntibiotico(item.categoria) && !esUnidad && !esBlister) {
       const yaEnCarrito = cart.some((c) => c.id === item.id || c.producto_id === item.id);
       if (!yaEnCarrito) {
         showToast("Antibiótico: se recomienda receta. No es obligatoria para cobrar.", "info");
@@ -1602,7 +1663,28 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         }
         return ex
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
+          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,esBlister:false,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
+      });
+      return added;
+    }
+    if (esBlister) {
+      if ((item.stock_blisters || 0) <= 0) {
+        showToast("Sin blisters disponibles.", "warning");
+        return false;
+      }
+      const keyB = item.id+"_blister";
+      const precioB = precioBlisterParaVenta(item);
+      let added = true;
+      setCart(p=>{
+        const ex = p.find(c=>c.id===keyB);
+        if (ex && ex.qty >= (item.stock_blisters || 0)) {
+          showToast(`Máx blisters sueltos: ${item.stock_blisters || 0}`, "warning");
+          added = false;
+          return p;
+        }
+        return ex
+          ? p.map(c=>c.id===keyB?{...c,qty:c.qty+1}:c)
+          : [...p,{...item,id:keyB,producto_id:item.id,qty:1,rxI:null,esUnidad:false,esBlister:true,precio:precioB,nombre:`${tituloPublicoProducto(item)} (blister)`}];
       });
       return added;
     }
@@ -1693,12 +1775,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       setCart((prev) => {
         let next = [...prev];
         for (const { producto, qty } of plan.lineas) {
-          const ex = next.find((c) => String(c.id) === String(producto.id) && !c.esUnidad);
+          const ex = next.find((c) => String(c.id) === String(producto.id) && !c.esUnidad && !c.esBlister);
           if (ex) {
             const newQty = (Number(ex.qty) || 0) + qty;
             const priced = precioCajaDesdeProducto(producto, newQty, especialesRef.current);
             next = next.map((c) =>
-              c.id === producto.id && !c.esUnidad ? { ...c, qty: newQty, rxI, ...priced } : c
+              c.id === producto.id && !c.esUnidad && !c.esBlister ? { ...c, qty: newQty, rxI, ...priced } : c
             );
           } else {
             next = [
@@ -1847,15 +1929,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const visible = stockMostradorPos(producto, cajas);
     const agotado = productoCajaEsFalsa(producto)
       ? visible <= 0
-      : cajas <= 0 && (!producto.venta_unidad || producto.stock_unidades === 0);
+      : cajas <= 0
+        && (!producto.venta_unidad || (Number(producto.stock_unidades) || 0) === 0)
+        && (!productoVendeBlister(producto) || (Number(producto.stock_blisters) || 0) === 0);
     return { agotado, etiqueta: agotado ? "Agotado" : `${visible} disp.` };
   };
 
-  const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {
+  const getCantidadEnCarrito = (cartActual, productoId, modo = false) => {
+    const want = modo === true ? "unidad" : modo === false ? "caja" : modo;
     return (cartActual || []).reduce((sum, item) => {
       const itemId = String(item.producto_id ?? item.id ?? "");
       const baseId = String(productoId ?? "");
-      if (item.esUnidad !== esUnidad) return sum;
+      if (modoVentaDeLinea(item) !== want) return sum;
       return itemId === baseId ? sum + (Number(item.qty) || 0) : sum;
     }, 0);
   };
@@ -1914,6 +1999,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return true;
   };
 
+  const aplicarStockPos = (productoId, mutator) => {
+    setProds((prev) => prev.map((p) => (String(p.id) === String(productoId) ? mutator(p) : p)));
+    setFichaProd((prev) => (prev && String(prev.id) === String(productoId) ? mutator(prev) : prev));
+  };
+
   const abrirCaja = async (item) => {
     if (getStockCajasPOS(item) <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -1926,10 +2016,55 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       showToast(`Error al abrir caja: ${error.message}`, "error");
       return;
     }
-    const nuevasUnidades =
-      data?.[0]?.stock_unidades_nuevo ??
-      ((item.stock_unidades || 0) + (item.unidades_por_caja || 0));
-    showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
+    const row = Array.isArray(data) ? data[0] : data;
+    const destino = unidadesAlAbrirCaja(item);
+    aplicarStockPos(item.id, (p) => {
+      const base = restarUnaCajaLocal(p, hoyISOMexico());
+      if (destino.stock === "blisters") {
+        return {
+          ...base,
+          stock_blisters: row?.stock_blisters_nuevo ?? ((Number(p.stock_blisters) || 0) + destino.cantidad),
+          stock_unidades: row?.stock_unidades_nuevo ?? p.stock_unidades,
+        };
+      }
+      return {
+        ...base,
+        stock_unidades: row?.stock_unidades_nuevo ?? ((Number(p.stock_unidades) || 0) + destino.cantidad),
+      };
+    });
+    if (destino.stock === "blisters") {
+      const n = row?.stock_blisters_nuevo ?? ((Number(item.stock_blisters) || 0) + destino.cantidad);
+      showToast(`Caja abierta. Blisters disponibles: ${n}`, "success");
+    } else {
+      const n = row?.stock_unidades_nuevo ?? ((Number(item.stock_unidades) || 0) + destino.cantidad);
+      showToast(`Caja abierta. Unidades disponibles: ${n}`, "success");
+    }
+  };
+
+  const abrirBlister = async (item) => {
+    if ((Number(item.stock_blisters) || 0) <= 0) {
+      showToast("Sin blisters sueltos. Abre una caja primero.", "warning");
+      return;
+    }
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada.", "error"); return; }
+    const { data, error } = await supabase.rpc("abrir_blister_secure", {
+      p_session_token: tok,
+      p_producto_id: item.id,
+    });
+    if (error) {
+      showToast(`Error al abrir blister: ${error.message}`, "error");
+      return;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    const ppb = parseInt(item.piezas_por_blister, 10) || 0;
+    aplicarStockPos(item.id, (p) => ({
+      ...p,
+      stock_blisters: row?.stock_blisters_nuevo ?? Math.max(0, (Number(p.stock_blisters) || 0) - 1),
+      stock_unidades: row?.stock_unidades_nuevo ?? ((Number(p.stock_unidades) || 0) + ppb),
+    }));
+    const piezas = row?.stock_unidades_nuevo ?? ((Number(item.stock_unidades) || 0) + ppb);
+    showToast(`Blister abierto. Piezas disponibles: ${piezas}`, "success");
   };
 
   const RX_IND_PRESETS = ["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"];
@@ -2049,13 +2184,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         const pid = c.producto_id ?? c.id;
         const p = productos.find((x) => String(x.id) === String(pid));
         const requested = Number(c.qty) || 0;
-        const available = c.esUnidad ? (Number(p?.stock_unidades) || 0) : getStockFifoDisponible(p);
+        const modoLinea = modoVentaDeLinea(c);
+        const available = modoLinea === "unidad"
+          ? (Number(p?.stock_unidades) || 0)
+          : modoLinea === "blister"
+            ? (Number(p?.stock_blisters) || 0)
+            : getStockFifoDisponible(p);
         if (!p || requested <= available) return null;
         return {
           nombre: p.nombre || c.nombre || `Producto ${pid}`,
           requested,
           available,
-          unidad: c.esUnidad ? "unidad(es)" : "caja(s)",
+          unidad: modoLinea === "unidad" ? "unidad(es)" : modoLinea === "blister" ? "blister(s)" : "caja(s)",
         };
       })
       .filter(Boolean);
@@ -2119,7 +2259,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         producto_id: c.producto_id ?? c.id,
         cantidad: c.qty,
         precio_unitario: cobroLinea(c.precio, 1),
-        modo_venta: c.esUnidad ? "unidad" : "caja",
+        modo_venta: modoVentaDeLinea(c),
       }));
 
       const usaMixtoOCredito = creditoNum > 0 || metodoPagoFinal === "mixto";
@@ -2617,7 +2757,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               <div style={{flex:1,lineHeight:1.3}}>
                 <div style={{color:C.text,fontSize:14,fontWeight:700}}>{item.nombre}</div>
                 {(() => {
-                  if (item.esUnidad) {
+                  if (item.esUnidad || item.esBlister) {
                     return item.fuentePrecio === "caducidad" ? (
                       <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
                     ) : null;
@@ -2644,16 +2784,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 <button onClick={()=>setCart(p=>p.map(c=>{
                   if(c.id!==item.id) return c;
                   const qty = Math.max(1, c.qty - 1);
-                  if (c.esUnidad) return { ...c, qty };
+                  if (c.esUnidad || c.esBlister) return { ...c, qty };
                   const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id)) || c;
                   return { ...c, qty, ...precioCajaDesdeProducto(prod, qty, especialesRef.current) };
                 }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>−</button>
                 <span style={{color:C.text,fontSize:15,fontWeight:800,minWidth:20,textAlign:"center"}}>{item.qty}</span>
             <button onClick={()=>setCart(p=>p.map(c=>{
               if(c.id!==item.id) return c;
-              if(c.esUnidad){
-                const maxU = item.stock_unidades||0;
-                if(c.qty>=maxU){ showToast(`Máx unidades: ${maxU}`,"warning"); return c; }
+              if(c.esUnidad || c.esBlister){
+                const prodLive = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
+                const maxU = c.esBlister
+                  ? (Number(prodLive?.stock_blisters ?? item.stock_blisters) || 0)
+                  : (Number(prodLive?.stock_unidades ?? item.stock_unidades) || 0);
+                if(c.qty>=maxU){ showToast(c.esBlister ? `Máx blisters: ${maxU}` : `Máx unidades: ${maxU}`,"warning"); return c; }
                 return {...c,qty:c.qty+1};
               }
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
@@ -3695,7 +3838,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}
               onAddUnidad={(it) => add(it, true)}
+              onAddBlister={(it) => add(it, "blister")}
               onAbrirCaja={abrirCaja}
+              onAbrirBlister={abrirBlister}
               getStockCajasPOS={getStockCajasPOS}
               productoSinLotesPEPS={productoSinLotesPEPS}
               enCarrito={fichaProd ? getCantidadEnCarrito(cart, fichaProd.id, false) : 0}
@@ -3739,7 +3884,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}
               onAddUnidad={(it) => add(it, true)}
+              onAddBlister={(it) => add(it, "blister")}
               onAbrirCaja={abrirCaja}
+              onAbrirBlister={abrirBlister}
               getStockCajasPOS={getStockCajasPOS}
               productoSinLotesPEPS={productoSinLotesPEPS}
               enCarrito={0}

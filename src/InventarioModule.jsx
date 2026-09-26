@@ -20,7 +20,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
-import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
+import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
@@ -60,7 +60,7 @@ const leerSesion = () => {
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const EMPTY = {
-  nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
+  nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"", piezas_por_blister:"", precio_blister:"", stock_blisters:"",
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
   fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"", imagen_mobile_url:"",
   principio_activo:"", denominacion_generica:"", denominacion_distintiva:"",
@@ -989,6 +989,18 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     if (cb && (cb.length < 8 || cb.length > 14)) {
       e.codigo_barras = "Usa 8–14 dígitos (EAN/UPC)";
     }
+    if (form.venta_unidad) {
+      const upc = parseInt(form.unidades_por_caja, 10) || 0;
+      const ppbRaw = String(form.piezas_por_blister ?? "").trim();
+      const ppb = ppbRaw === "" ? 0 : parseInt(ppbRaw, 10);
+      const stockB = parseInt(form.stock_blisters, 10) || 0;
+      if (ppbRaw !== "" && ppb !== 0 && blistersPorCaja(upc, ppb) < 2) {
+        e.piezas_por_blister = "Tiene que partir la caja en blisters enteros (al menos 2).";
+      }
+      if ((ppbRaw === "" || ppb === 0) && stockB > 0) {
+        e.piezas_por_blister = "Hay blisters sueltos. Indica las piezas por blister o deja ese stock en 0.";
+      }
+    }
     return e;
   };
   const handleSave = async () => {
@@ -1024,6 +1036,9 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja) || 0 : 0,
         precio_unidad: form.venta_unidad ? Math.ceil(parseFloat(form.precio_unidad) || 0) : 0,
         stock_unidades: form.venta_unidad ? parseInt(form.stock_unidades) || 0 : 0,
+        piezas_por_blister: form.venta_unidad ? parseInt(form.piezas_por_blister, 10) || 0 : 0,
+        precio_blister: form.venta_unidad ? Math.ceil(parseFloat(form.precio_blister) || 0) : 0,
+        stock_blisters: form.venta_unidad ? parseInt(form.stock_blisters, 10) || 0 : 0,
       });
 
       const sesion = leerSesion();
@@ -1145,13 +1160,28 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   );
 
   const upcVenta = parseInt(form.unidades_por_caja, 10) || 0;
+  const blistersVenta = blistersPorCaja(upcVenta, form.piezas_por_blister);
   const costoPieza = upcVenta > 0 && form.costo !== "" ? (parseFloat(form.costo) || 0) / upcVenta : 0;
+  const costoBlister = blistersVenta >= 2 && form.costo !== "" ? (parseFloat(form.costo) || 0) / blistersVenta : 0;
   const precioPieza = Math.ceil(parseFloat(form.precio_unidad) || 0);
   const minPrecioPieza = upcVenta > 0
     ? sugerirPrecioUnidad(form.precio, form.costo, upcVenta, form.categoria, form.tipo)
     : 0;
   const margenPiezaPct = precioPieza > 0 && costoPieza > 0 ? margenBrutoPct(precioPieza, costoPieza) : null;
   const margenCajaPct = form.precio && form.costo ? margenBrutoPct(form.precio, form.costo) : null;
+  const precioBlister = Math.ceil(parseFloat(form.precio_blister) || 0);
+  const minPrecioBlister = blistersVenta >= 2
+    ? sugerirPrecioBlister(form.precio, form.costo, upcVenta, form.piezas_por_blister, form.categoria, form.tipo)
+    : 0;
+  const margenBlisterPct = precioBlister > 0 && costoBlister > 0 ? margenBrutoPct(precioBlister, costoBlister) : null;
+  const inputBlister = {
+    ...inputStyle,
+    background: "#ffffff",
+    color: "#0f172a",
+    colorScheme: "light",
+    WebkitTextFillColor: "#0f172a",
+    caretColor: "#0f172a",
+  };
   const margenPiezaColor = precioPieza > 0 && precioPieza < minPrecioPieza
     ? C.amber
     : margenPiezaPct != null && margenCajaPct != null && margenPiezaPct >= margenCajaPct
@@ -1432,7 +1462,13 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               <div>
                 <label style={labelStyle}>Unidades por caja</label>
                 <input type="number" min="1" value={form.unidades_por_caja}
-                  onChange={e=>{ const u=parseInt(e.target.value,10)||1; set("unidades_por_caja",e.target.value); set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo)); }}
+                  onChange={e=>{
+                    const u=parseInt(e.target.value,10)||1;
+                    set("unidades_por_caja",e.target.value);
+                    set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo));
+                    const b = blistersPorCaja(u, form.piezas_por_blister);
+                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, u, form.piezas_por_blister, form.categoria, form.tipo));
+                  }}
                   style={inputStyle} placeholder="20"/>
               </div>
               <div>
@@ -1461,6 +1497,51 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <input type="number" min="0" value={form.stock_unidades}
                   onChange={e=>set("stock_unidades",e.target.value)}
                   style={inputStyle} placeholder="0"/>
+              </div>
+              <div>
+                <label style={labelStyle}>Piezas por blister</label>
+                <input type="number" min="0" value={form.piezas_por_blister ?? ""}
+                  onChange={e=>{
+                    const raw = e.target.value;
+                    set("piezas_por_blister", raw);
+                    const b = blistersPorCaja(form.unidades_por_caja, raw);
+                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, form.unidades_por_caja, raw, form.categoria, form.tipo));
+                  }}
+                  className="farmacapital-field-input"
+                  style={{...inputBlister, borderColor: errors.piezas_por_blister ? C.red : C.border}}
+                  placeholder="10"/>
+                {errors.piezas_por_blister
+                  ? <span style={{color:C.red,fontSize:10}}>{errors.piezas_por_blister}</span>
+                  : blistersVenta >= 2
+                    ? <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>{blistersVenta} blisters por caja. Vacío = solo pieza.</div>
+                    : <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>Vacío = abrir caja suelta piezas, sin blister.</div>}
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  Precio por blister ($)
+                  {margenBlisterPct != null ? (
+                    <span style={{ color: C.textMid, fontSize: 10, fontWeight: 700, marginLeft: 6 }}>
+                      · margen {margenBlisterPct}%
+                    </span>
+                  ) : null}
+                </label>
+                <input type="number" min="0" step="0.01" value={form.precio_blister ?? ""}
+                  onChange={e=>set("precio_blister", Math.ceil(parseFloat(e.target.value)||0))}
+                  className="farmacapital-field-input"
+                  style={inputBlister} placeholder="45" readOnly={blistersVenta < 2}/>
+                <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
+                  {costoBlister > 0 ? <>Costo/blister ${costoBlister.toFixed(2)}</> : "Indicá piezas por blister"}
+                  {precioBlister > 0 && minPrecioBlister > 0 && precioBlister < minPrecioBlister
+                    ? <> · sugerido ${minPrecioBlister} (se guarda el que indiques)</>
+                    : null}
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Stock blisters sueltos</label>
+                <input type="number" min="0" value={form.stock_blisters ?? ""}
+                  onChange={e=>set("stock_blisters", e.target.value)}
+                  className="farmacapital-field-input"
+                  style={inputBlister} placeholder="0" readOnly={blistersVenta < 2}/>
               </div>
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
                 💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> ·

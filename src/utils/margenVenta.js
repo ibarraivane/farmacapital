@@ -1,4 +1,6 @@
-/** Costo de una línea de venta: caja vs pieza suelta. */
+/** Costo de una línea de venta: caja, blister o pieza suelta. */
+
+import { blistersPorCaja } from "./precioUnidad";
 
 function num(v, fallback = 0) {
   const n = parseFloat(v);
@@ -11,13 +13,32 @@ function int(v, fallback = 1) {
 }
 
 /**
- * True si el renglón se cobró como pieza, no como caja.
+ * True si el renglón se cobró como blister (tira), no como caja ni pieza.
+ * Usa modo_venta si viene; si no, compara el precio cobrado con precio_blister.
+ */
+export function lineaEsVentaBlister(item) {
+  const modo = String(item?.modo_venta || item?.productos?.modo_venta || "").toLowerCase();
+  if (modo === "blister") return true;
+  if (modo === "unidad" || modo === "caja") return false;
+
+  const prod = item?.productos || {};
+  const blisters = blistersPorCaja(prod.unidades_por_caja, prod.piezas_por_blister);
+  if (blisters < 2) return false;
+  const cobrado = num(item?.precio_unitario);
+  const precioBlister = num(prod.precio_blister);
+  if (cobrado <= 0 || precioBlister <= 0) return false;
+  return Math.abs(cobrado - precioBlister) <= 1;
+}
+
+/**
+ * True si el renglón se cobró como pieza, no como caja ni blister.
  * Usa modo_venta si viene del RPC; si no, compara precio cobrado vs caja/unidad.
  */
 export function lineaEsVentaUnidad(item) {
+  if (lineaEsVentaBlister(item)) return false;
   const modo = String(item?.modo_venta || item?.productos?.modo_venta || "").toLowerCase();
   if (modo === "unidad") return true;
-  if (modo === "caja") return false;
+  if (modo === "caja" || modo === "blister") return false;
 
   const prod = item?.productos || {};
   if (!prod.venta_unidad) return false;
@@ -33,10 +54,14 @@ export function lineaEsVentaUnidad(item) {
   return false;
 }
 
-/** Costo unitario (por renglón) ya ajustado a caja o pieza. */
+/** Costo unitario (por renglón) ya ajustado a caja, blister o pieza. */
 export function costoUnitarioLinea(item) {
   const prod = item?.productos || {};
   const costoCaja = num(prod.costo);
+  if (lineaEsVentaBlister(item) && costoCaja > 0) {
+    const blisters = blistersPorCaja(prod.unidades_por_caja, prod.piezas_por_blister);
+    if (blisters >= 2) return costoCaja / blisters;
+  }
   const upc = int(prod.unidades_por_caja, 0);
   if (lineaEsVentaUnidad(item) && upc > 1 && costoCaja > 0) {
     return costoCaja / upc;
