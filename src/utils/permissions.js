@@ -38,6 +38,7 @@ export const NAV_VENDEDOR_DEFAULT = [
   "pos",
   "dev",
   "ped_mostrador",
+  "compra_personal", // Compra de personal (precio de empleado): solicitar y cobrar. Sin costo/margen.
   "agenda",
   "recibir",
   "inv",

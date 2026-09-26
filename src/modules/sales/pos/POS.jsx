@@ -899,6 +899,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas | servicios
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
+  // Compra de personal (precio de empleado): manda el carrito a aprobación
+  // en vez de cobrarlo. Ver src/ComprasPersonalModule.jsx y
+  // sql/patch_compra_personal_20260925.sql.
+  const [modalCompraPersonal, setModalCompraPersonal] = useState(false);
+  const [personalActivo, setPersonalActivo] = useState([]);
+  const [beneficiarioId, setBeneficiarioId] = useState("");
+  const [enviandoCompraPersonal, setEnviandoCompraPersonal] = useState(false);
   const especialesRef = useRef({});
   useEffect(() => {
     setBloqueaReloadApp(cart.length > 0, "pos-cart");
@@ -2439,6 +2446,56 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
   const cobrar = () => abrirModalRecetaVenta("efectivo");
 
+  const abrirModalCompraPersonal = async () => {
+    if (!cart.length) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada. Inicia sesión de nuevo.", "error"); return; }
+    setModalCompraPersonal(true);
+    setBeneficiarioId("");
+    try {
+      const { data, error } = await supabase.rpc("empleado_listar_personal_activo", { p_session_token: tok });
+      if (error) throw error;
+      setPersonalActivo(Array.isArray(data) ? data : []);
+    } catch (e) {
+      showToast(`No se pudo cargar el personal: ${e?.message || e}`, "error");
+    }
+  };
+
+  const enviarCompraPersonal = async () => {
+    if (!cart.length || !beneficiarioId) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada. Inicia sesión de nuevo.", "error"); return; }
+    setEnviandoCompraPersonal(true);
+    try {
+      const cartItemsPersonal = cart.map((c) => ({
+        producto_id: c.producto_id ?? c.id,
+        cantidad: c.qty,
+      }));
+      const { data, error } = await supabase.rpc("empleado_personal_compra_solicitar", {
+        p_session_token: tok,
+        p_empleado_beneficiario_id: Number(beneficiarioId),
+        p_cart_items: cartItemsPersonal,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      let aviso = `Se mandó a aprobación. Total con descuento: ${$(row?.total_final ?? 0)}.`;
+      if (row?.excede_tope_mensual) aviso += " Excede el tope mensual del beneficiario.";
+      if (row?.excede_limite_producto) aviso += " Excede el límite de piezas por producto.";
+      logAudit(usuario, "COMPRA_PERSONAL_SOLICITAR", "personal_compras", row?.id, {
+        empleado_beneficiario_id: beneficiarioId,
+        total_final: row?.total_final,
+        items: cart.length,
+      });
+      showToast(aviso, row?.excede_tope_mensual || row?.excede_limite_producto ? "warning" : "success");
+      setModalCompraPersonal(false);
+      setCart([]); setTel(""); setCli(null);
+      clearPosSearch();
+    } catch (e) {
+      showToast(`No se pudo mandar a aprobación: ${e?.message || e}`, "error");
+    }
+    setEnviandoCompraPersonal(false);
+  };
+
   const confirmarRecetaVentaYContinuar = () => {
     const ro = recetaOrigenSel === "medico_farmacapital" || recetaOrigenSel === "medico_externo" ? recetaOrigenSel : "no_aplica";
     setModalRecetaVenta(false);
@@ -3048,6 +3105,43 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         ) : null}
       </Box>
       </div>
+      <div style={{marginTop:8}}>
+        <Btn onClick={abrirModalCompraPersonal} full outline col={C.blue} dis={!cart.length || guardando}>
+          Compra de personal
+        </Btn>
+        <div style={{color:C.textDim,fontSize:10,marginTop:4,textAlign:"center"}}>
+          Manda este carrito a aprobación con precio de empleado, en vez de cobrarlo ahora.
+        </div>
+      </div>
+      {modalCompraPersonal && (
+        <Modal open onClose={()=>setModalCompraPersonal(false)} title="Compra de personal">
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{color:C.textMid,fontSize:13}}>
+              El descuento se calcula automáticamente según el margen de cada producto. Esta cuenta
+              queda pendiente de aprobación de un admin antes de poder cobrarse.
+            </div>
+            <select
+              className="farmacapital-field-select"
+              value={beneficiarioId}
+              onChange={(e)=>setBeneficiarioId(e.target.value)}
+              style={{padding:"10px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:14,background:C.card,color:C.text}}
+            >
+              <option value="">Selecciona a quién corresponde…</option>
+              {personalActivo.map((p)=>(
+                <option key={p.id} value={p.id}>{p.nombre}</option>
+              ))}
+            </select>
+            <Btn
+              onClick={enviarCompraPersonal}
+              full
+              col={C.blue}
+              dis={!beneficiarioId || enviandoCompraPersonal}
+            >
+              {enviandoCompraPersonal ? "Enviando..." : "Mandar a aprobación"}
+            </Btn>
+          </div>
+        </Modal>
+      )}
 
     </>
   );
