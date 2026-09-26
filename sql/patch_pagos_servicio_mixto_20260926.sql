@@ -476,7 +476,11 @@ $$;
 grant execute on function public.reconcile_cash_rango(timestamptz, timestamptz)
   to anon, authenticated;
 
--- Admin editar: permite mixto con montos.
+-- Admin editar: permite mixto con montos (mantiene atendido_por).
+drop function if exists public.admin_editar_pago_servicio(uuid, bigint, text, text, text, numeric, numeric);
+drop function if exists public.admin_editar_pago_servicio(uuid, bigint, text, text, text, numeric, numeric, bigint);
+drop function if exists public.admin_editar_pago_servicio(uuid, bigint, text, text, text, numeric, numeric, numeric, numeric);
+
 create or replace function public.admin_editar_pago_servicio(
   p_session_token  uuid,
   p_id             bigint,
@@ -485,6 +489,7 @@ create or replace function public.admin_editar_pago_servicio(
   p_referencia     text default null,
   p_monto_servicio numeric default null,
   p_comision       numeric default null,
+  p_atendido_por   bigint default null,
   p_monto_efectivo numeric default null,
   p_monto_tarjeta  numeric default null
 )
@@ -502,15 +507,28 @@ declare
   v_ef numeric;
   v_tar numeric;
   v_cat text;
+  v_prev_atendido bigint;
+  v_comp numeric;
 begin
   v_actor := public.fn_require_admin(p_session_token);
 
-  select monto_servicio, comision, metodo_pago, monto_efectivo, monto_tarjeta, categoria
-    into v_monto, v_com, v_metodo, v_ef, v_tar, v_cat
+  select monto_servicio, comision, metodo_pago, monto_efectivo, monto_tarjeta, categoria, atendido_por, compensacion_mp
+    into v_monto, v_com, v_metodo, v_ef, v_tar, v_cat, v_prev_atendido, v_comp
   from public.pagos_servicio
   where id = p_id;
   if not found then
     raise exception 'Pago de servicio % no encontrado', p_id;
+  end if;
+
+  if p_atendido_por is not null then
+    if not exists (
+      select 1 from public.usuarios u
+      where u.id = p_atendido_por
+        and coalesce(u.activo, false)
+        and u.eliminado_at is null
+    ) then
+      raise exception 'Usuario vendedor inválido o inactivo (id %)', p_atendido_por;
+    end if;
   end if;
 
   if p_metodo_pago is not null then
@@ -523,6 +541,7 @@ begin
   if p_monto_servicio is not null then
     v_monto := round(p_monto_servicio::numeric, 2);
     if v_monto <= 0 then raise exception 'monto_invalido'; end if;
+    v_comp := round(v_monto * 0.01, 2);
   end if;
   if p_comision is not null then
     v_com := round(p_comision::numeric, 2);
@@ -557,8 +576,10 @@ begin
     total_cobrado = v_total,
     monto_efectivo = v_ef,
     monto_tarjeta = v_tar,
-    compensacion_mp = round(v_monto * 0.01, 2),
-    costo_liquidacion = v_monto
+    compensacion_mp = coalesce(v_comp, round(v_monto * 0.01, 2)),
+    costo_liquidacion = v_monto,
+    fuente_liquidacion = coalesce(fuente_liquidacion, 'saldo_mp'),
+    atendido_por = coalesce(p_atendido_por, atendido_por)
   where id = p_id;
 
   begin
@@ -567,17 +588,24 @@ begin
       v_actor,
       (select nombre from public.usuarios where id = v_actor),
       'editar_pago_servicio', 'pagos_servicio', p_id::text,
-      jsonb_build_object('metodo', v_metodo, 'total', v_total, 'monto_efectivo', v_ef, 'monto_tarjeta', v_tar)
+      jsonb_build_object(
+        'metodo', v_metodo,
+        'total', v_total,
+        'monto_efectivo', v_ef,
+        'monto_tarjeta', v_tar,
+        'atendido_por_anterior', v_prev_atendido,
+        'atendido_por_nuevo', coalesce(p_atendido_por, v_prev_atendido)
+      )
     );
   exception when others then null;
   end;
 
-  return jsonb_build_object('success', true, 'id', p_id);
+  return jsonb_build_object('success', true, 'id', p_id, 'atendido_por', coalesce(p_atendido_por, v_prev_atendido));
 end;
 $$;
 
 grant execute on function public.admin_editar_pago_servicio(
-  uuid, bigint, text, text, text, numeric, numeric, numeric, numeric
+  uuid, bigint, text, text, text, numeric, numeric, bigint, numeric, numeric
 ) to anon, authenticated;
 
 commit;
