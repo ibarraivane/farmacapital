@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,sku,descripcion_ticket,cantidad_mostrador,costo_unitario,subtotal,total_ticket
+1,T270040861,2026-09-18,Dulcería La Victoria,,FC-LV-TURIN600,TURIN CONEJO FOCO VIT. 4/600GR,4,76.1475,304.59,445.34
+2,T270040861,2026-09-18,Dulcería La Victoria,,FC-LV-KITKAT22,NESTLE KITKAT EXTRA MILK & COCOA 22/9PZ,22,6.3977,140.75,445.34
