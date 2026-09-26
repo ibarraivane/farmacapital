@@ -16,6 +16,7 @@
 --
 -- Foto: packshot Pepto MX → public/catalogo-propia/
 --       pepto-bismol-tabletas-masticables-anis-24-7501001155209.png
+-- URL: jsDelivr del commit (inmediato) + /catalogo-propia/ tras deploy.
 -- ORDEN: 1) merge/deploy  2) pegar este SQL en Supabase → Run.
 -- SIN bloques $$. Pegar TODO.
 -- ============================================================================
@@ -44,8 +45,8 @@ select
   'Procter & Gamble',
   null,
   105,
-  'https://www.farmacapital.mx/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png',
-  'https://www.farmacapital.mx/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@92e29aa/public/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@92e29aa/public/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png',
   0,
   2,
   true,
@@ -76,9 +77,9 @@ set
   codigo_barras = '7501001155209',
   precio = case when coalesce(p.precio, 0) <= 1 then 105 else p.precio end,
   imagen_url = coalesce(nullif(btrim(p.imagen_url), ''),
-    'https://www.farmacapital.mx/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png'),
+    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@92e29aa/public/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png'),
   imagen_mobile_url = coalesce(nullif(btrim(p.imagen_mobile_url), ''),
-    'https://www.farmacapital.mx/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png'),
+    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@92e29aa/public/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png'),
   descripcion = trim(both ' ·' from concat_ws(
     ' · ',
     nullif(trim(both ' ·' from coalesce(p.descripcion, '')), ''),
@@ -92,7 +93,7 @@ insert into public.producto_imagenes (
 )
 select
   p.id,
-  'https://www.farmacapital.mx/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@92e29aa/public/catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png',
   'catalogo-propia/pepto-bismol-tabletas-masticables-anis-24-7501001155209.png',
   0,
   true,
