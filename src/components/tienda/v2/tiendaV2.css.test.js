@@ -40,6 +40,7 @@ test("el carrusel mantiene el alto y Cotizar no hereda el fondo del navegador", 
   expect(css).toMatch(/\.fc-studio-icono\{height:var\(--fc-studio-media-h\);margin-top:var\(--fc-studio-media-my\);flex:none/);
   expect(css).toMatch(/\.fc-studio-note span\{[^}]*height:2\.7em/);
   expect(css).toMatch(/\.fc-studio-cta\{[^}]*background:transparent/);
+  expect(css).toMatch(/\.fc-studio h2\{[^}]*min-height:3\.5em/);
   expect(css).toMatch(/--fc-studio-media-h:130px;--fc-studio-media-my:10px/);
   expect(css).not.toMatch(/\.fc-packshots\{height:130px/);
 });
