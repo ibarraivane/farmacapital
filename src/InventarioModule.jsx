@@ -38,6 +38,8 @@ import {
   enriquecerProductoConLotes,
   fetchLotesInventario,
   patchProductoSinColumnaProveedor,
+  stockObjetivoAjusteInline,
+  stockVisibleInventario,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
@@ -462,7 +464,10 @@ const INV_COLUMN_DEFS = {
   categoria: { label: "Categoría", hint: "" },
   tipo: { label: "Tipo", hint: "" },
   proveedor: { label: "Proveedor", hint: "Tienda de compra del lote (Nadro, Surtidor…). Se guarda en el lote, no en la ficha." },
-  stock: { label: "Stock", hint: "" },
+  stock: {
+    label: "Stock",
+    hint: "Piezas en lotes activos. El clic edita ese mismo número.",
+  },
   min: { label: "Mín", hint: "" },
   precio: { label: "Precio", hint: "" },
   costo: { label: "Costo", hint: "" },
@@ -905,6 +910,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     for (const k of ["nombre", "sku", "codigo_barras", "proveedor", "lote"]) {
       if (base[k] == null) base[k] = "";
     }
+    if (initial?.id != null) base.stock = stockVisibleInventario(initial);
     return base;
   });
   const [errors, setErrors] = useState({});
@@ -1064,11 +1070,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           });
           if (bpErr) err = bpErr;
         }
-        if (!err) {
+        if (!err && stockInt !== stockVisibleInventario(initial)) {
           const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
             p_session_token: tok,
             p_producto_id: form.id,
-            p_nuevo_stock: stockInt,
+            p_nuevo_stock: stockObjetivoAjusteInline(initial, stockInt),
             p_motivo: "Edición manual desde Inventario",
           });
           if (adjErr) err = adjErr;
@@ -2539,9 +2545,9 @@ function renderInventarioColumnCell(colId, ctx) {
           {...inlineCellProps}
           productId={p.id}
           field="stock"
-          value={String(p.stock ?? 0)}
+          value={String(stockVisibleInventario(p))}
           type="number"
-          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : cubierto ? C.textMid : C.green }}>{p.stock_peps ?? p.stock}</span>}
+          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : cubierto ? C.textMid : C.green }}>{stockVisibleInventario(p)}</span>}
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("stock") }}
         />
       );
@@ -3483,11 +3489,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         showToast("Stock inválido.", "error");
         return false;
       }
-      if (n === (product.stock ?? 0)) return true;
+      if (n === stockVisibleInventario(product)) return true;
       const { error } = await supabase.rpc("adjust_stock_secure", {
         p_session_token: tok,
         p_producto_id: product.id,
-        p_nuevo_stock: n,
+        p_nuevo_stock: stockObjetivoAjusteInline(product, n),
         p_motivo: "Edición inline inventario",
       });
       if (error) {
@@ -3495,7 +3501,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         return false;
       }
       callarCatalogoLocal();
-      pintarProductoLocal(product.id, { stock: n });
+      pintarProductoLocal(product.id, { stock: n, stock_peps: n });
       avisarCatalogoCambio({ origen: "inventario" });
       showToast("Stock actualizado", "success");
       return true;
