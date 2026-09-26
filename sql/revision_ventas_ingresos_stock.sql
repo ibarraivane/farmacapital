@@ -10,13 +10,17 @@
 --   debe_haber  ingreso − vendido + devuelto
 --   stock       lo que dice el sistema hoy
 --   diferencia  stock − debe_haber
---               0  cuadra
---               +  el sistema tiene de más (copia de ticket o reintegro)
+--               0  el stock ya cuadra con ticket y ventas. No se baja.
+--               +  el sistema tiene de más
 --               −  el sistema tiene de menos
---   de_mas_en_lotes  lo que se creó en lotes por encima del ticket.
---               Una venta no mueve este número: si es mayor que 0, el
---               lote se cargó de más.
---   revision    el texto para filtrar en la hoja.
+--   de_mas_en_lotes  lotes creados de más. Si diferencia es 0, ese lote
+--               ya no está en el stock de hoy: no se vuelve a bajar.
+--   revision    el filtro. Solo «sistema de mas» y «sistema de menos»
+--               son para contar en anaquel.
+--               «caja vs pieza»: el ticket dice 1 caja y el stock está
+--               en piezas (jeringa, gasa, guante). No es producto de más.
+--               «caja abierta»: hay piezas sueltas. La venta fue por pieza.
+--               «cuadra»: no se toca, aunque de_mas_en_lotes sea mayor que 0.
 --
 -- El conteo del anaquel lo anotas tú al lado. Esta hoja no lo trae.
 -- Pedidos cancelados no cuentan como venta.
@@ -88,19 +92,22 @@ fila as (
     coalesce(l.piezas_en_reintegro, 0) as piezas_en_reintegro,
     coalesce(c.lotes_repetidos, 0) as lotes_repetidos,
     case
+      when coalesce(p.stock, 0)
+        - (coalesce(i.ingreso, 0) - coalesce(v.vendido, 0) + coalesce(dv.devuelto, 0)) = 0
+        then 'cuadra'
+      when coalesce(p.stock_unidades, 0) > 0
+        then 'caja abierta'
+      when coalesce(i.ingreso, 0) <= 3
+        and coalesce(p.stock, 0)
+          - (coalesce(i.ingreso, 0) - coalesce(v.vendido, 0) + coalesce(dv.devuelto, 0)) >= 40
+        then 'caja vs pieza'
       when coalesce(i.ingreso, 0) = 0
         and (coalesce(p.stock, 0) > 0 or coalesce(v.vendido, 0) > 0)
         then 'sin ticket en historia'
       when coalesce(p.stock, 0)
         - (coalesce(i.ingreso, 0) - coalesce(v.vendido, 0) + coalesce(dv.devuelto, 0)) > 0
-        or coalesce(l.posteado, 0) - coalesce(i.ingreso, 0) > 0
-        or coalesce(c.lotes_repetidos, 0) > 0
-        or coalesce(l.piezas_en_reintegro, 0) > 0
         then 'sistema de mas'
-      when coalesce(p.stock, 0)
-        - (coalesce(i.ingreso, 0) - coalesce(v.vendido, 0) + coalesce(dv.devuelto, 0)) < 0
-        then 'sistema de menos'
-      else 'cuadra'
+      else 'sistema de menos'
     end as revision
   from public.productos p
   left join ventas v on v.producto_id = p.id
@@ -122,8 +129,10 @@ order by
   case revision
     when 'sistema de mas' then 0
     when 'sistema de menos' then 1
-    when 'sin ticket en historia' then 2
-    else 3
+    when 'caja abierta' then 2
+    when 'sin ticket en historia' then 3
+    when 'caja vs pieza' then 4
+    else 5
   end,
   abs(diferencia) desc,
   de_mas_en_lotes desc,
