@@ -3,11 +3,15 @@ import {
   ArrowLeft,
   Calculator,
   ExternalLink,
+  Mail,
+  MessageCircle,
   Plus,
+  Printer,
   RefreshCw,
   Trash2,
 } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
+import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { supabase } from "./supabase";
 import { Inp, showToast } from "./ui";
 import {
@@ -16,6 +20,8 @@ import {
   ORIGENES_COTIZACION,
   TIPOS_MARGEN_COTIZACION,
   URGENCIAS_COTIZACION,
+  buildCotizacionWhatsAppCliente,
+  escaparHtmlCotizacion,
   etiquetaEstadoCotizacion,
   etiquetaEstadoItemCotizacion,
   etiquetaLugarCotizacion,
@@ -24,13 +30,17 @@ import {
   folioCotizacion,
   fmtDineroCotiz,
   haceCuanto,
+  importeDocumentoCliente,
   itemCotizacionValido,
+  itemConfirmadoDocumento,
   numerosLineaCotizacion,
   puedeGuardarCotizacion,
   siguientesEstadosCotizacion,
   siguientesEstadosItemCotizacion,
   takeCotizacionAbierta,
+  totalDocumentoCliente,
   totalesCotizacion,
+  vigenciaDefaultTexto,
 } from "./lib/cotizaciones";
 
 const C = C_LIGHT;
@@ -195,6 +205,102 @@ function Btn({ children, onClick, disabled, primary, danger, type = "button" }) 
 
 function lineaAltaVacia() {
   return { texto: "", cantidad: 1, tipo_margen: "marca" };
+}
+
+/**
+ * Documento para el cliente: folio, items con precio de venta (nunca costo/margen),
+ * vigencia y datos fiscales. Se abre en una pestaña aparte (igual que la receta médica
+ * de Consultorio) para que Cmd/Ctrl+P → Guardar como PDF salga limpio, sin el admin
+ * alrededor.
+ */
+function imprimirDocumentoCotizacion(detalle, vigenciaTexto) {
+  const items = Array.isArray(detalle.items) ? detalle.items : [];
+  const totalCliente = totalDocumentoCliente(items);
+  const esc = escaparHtmlCotizacion;
+  const filasHtml = items
+    .map((it) => {
+      const confirmado = itemConfirmadoDocumento(it);
+      const importe = importeDocumentoCliente(it);
+      return `
+      <tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">
+          ${esc(it.texto)}
+          ${!confirmado ? '<div style="font-size:11px;color:#B45309;font-weight:700;margin-top:2px;">Por confirmar</div>' : ""}
+        </td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${esc(it.cantidad || 1)}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;">
+          ${importe != null ? esc(fmtDineroCotiz(importe)) : "Pendiente"}
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${esc(detalle.folio || folioCotizacion(detalle.id))} — FarmaCapital</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #001534; padding: 32px; max-width: 700px; margin: 0 auto; }
+    .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #001534; padding-bottom: 16px; margin-bottom: 20px; }
+    .marca { font-size:20px; font-weight:800; color:#001534; }
+    .folio { text-align:right; font-size:12px; color:#475569; }
+    .cliente { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; padding:14px 16px; border:1px solid #e2e8f0; border-radius:8px; }
+    .field label { font-size:10px; color:#94a3b8; font-weight:700; text-transform:uppercase; }
+    .field p { font-size:13px; color:#0f172a; font-weight:600; margin-top:2px; }
+    h4 { color:#001534; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+    table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+    thead tr { background:#f8fafc; }
+    th { padding:8px 12px; text-align:left; font-size:11px; color:#475569; font-weight:700; border-bottom:1px solid #e2e8f0; }
+    .total-row td { padding:12px; font-weight:800; font-size:16px; border-top:2px solid #001534; }
+    .vigencia { background:#EAF0FB; border-left:4px solid #054ABC; border-radius:8px; padding:12px 16px; margin-bottom:20px; font-size:13px; }
+    .footer { text-align:center; font-size:10px; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:24px; }
+    @media print { body { padding:16px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="marca">FarmaCapital</div>
+    <div class="folio">
+      <div><strong>Cotización:</strong> ${esc(detalle.folio || folioCotizacion(detalle.id))}</div>
+      <div>${new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}</div>
+    </div>
+  </div>
+
+  <div class="cliente">
+    <div class="field"><label>Cliente</label><p>${esc(detalle.cliente_nombre || "—")}</p></div>
+    <div class="field"><label>Contacto</label><p>${esc(detalle.cliente_telefono || detalle.cliente_email || "—")}</p></div>
+    ${detalle.direccion ? `<div class="field" style="grid-column:1/-1"><label>Entrega</label><p>${esc(detalle.direccion)}</p></div>` : ""}
+  </div>
+
+  <h4>Detalle</h4>
+  <table>
+    <thead><tr><th>Producto</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Importe</th></tr></thead>
+    <tbody>${filasHtml}</tbody>
+    <tfoot><tr class="total-row"><td colspan="2">Total</td><td style="text-align:right;">${esc(fmtDineroCotiz(totalCliente))}</td></tr></tfoot>
+  </table>
+
+  ${vigenciaTexto ? `<div class="vigencia"><strong>Precio válido hasta ${esc(vigenciaTexto)}.</strong> Si vence, te lo recotizamos sin costo.</div>` : ""}
+
+  <div class="footer">
+    Este documento es una cotización, no una factura fiscal.<br>
+    ${FARMACIA_FISCAL.razon_social} · RFC ${FARMACIA_FISCAL.rfc}<br>
+    ${FARMACIA_FISCAL.direccion_comercial}<br>
+    farmacapital.mx · WhatsApp ${FARMACIA_FISCAL.telefono_display}
+  </div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=750,height=900");
+  if (!win) {
+    showToast("El navegador bloqueó la ventana. Permite pop-ups para imprimir.", "warning");
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
 }
 
 export default function CotizacionesModule({ usuario }) {
@@ -645,10 +751,171 @@ export default function CotizacionesModule({ usuario }) {
   );
 }
 
+/**
+ * Documento para el cliente: solo lo que él debe ver (producto, cantidad, precio de
+ * venta, total, vigencia). Nunca costo_elegido ni fuentes -- eso es interno.
+ * Imprimir abre una pestaña aparte; WhatsApp y correo reusan los mismos datos de
+ * contacto que ya tiene la cotización.
+ */
+function PanelDocumentoCotizacion({ detalle, rpc }) {
+  const items = Array.isArray(detalle.items) ? detalle.items : [];
+  const totalCliente = totalDocumentoCliente(items);
+  const [vigencia, setVigencia] = useState(detalle.vigencia_texto || vigenciaDefaultTexto());
+  const [guardandoVigencia, setGuardandoVigencia] = useState(false);
+  const [enviandoCorreo, setEnviandoCorreo] = useState(false);
+
+  useEffect(() => {
+    setVigencia(detalle.vigencia_texto || vigenciaDefaultTexto());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detalle.id, detalle.vigencia_texto]);
+
+  const guardarVigencia = async () => {
+    setGuardandoVigencia(true);
+    await rpc(
+      "admin_actualizar_cotizacion",
+      { p_id: detalle.id, p_vigencia_texto: vigencia.trim() || null },
+      "Vigencia guardada",
+    );
+    setGuardandoVigencia(false);
+  };
+
+  const marcarEnviada = (canal) => rpc("admin_marcar_cotizacion_enviada", { p_id: detalle.id, p_canal: canal });
+
+  const enviarWhatsApp = () => {
+    const link = buildCotizacionWhatsAppCliente({
+      telefono: detalle.cliente_telefono,
+      nombre: detalle.cliente_nombre,
+      folio: detalle.folio || folioCotizacion(detalle.id),
+      total: totalCliente,
+      vigencia,
+    });
+    if (!link) {
+      showToast("Falta el teléfono del cliente", "warning");
+      return;
+    }
+    window.open(link, "_blank", "noopener,noreferrer");
+    marcarEnviada("whatsapp");
+  };
+
+  const enviarCorreo = async () => {
+    if (!detalle.cliente_email) {
+      showToast("Falta el correo del cliente", "warning");
+      return;
+    }
+    const tok = sessionTok();
+    if (!tok) return;
+    setEnviandoCorreo(true);
+    try {
+      const resp = await fetch("/api/notifications/send?type=cotizacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeSessionToken: tok,
+          cotizacion: { ...detalle, vigencia_texto: vigencia },
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data?.ok) {
+        showToast(
+          data?.error === "missing_email" ? "El cliente no tiene correo válido" : "No se pudo enviar el correo",
+          "error",
+        );
+        return;
+      }
+      showToast(`Enviado a ${data.to}`, "success");
+      marcarEnviada("correo");
+    } catch {
+      showToast("No se pudo enviar el correo", "error");
+    } finally {
+      setEnviandoCorreo(false);
+    }
+  };
+
+  return (
+    <section
+      style={{
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        padding: 16,
+        marginBottom: 14,
+      }}
+    >
+      <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 12 }}>
+        DOCUMENTO PARA EL CLIENTE · sin costos ni márgenes
+      </div>
+
+      <div style={{ overflowX: "auto", marginBottom: 10 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ textAlign: "left", color: C.textMid, fontSize: 11 }}>
+              <th style={{ padding: "6px 8px" }}>Producto</th>
+              <th style={{ padding: "6px 8px" }}>Cant.</th>
+              <th style={{ padding: "6px 8px" }}>Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it) => {
+              const confirmado = itemConfirmadoDocumento(it);
+              const importe = importeDocumentoCliente(it);
+              return (
+                <tr key={it.id}>
+                  <td style={{ padding: "8px" }}>
+                    {it.texto}
+                    {!confirmado ? (
+                      <div style={{ fontSize: 11, color: C.amber, fontWeight: 700 }}>Por confirmar</div>
+                    ) : null}
+                  </td>
+                  <td style={{ padding: "8px" }}>{it.cantidad || 1}</td>
+                  <td style={{ padding: "8px", fontWeight: 700 }}>
+                    {importe != null ? fmtDineroCotiz(importe) : "Pendiente"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ textAlign: "right", fontWeight: 800, fontSize: 15, color: C.text, marginBottom: 14 }}>
+        Total: {fmtDineroCotiz(totalCliente)}
+      </div>
+
+      <label style={{ display: "block", marginBottom: 12, maxWidth: 360 }}>
+        <FieldLabel>Precio válido hasta</FieldLabel>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Inp value={vigencia} onChange={(e) => setVigencia(e.target.value)} placeholder="ej. 2 de octubre de 2026" />
+          <Btn onClick={guardarVigencia} disabled={guardandoVigencia}>
+            Guardar
+          </Btn>
+        </div>
+      </label>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Btn primary onClick={() => imprimirDocumentoCotizacion(detalle, vigencia)}>
+          <Printer size={14} /> Imprimir / PDF
+        </Btn>
+        <Btn onClick={enviarWhatsApp} disabled={!detalle.cliente_telefono}>
+          <MessageCircle size={14} /> WhatsApp
+        </Btn>
+        <Btn onClick={enviarCorreo} disabled={!detalle.cliente_email || enviandoCorreo}>
+          <Mail size={14} /> {enviandoCorreo ? "Enviando…" : "Correo"}
+        </Btn>
+      </div>
+
+      {detalle.enviada_at ? (
+        <div style={{ marginTop: 10, fontSize: 12, color: C.textMid }}>
+          Enviada {haceCuanto(detalle.enviada_at)} por {detalle.enviada_canal || "—"}.
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function FichaCotizacion({ detalle, loading, onVolver, onRefresh, rpc }) {
   const [nuevoTexto, setNuevoTexto] = useState("");
   const [nuevoCant, setNuevoCant] = useState(1);
   const [nuevoTipo, setNuevoTipo] = useState("marca");
+  const [mostrarDocumento, setMostrarDocumento] = useState(false);
   const items = Array.isArray(detalle.items) ? detalle.items : [];
   const tot = totalesCotizacion(items);
   const est = colorEstado(detalle.estado);
@@ -660,9 +927,14 @@ function FichaCotizacion({ detalle, loading, onVolver, onRefresh, rpc }) {
         <Btn onClick={onVolver}>
           <ArrowLeft size={14} /> Lista
         </Btn>
-        <Btn onClick={onRefresh}>
-          <RefreshCw size={14} /> Actualizar
-        </Btn>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn primary={mostrarDocumento} onClick={() => setMostrarDocumento((v) => !v)}>
+            <Printer size={14} /> {mostrarDocumento ? "Ocultar documento" : "Documento para cliente"}
+          </Btn>
+          <Btn onClick={onRefresh}>
+            <RefreshCw size={14} /> Actualizar
+          </Btn>
+        </div>
       </div>
 
       <header
@@ -717,6 +989,8 @@ function FichaCotizacion({ detalle, loading, onVolver, onRefresh, rpc }) {
           ))}
         </div>
       </header>
+
+      {mostrarDocumento && <PanelDocumentoCotizacion detalle={detalle} rpc={rpc} />}
 
       {loading && <div style={{ color: C.textMid, fontSize: 13, marginBottom: 10 }}>Actualizando…</div>}
 
