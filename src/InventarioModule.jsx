@@ -20,7 +20,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
-import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct, normalizarStockAbierto, precioBlisterQueNoQuedo, precioCapturadoOSugerido } from "./utils/precioUnidad";
+import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct, normalizarStockAbierto, precioBlisterQueNoQuedo, precioCapturadoOSugerido, precioEscrito } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
@@ -916,6 +916,9 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   const [caducidadLote, setCaducidadLote] = useState(() => loteCadRef?.fecha_caducidad || "");
   const [cadSaving, setCadSaving] = useState(false);
   const barcodeRef = useRef(null);
+  const precioUnidadRef = useRef(null);
+  const precioBlisterRef = useRef(null);
+  const preciosAlClic = useRef(null);
   useEffect(() => {
     setCaducidadLote(loteCadRef?.fecha_caducidad || "");
   }, [loteCadRef?.id, loteCadRef?.fecha_caducidad]);
@@ -1008,13 +1011,26 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     }
     return e;
   };
+  const capturarPreciosEscritos = () => {
+    preciosAlClic.current = {
+      unidad: precioUnidadRef.current?.value,
+      blister: precioBlisterRef.current?.value,
+    };
+  };
   const handleSave = async () => {
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+    if (Object.keys(e).length) {
+      setErrors(e);
+      showToast("No se guardó: " + Object.values(e)[0], "error");
+      return;
+    }
     setSaving(true);
     try {
       const stockInt = parseInt(form.stock) || 0;
       const costoNum = parseFloat(form.costo) || 0;
+      const escrito = preciosAlClic.current || {};
+      const precioUnidadEscrito = precioEscrito(escrito.unidad ?? precioUnidadRef.current?.value ?? form.precio_unidad);
+      const precioBlisterEscrito = precioEscrito(escrito.blister ?? precioBlisterRef.current?.value ?? form.precio_blister);
 
       // Campos del producto (sin stock/costo que viajan al lote en el alta)
       const proveedorTxt = (form.proveedor ?? "").trim() || null;
@@ -1039,10 +1055,10 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         activo: form.activo,
         venta_unidad: form.venta_unidad || false,
         unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja) || 0 : 0,
-        precio_unidad: form.venta_unidad ? Math.ceil(parseFloat(form.precio_unidad) || 0) : 0,
+        precio_unidad: form.venta_unidad ? (precioUnidadEscrito ?? 0) : 0,
         stock_unidades: form.venta_unidad ? parseInt(form.stock_unidades) || 0 : 0,
         piezas_por_blister: form.venta_unidad ? parseInt(form.piezas_por_blister, 10) || 0 : 0,
-        precio_blister: form.venta_unidad ? Math.ceil(parseFloat(form.precio_blister) || 0) : 0,
+        precio_blister: form.venta_unidad ? (precioBlisterEscrito ?? 0) : 0,
         stock_blisters: form.venta_unidad ? parseInt(form.stock_blisters, 10) || 0 : 0,
       });
 
@@ -1095,9 +1111,15 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         if (!err && productoFields.venta_unidad) {
           const { data: quedo } = await supabase
             .from("productos")
-            .select("precio_blister")
+            .select("precio_unidad,precio_blister")
             .eq("id", form.id)
             .maybeSingle();
+          const piezaQuedo = quedo ? Math.ceil(parseFloat(quedo.precio_unidad) || 0) : null;
+          const piezaEsperada = Math.ceil(parseFloat(productoFields.precio_unidad) || 0);
+          if (piezaQuedo != null && piezaQuedo !== piezaEsperada) {
+            showToast(`El precio por pieza no se guardó: sigue en $${piezaQuedo}.`, "error");
+            return;
+          }
           const precioQuedo = precioBlisterQueNoQuedo(productoFields, quedo);
           if (precioQuedo != null) {
             showToast(
@@ -1521,7 +1543,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                     </span>
                   ) : null}
                 </label>
-                <input type="number" min="0" step="0.01" value={form.precio_unidad ?? ""}
+                <input ref={precioUnidadRef} type="text" inputMode="decimal" value={form.precio_unidad ?? ""}
                   onChange={e=>{
                     const raw = e.target.value;
                     setForm(f => {
@@ -1586,7 +1608,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                     </span>
                   ) : null}
                 </label>
-                <input type="number" min="0" step="0.01" value={form.precio_blister ?? ""}
+                <input ref={precioBlisterRef} type="text" inputMode="decimal" value={form.precio_blister ?? ""}
                   onChange={e=>set("precio_blister", e.target.value)}
                   className="farmacapital-field-input"
                   style={inputBlister} placeholder="45" readOnly={blistersVenta < 2}/>
@@ -1620,7 +1642,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
 
         <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:8}}>
           <button style={btnSecondary} onClick={onClose}>Cancelar</button>
-          <button style={btnPrimary} onClick={handleSave} disabled={saving}>{saving?"Guardando…":"💾 Guardar"}</button>
+          <button type="button" style={btnPrimary} onPointerDown={capturarPreciosEscritos} onClick={handleSave} disabled={saving}>{saving?"Guardando…":"💾 Guardar"}</button>
         </div>
       </div>
     </div>

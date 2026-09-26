@@ -239,6 +239,15 @@ export function aplicarReglaPrecioUnidad(fields) {
   };
 }
 
+/** Número que está escrito en el campo. Vacío no es 0: 0 haría que Guardar ponga el sugerido. */
+export function precioEscrito(valor) {
+  if (valor == null) return null;
+  const t = String(valor).trim();
+  if (t === "" || t === "-" || t === "." || t === "-.") return null;
+  const n = Math.ceil(parseFloat(t));
+  return Number.isFinite(n) ? n : null;
+}
+
 /**
  * El precio que escribió el dueño gana. La regla solo llena el campo vacío.
  */
