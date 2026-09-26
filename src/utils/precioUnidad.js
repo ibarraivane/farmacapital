@@ -47,6 +47,23 @@ export function blistersPorCaja(unidadesPorCaja, piezasPorBlister) {
   return n >= 2 ? n : 0;
 }
 
+/**
+ * Tira por defecto para una caja que ya se vende por pieza.
+ * 10 si salen 2 o más tiras; si no, 7; si no, la mitad cuando es par;
+ * si no, la tira más grande que igual parte en 2 o más. 0 si no se puede (C/3, C/5, C/7).
+ */
+export function piezasPorBlisterDefault(unidadesPorCaja) {
+  const upc = parseInt(unidadesPorCaja, 10) || 0;
+  if (upc < 4) return 0;
+  if (blistersPorCaja(upc, 10) >= 2) return 10;
+  if (blistersPorCaja(upc, 7) >= 2) return 7;
+  if (upc % 2 === 0 && blistersPorCaja(upc, upc / 2) >= 2) return upc / 2;
+  for (let ppb = Math.floor(upc / 2); ppb >= 2; ppb -= 1) {
+    if (blistersPorCaja(upc, ppb) >= 2) return ppb;
+  }
+  return 0;
+}
+
 /** Venta por blister solo dentro de la venta por pieza, y solo si la caja parte bien. */
 export function productoVendeBlister(producto) {
   if (!producto?.venta_unidad) return false;

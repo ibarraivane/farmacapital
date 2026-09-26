@@ -897,6 +897,48 @@ $$;
 grant execute on function public.empleado_dashboard_reporte_bundle(uuid, timestamptz, date)
   to anon, authenticated;
 
+-- Cajas que ya se venden por pieza: habilitar blister si la caja parte en tiras.
+-- 10 piezas si salen 2+ tiras; si no 7; si no la mitad; si no, no se toca (C/3, C/5, C/7).
+-- No pisa un blister ya capturado. No mueve stock_unidades ni stock_blisters.
+create or replace function public.piezas_por_blister_default(p_upc integer)
+returns integer
+language plpgsql
+immutable
+as $$
+declare
+  v_upc integer := coalesce(p_upc, 0);
+  v_ppb integer;
+begin
+  if v_upc < 4 then
+    return 0;
+  end if;
+  if public.blisters_por_caja(v_upc, 10) >= 2 then
+    return 10;
+  end if;
+  if public.blisters_por_caja(v_upc, 7) >= 2 then
+    return 7;
+  end if;
+  if v_upc % 2 = 0 and public.blisters_por_caja(v_upc, v_upc / 2) >= 2 then
+    return v_upc / 2;
+  end if;
+  for v_ppb in reverse (v_upc / 2)..2 loop
+    if public.blisters_por_caja(v_upc, v_ppb) >= 2 then
+      return v_ppb;
+    end if;
+  end loop;
+  return 0;
+end;
+$$;
+
+grant execute on function public.piezas_por_blister_default(integer)
+  to anon, authenticated, service_role;
+
+update public.productos p
+   set piezas_por_blister = public.piezas_por_blister_default(p.unidades_por_caja)
+ where coalesce(p.venta_unidad, false) = true
+   and coalesce(p.piezas_por_blister, 0) = 0
+   and public.piezas_por_blister_default(p.unidades_por_caja) >= 2;
+
 notify pgrst, 'reload schema';
 
 commit;

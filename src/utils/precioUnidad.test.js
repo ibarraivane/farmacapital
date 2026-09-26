@@ -4,6 +4,7 @@ import {
   calcPrecioBlister,
   calcPrecioUnidad,
   margenBrutoPct,
+  piezasPorBlisterDefault,
   precioBlisterParaVenta,
   precioUnidadParaVenta,
   productoVendeBlister,
@@ -71,6 +72,21 @@ test("POS cobra el precio de blister guardado, o la regla si está en 0", () => 
   expect(precioBlisterParaVenta({ ...cajaBlister, precio_blister: 40 })).toBe(40);
   expect(precioBlisterParaVenta({ ...cajaBlister, precio_blister: 0 })).toBe(45);
   expect(precioBlisterParaVenta({ ...cajaBlister, venta_unidad: false, precio_blister: 40 })).toBe(0);
+});
+
+test("caja que ya se vende por pieza parte en tiras de 10, de 7 o a la mitad", () => {
+  expect(piezasPorBlisterDefault(30)).toBe(10);
+  expect(piezasPorBlisterDefault(20)).toBe(10);
+  expect(piezasPorBlisterDefault(100)).toBe(10);
+  expect(piezasPorBlisterDefault(28)).toBe(7);
+  expect(piezasPorBlisterDefault(21)).toBe(7);
+  expect(piezasPorBlisterDefault(8)).toBe(4);
+  expect(piezasPorBlisterDefault(12)).toBe(6);
+  expect(piezasPorBlisterDefault(10)).toBe(5);
+  expect(piezasPorBlisterDefault(15)).toBe(5);
+  expect(piezasPorBlisterDefault(3)).toBe(0);
+  expect(piezasPorBlisterDefault(7)).toBe(0);
+  expect(piezasPorBlisterDefault(1)).toBe(0);
 });
 
 test("abrir caja con blister suma tiras; sin blister suma piezas", () => {
