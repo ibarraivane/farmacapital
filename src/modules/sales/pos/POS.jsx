@@ -891,6 +891,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [cajaVerifyError, setCajaVerifyError] = useState(null);
   const [cajaRetry, setCajaRetry] = useState(0);
   const [sesionCaja, setSesionCaja] = useState(null);
+  /** Admin/gerente: abrir caja a voluntad sin bloquear la venta. */
+  const [mostrarAperturaOpcional, setMostrarAperturaOpcional] = useState(false);
   const C = C_LIGHT;
   /** Vista estrecha (tablet / ventana angosta): tipografía, grillas, cabecera. */
   const isNarrow = useMediaQuery("(max-width: 1100px)");
@@ -1035,14 +1037,24 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   }, [initialTab]);
 
   useEffect(() => {
-    if (!exigeCaja) {
-      setCajaAbierta(true);
-      setCajaCheck(true);
-      setCajaVerifyError(null);
-      return;
-    }
     let cancelled = false;
     (async () => {
+      if (!exigeCaja) {
+        // Admin puede vender sin caja; igual consultamos si ya hay sesión
+        // para mostrar el badge y ocultar el botón Abrir caja.
+        setCajaAbierta(true);
+        setCajaCheck(true);
+        setCajaVerifyError(null);
+        const { sesion, auth } = await fetchSesionCajaAbierta();
+        if (cancelled) return;
+        if (auth) {
+          showToast("Tu sesión caducó. Entra de nuevo con tu usuario — la caja no se cierra.", "warning");
+          onSesionExpirada?.();
+          return;
+        }
+        if (sesion) setSesionCaja(sesion);
+        return;
+      }
       const { sesion, error, auth } = await fetchSesionCajaAbierta();
       if (cancelled) return;
       if (auth) {
@@ -3107,6 +3119,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           onAbierta={(s) => { setSesionCaja(s); setCajaAbierta(true); }}
         />
       )}
+      {!exigeCaja && mostrarAperturaOpcional && (
+        <AperturaCajaModal
+          usuario={usuario}
+          opcional
+          onCancel={() => setMostrarAperturaOpcional(false)}
+          onSesionExpirada={onSesionExpirada}
+          onAbierta={(s) => {
+            setSesionCaja(s);
+            setCajaAbierta(true);
+            setMostrarAperturaOpcional(false);
+          }}
+        />
+      )}
       <style>{`
         .farmacapital-pos-root input.farmacapital-pos-srch,
         .farmacapital-pos-root input.farmacapital-field-input,
@@ -3212,6 +3237,25 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.greenDim,color:C.greenDark}}>
                 Caja desde {new Date(sesionCaja.abierta_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
               </span>
+            )}
+            {!exigeCaja && !sesionCaja && (
+              <button
+                type="button"
+                onClick={() => setMostrarAperturaOpcional(true)}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  background: C.blueDim,
+                  color: C.blue,
+                  border: `1px solid ${C.blue}40`,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Abrir caja
+              </button>
             )}
           </div>
           {ventasDia.count>0&&(
