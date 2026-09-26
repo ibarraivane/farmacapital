@@ -47,6 +47,15 @@ export function blistersPorCaja(unidadesPorCaja, piezasPorBlister) {
   return n >= 2 ? n : 0;
 }
 
+/** Piezas de cada blister a partir de cuántos blisters trae la caja. 0 si no parte entero. */
+export function piezasDesdeBlistersPorCaja(unidadesPorCaja, blisters) {
+  const upc = parseInt(unidadesPorCaja, 10) || 0;
+  const n = parseInt(blisters, 10) || 0;
+  if (n < 2 || upc < 4 || upc % n !== 0) return 0;
+  const ppb = upc / n;
+  return ppb >= 2 ? ppb : 0;
+}
+
 /**
  * Tira por defecto para una caja que ya se vende por pieza.
  * 10 si salen 2 o más tiras; si no, 7; si no, la mitad cuando es par;
@@ -161,4 +170,20 @@ export function aplicarReglaPrecioUnidad(fields) {
     precio_blister: blisters >= 2 ? (manualBlister > 0 ? manualBlister : sugeridoBlister) : 0,
     stock_blisters: blisters >= 2 ? (parseInt(fields.stock_blisters, 10) || 0) : 0,
   };
+}
+
+/** Número que está escrito en el campo. Vacío no es 0: 0 haría que Guardar ponga el sugerido. */
+export function precioEscrito(valor) {
+  if (valor == null) return null;
+  const t = String(valor).trim();
+  if (t === "" || t === "-" || t === "." || t === "-.") return null;
+  const n = Math.ceil(parseFloat(t));
+  return Number.isFinite(n) ? n : null;
+}
+
+/** El precio que escribió el dueño gana. La regla solo llena el campo vacío. */
+export function precioCapturadoOSugerido(capturado, sugerido) {
+  const actual = Math.ceil(parseFloat(capturado) || 0);
+  if (actual > 0) return actual;
+  return Math.ceil(parseFloat(sugerido) || 0);
 }

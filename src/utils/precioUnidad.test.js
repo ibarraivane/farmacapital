@@ -1,11 +1,14 @@
 import {
   aplicarReglaPrecioUnidad,
   blistersPorCaja,
+  piezasDesdeBlistersPorCaja,
   calcPrecioBlister,
   calcPrecioUnidad,
   margenBrutoPct,
   piezasPorBlisterDefault,
   precioBlisterParaVenta,
+  precioCapturadoOSugerido,
+  precioEscrito,
   precioUnidadParaVenta,
   productoVendeBlister,
   unidadesAlAbrirCaja,
@@ -54,6 +57,10 @@ const cajaBlister = {
 
 test("30 tabletas en blister de 10 parten en 3; 28 no", () => {
   expect(blistersPorCaja(30, 10)).toBe(3);
+  expect(piezasDesdeBlistersPorCaja(24, 2)).toBe(12);
+  expect(piezasDesdeBlistersPorCaja(24, 3)).toBe(8);
+  expect(piezasDesdeBlistersPorCaja(24, 5)).toBe(0);
+  expect(piezasDesdeBlistersPorCaja(30, 3)).toBe(10);
   expect(blistersPorCaja(28, 10)).toBe(0);
   expect(blistersPorCaja(30, 0)).toBe(0);
   expect(blistersPorCaja(30, 1)).toBe(0);
@@ -94,5 +101,11 @@ test("abrir caja con blister suma tiras; sin blister suma piezas", () => {
   expect(unidadesAlAbrirCaja({ ...gasa })).toEqual({ stock: "unidades", cantidad: 100 });
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 0 }).precio_blister).toBe(45);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 40 }).precio_blister).toBe(40);
+  expect(precioEscrito("6")).toBe(6);
+  expect(precioEscrito("")).toBe(null);
+  expect(precioEscrito("0")).toBe(0);
+  expect(precioCapturadoOSugerido(20, 32)).toBe(20);
+  expect(precioCapturadoOSugerido(0, 32)).toBe(32);
+  expect(precioCapturadoOSugerido("", 7)).toBe(7);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, piezas_por_blister: 0, stock_blisters: 2 }).stock_blisters).toBe(0);
 });

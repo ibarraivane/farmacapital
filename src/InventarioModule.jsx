@@ -20,7 +20,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
-import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct } from "./utils/precioUnidad";
+import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, piezasDesdeBlistersPorCaja, margenBrutoPct, precioCapturadoOSugerido, precioEscrito } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
@@ -904,6 +904,8 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     for (const k of ["nombre", "sku", "codigo_barras", "proveedor", "lote"]) {
       if (base[k] == null) base[k] = "";
     }
+    const blistersCaja = blistersPorCaja(base.unidades_por_caja, base.piezas_por_blister);
+    base.blisters_por_caja = blistersCaja >= 2 ? String(blistersCaja) : "";
     return base;
   });
   const [errors, setErrors] = useState({});
@@ -911,6 +913,9 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   const [caducidadLote, setCaducidadLote] = useState(() => loteCadRef?.fecha_caducidad || "");
   const [cadSaving, setCadSaving] = useState(false);
   const barcodeRef = useRef(null);
+  const precioUnidadRef = useRef(null);
+  const precioBlisterRef = useRef(null);
+  const preciosAlClic = useRef(null);
   useEffect(() => {
     setCaducidadLote(loteCadRef?.fecha_caducidad || "");
   }, [loteCadRef?.id, loteCadRef?.fecha_caducidad]);
@@ -991,25 +996,38 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     }
     if (form.venta_unidad) {
       const upc = parseInt(form.unidades_por_caja, 10) || 0;
-      const ppbRaw = String(form.piezas_por_blister ?? "").trim();
-      const ppb = ppbRaw === "" ? 0 : parseInt(ppbRaw, 10);
+      const bRaw = String(form.blisters_por_caja ?? "").trim();
+      const ppb = bRaw === "" ? 0 : piezasDesdeBlistersPorCaja(upc, bRaw);
       const stockB = parseInt(form.stock_blisters, 10) || 0;
-      if (ppbRaw !== "" && ppb !== 0 && blistersPorCaja(upc, ppb) < 2) {
-        e.piezas_por_blister = "Tiene que partir la caja en blisters enteros (al menos 2).";
+      if (bRaw !== "" && bRaw !== "0" && ppb < 2) {
+        e.blisters_por_caja = "La caja tiene que partirse en blisters enteros (al menos 2).";
       }
-      if ((ppbRaw === "" || ppb === 0) && stockB > 0) {
-        e.piezas_por_blister = "Hay blisters sueltos. Indica las piezas por blister o deja ese stock en 0.";
+      if ((bRaw === "" || bRaw === "0") && stockB > 0) {
+        e.blisters_por_caja = "Hay blisters disponibles. Indica cuántos trae la caja o deja ese stock en 0.";
       }
     }
     return e;
   };
+  const capturarPreciosEscritos = () => {
+    preciosAlClic.current = {
+      unidad: precioUnidadRef.current?.value,
+      blister: precioBlisterRef.current?.value,
+    };
+  };
   const handleSave = async () => {
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+    if (Object.keys(e).length) {
+      setErrors(e);
+      showToast("No se guardó: " + Object.values(e)[0], "error");
+      return;
+    }
     setSaving(true);
     try {
       const stockInt = parseInt(form.stock) || 0;
       const costoNum = parseFloat(form.costo) || 0;
+      const escrito = preciosAlClic.current || {};
+      const precioUnidadEscrito = precioEscrito(escrito.unidad ?? precioUnidadRef.current?.value ?? form.precio_unidad);
+      const precioBlisterEscrito = precioEscrito(escrito.blister ?? precioBlisterRef.current?.value ?? form.precio_blister);
 
       // Campos del producto (sin stock/costo que viajan al lote en el alta)
       const proveedorTxt = (form.proveedor ?? "").trim() || null;
@@ -1034,10 +1052,10 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         activo: form.activo,
         venta_unidad: form.venta_unidad || false,
         unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja) || 0 : 0,
-        precio_unidad: form.venta_unidad ? Math.ceil(parseFloat(form.precio_unidad) || 0) : 0,
+        precio_unidad: form.venta_unidad ? (precioUnidadEscrito ?? 0) : 0,
         stock_unidades: form.venta_unidad ? parseInt(form.stock_unidades) || 0 : 0,
-        piezas_por_blister: form.venta_unidad ? parseInt(form.piezas_por_blister, 10) || 0 : 0,
-        precio_blister: form.venta_unidad ? Math.ceil(parseFloat(form.precio_blister) || 0) : 0,
+        piezas_por_blister: form.venta_unidad ? piezasDesdeBlistersPorCaja(form.unidades_por_caja, form.blisters_por_caja) : 0,
+        precio_blister: form.venta_unidad ? (precioBlisterEscrito ?? 0) : 0,
         stock_blisters: form.venta_unidad ? parseInt(form.stock_blisters, 10) || 0 : 0,
       });
 
@@ -1086,6 +1104,25 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
             p_motivo: "Edición manual desde Inventario",
           });
           if (adjErr) err = adjErr;
+        }
+        if (!err && productoFields.venta_unidad) {
+          const { data: quedo } = await supabase
+            .from("productos")
+            .select("precio_unidad,precio_blister")
+            .eq("id", form.id)
+            .maybeSingle();
+          const piezaQuedo = quedo ? Math.ceil(parseFloat(quedo.precio_unidad) || 0) : null;
+          const piezaEsperada = Math.ceil(parseFloat(productoFields.precio_unidad) || 0);
+          if (piezaQuedo != null && piezaQuedo !== piezaEsperada) {
+            showToast(`El precio por pieza no se guardó: sigue en $${piezaQuedo}.`, "error");
+            return;
+          }
+          const blisterQuedo = quedo ? Math.ceil(parseFloat(quedo.precio_blister) || 0) : null;
+          const blisterEsperado = Math.ceil(parseFloat(productoFields.precio_blister) || 0);
+          if (blisterQuedo != null && blisterQuedo !== blisterEsperado) {
+            showToast(`El precio del blister no se guardó: sigue en $${blisterQuedo}.`, "error");
+            return;
+          }
         }
       } else {
         const pdata = {
@@ -1160,7 +1197,8 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   );
 
   const upcVenta = parseInt(form.unidades_por_caja, 10) || 0;
-  const blistersVenta = blistersPorCaja(upcVenta, form.piezas_por_blister);
+  const piezasCaja = piezasDesdeBlistersPorCaja(upcVenta, form.blisters_por_caja);
+  const blistersVenta = blistersPorCaja(upcVenta, piezasCaja || form.piezas_por_blister);
   const costoPieza = upcVenta > 0 && form.costo !== "" ? (parseFloat(form.costo) || 0) / upcVenta : 0;
   const costoBlister = blistersVenta >= 2 && form.costo !== "" ? (parseFloat(form.costo) || 0) / blistersVenta : 0;
   const precioPieza = Math.ceil(parseFloat(form.precio_unidad) || 0);
@@ -1448,10 +1486,17 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
             <input type="checkbox" id="venta_unidad_chk" checked={form.venta_unidad||false}
               onChange={e=>{
                 const on=e.target.checked;
-                set("venta_unidad", on);
-                if (on) {
-                  set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, form.unidades_por_caja || 1, form.categoria, form.tipo));
-                }
+                setForm(f => {
+                  if (!on) return { ...f, venta_unidad: false };
+                  return {
+                    ...f,
+                    venta_unidad: true,
+                    precio_unidad: precioCapturadoOSugerido(
+                      f.precio_unidad,
+                      sugerirPrecioUnidad(f.precio, f.costo, f.unidades_por_caja || 1, f.categoria, f.tipo),
+                    ),
+                  };
+                });
               }} style={{width:16,height:16,cursor:"pointer"}}/>
             <label htmlFor="venta_unidad_chk" style={{...labelStyle,margin:0,cursor:"pointer",fontSize:13,fontWeight:700}}>
               💊 Permite venta por unidad suelta (caja abierta)
@@ -1463,11 +1508,28 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <label style={labelStyle}>Unidades por caja</label>
                 <input type="number" min="1" value={form.unidades_por_caja}
                   onChange={e=>{
-                    const u=parseInt(e.target.value,10)||1;
-                    set("unidades_por_caja",e.target.value);
-                    set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo));
-                    const b = blistersPorCaja(u, form.piezas_por_blister);
-                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, u, form.piezas_por_blister, form.categoria, form.tipo));
+                    const raw = e.target.value;
+                    const u=parseInt(raw,10)||1;
+                    setForm(f => {
+                      const pieza = precioCapturadoOSugerido(
+                        f.precio_unidad,
+                        sugerirPrecioUnidad(f.precio, f.costo, u, f.categoria, f.tipo),
+                      );
+                      const ppb = piezasDesdeBlistersPorCaja(u, f.blisters_por_caja);
+                      const next = {
+                        ...f,
+                        unidades_por_caja: raw,
+                        precio_unidad: pieza,
+                        piezas_por_blister: ppb || "",
+                      };
+                      if (ppb >= 2) {
+                        next.precio_blister = precioCapturadoOSugerido(
+                          f.precio_blister,
+                          sugerirPrecioBlister(f.precio, f.costo, u, ppb, f.categoria, f.tipo),
+                        );
+                      }
+                      return next;
+                    });
                   }}
                   style={inputStyle} placeholder="20"/>
               </div>
@@ -1480,9 +1542,10 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                     </span>
                   ) : null}
                 </label>
-                <input type="number" min="0" step="0.01" value={form.precio_unidad}
-                  onChange={e=>set("precio_unidad",Math.ceil(parseFloat(e.target.value)||0))}
-                  style={inputStyle} placeholder="3"/>
+                <input ref={precioUnidadRef} type="text" inputMode="decimal" value={form.precio_unidad ?? ""}
+                  onChange={e=>set("precio_unidad", e.target.value)}
+                  className="farmacapital-field-input"
+                  style={inputBlister} placeholder="3"/>
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
                   {costoPieza > 0 ? <>Costo/pieza ${costoPieza.toFixed(2)}</> : "Indicá costo y unidades/caja"}
                   {precioPieza > 0 && minPrecioPieza > 0 && precioPieza < minPrecioPieza
@@ -1499,22 +1562,30 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   style={inputStyle} placeholder="0"/>
               </div>
               <div>
-                <label style={labelStyle}>Piezas por blister</label>
-                <input type="number" min="0" value={form.piezas_por_blister ?? ""}
+                <label style={labelStyle}>Blisters por caja</label>
+                <input type="text" inputMode="numeric" value={form.blisters_por_caja ?? ""}
                   onChange={e=>{
-                    const raw = e.target.value;
-                    set("piezas_por_blister", raw);
-                    const b = blistersPorCaja(form.unidades_por_caja, raw);
-                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, form.unidades_por_caja, raw, form.categoria, form.tipo));
+                    const raw = e.target.value.replace(/[^\d]/g, "");
+                    setForm(f => {
+                      const ppb = piezasDesdeBlistersPorCaja(f.unidades_por_caja, raw);
+                      const next = { ...f, blisters_por_caja: raw, piezas_por_blister: ppb || "" };
+                      if (ppb >= 2) {
+                        next.precio_blister = precioCapturadoOSugerido(
+                          f.precio_blister,
+                          sugerirPrecioBlister(f.precio, f.costo, f.unidades_por_caja, ppb, f.categoria, f.tipo),
+                        );
+                      }
+                      return next;
+                    });
                   }}
                   className="farmacapital-field-input"
-                  style={{...inputBlister, borderColor: errors.piezas_por_blister ? C.red : C.border}}
-                  placeholder="10"/>
-                {errors.piezas_por_blister
-                  ? <span style={{color:C.red,fontSize:10}}>{errors.piezas_por_blister}</span>
-                  : blistersVenta >= 2
-                    ? <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>{blistersVenta} blisters por caja. Vacío = solo pieza.</div>
-                    : <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>Vacío = abrir caja suelta piezas, sin blister.</div>}
+                  style={{...inputBlister, borderColor: errors.blisters_por_caja ? C.red : C.border}}
+                  placeholder="2"/>
+                {errors.blisters_por_caja
+                  ? <span style={{color:C.red,fontSize:10}}>{errors.blisters_por_caja}</span>
+                  : piezasCaja >= 2
+                    ? <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>{piezasCaja} piezas por blister. Vacío = solo pieza.</div>
+                    : <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>Vacío = abrir la caja en piezas, sin blister.</div>}
               </div>
               <div>
                 <label style={labelStyle}>
@@ -1525,23 +1596,28 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                     </span>
                   ) : null}
                 </label>
-                <input type="number" min="0" step="0.01" value={form.precio_blister ?? ""}
-                  onChange={e=>set("precio_blister", Math.ceil(parseFloat(e.target.value)||0))}
+                <input ref={precioBlisterRef} type="text" inputMode="decimal" value={form.precio_blister ?? ""}
+                  onChange={e=>set("precio_blister", e.target.value)}
                   className="farmacapital-field-input"
                   style={inputBlister} placeholder="45" readOnly={blistersVenta < 2}/>
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
-                  {costoBlister > 0 ? <>Costo/blister ${costoBlister.toFixed(2)}</> : "Indicá piezas por blister"}
+                  {costoBlister > 0 ? <>Costo/blister ${costoBlister.toFixed(2)}</> : "Indicá los blisters por caja"}
                   {precioBlister > 0 && minPrecioBlister > 0 && precioBlister < minPrecioBlister
                     ? <> · sugerido ${minPrecioBlister} (se guarda el que indiques)</>
                     : null}
                 </div>
               </div>
               <div>
-                <label style={labelStyle}>Stock blisters sueltos</label>
+                <label style={labelStyle}>Blisters disponibles</label>
                 <input type="number" min="0" value={form.stock_blisters ?? ""}
                   onChange={e=>set("stock_blisters", e.target.value)}
                   className="farmacapital-field-input"
                   style={inputBlister} placeholder="0" readOnly={blistersVenta < 2}/>
+                {piezasCaja >= 2 && (parseInt(form.stock_unidades, 10) || 0) >= piezasCaja ? (
+                  <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>
+                    Las {parseInt(form.stock_unidades, 10)} piezas sueltas arman {Math.floor((parseInt(form.stock_unidades, 10) || 0) / piezasCaja)} blisters.
+                  </div>
+                ) : null}
               </div>
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
                 💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> ·
@@ -1556,7 +1632,17 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
 
         <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:8}}>
           <button style={btnSecondary} onClick={onClose}>Cancelar</button>
-          <button style={btnPrimary} onClick={handleSave} disabled={saving}>{saving?"Guardando…":"💾 Guardar"}</button>
+          <button
+            type="button"
+            style={btnPrimary}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              capturarPreciosEscritos();
+            }}
+            onPointerDown={capturarPreciosEscritos}
+            onClick={handleSave}
+            disabled={saving}
+          >{saving?"Guardando…":"💾 Guardar"}</button>
         </div>
       </div>
     </div>
