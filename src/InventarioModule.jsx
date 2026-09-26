@@ -2783,6 +2783,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const [productos,       setProductos]       = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");
+  const [buscarFocusNonce, setBuscarFocusNonce] = useState(0);
   const [verInactivos,    setVerInactivos]    = useState(false);
   const [filtroCategorias, setFiltroCategorias] = useState([]);
   const [filtroAlerta,    setFiltroAlerta]    = useState("todos");
@@ -4079,7 +4080,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
       <div style={{display:"flex",gap:12,marginBottom:14,flexWrap:"wrap"}}>
         {[
-          {label:"Activos",     val:activos,    col:C.blue,  click:()=>{ setFiltroAlerta("todos"); setFiltroCategorias([]); setBusqueda(""); setVerInactivos(false); }, on: filtroAlerta==="todos" && filtroCategorias.length===0 && !busqueda && !verInactivos},
+          {label:"Activos",     val:activos,    col:C.blue,  click:()=>{ setFiltroAlerta("todos"); setFiltroCategorias([]); setBusqueda(""); setVerInactivos(false); setBuscarFocusNonce((n) => n + 1); }, on: filtroAlerta==="todos" && filtroCategorias.length===0 && !busqueda && !verInactivos},
           {label:"Agotados",    val:agotadosInv, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="agotados"?"todos":"agotados"), on: filtroAlerta==="agotados"},
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="bajo_stock"?"todos":"bajo_stock"), on: filtroAlerta==="bajo_stock"},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
@@ -4136,7 +4137,22 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:0}}>
-        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" searchMode="inventario" badgeKey="stock" badgeCol="#1E3ABA" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
+        <SearchDropdown
+          value={busqueda}
+          onChange={setBusqueda}
+          onSelect={(p) => setBusqueda(p.codigo_barras || p.sku || p.nombre)}
+          autoFocus
+          focusNonce={buscarFocusNonce}
+          placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…"
+          items={productos}
+          labelKey="nombre"
+          subKey="sku"
+          searchMode="inventario"
+          badgeKey="stock"
+          badgeCol="#1E3ABA"
+          style={{width:"100%",maxWidth:"100%"}}
+          emptyMsg="Sin productos"
+        />
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <FiltroCategoriasCheck
           categorias={CATEGORIAS}
@@ -4165,7 +4181,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         </label>
         )}
         {(filtroCategorias.length>0||filtroAlerta!=="todos"||busqueda)&&(
-          <button onClick={()=>{setFiltroCategorias([]);setFiltroAlerta("todos");setBusqueda("");}}
+          <button onClick={()=>{setFiltroCategorias([]);setFiltroAlerta("todos");setBusqueda(""); setBuscarFocusNonce((n) => n + 1);}}
             style={{...btnSecondary,padding:"7px 12px",fontSize:11}}>✕ Limpiar filtros</button>
         )}
         {filtrados.length > 0 && !modoConsulta && (

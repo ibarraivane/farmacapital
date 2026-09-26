@@ -6,6 +6,7 @@ import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet, logoAspect }
 import { useLogoOnDark } from "./hooks/useLogoOnDark";
 import { productMatchesSearchQuery, tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank, inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank } from "./utils/fuzzySearch";
 import { unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "./utils/touchKeyboard";
+import { isAllDigitsInput, shouldReplaceScanInput } from "./utils/barcodeProductLookup";
 
 export function Logo({ size = 36, showText = true, light, sub = "", iconOnly = false, variant = "default", auto = true }) {
   const autoDetect = auto && light === undefined;
@@ -646,6 +647,10 @@ export function SearchDropdown({
   rankFn=null,
   /** "catalog" = tienda/POS · "inventario" = catálogo admin · null = genérico */
   searchMode=null,
+  /** Enfoca el input al montar (pistola / teclado listos). */
+  autoFocus=false,
+  /** Cambia este número para volver a enfocar (p. ej. al limpiar filtros). */
+  focusNonce=0,
   style={}, maxResults=8, emptyMsg="Sin resultados"
 }) {
   const C = C_LIGHT;
@@ -653,6 +658,7 @@ export function SearchDropdown({
   const [idx,  setIdx]  = React.useState(-1);
   const ref = React.useRef(null);
   const inputRef = React.useRef(null);
+  const scanLastKeyTsRef = React.useRef(0);
   const [panelW, setPanelW] = React.useState(0);
 
   const searchGetters = React.useMemo(() => {
@@ -695,6 +701,17 @@ export function SearchDropdown({
     armInputForTouchKeyboard(inputRef.current);
   },[]);
 
+  React.useEffect(() => {
+    if (!autoFocus && !focusNonce) return;
+    const t = window.setTimeout(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      if (isAllDigitsInput(el.value)) el.select();
+    }, 40);
+    return () => window.clearTimeout(t);
+  }, [autoFocus, focusNonce]);
+
   React.useEffect(()=>{
     const handler = e => { if(ref.current&&!ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
@@ -702,6 +719,19 @@ export function SearchDropdown({
   },[]);
 
   const handleKey = e => {
+    if (e.key.length === 1 && /\d/.test(e.key)) {
+      const now = Date.now();
+      const enCaja = e.currentTarget.value;
+      if (shouldReplaceScanInput(enCaja, scanLastKeyTsRef.current, now)) {
+        e.preventDefault();
+        onChange(e.key);
+        setOpen(true);
+        setIdx(-1);
+        scanLastKeyTsRef.current = now;
+        return;
+      }
+      scanLastKeyTsRef.current = now;
+    }
     if (e.key === "Escape") {
       setOpen(false);
       setIdx(-1);
@@ -714,6 +744,8 @@ export function SearchDropdown({
       }
       setOpen(false);
       setIdx(-1);
+      // Deja el foco listo para el siguiente escaneo.
+      queueMicrotask(() => inputRef.current?.focus());
       return;
     }
     if (!open || !filtered.length) return;
@@ -750,13 +782,19 @@ export function SearchDropdown({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
+        className="farmacapital-field-input"
         onTouchStart={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
         onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
         onChange={e=>{ onChange(e.target.value); setOpen(true); setIdx(-1); }}
-        onFocus={(e)=>{ unlockInputForTouchKeyboard(e.currentTarget); setOpen(!!value?.trim()); measurePanel(); }}
+        onFocus={(e)=>{
+          unlockInputForTouchKeyboard(e.currentTarget);
+          setOpen(!!value?.trim());
+          measurePanel();
+          if (isAllDigitsInput(e.currentTarget.value)) e.currentTarget.select();
+        }}
         onKeyDown={handleKey}
         placeholder={placeholder}
-        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation"}}
+        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#ffffff",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation",colorScheme:"light",WebkitTextFillColor:C.text,caretColor:C.text}}
         onBlur={e=>{
           lockInputAfterTouchKeyboard(e.currentTarget);
           if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150);
@@ -765,7 +803,12 @@ export function SearchDropdown({
       {open&&filtered.length>0&&(
         <div style={panelStyle}>
           {filtered.map((item,i)=>(
-            <div key={i} onMouseDown={()=>{ onSelect(item); setOpen(false); setIdx(-1); }}
+            <div key={i} onMouseDown={()=>{
+              onSelect(item);
+              setOpen(false);
+              setIdx(-1);
+              queueMicrotask(() => inputRef.current?.focus());
+            }}
               style={{padding:"10px 14px",cursor:"pointer",background:i===idx?"#eff6ff":C.card,borderBottom:"1px solid #f0f4f9",display:"flex",alignItems:"center",gap:10,transition:"background .1s"}}
               onMouseEnter={()=>setIdx(i)}>
               <div style={{flex:1,minWidth:0}}>
