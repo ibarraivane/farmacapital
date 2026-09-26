@@ -1498,9 +1498,10 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                     </span>
                   ) : null}
                 </label>
-                <input type="number" min="0" step="0.01" value={form.precio_unidad}
-                  onChange={e=>set("precio_unidad",Math.ceil(parseFloat(e.target.value)||0))}
-                  style={inputStyle} placeholder="3"/>
+                <input type="number" min="0" step="0.01" value={form.precio_unidad ?? ""}
+                  onChange={e=>set("precio_unidad", e.target.value)}
+                  className="farmacapital-field-input"
+                  style={inputBlister} placeholder="3"/>
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
                   {costoPieza > 0 ? <>Costo/pieza ${costoPieza.toFixed(2)}</> : "Indicá costo y unidades/caja"}
                   {precioPieza > 0 && minPrecioPieza > 0 && precioPieza < minPrecioPieza
@@ -1551,7 +1552,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   ) : null}
                 </label>
                 <input type="number" min="0" step="0.01" value={form.precio_blister ?? ""}
-                  onChange={e=>set("precio_blister", Math.ceil(parseFloat(e.target.value)||0))}
+                  onChange={e=>set("precio_blister", e.target.value)}
                   className="farmacapital-field-input"
                   style={inputBlister} placeholder="45" readOnly={blistersVenta < 2}/>
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
