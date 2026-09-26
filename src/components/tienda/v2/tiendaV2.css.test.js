@@ -34,6 +34,16 @@ test("en celular el menú se desplaza y no esconde una sección", () => {
   expect(css).toMatch(/\.fc-v2 \.fc-location\{display:none\}/);
 });
 
+test("el carrusel mantiene el alto y Cotizar no hereda el fondo del navegador", () => {
+  expect(css).toMatch(/\.fc-studio\{[^}]*--fc-studio-media-h:180px;--fc-studio-media-my:-5px/);
+  expect(css).toMatch(/\.fc-packshots\{height:var\(--fc-studio-media-h\)/);
+  expect(css).toMatch(/\.fc-studio-icono\{height:var\(--fc-studio-media-h\);margin-top:var\(--fc-studio-media-my\);flex:none/);
+  expect(css).toMatch(/\.fc-studio-note span\{[^}]*height:2\.7em/);
+  expect(css).toMatch(/\.fc-studio-cta\{[^}]*background:transparent/);
+  expect(css).toMatch(/--fc-studio-media-h:130px;--fc-studio-media-my:10px/);
+  expect(css).not.toMatch(/\.fc-packshots\{height:130px/);
+});
+
 test("la cintilla del menú no deja ver el título a través del encabezado fijo", () => {
   expect(css).toMatch(/\.fc-sticky\{position:sticky;top:0;z-index:80;background:#ffffff !important;isolation:isolate;overscroll-behavior:none;touch-action:pan-y\}/);
   expect(css).toMatch(/\.fc-sticky::before\{content:"";position:absolute;inset:0;background:#ffffff;z-index:-1\}/);
