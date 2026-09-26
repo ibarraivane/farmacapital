@@ -14,29 +14,25 @@ describe("tiendaV2Activa", () => {
     process.env = env;
   });
 
-  test("apagada por defecto", () => {
-    expect(tiendaV2Activa()).toBe(false);
-  });
-
-  test("se enciende con ?v2=1 y persiste en la sesión", () => {
-    window.history.replaceState({}, "", "/?v2=1");
-    expect(tiendaV2Activa()).toBe(true);
-    window.history.replaceState({}, "", "/catalogo");
+  test("encendida por defecto (producción)", () => {
     expect(tiendaV2Activa()).toBe(true);
   });
 
-  test("?v2=0 apaga y limpia la sesión", () => {
-    window.history.replaceState({}, "", "/?v2=1");
-    expect(tiendaV2Activa()).toBe(true);
+  test("?v2=0 muestra la tienda anterior en la sesión y ?v2=1 la regresa", () => {
     window.history.replaceState({}, "", "/?v2=0");
     expect(tiendaV2Activa()).toBe(false);
-    window.history.replaceState({}, "", "/");
+    window.history.replaceState({}, "", "/catalogo");
     expect(tiendaV2Activa()).toBe(false);
+    window.history.replaceState({}, "", "/?v2=1");
+    expect(tiendaV2Activa()).toBe(true);
+    window.history.replaceState({}, "", "/");
+    expect(tiendaV2Activa()).toBe(true);
   });
 
-  test("REACT_APP_TIENDA_V2=1 enciende sin query", () => {
-    process.env.REACT_APP_TIENDA_V2 = "1";
-    expect(tiendaV2Activa()).toBe(true);
+  test("REACT_APP_TIENDA_V2=0 la apaga para todos", () => {
+    process.env.REACT_APP_TIENDA_V2 = "0";
+    window.history.replaceState({}, "", "/?v2=1");
+    expect(tiendaV2Activa()).toBe(false);
   });
 });
 

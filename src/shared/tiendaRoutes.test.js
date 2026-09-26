@@ -1,6 +1,7 @@
 import {
   pageIdToTiendaPath,
   resolveTiendaPage,
+  seccionVitrinaFromPath,
   tiendaPathnameToPageId,
   TIENDA_PAGE_IDS,
 } from "./tiendaRoutes";
@@ -41,6 +42,16 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("auth-callback")).toBe("/auth/callback");
     expect(pageIdToTiendaPath("tarjeta")).toBe("/tarjeta");
     expect(pageIdToTiendaPath("conseguir", { search: "losartan" })).toBe("/conseguir?q=losartan");
+  });
+
+  test("slugs de vitrina y los viejos abren el catálogo en la sección nueva", () => {
+    expect(tiendaPathnameToPageId("/medicamentos")).toBe("catalogo");
+    expect(seccionVitrinaFromPath("/nutricion")).toBe("Nutrición deportiva");
+    expect(seccionVitrinaFromPath("/suplementos")).toBe("Nutrición deportiva");
+    expect(pageIdToTiendaPath("catalogo", { seccion: "Nutrición deportiva" })).toBe("/nutricion-deportiva");
+    expect(pageIdToTiendaPath("catalogo", { seccion: seccionVitrinaFromPath("/dermocosmeticos") })).toBe("/dermocosmetica");
+    expect(seccionVitrinaFromPath("/farmacia")).toBe("");
+    expect(tiendaPathnameToPageId("/catalogo")).toBe("catalogo");
   });
 
   test("aliases de flyer y te lo conseguimos", () => {

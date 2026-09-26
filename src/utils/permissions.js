@@ -21,6 +21,7 @@ export const MODULOS_BLOQUEADOS_VENDEDOR = [
   "fact",         // Facturación CFDI
   "banners",      // Banners de la tienda online
   "fichas",       // Revisión de fichas de producto
+  "resenas",      // Moderación de reseñas de la tienda
   "usuarios",     // Gestión de usuarios
   "bot",          // Asistente IA (costos por uso)
   "cli",          // Clientes & Puntos (alta en el POS al vender)

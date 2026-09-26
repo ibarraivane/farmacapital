@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, Search, ShoppingBag } from "lucide-react";
+import { MapPin, Menu, Search, ShoppingBag, User } from "lucide-react";
 import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
-import { irACatalogoCategoria } from "../../../lib/tiendaCatalogoCategorias";
+import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
+import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
 import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 
-const PLACEHOLDER = "Producto, sustancia o marca";
+const PLACEHOLDER = "Nombre, principio activo o marca…";
 
 export default function EncabezadoV2({
   page,
@@ -18,6 +19,8 @@ export default function EncabezadoV2({
   setProdDetalle,
   aviso,
   avisoCarrito,
+  user,
+  onMenu,
 }) {
   const [busqFocus, setBusqFocus] = useState(false);
   const n = (cart || []).reduce((a, c) => a + (Number(c.qty) || 0), 0);
@@ -61,7 +64,7 @@ export default function EncabezadoV2({
   };
 
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 50 }}>
+    <div className="fc-sticky" style={{ backgroundColor: "#ffffff", position: "sticky", top: 0, zIndex: 80 }}>
       <div className="fc-top">
         <span>Farmacia y consultorio · Ciudad de México</span>
         <span>Atención en sucursal · {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}</span>
@@ -125,6 +128,22 @@ export default function EncabezadoV2({
         <button
           type="button"
           className="fc-iconbtn"
+          aria-label={user ? "Mi cuenta" : "Iniciar sesión"}
+          onClick={() => go(user ? "cuenta" : "login")}
+        >
+          <User aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="fc-iconbtn"
+          aria-label="Abrir menú"
+          onClick={() => onMenu?.()}
+        >
+          <Menu aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="fc-iconbtn"
           aria-label="Ver carrito"
           onClick={() => go("carrito")}
         >
@@ -132,11 +151,11 @@ export default function EncabezadoV2({
           <span className="fc-cartnum">{n}</span>
         </button>
       </header>
-      <nav className="fc-nav" aria-label="Áreas de la tienda">
-        <button type="button" onClick={() => go("catalogo", { rx: false })}>Medicamentos</button>
-        <button type="button" onClick={() => go("conseguir")}>Dermocosmética</button>
-        <button type="button" onClick={() => irACatalogoCategoria(setPage, "Vitaminas")}>Nutrición</button>
-        <button type="button" className="fc-nav-quote" onClick={() => go("conseguir")}>Cotizar especializado</button>
+      <nav className="fc-nav" aria-label="Áreas de la tienda" style={{ backgroundColor: "#ffffff" }}>
+        {SECCIONES_VITRINA.map((sec) => (
+          <button key={sec.id} type="button" onClick={() => irASeccionVitrina(setPage, sec.nombre)}>{sec.nombre}</button>
+        ))}
+        <button type="button" className="fc-nav-quote" onClick={() => go("cotizar")}>Cotizar especializado</button>
         <button type="button" className="fc-location" onClick={irSucursal}>
           <MapPin aria-hidden />
           Sucursal CDMX · Ver ubicación

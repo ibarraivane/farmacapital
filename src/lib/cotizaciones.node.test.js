@@ -36,7 +36,13 @@ describe("cotizaciones", async () => {
     payloadPromoverDesdeSolicitud,
     precioSugeridoCotizacion,
     numerosLineaCotizacion,
+    vistaNumerosProducto,
     totalesCotizacion,
+    escaparHtmlCotizacion,
+    itemConfirmadoDocumento,
+    vigenciaDefaultTexto,
+    importeDocumentoCliente,
+    totalDocumentoCliente,
     resumenItemsCotizacion,
     fmtDineroCotiz,
     haceCuanto,
@@ -172,6 +178,20 @@ describe("cotizaciones", async () => {
     assert.equal(gen.usaSugerido, false);
   });
 
+  it("la ganancia se ve al teclear costo y precio, antes de guardar", () => {
+    const n = vistaNumerosProducto({
+      costoTexto: "40",
+      precioTexto: "50",
+      costoGuardado: null,
+      precioGuardado: null,
+      cantidad: 2,
+      tipoMargen: "marca",
+    });
+    assert.equal(n.gananciaUnit, 10);
+    assert.equal(n.gananciaTotal, 20);
+    assert.equal(n.recargoPct, 25);
+  });
+
   it("totales del proyecto solo suman líneas con costo y venta", () => {
     const t = totalesCotizacion([
       { texto: "A", cantidad: 2, costo_elegido: 389, precio_venta: 486, tipo_margen: "marca" },
@@ -191,6 +211,27 @@ describe("cotizaciones", async () => {
       /Anthelios ×2/,
     );
     assert.equal(resumenItemsCotizacion([]), "Sin productos");
+  });
+
+  it("documento del cliente suma precio de venta sin pedir el costo", () => {
+    const viernes = new Date(2026, 8, 25);
+    assert.equal(vigenciaDefaultTexto(1, viernes), "28 de septiembre de 2026");
+    assert.equal(vigenciaDefaultTexto(5, viernes), "2 de octubre de 2026");
+    assert.equal(escaparHtmlCotizacion("A & B <C>"), "A &amp; B &lt;C&gt;");
+    assert.equal(itemConfirmadoDocumento({ estado: "elegido", precio_venta: 120 }), true);
+    assert.equal(itemConfirmadoDocumento({ estado: "buscando", precio_venta: 120 }), false);
+    assert.equal(itemConfirmadoDocumento({ estado: "elegido", precio_venta: null }), false);
+
+    const items = [
+      { estado: "buscando", precio_venta: 80, cantidad: 2, costo_elegido: null },
+      { estado: "elegido", precio_venta: 50, cantidad: 1, costo_elegido: 40 },
+      { estado: "pendiente", precio_venta: null, cantidad: 1, costo_elegido: 100, tipo_margen: "marca" },
+    ];
+    assert.equal(importeDocumentoCliente(items[0]), 160);
+    assert.equal(importeDocumentoCliente(items[2]), null);
+    assert.equal(totalDocumentoCliente(items), 210);
+    assert.equal(totalDocumentoCliente([]), null);
+    assert.equal(totalesCotizacion(items).venta, 175);
   });
 
   it("dinero y hace cuanto", () => {

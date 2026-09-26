@@ -3,6 +3,8 @@
  * No deben chocar con slugs del admin (pos, consultorio, inventario, caja, …).
  */
 
+import { seccionPorSlug, slugSeccion } from "../constants/vitrinaTienda";
+
 export const TIENDA_PAGE_IDS = [
   "home",
   "catalogo",
@@ -24,6 +26,7 @@ export const TIENDA_PAGE_IDS = [
   "terminos-puntos",
   "tarjeta",
   "conseguir",
+  "cotizar",
   "pagar",
 ];
 
@@ -45,6 +48,7 @@ export const TIENDA_BANNER_DESTINOS = [
   { id: "terminos-puntos", label: "Términos de puntos" },
   { id: "tarjeta", label: "Flyer / tarjeta WhatsApp" },
   { id: "conseguir", label: "Te lo conseguimos" },
+  { id: "cotizar", label: "Cotizar especializado" },
 ];
 
 const PAGE_TO_SLUG = {
@@ -68,6 +72,7 @@ const PAGE_TO_SLUG = {
   "terminos-puntos": "terminos-puntos",
   tarjeta: "tarjeta",
   conseguir: "conseguir",
+  cotizar: "cotizar",
   pagar: "pagar",
 };
 
@@ -107,6 +112,8 @@ const SLUG_TO_PAGE = {
   hola: "tarjeta",
   conseguir: "conseguir",
   "te-lo-conseguimos": "conseguir",
+  cotizar: "cotizar",
+  "cotizar-especializado": "cotizar",
   pagar: "pagar",
 };
 
@@ -114,6 +121,13 @@ const SLUG_TO_PAGE = {
  * @param {string} raw
  * @returns {string|null} id de página o null si no es de la tienda
  */
+/** Sección de vitrina en el primer segmento, o "" si el path no es de sección. */
+export function seccionVitrinaFromPath(pathname) {
+  const p = String(pathname || "").replace(/\/+$/, "") || "/";
+  const seg = p.split("/").filter(Boolean)[0] || "";
+  return seccionPorSlug(seg);
+}
+
 export function resolveTiendaPage(raw) {
   const s = String(raw || "").trim().toLowerCase()
     .replace(/^\/+/, "")
@@ -141,16 +155,18 @@ export function tiendaPathnameToPageId(pathname) {
     return "auth-callback";
   }
   const seg = parts[0] || "";
+  if (seccionPorSlug(seg)) return "catalogo";
   return resolveTiendaPage(seg) || "home";
 }
 
 /**
  * @param {string} pageId
- * @param {{ rx?: boolean, reset?: string, search?: string, productId?: string|number }} [opts]
+ * @param {{ rx?: boolean, reset?: string, search?: string, productId?: string|number, seccion?: string }} [opts]
  */
 export function pageIdToTiendaPath(pageId, opts = {}) {
   const resolved = resolveTiendaPage(pageId) || "home";
-  const slug = PAGE_TO_SLUG[resolved];
+  const slugSec = resolved === "catalogo" ? slugSeccion(opts.seccion) : "";
+  const slug = slugSec || PAGE_TO_SLUG[resolved];
   const path = slug ? `/${slug}` : "/";
   const params = new URLSearchParams();
   if (opts.rx) params.set("rx", "1");

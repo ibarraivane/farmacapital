@@ -14,9 +14,12 @@ const html = fs.readFileSync(path.join(__dirname, "../../public/index.html"), "u
 const tienda = fs.readFileSync(path.join(__dirname, "../Tienda.jsx"), "utf8");
 
 describe("tienda scroll root (index.css)", () => {
-  test("html es el único scroller vertical", () => {
+  test("html es el único scroller vertical y no recarga al jalar en Chrome", () => {
     expect(css).toMatch(/html\s*\{[^}]*overflow-y:\s*auto/s);
+    expect(css).toMatch(/html\s*\{[^}]*overflow-x:\s*clip/s);
+    expect(css).toMatch(/html\s*\{[^}]*height:\s*100%/s);
     expect(css).toMatch(/html\s*\{[^}]*overscroll-behavior-y:\s*none/s);
+    expect(css).not.toMatch(/html\s*\{[^}]*overflow-x:\s*hidden/s);
   });
 
   test("body no es scrollport: clip en X y visible en Y", () => {
@@ -36,9 +39,11 @@ describe("tienda scroll root (index.css)", () => {
 });
 
 describe("tienda scroll root (shell)", () => {
-  test("index.html no deja body como overflow-y:auto", () => {
+  test("index.html no deja body como overflow-y:auto ni reactiva el refresh", () => {
     expect(html).toMatch(/overflow-x:\s*clip/);
     expect(html).not.toMatch(/body\s*\{[^}]*overflow-y:\s*auto/s);
+    expect(html).not.toMatch(/overscroll-behavior-y:\s*auto/);
+    expect(html).toMatch(/overscroll-behavior:\s*none/);
   });
 
   test("Tienda no pone overflow-x:hidden en body/main/shell", () => {

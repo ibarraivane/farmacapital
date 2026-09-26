@@ -10,6 +10,7 @@ import {
 } from "./utils/fuzzySearch";
 import { findProductExactScan } from "./utils/barcodeProductLookup";
 import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "./ui";
+import FiltroCategoriasCheck from "./components/FiltroCategoriasCheck";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
@@ -19,7 +20,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
-import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
+import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
@@ -27,7 +28,7 @@ import {
   CATEGORIAS_PRODUCTO as CATEGORIAS,
   categoriaCanon,
   categoriaPasaFiltro,
-  categoriaVitrinaPasaFiltro,
+  pasaFiltroCategorias,
   opcionesCategoriaSelect,
 } from "./constants/categoriasProducto";
 import {
@@ -59,7 +60,7 @@ const leerSesion = () => {
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const EMPTY = {
-  nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
+  nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"", piezas_por_blister:"", precio_blister:"", stock_blisters:"",
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
   fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"", imagen_mobile_url:"",
   principio_activo:"", denominacion_generica:"", denominacion_distintiva:"",
@@ -988,6 +989,18 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     if (cb && (cb.length < 8 || cb.length > 14)) {
       e.codigo_barras = "Usa 8–14 dígitos (EAN/UPC)";
     }
+    if (form.venta_unidad) {
+      const upc = parseInt(form.unidades_por_caja, 10) || 0;
+      const ppbRaw = String(form.piezas_por_blister ?? "").trim();
+      const ppb = ppbRaw === "" ? 0 : parseInt(ppbRaw, 10);
+      const stockB = parseInt(form.stock_blisters, 10) || 0;
+      if (ppbRaw !== "" && ppb !== 0 && blistersPorCaja(upc, ppb) < 2) {
+        e.piezas_por_blister = "Tiene que partir la caja en blisters enteros (al menos 2).";
+      }
+      if ((ppbRaw === "" || ppb === 0) && stockB > 0) {
+        e.piezas_por_blister = "Hay blisters sueltos. Indica las piezas por blister o deja ese stock en 0.";
+      }
+    }
     return e;
   };
   const handleSave = async () => {
@@ -1023,6 +1036,9 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja) || 0 : 0,
         precio_unidad: form.venta_unidad ? Math.ceil(parseFloat(form.precio_unidad) || 0) : 0,
         stock_unidades: form.venta_unidad ? parseInt(form.stock_unidades) || 0 : 0,
+        piezas_por_blister: form.venta_unidad ? parseInt(form.piezas_por_blister, 10) || 0 : 0,
+        precio_blister: form.venta_unidad ? Math.ceil(parseFloat(form.precio_blister) || 0) : 0,
+        stock_blisters: form.venta_unidad ? parseInt(form.stock_blisters, 10) || 0 : 0,
       });
 
       const sesion = leerSesion();
@@ -1118,7 +1134,15 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           nombre: form.nombre, precio: form.precio
         });
       }
-      onSaved();
+      onSaved({
+        id: form.id || null,
+        ...productoFields,
+        costo: costoNum,
+        stock: stockInt,
+        proveedor: proveedorTxt,
+        imagen_url: urlNow || null,
+        imagen_mobile_url: urlNow || null,
+      });
     } catch (unexpected) {
       console.error("ProductoModal guardar:", unexpected);
       showToast("Error al guardar: " + (unexpected?.message || String(unexpected)), "error");
@@ -1136,13 +1160,28 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   );
 
   const upcVenta = parseInt(form.unidades_por_caja, 10) || 0;
+  const blistersVenta = blistersPorCaja(upcVenta, form.piezas_por_blister);
   const costoPieza = upcVenta > 0 && form.costo !== "" ? (parseFloat(form.costo) || 0) / upcVenta : 0;
+  const costoBlister = blistersVenta >= 2 && form.costo !== "" ? (parseFloat(form.costo) || 0) / blistersVenta : 0;
   const precioPieza = Math.ceil(parseFloat(form.precio_unidad) || 0);
   const minPrecioPieza = upcVenta > 0
     ? sugerirPrecioUnidad(form.precio, form.costo, upcVenta, form.categoria, form.tipo)
     : 0;
   const margenPiezaPct = precioPieza > 0 && costoPieza > 0 ? margenBrutoPct(precioPieza, costoPieza) : null;
   const margenCajaPct = form.precio && form.costo ? margenBrutoPct(form.precio, form.costo) : null;
+  const precioBlister = Math.ceil(parseFloat(form.precio_blister) || 0);
+  const minPrecioBlister = blistersVenta >= 2
+    ? sugerirPrecioBlister(form.precio, form.costo, upcVenta, form.piezas_por_blister, form.categoria, form.tipo)
+    : 0;
+  const margenBlisterPct = precioBlister > 0 && costoBlister > 0 ? margenBrutoPct(precioBlister, costoBlister) : null;
+  const inputBlister = {
+    ...inputStyle,
+    background: "#ffffff",
+    color: "#0f172a",
+    colorScheme: "light",
+    WebkitTextFillColor: "#0f172a",
+    caretColor: "#0f172a",
+  };
   const margenPiezaColor = precioPieza > 0 && precioPieza < minPrecioPieza
     ? C.amber
     : margenPiezaPct != null && margenCajaPct != null && margenPiezaPct >= margenCajaPct
@@ -1423,7 +1462,13 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               <div>
                 <label style={labelStyle}>Unidades por caja</label>
                 <input type="number" min="1" value={form.unidades_por_caja}
-                  onChange={e=>{ const u=parseInt(e.target.value,10)||1; set("unidades_por_caja",e.target.value); set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo)); }}
+                  onChange={e=>{
+                    const u=parseInt(e.target.value,10)||1;
+                    set("unidades_por_caja",e.target.value);
+                    set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo));
+                    const b = blistersPorCaja(u, form.piezas_por_blister);
+                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, u, form.piezas_por_blister, form.categoria, form.tipo));
+                  }}
                   style={inputStyle} placeholder="20"/>
               </div>
               <div>
@@ -1452,6 +1497,51 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <input type="number" min="0" value={form.stock_unidades}
                   onChange={e=>set("stock_unidades",e.target.value)}
                   style={inputStyle} placeholder="0"/>
+              </div>
+              <div>
+                <label style={labelStyle}>Piezas por blister</label>
+                <input type="number" min="0" value={form.piezas_por_blister ?? ""}
+                  onChange={e=>{
+                    const raw = e.target.value;
+                    set("piezas_por_blister", raw);
+                    const b = blistersPorCaja(form.unidades_por_caja, raw);
+                    if (b >= 2) set("precio_blister", sugerirPrecioBlister(form.precio, form.costo, form.unidades_por_caja, raw, form.categoria, form.tipo));
+                  }}
+                  className="farmacapital-field-input"
+                  style={{...inputBlister, borderColor: errors.piezas_por_blister ? C.red : C.border}}
+                  placeholder="10"/>
+                {errors.piezas_por_blister
+                  ? <span style={{color:C.red,fontSize:10}}>{errors.piezas_por_blister}</span>
+                  : blistersVenta >= 2
+                    ? <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>{blistersVenta} blisters por caja. Vacío = solo pieza.</div>
+                    : <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>Vacío = abrir caja suelta piezas, sin blister.</div>}
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  Precio por blister ($)
+                  {margenBlisterPct != null ? (
+                    <span style={{ color: C.textMid, fontSize: 10, fontWeight: 700, marginLeft: 6 }}>
+                      · margen {margenBlisterPct}%
+                    </span>
+                  ) : null}
+                </label>
+                <input type="number" min="0" step="0.01" value={form.precio_blister ?? ""}
+                  onChange={e=>set("precio_blister", Math.ceil(parseFloat(e.target.value)||0))}
+                  className="farmacapital-field-input"
+                  style={inputBlister} placeholder="45" readOnly={blistersVenta < 2}/>
+                <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
+                  {costoBlister > 0 ? <>Costo/blister ${costoBlister.toFixed(2)}</> : "Indicá piezas por blister"}
+                  {precioBlister > 0 && minPrecioBlister > 0 && precioBlister < minPrecioBlister
+                    ? <> · sugerido ${minPrecioBlister} (se guarda el que indiques)</>
+                    : null}
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Stock blisters sueltos</label>
+                <input type="number" min="0" value={form.stock_blisters ?? ""}
+                  onChange={e=>set("stock_blisters", e.target.value)}
+                  className="farmacapital-field-input"
+                  style={inputBlister} placeholder="0" readOnly={blistersVenta < 2}/>
               </div>
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
                 💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> ·
@@ -2759,7 +2849,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");
   const [verInactivos,    setVerInactivos]    = useState(false);
-  const [filtroCategoria, setFiltroCategoria] = useState("todas");
+  const [filtroCategorias, setFiltroCategorias] = useState([]);
   const [filtroAlerta,    setFiltroAlerta]    = useState("todos");
   const [modal,           setModal]           = useState(null);
   const [modalRecibir,    setModalRecibir]    = useState(false);
@@ -2860,8 +2950,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   }, []);
 
   // N8: Resetear página al cambiar filtros
-  useEffect(()=>{ setPaginaInv(1); },[filtroCategoria,filtroAlerta,busqueda,verInactivos]);
-  useEffect(()=>{ clearSelection(); },[filtroCategoria,filtroAlerta,busqueda,verInactivos,clearSelection]);
+  useEffect(()=>{ setPaginaInv(1); },[filtroCategorias,filtroAlerta,busqueda,verInactivos]);
+  useEffect(()=>{ clearSelection(); },[filtroCategorias,filtroAlerta,busqueda,verInactivos,clearSelection]);
   const INV_POR_PAG = 50;
 
   const procesarArchivo = (file) => {
@@ -3235,10 +3325,27 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   }, [verInactivos, modoConsulta]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
-  useCatalogoVivo(() => fetchProductos({ silencioso: true }));
+
+  // Tras guardar, el realtime vuelve a pedir TODO el catálogo. Con esto la
+  // pantalla que acaba de grabar no espera esa descarga: pinta el renglón y
+  // ignora el eco unos segundos. Las otras terminales sí se refrescan.
+  const silencioCatalogoRef = useRef(0);
+  const callarCatalogoLocal = useCallback(() => {
+    silencioCatalogoRef.current = Date.now() + 8000;
+  }, []);
+  const pintarProductoLocal = useCallback((id, patch) => {
+    if (id == null || !patch) return;
+    setProductos((prev) => prev.map((p) => (
+      String(p.id) === String(id) ? { ...p, ...patch } : p
+    )));
+  }, []);
+  useCatalogoVivo(() => {
+    if (Date.now() < silencioCatalogoRef.current) return;
+    fetchProductos({ silencioso: true });
+  });
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
-    const cat = categoriaVitrinaPasaFiltro(p, filtroCategoria);
+    const cat = pasaFiltroCategorias(p, filtroCategorias);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"            ? true :
@@ -3252,7 +3359,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       filtroAlerta === "margen_alto" ? esAlertaMargen(auditarMargenProducto(p)) :
       true;
     return cat && alerta;
-  }), [productos, filtroCategoria, filtroAlerta, fotoCatalogoDe]);
+  }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe]);
 
   const filtradosTodosInv = useMemo(() => {
     const q = busqueda.trim();
@@ -3377,7 +3484,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           showToast("No se pudo quitar la caducidad.", "error");
           return false;
         }
-        await fetchProductos();
+        callarCatalogoLocal();
+        pintarProductoLocal(product.id, {
+          min_caducidad_lotes: null,
+          lotes: (product.lotes || []).map((l) => (
+            l.id === loteId ? { ...l, fecha_caducidad: null } : l
+          )),
+        });
+        avisarCatalogoCambio({ origen: "inventario" });
         showToast("Fecha de caducidad eliminada", "success");
         return true;
       }
@@ -3391,7 +3505,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         showToast("No se pudo guardar la caducidad.", "error");
         return false;
       }
-      await fetchProductos();
+      callarCatalogoLocal();
+      pintarProductoLocal(product.id, {
+        min_caducidad_lotes: fecha,
+        lotes: (product.lotes || []).map((l) => (
+          l.id === loteId ? { ...l, fecha_caducidad: fecha } : l
+        )),
+      });
+      avisarCatalogoCambio({ origen: "inventario" });
       showToast(
         resp.accion === "crear_referencia"
           ? "Caducidad guardada (lote de referencia, sin stock)"
@@ -3416,7 +3537,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         showToast(resp.error || "No se pudo guardar el proveedor.", "error");
         return false;
       }
-      await fetchProductos();
+      callarCatalogoLocal();
+      pintarProductoLocal(product.id, { proveedor: next });
+      avisarCatalogoCambio({ origen: "inventario" });
       showToast("Proveedor guardado en el lote", "success");
       return true;
     }
@@ -3438,7 +3561,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         showToast(error.message, "error");
         return false;
       }
-      await fetchProductos();
+      callarCatalogoLocal();
+      pintarProductoLocal(product.id, { stock: n });
+      avisarCatalogoCambio({ origen: "inventario" });
       showToast("Stock actualizado", "success");
       return true;
     }
@@ -3467,7 +3592,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           showToast(data?.error || "No se pudo guardar el código.", "error");
           return false;
         }
-        await fetchProductos();
+        callarCatalogoLocal();
+        pintarProductoLocal(product.id, { codigo_barras: patchValue });
+        avisarCatalogoCambio({ origen: "inventario" });
         showToast("Código de barras guardado", "success");
         return true;
       }
@@ -3522,10 +3649,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       showToast(error.message, "error");
       return false;
     }
-    await fetchProductos();
+    callarCatalogoLocal();
+    pintarProductoLocal(product.id, { [patchKey]: patchValue });
+    avisarCatalogoCambio({ origen: "inventario" });
     showToast("Guardado", "success");
     return true;
-  }, [fetchProductos, modoConsulta]);
+  }, [modoConsulta, callarCatalogoLocal, pintarProductoLocal]);
 
   const commitInlineEdit = useCallback(async (draftOverride) => {
     if (!inlineEdit || inlineSaving) return;
@@ -4011,7 +4140,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
       <div style={{display:"flex",gap:12,marginBottom:14,flexWrap:"wrap"}}>
         {[
-          {label:"Activos",     val:activos,    col:C.blue,  click:()=>{ setFiltroAlerta("todos"); setFiltroCategoria("todas"); setBusqueda(""); setVerInactivos(false); }, on: filtroAlerta==="todos" && filtroCategoria==="todas" && !busqueda && !verInactivos},
+          {label:"Activos",     val:activos,    col:C.blue,  click:()=>{ setFiltroAlerta("todos"); setFiltroCategorias([]); setBusqueda(""); setVerInactivos(false); }, on: filtroAlerta==="todos" && filtroCategorias.length===0 && !busqueda && !verInactivos},
           {label:"Agotados",    val:agotadosInv, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="agotados"?"todos":"agotados"), on: filtroAlerta==="agotados"},
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="bajo_stock"?"todos":"bajo_stock"), on: filtroAlerta==="bajo_stock"},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
@@ -4070,10 +4199,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:0}}>
         <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" searchMode="inventario" badgeKey="stock" badgeCol="#1E3ABA" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-        <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
-          <option value="todas">Todas las categorías</option>
-          {CATEGORIAS.map(c=><option key={c} value={c}>{c}</option>)}
-        </select>
+        <FiltroCategoriasCheck
+          categorias={CATEGORIAS}
+          value={filtroCategorias}
+          onChange={setFiltroCategorias}
+          style={{ ...inputStyle, maxWidth: 220 }}
+        />
         <select value={filtroAlerta} onChange={e=>setFiltroAlerta(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todos">Todas las alertas</option>
           <option value="agotados">🚨 Agotados</option>
@@ -4094,8 +4225,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           Ver inactivos
         </label>
         )}
-        {(filtroCategoria!=="todas"||filtroAlerta!=="todos"||busqueda)&&(
-          <button onClick={()=>{setFiltroCategoria("todas");setFiltroAlerta("todos");setBusqueda("");}}
+        {(filtroCategorias.length>0||filtroAlerta!=="todos"||busqueda)&&(
+          <button onClick={()=>{setFiltroCategorias([]);setFiltroAlerta("todos");setBusqueda("");}}
             style={{...btnSecondary,padding:"7px 12px",fontSize:11}}>✕ Limpiar filtros</button>
         )}
         {filtrados.length > 0 && !modoConsulta && (
@@ -4447,7 +4578,17 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           key={modal.id ?? "nuevo"}
           initial={modal}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); fetchProductos(); avisarCatalogoCambio({ origen: "inventario" }); }}
+          onSaved={(saved) => {
+            setModal(null);
+            if (saved?.id) {
+              callarCatalogoLocal();
+              pintarProductoLocal(saved.id, saved);
+              avisarCatalogoCambio({ origen: "inventario" });
+              return;
+            }
+            fetchProductos();
+            avisarCatalogoCambio({ origen: "inventario" });
+          }}
           onEditarCaducidad={modal.id ? abrirLotesDesdeEdicion : undefined}
           onRecibirMercancia={modal.id ? abrirRecibirDesdeEdicion : undefined}
           onCaducidadSaved={modal.id ? refrescarProductoEnEdicion : undefined}

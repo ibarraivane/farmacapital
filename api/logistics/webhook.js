@@ -10,6 +10,7 @@ const {
 const handleEnvioDomicilioHttp = require('../_lib/envioDomicilioHttp');
 const handleAddressSuggestHttp = require('../_lib/addressSuggestHttp');
 const handleAddressColoniasHttp = require('../_lib/addressColoniasHttp');
+const { enviarPedidoResena } = require('../_lib/pedirResena');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -178,6 +179,18 @@ async function handleUberDirect(req, res, body) {
       let detail = null;
       try { detail = await retry.json(); } catch { detail = await retry.text(); }
       return res.status(502).json({ ok: false, error: 'supabase_update_failed', detail });
+    }
+  }
+
+  if (payload.estado === 'completado') {
+    try {
+      await enviarPedidoResena({
+        supabaseUrl: SUPABASE_URL,
+        serviceKey: SUPABASE_SERVICE_ROLE_KEY,
+        pedidoId: pedido.id,
+      });
+    } catch (e) {
+      console.warn('[uber-direct] pedir resena:', e?.message || e);
     }
   }
 

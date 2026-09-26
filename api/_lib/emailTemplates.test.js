@@ -12,6 +12,21 @@ const items = [
 ];
 
 describe('plantillas de correo v2', () => {
+  it('pedir reseña nombra cada producto y no se publica sola', () => {
+    const m = T.pedirResena({
+      pedidoId: 441,
+      nombre: 'Ivan',
+      urlResena: 'https://www.farmacapital.mx/cuenta?resena=abc',
+      productos: [{ id: 9, nombre: 'Shampoo' }, { id: 10, nombre: 'CeraVe' }],
+    });
+    assert.match(m.subject, /441/);
+    assert.match(m.html, /Shampoo/);
+    assert.match(m.html, /CeraVe/);
+    assert.match(m.html, /resena=abc/);
+    assert.match(m.text, /no se publica sola/);
+    assert.match(m.html, /prefers-color-scheme:dark/);
+  });
+
   it('los 5 correos devuelven asunto, preheader, html y texto', () => {
     const all = [
       T.envioCotizado({ pedidoId: 441, nombre: 'Ivan', items, servicio: 5, envio: 100, total: 307 }),
@@ -24,6 +39,26 @@ describe('plantillas de correo v2', () => {
       assert.ok(m.subject && m.html && m.text);
       assert.match(m.html, /prefers-color-scheme:dark/);
     }
+  });
+
+  it('la cotización de oficina no inventa $0 si falta el precio', () => {
+    const m = T.cotizacionAdmin({
+      folio: 'C-142',
+      nombre: 'María & López',
+      items: [
+        { nombre: 'Anthelios', cantidad: 2, importe: 160, confirmado: false },
+        { nombre: 'CeraVe', cantidad: 1, importe: null, confirmado: false },
+      ],
+      total: 160,
+      vigencia: '2 de octubre de 2026',
+    });
+    assert.match(m.html, /Anthelios/);
+    assert.match(m.html, /Por confirmar/);
+    assert.match(m.html, /Pendiente/);
+    assert.match(m.html, /María &amp; López/);
+    assert.match(m.text, /Total: \$160\.00/);
+    assert.match(m.text, /CeraVe ×1: Pendiente/);
+    assert.doesNotMatch(m.html, /costo_elegido|margen/i);
   });
 
   it('el desglose muestra el Servicio y cuadra', () => {

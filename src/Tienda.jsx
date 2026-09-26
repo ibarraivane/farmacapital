@@ -34,7 +34,9 @@ import {
   descripcionPublicaTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
-import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaVitrina, categoriaVitrinaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
+import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
+import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
+import { chipsDeSeccion, productoEnVitrina } from "./constants/vitrinaTienda";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -44,7 +46,7 @@ import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, s
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl, urlImagenPublicaTienda } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
-import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import { pageIdToTiendaPath, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
@@ -53,6 +55,11 @@ import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
 import IntroAnimacion from "./components/tienda/IntroAnimacion";
 import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
 import PieV2 from "./components/tienda/v2/PieV2";
+import InicioV2 from "./components/tienda/v2/InicioV2";
+import CotizarV2 from "./components/tienda/v2/CotizarV2";
+import CatalogoV2 from "./components/tienda/v2/CatalogoV2";
+import FichaV2 from "./components/tienda/v2/FichaV2";
+import { ResenasResumenCtx, EstrellasDeProducto, ListaResenasPublicas, BloqueResenaPedido, FormularioResenaToken } from "./components/tienda/ResenasTienda";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
 import { tiendaV2Activa } from "./theme/tiendaV2";
@@ -72,7 +79,7 @@ import {
   tipoCarrito,
 } from "./lib/bajoPedido";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
-import { canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo } from "./utils/puntosCanje";
+import { CANJES_PUNTOS, canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo, pesosDePuntos } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
   formatFolioOnline,
@@ -116,7 +123,7 @@ import {
   mergeCartLines,
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
-import { bandasCatalogoPorCategoria, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
+import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, VITRINA_CHIP_KEY, VITRINA_SECCION_KEY, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
 import {
   aplicarPosicionCatalogo,
   guardarVisiblesCatalogo,
@@ -247,7 +254,7 @@ const BANNERS = [
     id:2,
     titulo:"Consulta médica",
     subtitulo:`$${CONSULTA_PRECIO_DEFAULT} por consulta`,
-    descripcion:"O gratis con 160 puntos FarmaCapital. Médico general disponible.",
+    descripcion:"O gratis con 800 puntos FarmaCapital. Médico general disponible.",
     cta:"Agendar cita",
     pagina:"cita",
     bg:"linear-gradient(100deg,#001534 0%,#0A3A2C 55%,#02A158 100%)",
@@ -411,7 +418,7 @@ const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
   { p:"¿Cuánto tarda el envío?", r:"Confirmas tu pedido en línea (aún no se cobra). Cotizamos el transporte según tu zona y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta con Pagar ahora. Preparamos y salimos en cuanto esté pagado." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
-  { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
+  { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.10 de descuento. 100 puntos son $10. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:textosPolitica().faqReceta },
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
@@ -2016,6 +2023,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
           {politicaProducto(prod).requiereReceta&&<Tag col={C.red} sm>{politicaProducto(prod).etiquetaCorta}</Tag>}
         </div>
         <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</div>
+        <EstrellasDeProducto prod={prod} />
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
         <div style={{marginBottom:10}}>
           {cta
@@ -2101,15 +2109,63 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   const cta = ctaBajoPedido(prod); // bajo pedido: "ordenar"
   const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
   const irACotizar = () => {
-    try {
-      sessionStorage.setItem("farmacapital_busq", String(prod.nombre || ""));
-      sessionStorage.setItem(CONSEGUIR_FORM_FLAG, "1");
-    } catch (_) { /* noop */ }
-    setBusqHero?.(String(prod.nombre || ""));
-    setPage("conseguir", { search: String(prod.nombre || "") });
+    const nombre = String(prod.nombre || "");
+    try { sessionStorage.setItem("farmacapital_busq", nombre); } catch (_) { /* noop */ }
+    setBusqHero?.(nombre);
+    if (tiendaV2Activa()) {
+      setPage("cotizar");
+      return;
+    }
+    try { sessionStorage.setItem(CONSEGUIR_FORM_FLAG, "1"); } catch (_) { /* noop */ }
+    setPage("conseguir", { search: nombre });
   };
-  const similares=productos.filter(p=>categoriasCoinciden(categoriaVitrina(p), categoriaVitrina(prod))&&p.id!==prod.id).slice(0,4);
+  const similares = productosSimilaresTienda(prod, productos);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
+  if (tiendaV2Activa()) {
+    const politica = politicaProducto(prod);
+    const infoFicha = (
+      <FichaProductoEnriquecida
+        producto={prod}
+        ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
+        monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
+        whatsappHref={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(`Hola, tengo dudas sobre ${nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre || "un producto"}`)}`}
+        ocultarFichaTecnica
+      />
+    );
+    return (
+      <FichaV2
+        prod={{ ...prod, nombre: nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre }}
+        imagen={imgSrc}
+        categoriaLabel={categoriaVitrina(prod) || "Catálogo"}
+        precioSlot={cta ? null : <PrecioOferta prod={prod} promos={promosProd} size="lg" />}
+        estadoCompra={{
+          agotado,
+          permitidoWeb,
+          esEncargo: Boolean(cta),
+          textoBloqueo: productoEsCategoriaMinisuperTienda(prod) ? "Solo minisuper" : "Solo en mostrador",
+        }}
+        requiereReceta={politica.requiereReceta}
+        avisoReceta={politica.avisoFicha}
+        added={added}
+        onAgregar={() => {
+          if (agotado) return;
+          if (!permitidoWeb) { alert(razonBloqueoProductoTiendaFarmacia(prod)); return; }
+          addToCart(prod); setAdded(true); setTimeout(() => setAdded(false), 1500);
+        }}
+        onComprar={() => {
+          if (agotado || !permitidoWeb) return;
+          addToCart(prod); setPage("carrito");
+        }}
+        onCotizar={irACotizar}
+        ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
+        monografia={fichaPub?.monografia ? { ...fichaPub.monografia, estado: "publicado" } : null}
+        infoSlot={infoFicha}
+        similares={similares}
+        onProducto={(p) => { setProdDetalle(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+        setPage={setPage}
+      />
+    );
+  }
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:20}}>
@@ -2173,6 +2229,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             <Tag col={C.mid} sm>{prod.categoria}</Tag>
           </div>
           <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre}</h1>
+          <EstrellasDeProducto prod={prod} />
+          <ListaResenasPublicas prod={prod} />
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
           <div style={{marginBottom:20}}>
             {cta
@@ -3170,6 +3228,26 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   const useStaticHero =
     bannerMeta.status !== "ok" || bannerMeta.total === 0;
 
+  if (tiendaV2Activa()) {
+    return (
+      <InicioV2
+        productos={productos}
+        loadingProductos={loadingProductos}
+        setPage={setPage}
+        setProdDetalle={setProdDetalle}
+        precioConsulta={precioConsulta}
+        bannersSlot={(
+          <BannersEstaSemana
+            banners={bannersAll}
+            productos={productos}
+            setPage={setPage}
+            setProdDetalle={setProdDetalle}
+          />
+        )}
+      />
+    );
+  }
+
   return(
     <div>
       <HeroCarousel
@@ -3273,7 +3351,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       <div style={{background:BRAND.primary+"12",padding:"48px 24px"}}>
         <div style={{maxWidth:800,margin:"0 auto",textAlign:"center"}}>
           <h2 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:12}}>Consultorio médico FarmaCapital</h2>
-          <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>{$(precioConsulta ?? CONSULTA_PRECIO_DEFAULT)} por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>160 puntos FarmaCapital</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
+          <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>{$(precioConsulta ?? CONSULTA_PRECIO_DEFAULT)} por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>800 puntos FarmaCapital</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
           <Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary}>Agendar cita online</Btn>
         </div>
       </div>
@@ -3288,7 +3366,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             <Btn onClick={()=>setPage("puntos")} style={{background:BRAND.accent,color:C.white,border:"none"}}>Ver programa de puntos</Btn>
           </div>
           <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:12}}>
-            {[["$10 en FarmaCapital","1 punto",BRAND.secondary],["1 consulta","5 puntos",BRAND.accent],["160 puntos","Consulta gratis","#ffaa00"],["100 puntos","$50 descuento","#9d6fff"]].map(([a,b,col])=>(
+            {[["100 puntos","$10 de descuento",BRAND.secondary],["250 puntos","Envío gratis",BRAND.accent],["800 puntos","Consulta gratis","#ffaa00"],["500 puntos","$50 de descuento","#9d6fff"]].map(([a,b,col])=>(
               <div key={a} style={{background:"rgba(255,255,255,.08)",borderRadius:12,padding:16,border:"1px solid rgba(255,255,255,.1)"}}>
                 <div style={{color:col,fontWeight:700,fontSize:13,marginBottom:4}}>{b}</div>
                 <div style={{color:"rgba(255,255,255,.6)",fontSize:12}}>{a}</div>
@@ -3325,6 +3403,19 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const stack = useMediaQuery("(max-width: 768px)");
   const busqStickyRef = useRef(null);
   useCssVarHeight(busqStickyRef, "--fc-catalogo-busq-h");
+  const v2 = tiendaV2Activa();
+  const [seccion, setSeccion] = useState(() => {
+    try {
+      return seccionVitrinaFromPath(window.location.pathname)
+        || sessionStorage.getItem(VITRINA_SECCION_KEY)
+        || "";
+    } catch {
+      return "";
+    }
+  });
+  const [chip, setChip] = useState(() => {
+    try { return sessionStorage.getItem(VITRINA_CHIP_KEY) || "Todos"; } catch { return "Todos"; }
+  });
   const [cat,setCat]=useState(()=>{
     try {
       const saved = sessionStorage.getItem("farmacapital_cat") || "Todos";
@@ -3340,9 +3431,35 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const [vista, setVista] = useState(() => leerVistaCatalogo());
   const setVistaCatalogo = (v) => setVista(guardarVistaCatalogo(v));
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
+  useEffect(() => {
+    try {
+      if (seccion) sessionStorage.setItem(VITRINA_SECCION_KEY, seccion);
+      else sessionStorage.removeItem(VITRINA_SECCION_KEY);
+      sessionStorage.setItem(VITRINA_CHIP_KEY, chip || "Todos");
+    } catch { /* noop */ }
+  }, [seccion, chip]);
+  useEffect(() => {
+    const sync = () => {
+      let saved = "Todos";
+      let sec = "";
+      let ch = "Todos";
+      try {
+        saved = sessionStorage.getItem("farmacapital_cat") || "Todos";
+        sec = sessionStorage.getItem(VITRINA_SECCION_KEY) || "";
+        ch = sessionStorage.getItem(VITRINA_CHIP_KEY) || "Todos";
+      } catch { /* noop */ }
+      setCat(saved === "Todos" ? "Todos" : (categoriaCanon(saved) || "Todos"));
+      setSeccion(sec);
+      setChip(ch);
+      setBusq("");
+      setBusqHero?.("");
+    };
+    window.addEventListener(CATALOGO_CATEGORIA_EVENT, sync);
+    return () => window.removeEventListener(CATALOGO_CATEGORIA_EVENT, sync);
+  }, [setBusqHero]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
-  const filtrosCatalogoKey = `${cat}|${tipo}|${String(busq || "").trim()}|${filtroRx ? "1" : "0"}`;
+  const filtrosCatalogoKey = `${cat}|${seccion}|${chip}|${tipo}|${String(busq || "").trim()}|${filtroRx ? "1" : "0"}`;
   const filtrosCatalogoKeyRef = useRef(filtrosCatalogoKey);
   useEffect(() => {
     if (filtrosCatalogoKeyRef.current === filtrosCatalogoKey) return;
@@ -3357,18 +3474,23 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       setBusq(busqHero);
       setTipo("todos");
       setCat("Todos");
+      setSeccion("");
+      setChip("Todos");
     }
   },[busqHero]);
-  const cats = useMemo(() => {
-    const pool = poolCatalogoTienda(productos);
-    const presentes = new Set(pool.map((p) => categoriaVitrina(p)).filter(Boolean));
-    return ["Todos", ...CATEGORIAS_PRODUCTO.filter((c) => presentes.has(c))];
-  }, [productos]);
+  const cats = useMemo(
+    () => (v2
+      ? chipsDeSeccion(seccion, poolCatalogoTienda(productos))
+      : chipsAreaTienda(poolCatalogoTienda(productos), cat)),
+    [v2, productos, seccion, cat]
+  );
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
-    .filter(p=>categoriaVitrinaPasaFiltro(p, cat))
+    .filter(p => v2
+      ? productoEnVitrina(p, { seccion, chip, busqueda: busq })
+      : productoPasaAreaTienda(p, cat === "Cuidado personal" ? AREA_DERMOCOSMETICA : cat))
     .filter(p=>tipo==="todos"||p.tipo===tipo)
     .filter(p=>!filtroRx || p.requiere_receta || esCategoriaAntibiotico(p.categoria)),
-  [productos,cat,tipo,filtroRx]);
+  [v2, productos, seccion, chip, busq, cat, tipo, filtroRx]);
   const fil = useMemo(()=>{
     const arr = basePool.filter((p)=>tiendaProductMatchesBusqueda(p, busq));
     return sortCatalogoTienda(arr, busq);
@@ -3400,6 +3522,40 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
     setCat("Todos"); setTipo("todos");
   };
   const busqActiva = busq.trim().length > 0;
+  const [ordenV2, setOrdenV2] = useState("relevancia");
+  if (tiendaV2Activa()) {
+    return (
+      <CatalogoV2
+        titulo={filtroRx ? "Surtir receta" : (busqActiva ? "Resultados de búsqueda" : (seccion || "Catálogo"))}
+        descripcion={busqActiva
+          ? `Búsqueda: «${busq.trim()}»`
+          : "Revisa la presentación, disponibilidad y forma de entrega de cada producto."}
+        productos={pageFil}
+        total={fil.length}
+        categorias={cats}
+        categoria={chip}
+        onCategoria={(c) => {
+          setChip(c);
+          setBusq("");
+          setBusqHero?.("");
+        }}
+        orden={ordenV2}
+        onOrden={setOrdenV2}
+        hayMas={hayMasCatalogo}
+        onVerMas={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
+        loading={loadingProductos}
+        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle"); }}
+        setPage={setPage}
+        avisoRx={filtroRx ? (
+          <div className="fc-info-box" style={{ marginBottom: 16 }}>
+            <strong>Medicamentos con receta</strong>
+            {textosPolitica().catalogoRx}
+          </div>
+        ) : null}
+      />
+    );
+  }
+
   const catBtnStyle = (c) => ({
     width: stack ? "auto" : "100%",
     flexShrink: 0,
@@ -5200,7 +5356,7 @@ function AgendarCita({setPage,user}){
       <div style={{textAlign:"center",marginBottom:32}}>
         <TiendaIconWell Icon={Stethoscope} />
         <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Consultorio FarmaCapital</h1>
-        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Médico general · $80 por consulta (pago en farmacia el día de la cita) · O gratis con 160 puntos FarmaCapital</p>
+        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Médico general · $80 por consulta (pago en farmacia el día de la cita) · O gratis con 800 puntos FarmaCapital</p>
       </div>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:24,marginBottom:24}}>
         {/* Info doctora */}
@@ -5515,7 +5671,7 @@ function TerminosPuntos({setPage}){
       {[
         ["¿Qué son los Puntos FarmaCapital?","Los Puntos FarmaCapital son un beneficio exclusivo para clientes registrados en la plataforma de FarmaCapital. No tienen valor monetario en efectivo y solo pueden canjearse bajo los términos aquí descritos."],
         ["Acumulación de puntos","Se otorga 1 punto por cada $10 de compra en precio normal (no aplica en productos con descuento previo). Las consultas médicas otorgan 5 puntos. Las compras en línea otorgan 1.5× puntos. En el mes de cumpleaños se otorga 2× puntos."],
-        ["Canje de puntos","20 puntos = $10 de descuento en FarmaCapital. 50 puntos = envío gratis en compra en línea. 100 puntos = $50 de descuento. 160 puntos = consulta médica gratis. 200 puntos = producto gratis (sujeto a catálogo disponible). 1 punto equivale a $0.50 de valor de descuento."],
+        ["Canje de puntos","100 puntos = $10 de descuento en FarmaCapital. 250 puntos = envío gratis en compra en línea. 500 puntos = $50 de descuento. 800 puntos = consulta médica gratis. 1000 puntos = producto gratis (sujeto a catálogo disponible). 1 punto equivale a $0.10 de descuento."],
         ["Vigencia","Los puntos vencen a los 12 meses de inactividad en la cuenta. FarmaCapital se reserva el derecho de modificar las condiciones del programa con previo aviso de 30 días."],
         ["Restricciones","Los puntos no son transferibles entre cuentas, no se pueden convertir en efectivo, y no aplican en combinación con otras promociones salvo indicación expresa. FarmaCapital se reserva el derecho de cancelar cuentas o puntos obtenidos de forma fraudulenta."],
       ].map(([t,c])=>(
@@ -6277,6 +6433,8 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
   const [busyCitaId,setBusyCitaId]=useState(null);
   const [busyPayPedidoId,setBusyPayPedidoId]=useState(null);
   const [apartarPedidoId,setApartarPedidoId]=useState(null);
+  const [misResenas,setMisResenas]=useState([]);
+  const [cerrarResena,setCerrarResena]=useState(false);
   useEffect(()=>{
     if(!user?.id){setC(false);return;}
     const tokCli = getClienteToken();
@@ -6284,9 +6442,11 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
     Promise.all([
       supabase.rpc("cliente_listar_mis_pedidos", { p_session_token: tokCli, p_limite: 150 }),
       supabase.rpc("cliente_listar_mis_citas", { p_session_token: tokCli }),
-    ]).then(([pRes, cRes])=>{
+      supabase.rpc("fn_mis_resenas", { p_session_token: tokCli }),
+    ]).then(([pRes, cRes, rRes])=>{
       setPeds(Array.isArray(pRes.data) ? pRes.data : []);
       setCitas(Array.isArray(cRes.data) ? cRes.data : []);
+      setMisResenas(Array.isArray(rRes.data) ? rRes.data : []);
       setC(false);
     });
   },[user]);
@@ -6389,6 +6549,16 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
     }),
     [recompras, productos]
   );
+  let tokenResena = "";
+  try { tokenResena = new URLSearchParams(window.location.search).get("resena") || ""; } catch { tokenResena = ""; }
+  if (tokenResena && !cerrarResena) return (
+    <div style={{maxWidth:640,margin:"32px auto",padding:"0 24px 48px"}}>
+      <FormularioResenaToken token={tokenResena} />
+      <button type="button" onClick={()=>{ setCerrarResena(true); setPage("cuenta"); }} style={{marginTop:20,background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer"}}>
+        Ir a mi cuenta
+      </button>
+    </div>
+  );
   if(!user) return(
     <div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
       <div style={{width:56,height:56,borderRadius:16,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
@@ -6419,7 +6589,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
       <div style={{background:BRAND.gradient,borderRadius:16,padding:28,marginBottom:24,display:"flex",alignItems:"center",gap:20}}>
         <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:900,fontSize:26}}>{(primerNombre(user.nombre)||"C")[0].toUpperCase()}</div>
         <div style={{flex:1}}><div style={{color:C.white,fontWeight:800,fontSize:22}}>{saludoUsuario(user.nombre)}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:14,marginTop:2}}>{user.telefono}</div></div>
-        <div style={{textAlign:"center"}}><div style={{color:"#ffaa00",fontWeight:900,fontSize:36}}>{user.puntos||0}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:13}}>puntos FarmaCapital</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>= ${((user.puntos||0)*0.5).toFixed(0)} en descuentos</div></div>
+        <div style={{textAlign:"center"}}><div style={{color:"#ffaa00",fontWeight:900,fontSize:36}}>{user.puntos||0}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:13}}>puntos FarmaCapital</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>= ${pesosDePuntos(user.puntos)} en descuentos</div></div>
       </div>
       <nav
         aria-label="Secciones de mi cuenta"
@@ -6577,6 +6747,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
               </div>
             ) : null}
           </div>
+          <BloqueResenaPedido pedido={p} productos={productos} enviadas={misResenas} />
         </div>
             ))}
           </div>
@@ -6647,15 +6818,18 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
       }))}
       {tab==="canjear"&&(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}>
-          <div style={{color:C.dark,fontWeight:700,fontSize:16,marginBottom:16}}>Tienes {user.puntos||0} puntos = ${((user.puntos||0)*0.5).toFixed(0)} en valor</div>
-          {[{pts:20,ben:"$10 descuento en FarmaCapital",col:BRAND.accent,Icon:Pill},{pts:50,ben:"Envío gratis",col:BRAND.secondary,Icon:Truck},{pts:100,ben:"$50 descuento",col:BRAND.primary,Icon:Gift},{pts:160,ben:"Consulta médica gratis",col:"#f59e0b",Icon:Stethoscope},{pts:200,ben:"Producto gratis",col:C.red,Icon:Star}].map(({pts,ben,col,Icon})=>(
+          <div style={{color:C.dark,fontWeight:700,fontSize:16,marginBottom:16}}>Tienes {user.puntos||0} puntos = ${pesosDePuntos(user.puntos)} en valor</div>
+          {CANJES_PUNTOS.map((reward, i) => {
+            const { pts, ben, tipo } = reward;
+            const Icon = tipo === "envio" ? Truck : tipo === "consulta" ? Stethoscope : tipo === "producto" ? Star : tipo === "descuento" && i > 0 ? Gift : Pill;
+            const col = tipo === "envio" ? BRAND.secondary : tipo === "consulta" ? "#f59e0b" : tipo === "producto" ? C.red : i > 0 ? BRAND.primary : BRAND.accent;
+            return (
             <div key={pts} style={{display:"flex",alignItems:"center",gap:14,padding:16,borderRadius:12,border:`1px solid ${(user.puntos||0)>=pts?col+"40":C.border}`,background:(user.puntos||0)>=pts?col+"08":C.cardDark,marginBottom:10}}>
               <div style={{width:40,height:40,borderRadius:10,background:col+"15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Icon size={20} strokeWidth={1.75} color={col} aria-hidden /></div>
               <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:14}}>{ben}</div><div style={{color:col,fontSize:12,fontWeight:700,marginTop:2}}>{pts} puntos</div></div>
               <Btn sm col={col} disabled={(user.puntos||0)<pts} onClick={async()=>{
                 if ((user.puntos||0)<pts) return;
-                const reward = canjePorPuntos(pts) || { pts, ben, tipo: "descuento" };
-                if (reward.tipo === "consulta" || pts === 160) {
+                if (tipo === "consulta") {
                   try { sessionStorage.setItem("farmacapital_consulta_puntos", "1"); } catch (_) { /* noop */ }
                   navigateToCita(setPage);
                   return;
@@ -6681,7 +6855,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
                     console.warn("[Canje] RPC:", e);
                   }
                 }
-                guardarCanjeActivo({ ...reward, codigo, pts, ben });
+                guardarCanjeActivo({ ...reward, codigo });
                 if (codigo) {
                   showToast(`Canje ${codigo}: ${ben}. Preséntalo en sucursal.`, "success");
                 } else {
@@ -6690,9 +6864,10 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
                   showToast("WhatsApp abierto para confirmar el canje en farmacia.", "info");
                 }
                 setPage(reward.tipo === "envio" ? "carrito" : "catalogo");
-              }}>{(user.puntos||0)>=pts?(pts===160?"Agendar consulta":"Canjear"):"Faltan "+(pts-(user.puntos||0))}</Btn>
+              }}>{(user.puntos||0)>=pts?(tipo==="consulta"?"Agendar consulta":"Canjear"):"Faltan "+(pts-(user.puntos||0))}</Btn>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {tab==="datos"&&(
@@ -6743,12 +6918,13 @@ export default function TiendaFarmaCapital(){
   const pageRef = useRef(page);
   pageRef.current = page;
   const catalogoScrollIntentRef = useRef("top");
-  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "" } = {}) => {
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "" } = {}) => {
     const path = pageIdToTiendaPath(target, {
       rx: target === "catalogo" && rx,
       reset: target === "reset-password" ? token : undefined,
       productId: target === "detalle" ? productId : undefined,
       search: target === "conseguir" ? search : undefined,
+      seccion: target === "catalogo" ? seccion : undefined,
     });
     const fn = replace ? window.history.replaceState : window.history.pushState;
     fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
@@ -6793,6 +6969,7 @@ export default function TiendaFarmaCapital(){
         token: resetToken,
         productId: target === "detalle" ? (opts.productId || "") : undefined,
         search: target === "conseguir" ? (opts.search || busqHero || "") : undefined,
+        seccion: target === "catalogo" ? (opts.seccion || "") : "",
       });
     } catch {
       try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
@@ -6841,6 +7018,10 @@ export default function TiendaFarmaCapital(){
         writeTiendaHistory("reset-password", { replace: true, token: reset });
       } else {
         const id = tiendaPathnameToPageId(window.location.pathname) || "home";
+        const seccionInicial = seccionVitrinaFromPath(window.location.pathname);
+        if (seccionInicial) {
+          try { sessionStorage.setItem("farmacapital_vitrina", seccionInicial); } catch (_) { /* noop */ }
+        }
         const rx = tiendaPathSuggestsReceta(window.location.pathname, window.location.search);
         if (rx) {
           setFiltroRx(true);
@@ -6858,7 +7039,11 @@ export default function TiendaFarmaCapital(){
             );
           } catch (_) { /* noop */ }
         } else {
-          writeTiendaHistory(id, { replace: true, rx: rx && id === "catalogo" });
+          writeTiendaHistory(id, {
+            replace: true,
+            rx: rx && id === "catalogo",
+            seccion: id === "catalogo" ? seccionInicial : "",
+          });
         }
       }
     } catch {
@@ -6899,10 +7084,12 @@ export default function TiendaFarmaCapital(){
   },[page]);
   const [cart,setCart]           = useState(() => loadStoredCart(getClienteUser()));
   const [user,setUser]           = useState(()=> getClienteUser());
+  const [menuTiendaAbierto, setMenuTiendaAbierto] = useState(false);
   const cartUserIdRef = useRef(user?.id ?? null);
   const skipCartSaveRef = useRef(false);
   const [misPedidos, setMisPedidos] = useState([]);
   const [productos,setProductos] = useState([]);
+  const [resenasResumen,setResenasResumen] = useState({});
   const [cargando,setCargando]   = useState(false);
   const [loadingProductos,setLoadingProductos] = useState(true);
   const [prodDetalle,setProdDRaw] = useState(() => {
@@ -7045,6 +7232,19 @@ export default function TiendaFarmaCapital(){
   },[]);
   useCatalogoVivo(() => recargarProductosRef.current());
 
+  useEffect(() => {
+    let cancel = false;
+    supabase.from("resenas_resumen").select("producto_id,promedio,total").then(({ data, error }) => {
+      if (cancel || error || !Array.isArray(data)) return;
+      const map = {};
+      data.forEach((row) => {
+        if (row?.producto_id != null) map[row.producto_id] = row;
+      });
+      setResenasResumen(map);
+    });
+    return () => { cancel = true; };
+  }, []);
+
   // Popup de bienvenida / incentivo de registro: apagado por ahora.
   useEffect(()=>{
     setShowPopup(false);
@@ -7180,7 +7380,7 @@ export default function TiendaFarmaCapital(){
             <div style={{textAlign:"center"}}>
               <div style={{color:"#ffaa00",fontWeight:900,fontSize:48,lineHeight:1}}>{user.puntos||0}</div>
               <div style={{color:"rgba(255,255,255,.8)",fontSize:14}}>puntos disponibles</div>
-              <div style={{color:"rgba(255,255,255,.6)",fontSize:12}}>= ${((user.puntos||0)*0.5).toFixed(0)} en valor</div>
+              <div style={{color:"rgba(255,255,255,.6)",fontSize:12}}>= ${pesosDePuntos(user.puntos)} en valor</div>
             </div>
           </div>
         ):(
@@ -7207,7 +7407,11 @@ export default function TiendaFarmaCapital(){
       <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:28,marginBottom:20}}>
         <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>¿Qué puedes canjear?</h2>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {[{pts:20,ben:"$10 de descuento",Icon:Pill,col:BRAND.secondary},{pts:50,ben:"Envío gratis",Icon:Truck,col:BRAND.accent},{pts:100,ben:"$50 de descuento",Icon:Gift,col:BRAND.primary},{pts:160,ben:"Consulta médica gratis",Icon:Stethoscope,col:"#f59e0b"},{pts:200,ben:"Producto gratis",Icon:Star,col:"#9d6fff"}].map(({pts,ben,Icon,col})=>(
+          {CANJES_PUNTOS.map((reward, i) => {
+            const { pts, ben, tipo } = reward;
+            const Icon = tipo === "envio" ? Truck : tipo === "consulta" ? Stethoscope : tipo === "producto" ? Star : i > 0 ? Gift : Pill;
+            const col = tipo === "envio" ? BRAND.accent : tipo === "consulta" ? "#f59e0b" : tipo === "producto" ? "#9d6fff" : i > 0 ? BRAND.primary : BRAND.secondary;
+            return (
             <div key={pts} style={{display:"flex",alignItems:"center",gap:14,padding:14,borderRadius:12,border:`1px solid ${(user?.puntos||0)>=pts?col+"40":C.border}`,background:(user?.puntos||0)>=pts?col+"08":"#FBFAF8"}}>
               <div style={{width:40,height:40,borderRadius:10,background:col+"15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <Icon size={20} strokeWidth={1.75} color={col} aria-hidden />
@@ -7218,7 +7422,8 @@ export default function TiendaFarmaCapital(){
               </div>
               {user&&<span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:(user.puntos||0)>=pts?col+"20":"#E4D9CA",color:(user.puntos||0)>=pts?col:"#9A9184"}}>{(user.puntos||0)>=pts?"Disponible":`Faltan ${pts-(user.puntos||0)}`}</span>}
             </div>
-          ))}
+            );
+          })}
         </div>
         {user&&<div style={{marginTop:16,textAlign:"center"}}><Btn onClick={()=>{ try { sessionStorage.setItem("farmacapital_cuenta_tab","canjear"); } catch (_) { /* noop */ } setPage("cuenta"); }} col={BRAND.primary}>Ir a canjear →</Btn></div>}
       </div>
@@ -7246,18 +7451,26 @@ export default function TiendaFarmaCapital(){
     envios:        <PoliticaEnvios setPage={setPage}/>,
     "terminos-puntos": <TerminosPuntos setPage={setPage}/>,
     tarjeta:       <FlyerFarmaCapital setPage={setPage}/>,
+    cotizar:       v2
+      ? <CotizarV2 setPage={setPage} user={user} textoInicial={busqHero}/>
+      : <SolicitudCatalogoForm setPage={setPage} textoInicial={busqHero} user={user}/>,
     conseguir: (
       <>
         <VitrinaConseguir
           productos={productosVistaTiendaFarmacia}
           loading={loadingProductos}
           stack={stackPaginas}
-          onIrAFormulario={()=>document.getElementById("conseguir-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          onIrAFormulario={() => {
+            if (v2) { setPage("cotizar"); return; }
+            document.getElementById("conseguir-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
           renderProducto={(p)=>(
             <ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdD(p);setPage("detalle", { productId: p.id });}}/>
           )}
         />
-        <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina={productosVistaTiendaFarmacia.some(esBajoPedido)}/>
+        {v2 ? null : (
+          <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero} bajoVitrina={productosVistaTiendaFarmacia.some(esBajoPedido)}/>
+        )}
       </>
     ),
     pagar: <PagarPedidoInvitado />,
@@ -7302,16 +7515,34 @@ export default function TiendaFarmaCapital(){
       {!v2 && showPopup&&<PopupBienvenida onClose={()=>{ setShowPopup(false); try { sessionStorage.setItem("farmacapital_popup_visto","1"); } catch (_) { /* noop */ } }} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
 
       {v2 ? (
+        <>
         <EncabezadoV2
           page={page}
           setPage={setPage}
           cart={cart}
+          user={user}
+          onMenu={() => setMenuTiendaAbierto(true)}
           busqHero={busqHero}
           setBusqHero={setBusqHero}
           productos={productosVistaTiendaFarmacia}
           setProdDetalle={setProdD}
           aviso={<AvisoEnvioPorPagar user={user} setPage={setPage} />}
         />
+        <MenuTienda
+          abierto={menuTiendaAbierto}
+          onClose={() => setMenuTiendaAbierto(false)}
+          setPage={setPage}
+          usuario={user}
+          onLogout={async () => {
+            const tok = getClienteToken();
+            if (tok) { try { await supabase.rpc("logout_cliente", { p_session_token: tok }); } catch (e) { /* noop */ } }
+            clearClienteSession();
+            setUser(null);
+            setMenuTiendaAbierto(false);
+            setPage("home");
+          }}
+        />
+        </>
       ) : (
         <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser} busqHero={busqHero} setBusqHero={setBusqHero} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>
       )}
@@ -7347,7 +7578,9 @@ export default function TiendaFarmaCapital(){
   return(
     <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>
     <TiendaPromosCtx.Provider value={mapaPromos}>
+    <ResenasResumenCtx.Provider value={resenasResumen}>
     {v2 ? <TiendaV2Shell>{storeTree}</TiendaV2Shell> : storeTree}
+    </ResenasResumenCtx.Provider>
     </TiendaPromosCtx.Provider>
     </TiendaPlaceholderCtx.Provider>
   );

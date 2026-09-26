@@ -68,6 +68,20 @@ export function looksLikeInternalSku(raw) {
   return /^(FC|EQ|FMX)[-_]/i.test(String(raw || "").trim());
 }
 
+/**
+ * Cuándo el POS debe repintar el catálogo por lo que hay en el buscador.
+ * null = no repintar (dígitos a medias de la pistola).
+ * 0 = ya (código cerrado o recuadro vacío).
+ * >0 = texto: esperar a que dejen de teclear, para que la letra salga al momento.
+ */
+export function esperaBusquedaPos(raw) {
+  const v = String(raw ?? "");
+  if (!v.trim()) return 0;
+  if (isAllDigitsInput(v) && !isCompleteBarcodeLength(v)) return null;
+  if (isAllDigitsInput(v) || looksLikeInternalSku(v)) return 0;
+  return 160;
+}
+
 function digitsOnly(raw) {
   return String(raw || "").replace(/\D/g, "");
 }
@@ -158,26 +172,77 @@ export function splitBarcodeCandidates(raw) {
   return out;
 }
 
-function productMatchesScan(product, candidate, qN, matchOpts, { includeDescripcion = true } = {}) {
-  if (!product) return false;
-  if (
-    codigosBarrasDeProducto(product, { includeDescripcion }).some((cb) =>
-      barcodeDigitsMatch(candidate, cb, matchOpts)
-    )
-  ) {
-    return true;
+/**
+ * Índice precalculado por lista de productos.
+ *
+ * Antes cada lectura de pistola recorría TODO el catálogo y, por producto,
+ * armaba arreglos, corría regex sobre la descripción y normalizaba texto
+ * (varias veces por dígito tecleado). Ahora eso se hace una sola vez por
+ * lista (WeakMap) y cada búsqueda solo compara cadenas ya normalizadas.
+ * La semántica de coincidencia es idéntica a la anterior.
+ */
+const scanIndexCache = new WeakMap();
+
+function buildScanIndex(products) {
+  const entries = [];
+  for (const p of products) {
+    if (!p) {
+      entries.push(null);
+      continue;
+    }
+    const prim = codigosBarrasDeProducto(p, { includeDescripcion: false });
+    const desc = String(p.descripcion || "");
+    const full = /\d{12}/.test(desc) ? codigosBarrasDeProducto(p, { includeDescripcion: true }) : prim;
+    entries.push({
+      p,
+      inactivo: p.activo === false,
+      prim,
+      full,
+      skuN: p.sku ? normalizeForSearch(p.sku) : "",
+    });
   }
-  if (product.sku && normalizeForSearch(product.sku) === qN) return true;
+  return { length: products.length, entries };
+}
+
+function getScanIndex(products) {
+  const hit = scanIndexCache.get(products);
+  if (hit && hit.length === products.length) return hit;
+  const idx = buildScanIndex(products);
+  scanIndexCache.set(products, idx);
+  return idx;
+}
+
+/** Igual que barcodeDigitsMatch, pero con ambos lados ya normalizados. */
+function digitsMatchNormalized(scan, stored, allowNearPrefix) {
+  if (!scan || !stored) return false;
+  if (scan === stored) return true;
+  const sl = scan.length;
+  const tl = stored.length;
+  if (sl === 12 && tl === 13 && stored === `0${scan}`) return true;
+  if (tl === 12 && sl === 13 && scan === `0${stored}`) return true;
+  if (allowNearPrefix) {
+    if (tl - sl <= 1 && stored.startsWith(scan)) return true;
+    if (sl - tl <= 1 && scan.startsWith(stored)) return true;
+  }
+  if (scan.startsWith("650240") && stored.startsWith("650240")) {
+    return genommaTicketVsCajaLookup(scan, stored);
+  }
   return false;
 }
 
-function findFirstScanHit(products, candidate, qN, matchOpts, { activeOnly, includeDescripcion }) {
-  return (
-    products.find((p) => {
-      if (activeOnly && p?.activo === false) return false;
-      return productMatchesScan(p, candidate, qN, matchOpts, { includeDescripcion });
-    }) || null
-  );
+function firstScanHitIndexed(entries, cand, { activeOnly, includeDescripcion, allowNearPrefix }) {
+  const { scan, qN } = cand;
+  for (let i = 0; i < entries.length; i += 1) {
+    const e = entries[i];
+    if (!e) continue;
+    if (activeOnly && e.inactivo) continue;
+    const codes = includeDescripcion ? e.full : e.prim;
+    for (let j = 0; j < codes.length; j += 1) {
+      if (digitsMatchNormalized(scan, codes[j], allowNearPrefix)) return e.p;
+    }
+    if (e.skuN && e.skuN === qN) return e.p;
+  }
+  return null;
 }
 
 /**
@@ -189,25 +254,17 @@ function findFirstScanHit(products, candidate, qN, matchOpts, { activeOnly, incl
 export function findProductExactScan(products, raw, { activeOnly = true, allowNearPrefix = true } = {}) {
   const trimmed = normalizeBarcodeRaw(raw);
   if (!trimmed || !Array.isArray(products)) return null;
-  const candidates = splitBarcodeCandidates(trimmed);
-  const qN = normalizeForSearch(trimmed);
-  const matchOpts = { allowNearPrefix };
+  const mk = (c) => ({ scan: normalizeBarcodeRaw(c), qN: normalizeForSearch(c) });
+  const cands = splitBarcodeCandidates(trimmed).map(mk);
+  cands.push(mk(trimmed));
+  const { entries } = getScanIndex(products);
 
   for (const includeDescripcion of [false, true]) {
-    for (const cand of candidates) {
-      const hit = findFirstScanHit(products, cand, normalizeForSearch(cand), matchOpts, {
-        activeOnly,
-        includeDescripcion,
-      });
+    for (const cand of cands) {
+      const hit = firstScanHitIndexed(entries, cand, { activeOnly, includeDescripcion, allowNearPrefix });
       if (hit) return hit;
     }
-    const hit = findFirstScanHit(products, trimmed, qN, matchOpts, {
-      activeOnly,
-      includeDescripcion,
-    });
-    if (hit) return hit;
   }
-
   return null;
 }
 

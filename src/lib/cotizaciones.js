@@ -220,6 +220,31 @@ export function precioSugeridoCotizacion(costo, tipoMargen) {
  * Números de un renglón: costo elegido, venta (o sugerida), recargo y margen.
  * Recargo ≠ margen. $100 × 1.25 = $125 (recargo 25%, margen 20%).
  */
+function precioTecleado(texto, guardado) {
+  if (texto === "" || texto == null) return guardado ?? null;
+  return numPrecio(String(texto).replace(",", "."));
+}
+
+/**
+ * Números del renglón mientras se teclea. El costo y el precio de la pantalla
+ * cuentan aunque todavía no se haya pulsado Guardar.
+ */
+export function vistaNumerosProducto({
+  costoTexto,
+  precioTexto,
+  costoGuardado,
+  precioGuardado,
+  cantidad,
+  tipoMargen,
+}) {
+  return numerosLineaCotizacion({
+    costo: precioTecleado(costoTexto, costoGuardado),
+    precioVenta: precioTecleado(precioTexto, precioGuardado),
+    cantidad,
+    tipoMargen,
+  });
+}
+
 export function numerosLineaCotizacion({ costo, precioVenta, cantidad, tipoMargen }) {
   const c = numPrecio(costo);
   const q = Number(cantidad);
@@ -342,4 +367,78 @@ export function takeCotizacionAbierta() {
   } catch {
     return null;
   }
+}
+
+/** Texto que se pega en el HTML de imprimir. */
+export function escaparHtmlCotizacion(raw) {
+  return String(raw ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Documento para el cliente: ¿este renglón ya tiene precio decidido (fuente elegida)
+ * o todavía se está buscando? Los "por confirmar" se muestran igual en el documento,
+ * pero marcados, para no prometer un precio que puede cambiar.
+ */
+export function itemConfirmadoDocumento(item) {
+  return (
+    ["elegido", "pedir", "pedido", "llego"].includes(item?.estado) && item?.precio_venta != null
+  );
+}
+
+/** Vigencia por default del documento: N días hábiles a partir de hoy, en español. */
+export function vigenciaDefaultTexto(diasHabiles = 5, desde = new Date()) {
+  const base = desde instanceof Date ? desde : new Date(desde);
+  const d = new Date(base.getTime());
+  if (!Number.isFinite(d.getTime())) return "";
+  let restantes = Math.max(1, Number(diasHabiles) || 1);
+  while (restantes > 0) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) restantes -= 1;
+  }
+  return d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/**
+ * Importe que ve el cliente: precio de venta × cantidad.
+ * No usa el costo ni el precio sugerido de la oficina.
+ */
+export function importeDocumentoCliente(item) {
+  const p = numPrecio(item?.precio_venta);
+  if (p == null || p < 0) return null;
+  const q = Number(item?.cantidad);
+  const cant = Number.isFinite(q) && q >= 1 ? q : 1;
+  return Math.round(p * cant * 100) / 100;
+}
+
+/** Suma de importes con precio de venta. Null si ninguno está decidido. */
+export function totalDocumentoCliente(items) {
+  const lineas = Array.isArray(items) ? items : [];
+  let venta = 0;
+  let n = 0;
+  for (const it of lineas) {
+    const imp = importeDocumentoCliente(it);
+    if (imp == null) continue;
+    venta += imp;
+    n += 1;
+  }
+  if (!n) return null;
+  return Math.round(venta * 100) / 100;
+}
+
+/** Liga de WhatsApp para avisarle al cliente que su cotización ya está lista. */
+export function buildCotizacionWhatsAppCliente({ telefono, nombre, folio, total, vigencia } = {}) {
+  const digits = String(telefono || "").replace(/\D/g, "").slice(-10);
+  if (digits.length !== 10) return "";
+  const quien = nombre ? ` ${nombre}` : "";
+  const totalTxt = total != null ? ` Total: ${fmtDineroCotiz(total)}.` : "";
+  const vigTxt = vigencia ? ` Precio válido hasta ${vigencia}.` : "";
+  const msg =
+    `Hola${quien}, soy FarmaCapital. Tu cotización ${folio || ""} ya está lista.` +
+    `${totalTxt}${vigTxt} Cualquier duda, contesta este WhatsApp.`;
+  return `https://wa.me/52${digits}?text=${encodeURIComponent(msg)}`;
 }

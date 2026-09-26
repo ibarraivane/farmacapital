@@ -20,7 +20,13 @@ import {
   payloadPromoverDesdeSolicitud,
   precioSugeridoCotizacion,
   numerosLineaCotizacion,
+  vistaNumerosProducto,
   totalesCotizacion,
+  escaparHtmlCotizacion,
+  itemConfirmadoDocumento,
+  vigenciaDefaultTexto,
+  importeDocumentoCliente,
+  totalDocumentoCliente,
   resumenItemsCotizacion,
   fmtDineroCotiz,
   haceCuanto,
@@ -154,6 +160,29 @@ test("marca +25% y genérico +60% sobre costo; muestra recargo y margen", () => 
   expect(gen.usaSugerido).toBe(false);
 });
 
+test("la ganancia se ve al teclear costo y precio, antes de guardar", () => {
+  const n = vistaNumerosProducto({
+    costoTexto: "40",
+    precioTexto: "50",
+    costoGuardado: null,
+    precioGuardado: null,
+    cantidad: 2,
+    tipoMargen: "marca",
+  });
+  expect(n.gananciaUnit).toBe(10);
+  expect(n.gananciaTotal).toBe(20);
+  expect(n.recargoPct).toBe(25);
+  const guardado = vistaNumerosProducto({
+    costoTexto: "",
+    precioTexto: "",
+    costoGuardado: 40,
+    precioGuardado: 50,
+    cantidad: 1,
+    tipoMargen: "marca",
+  });
+  expect(guardado.gananciaUnit).toBe(10);
+});
+
 test("totales del proyecto solo suman líneas con costo y venta", () => {
   const t = totalesCotizacion([
     { texto: "A", cantidad: 2, costo_elegido: 389, precio_venta: 486, tipo_margen: "marca" },
@@ -170,6 +199,27 @@ test("totales del proyecto solo suman líneas con costo y venta", () => {
     { texto: "Extra", cantidad: 1 },
   ])).toMatch(/Anthelios ×2/);
   expect(resumenItemsCotizacion([])).toBe("Sin productos");
+});
+
+test("documento del cliente suma precio de venta sin pedir el costo", () => {
+  const viernes = new Date(2026, 8, 25);
+  expect(vigenciaDefaultTexto(1, viernes)).toBe("28 de septiembre de 2026");
+  expect(vigenciaDefaultTexto(5, viernes)).toBe("2 de octubre de 2026");
+  expect(escaparHtmlCotizacion(`A & B <C>`)).toBe("A &amp; B &lt;C&gt;");
+  expect(itemConfirmadoDocumento({ estado: "elegido", precio_venta: 120 })).toBe(true);
+  expect(itemConfirmadoDocumento({ estado: "buscando", precio_venta: 120 })).toBe(false);
+  expect(itemConfirmadoDocumento({ estado: "elegido", precio_venta: null })).toBe(false);
+
+  const items = [
+    { estado: "buscando", precio_venta: 80, cantidad: 2, costo_elegido: null },
+    { estado: "elegido", precio_venta: 50, cantidad: 1, costo_elegido: 40 },
+    { estado: "pendiente", precio_venta: null, cantidad: 1, costo_elegido: 100, tipo_margen: "marca" },
+  ];
+  expect(importeDocumentoCliente(items[0])).toBe(160);
+  expect(importeDocumentoCliente(items[2])).toBe(null);
+  expect(totalDocumentoCliente(items)).toBe(210);
+  expect(totalDocumentoCliente([])).toBe(null);
+  expect(totalesCotizacion(items).venta).toBe(175);
 });
 
 test("dinero y hace cuanto", () => {

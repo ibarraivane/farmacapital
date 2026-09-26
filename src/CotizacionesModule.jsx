@@ -2,12 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Calculator,
+  ChevronDown,
+  ChevronRight,
   ExternalLink,
+  Mail,
+  MessageCircle,
   Plus,
+  Printer,
   RefreshCw,
+  Search,
   Trash2,
 } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
+import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
+import { urlImagenPublicaTienda } from "./lib/imagenCompetencia";
 import { ETIQUETA_ENCARGOS } from "./lib/pedidosMostrador";
 import { supabase } from "./supabase";
 import { Inp, showToast } from "./ui";
@@ -17,6 +25,8 @@ import {
   ORIGENES_COTIZACION,
   TIPOS_MARGEN_COTIZACION,
   URGENCIAS_COTIZACION,
+  buildCotizacionWhatsAppCliente,
+  escaparHtmlCotizacion,
   etiquetaEstadoCotizacion,
   etiquetaEstadoItemCotizacion,
   etiquetaLugarCotizacion,
@@ -25,13 +35,18 @@ import {
   folioCotizacion,
   fmtDineroCotiz,
   haceCuanto,
+  importeDocumentoCliente,
   itemCotizacionValido,
+  itemConfirmadoDocumento,
   numerosLineaCotizacion,
   puedeGuardarCotizacion,
   siguientesEstadosCotizacion,
   siguientesEstadosItemCotizacion,
   takeCotizacionAbierta,
+  totalDocumentoCliente,
   totalesCotizacion,
+  vigenciaDefaultTexto,
+  vistaNumerosProducto,
 } from "./lib/cotizaciones";
 
 const C = C_LIGHT;
@@ -57,6 +72,14 @@ function sqlFalta(msg) {
   return /admin_listar_cotizaciones|admin_crear_cotizacion|admin_obtener_cotizacion|schema cache|does not exist/i.test(
     String(msg || ""),
   );
+}
+
+function avisoRpcCotizacion(error) {
+  const msg = String(error?.message || "");
+  if (/admin_ligar_producto_cotizacion|admin_buscar_productos_cotizacion|schema cache|does not exist/i.test(msg)) {
+    return "Falta aplicar sql/patch_cotizaciones_producto_20260926.sql en Supabase.";
+  }
+  return msg || "No se pudo guardar";
 }
 
 function chip(bg, color, text) {
@@ -196,6 +219,102 @@ function Btn({ children, onClick, disabled, primary, danger, type = "button" }) 
 
 function lineaAltaVacia() {
   return { texto: "", cantidad: 1, tipo_margen: "marca" };
+}
+
+/**
+ * Documento para el cliente: folio, items con precio de venta (nunca costo/margen),
+ * vigencia y datos fiscales. Se abre en una pestaña aparte (igual que la receta médica
+ * de Consultorio) para que Cmd/Ctrl+P → Guardar como PDF salga limpio, sin el admin
+ * alrededor.
+ */
+function imprimirDocumentoCotizacion(detalle, vigenciaTexto) {
+  const items = Array.isArray(detalle.items) ? detalle.items : [];
+  const totalCliente = totalDocumentoCliente(items);
+  const esc = escaparHtmlCotizacion;
+  const filasHtml = items
+    .map((it) => {
+      const confirmado = itemConfirmadoDocumento(it);
+      const importe = importeDocumentoCliente(it);
+      return `
+      <tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">
+          ${esc(it.texto)}
+          ${!confirmado ? '<div style="font-size:11px;color:#B45309;font-weight:700;margin-top:2px;">Por confirmar</div>' : ""}
+        </td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${esc(it.cantidad || 1)}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;">
+          ${importe != null ? esc(fmtDineroCotiz(importe)) : "Pendiente"}
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${esc(detalle.folio || folioCotizacion(detalle.id))} — FarmaCapital</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #001534; padding: 32px; max-width: 700px; margin: 0 auto; }
+    .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #001534; padding-bottom: 16px; margin-bottom: 20px; }
+    .marca { font-size:20px; font-weight:800; color:#001534; }
+    .folio { text-align:right; font-size:12px; color:#475569; }
+    .cliente { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; padding:14px 16px; border:1px solid #e2e8f0; border-radius:8px; }
+    .field label { font-size:10px; color:#94a3b8; font-weight:700; text-transform:uppercase; }
+    .field p { font-size:13px; color:#0f172a; font-weight:600; margin-top:2px; }
+    h4 { color:#001534; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+    table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+    thead tr { background:#f8fafc; }
+    th { padding:8px 12px; text-align:left; font-size:11px; color:#475569; font-weight:700; border-bottom:1px solid #e2e8f0; }
+    .total-row td { padding:12px; font-weight:800; font-size:16px; border-top:2px solid #001534; }
+    .vigencia { background:#EAF0FB; border-left:4px solid #054ABC; border-radius:8px; padding:12px 16px; margin-bottom:20px; font-size:13px; }
+    .footer { text-align:center; font-size:10px; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:24px; }
+    @media print { body { padding:16px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="marca">FarmaCapital</div>
+    <div class="folio">
+      <div><strong>Cotización:</strong> ${esc(detalle.folio || folioCotizacion(detalle.id))}</div>
+      <div>${new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}</div>
+    </div>
+  </div>
+
+  <div class="cliente">
+    <div class="field"><label>Cliente</label><p>${esc(detalle.cliente_nombre || "—")}</p></div>
+    <div class="field"><label>Contacto</label><p>${esc(detalle.cliente_telefono || detalle.cliente_email || "—")}</p></div>
+    ${detalle.direccion ? `<div class="field" style="grid-column:1/-1"><label>Entrega</label><p>${esc(detalle.direccion)}</p></div>` : ""}
+  </div>
+
+  <h4>Detalle</h4>
+  <table>
+    <thead><tr><th>Producto</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Importe</th></tr></thead>
+    <tbody>${filasHtml}</tbody>
+    <tfoot><tr class="total-row"><td colspan="2">Total</td><td style="text-align:right;">${esc(fmtDineroCotiz(totalCliente))}</td></tr></tfoot>
+  </table>
+
+  ${vigenciaTexto ? `<div class="vigencia"><strong>Precio válido hasta ${esc(vigenciaTexto)}.</strong> Si vence, te lo recotizamos sin costo.</div>` : ""}
+
+  <div class="footer">
+    Este documento es una cotización, no una factura fiscal.<br>
+    ${FARMACIA_FISCAL.razon_social} · RFC ${FARMACIA_FISCAL.rfc}<br>
+    ${FARMACIA_FISCAL.direccion_comercial}<br>
+    farmacapital.mx · WhatsApp ${FARMACIA_FISCAL.telefono_display}
+  </div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=750,height=900");
+  if (!win) {
+    showToast("El navegador bloqueó la ventana. Permite pop-ups para imprimir.", "warning");
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
 }
 
 export default function CotizacionesModule({ usuario }) {
@@ -344,12 +463,12 @@ export default function CotizacionesModule({ usuario }) {
     if (!tok) return;
     const { data, error } = await supabase.rpc(nombre, { p_session_token: tok, ...args });
     if (error) {
-      showToast(error.message || "No se pudo guardar", "error");
-      return false;
+      showToast(avisoRpcCotizacion(error), "error");
+      return null;
     }
     aplicarDetalle(data);
     if (okMsg) showToast(okMsg, "success");
-    return true;
+    return data ?? true;
   };
 
   if (fichaId && detalle) {
@@ -646,10 +765,171 @@ export default function CotizacionesModule({ usuario }) {
   );
 }
 
+/**
+ * Documento para el cliente: solo lo que él debe ver (producto, cantidad, precio de
+ * venta, total, vigencia). Nunca costo_elegido ni fuentes -- eso es interno.
+ * Imprimir abre una pestaña aparte; WhatsApp y correo reusan los mismos datos de
+ * contacto que ya tiene la cotización.
+ */
+function PanelDocumentoCotizacion({ detalle, rpc }) {
+  const items = Array.isArray(detalle.items) ? detalle.items : [];
+  const totalCliente = totalDocumentoCliente(items);
+  const [vigencia, setVigencia] = useState(detalle.vigencia_texto || vigenciaDefaultTexto());
+  const [guardandoVigencia, setGuardandoVigencia] = useState(false);
+  const [enviandoCorreo, setEnviandoCorreo] = useState(false);
+
+  useEffect(() => {
+    setVigencia(detalle.vigencia_texto || vigenciaDefaultTexto());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detalle.id, detalle.vigencia_texto]);
+
+  const guardarVigencia = async () => {
+    setGuardandoVigencia(true);
+    await rpc(
+      "admin_actualizar_cotizacion",
+      { p_id: detalle.id, p_vigencia_texto: vigencia.trim() || null },
+      "Vigencia guardada",
+    );
+    setGuardandoVigencia(false);
+  };
+
+  const marcarEnviada = (canal) => rpc("admin_marcar_cotizacion_enviada", { p_id: detalle.id, p_canal: canal });
+
+  const enviarWhatsApp = () => {
+    const link = buildCotizacionWhatsAppCliente({
+      telefono: detalle.cliente_telefono,
+      nombre: detalle.cliente_nombre,
+      folio: detalle.folio || folioCotizacion(detalle.id),
+      total: totalCliente,
+      vigencia,
+    });
+    if (!link) {
+      showToast("Falta el teléfono del cliente", "warning");
+      return;
+    }
+    window.open(link, "_blank", "noopener,noreferrer");
+    marcarEnviada("whatsapp");
+  };
+
+  const enviarCorreo = async () => {
+    if (!detalle.cliente_email) {
+      showToast("Falta el correo del cliente", "warning");
+      return;
+    }
+    const tok = sessionTok();
+    if (!tok) return;
+    setEnviandoCorreo(true);
+    try {
+      const resp = await fetch("/api/notifications/send?type=cotizacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeSessionToken: tok,
+          cotizacion: { ...detalle, vigencia_texto: vigencia },
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data?.ok) {
+        showToast(
+          data?.error === "missing_email" ? "El cliente no tiene correo válido" : "No se pudo enviar el correo",
+          "error",
+        );
+        return;
+      }
+      showToast(`Enviado a ${data.to}`, "success");
+      marcarEnviada("correo");
+    } catch {
+      showToast("No se pudo enviar el correo", "error");
+    } finally {
+      setEnviandoCorreo(false);
+    }
+  };
+
+  return (
+    <section
+      style={{
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        padding: 16,
+        marginBottom: 14,
+      }}
+    >
+      <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 12 }}>
+        DOCUMENTO PARA EL CLIENTE · sin costos ni márgenes
+      </div>
+
+      <div style={{ overflowX: "auto", marginBottom: 10 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ textAlign: "left", color: C.textMid, fontSize: 11 }}>
+              <th style={{ padding: "6px 8px" }}>Producto</th>
+              <th style={{ padding: "6px 8px" }}>Cant.</th>
+              <th style={{ padding: "6px 8px" }}>Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it) => {
+              const confirmado = itemConfirmadoDocumento(it);
+              const importe = importeDocumentoCliente(it);
+              return (
+                <tr key={it.id}>
+                  <td style={{ padding: "8px" }}>
+                    {it.texto}
+                    {!confirmado ? (
+                      <div style={{ fontSize: 11, color: C.amber, fontWeight: 700 }}>Por confirmar</div>
+                    ) : null}
+                  </td>
+                  <td style={{ padding: "8px" }}>{it.cantidad || 1}</td>
+                  <td style={{ padding: "8px", fontWeight: 700 }}>
+                    {importe != null ? fmtDineroCotiz(importe) : "Pendiente"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ textAlign: "right", fontWeight: 800, fontSize: 15, color: C.text, marginBottom: 14 }}>
+        Total: {fmtDineroCotiz(totalCliente)}
+      </div>
+
+      <label style={{ display: "block", marginBottom: 12, maxWidth: 360 }}>
+        <FieldLabel>Precio válido hasta</FieldLabel>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Inp value={vigencia} onChange={(e) => setVigencia(e.target.value)} placeholder="ej. 2 de octubre de 2026" />
+          <Btn onClick={guardarVigencia} disabled={guardandoVigencia}>
+            Guardar
+          </Btn>
+        </div>
+      </label>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Btn primary onClick={() => imprimirDocumentoCotizacion(detalle, vigencia)}>
+          <Printer size={14} /> Imprimir / PDF
+        </Btn>
+        <Btn onClick={enviarWhatsApp} disabled={!detalle.cliente_telefono}>
+          <MessageCircle size={14} /> WhatsApp
+        </Btn>
+        <Btn onClick={enviarCorreo} disabled={!detalle.cliente_email || enviandoCorreo}>
+          <Mail size={14} /> {enviandoCorreo ? "Enviando…" : "Correo"}
+        </Btn>
+      </div>
+
+      {detalle.enviada_at ? (
+        <div style={{ marginTop: 10, fontSize: 12, color: C.textMid }}>
+          Enviada {haceCuanto(detalle.enviada_at)} por {detalle.enviada_canal || "—"}.
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function FichaCotizacion({ detalle, loading, onVolver, onRefresh, rpc }) {
   const [nuevoTexto, setNuevoTexto] = useState("");
   const [nuevoCant, setNuevoCant] = useState(1);
   const [nuevoTipo, setNuevoTipo] = useState("marca");
+  const [mostrarDocumento, setMostrarDocumento] = useState(false);
   const items = Array.isArray(detalle.items) ? detalle.items : [];
   const tot = totalesCotizacion(items);
   const est = colorEstado(detalle.estado);
@@ -661,9 +941,14 @@ function FichaCotizacion({ detalle, loading, onVolver, onRefresh, rpc }) {
         <Btn onClick={onVolver}>
           <ArrowLeft size={14} /> Lista
         </Btn>
-        <Btn onClick={onRefresh}>
-          <RefreshCw size={14} /> Actualizar
-        </Btn>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn primary={mostrarDocumento} onClick={() => setMostrarDocumento((v) => !v)}>
+            <Printer size={14} /> {mostrarDocumento ? "Ocultar documento" : "Documento para cliente"}
+          </Btn>
+          <Btn onClick={onRefresh}>
+            <RefreshCw size={14} /> Actualizar
+          </Btn>
+        </div>
       </div>
 
       <header
@@ -718,6 +1003,8 @@ function FichaCotizacion({ detalle, loading, onVolver, onRefresh, rpc }) {
           ))}
         </div>
       </header>
+
+      {mostrarDocumento && <PanelDocumentoCotizacion detalle={detalle} rpc={rpc} />}
 
       {loading && <div style={{ color: C.textMid, fontSize: 13, marginBottom: 10 }}>Actualizando…</div>}
 
@@ -791,23 +1078,74 @@ function ItemCotizacion({ item, rpc }) {
   const [urlFuente, setUrlFuente] = useState("");
   const [notasFuente, setNotasFuente] = useState("");
   const [disponible, setDisponible] = useState(true);
+  const [busq, setBusq] = useState("");
+  const [hits, setHits] = useState([]);
+  const [guardando, setGuardando] = useState(false);
+  const [abierto, setAbierto] = useState(false);
 
   useEffect(() => {
     setPrecioEdit(item.precio_venta != null ? String(item.precio_venta) : "");
   }, [item.precio_venta, item.id]);
 
+  useEffect(() => {
+    const q = busq.trim();
+    if (q.length < 2) {
+      setHits([]);
+      return undefined;
+    }
+    let cancel = false;
+    const t = setTimeout(async () => {
+      const tok = sessionTok();
+      if (!tok) return;
+      let { data, error } = await supabase.rpc("admin_buscar_productos_cotizacion", {
+        p_session_token: tok,
+        p_busqueda: q,
+        p_limite: 6,
+      });
+      if (error && /does not exist|schema cache/i.test(error.message || "")) {
+        const fb = await supabase.rpc("empleado_buscar_productos_venta", {
+          p_session_token: tok,
+          p_busqueda: q,
+          p_limite: 6,
+        });
+        data = fb.data;
+        error = fb.error;
+      }
+      if (cancel) return;
+      setHits(!error && Array.isArray(data) ? data : []);
+    }, 220);
+    return () => {
+      cancel = true;
+      clearTimeout(t);
+    };
+  }, [busq]);
+
   const fuentes = Array.isArray(item.fuentes) ? item.fuentes : [];
-  const nums = numerosLineaCotizacion({
-    costo: item.costo_elegido,
-    precioVenta: item.precio_venta,
+  const nums = vistaNumerosProducto({
+    costoTexto: precioFuente,
+    precioTexto: precioEdit,
+    costoGuardado: item.costo_elegido,
+    precioGuardado: item.precio_venta,
     cantidad: item.cantidad,
     tipoMargen: item.tipo_margen,
   });
+  const costoSucio = precioFuente !== "" && Number(String(precioFuente).replace(",", ".")) !== Number(item.costo_elegido);
+  const precioSucio = precioEdit !== "" && Number(String(precioEdit).replace(",", ".")) !== Number(item.precio_venta);
   const est = colorEstado(item.estado);
   const next = siguientesEstadosItemCotizacion(item.estado);
+  const foto = urlImagenPublicaTienda(item.imagen_url);
+
+  const elegirFuenteNueva = async (data, aviso) => {
+    const line = (data?.items || []).find((i) => i.id === item.id);
+    const prev = new Set(fuentes.map((f) => f.id));
+    const nueva = (line?.fuentes || []).find((f) => !prev.has(f.id));
+    if (!nueva) return data;
+    if (item.fuente_elegida_id) return data;
+    return rpc("admin_elegir_cotizacion_fuente", { p_id: nueva.id }, aviso);
+  };
 
   const guardarPrecio = (valor) => {
-    const n = Number(valor);
+    const n = Number(String(valor).replace(",", "."));
     if (!Number.isFinite(n) || n < 0) {
       showToast("Precio de venta inválido", "warning");
       return;
@@ -815,9 +1153,70 @@ function ItemCotizacion({ item, rpc }) {
     rpc("admin_actualizar_cotizacion_item", { p_id: item.id, p_precio_venta: n }, "Precio de venta guardado");
   };
 
+  const guardarProducto = async () => {
+    const precio = precioEdit === "" ? null : Number(String(precioEdit).replace(",", "."));
+    const costo = precioFuente === "" ? null : Number(String(precioFuente).replace(",", "."));
+    if (precio != null && (!Number.isFinite(precio) || precio < 0)) {
+      showToast("Precio de venta inválido", "warning");
+      return;
+    }
+    if (costo != null && (!Number.isFinite(costo) || costo <= 0)) {
+      showToast("El costo tiene que ser mayor a cero", "warning");
+      return;
+    }
+    if (precio == null && costo == null) {
+      showToast("Escribe el costo y el precio de venta", "warning");
+      return;
+    }
+    setGuardando(true);
+    try {
+      if (precio != null && precio !== Number(item.precio_venta)) {
+        const okPrecio = await rpc(
+          "admin_actualizar_cotizacion_item",
+          { p_id: item.id, p_precio_venta: precio },
+          null,
+        );
+        if (!okPrecio) return;
+      }
+      if (costo != null && costo !== Number(item.costo_elegido)) {
+        if (item.fuente_elegida_id) {
+          const okCosto = await rpc(
+            "admin_actualizar_cotizacion_fuente",
+            { p_id: item.fuente_elegida_id, p_precio: costo },
+            "Producto guardado",
+          );
+          if (okCosto) setPrecioFuente("");
+          return;
+        }
+        const lugar = lugarClave === "otro" ? lugarLibre : lugarClave;
+        if (lugarClave === "otro" && String(lugarLibre).trim().length < 2) {
+          showToast("Escribe el lugar", "warning");
+          return;
+        }
+        const data = await rpc("admin_agregar_cotizacion_fuente", {
+          p_item_id: item.id,
+          p_lugar: lugar,
+          p_precio: costo,
+          p_url: urlFuente.trim() || null,
+          p_notas: notasFuente.trim() || null,
+          p_disponible: disponible,
+        }, null);
+        if (!data) return;
+        await elegirFuenteNueva(data, "Producto guardado");
+        setPrecioFuente("");
+        setUrlFuente("");
+        setNotasFuente("");
+        return;
+      }
+      showToast("Producto guardado", "success");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   const agregarFuente = async () => {
     const lugar = lugarClave === "otro" ? lugarLibre : lugarClave;
-    const precio = Number(precioFuente);
+    const precio = Number(String(precioFuente).replace(",", "."));
     if (lugarClave === "otro" && String(lugarLibre).trim().length < 2) {
       showToast("Escribe el lugar", "warning");
       return;
@@ -826,19 +1225,28 @@ function ItemCotizacion({ item, rpc }) {
       showToast("Pon el costo de esa fuente", "warning");
       return;
     }
-    const ok = await rpc("admin_agregar_cotizacion_fuente", {
+    const data = await rpc("admin_agregar_cotizacion_fuente", {
       p_item_id: item.id,
       p_lugar: lugar,
       p_precio: precio,
       p_url: urlFuente.trim() || null,
       p_notas: notasFuente.trim() || null,
       p_disponible: disponible,
-    }, "Fuente agregada");
-    if (ok) {
-      setPrecioFuente("");
-      setUrlFuente("");
-      setNotasFuente("");
-    }
+    }, item.fuente_elegida_id ? "Fuente agregada" : null);
+    if (!data) return;
+    if (!item.fuente_elegida_id) await elegirFuenteNueva(data, "Costo guardado");
+    setPrecioFuente("");
+    setUrlFuente("");
+    setNotasFuente("");
+  };
+
+  const ligarCatalogo = async (h) => {
+    setBusq("");
+    setHits([]);
+    await rpc("admin_ligar_producto_cotizacion", {
+      p_item_id: item.id,
+      p_producto_id: h.id,
+    }, "Foto del catálogo");
   };
 
   return (
@@ -847,22 +1255,161 @@ function ItemCotizacion({ item, rpc }) {
         background: C.card,
         border: `1px solid ${C.border}`,
         borderRadius: 14,
-        padding: 14,
-        marginBottom: 12,
+        padding: abierto ? 14 : "10px 12px",
+        marginBottom: 8,
       }}
     >
+      <button
+        type="button"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          textAlign: "left",
+          font: "inherit",
+          padding: 0,
+          color: C.text,
+        }}
+      >
+        {abierto ? <ChevronDown size={16} color={C.textMid} /> : <ChevronRight size={16} color={C.textMid} />}
+        <span
+          style={{
+            fontWeight: 800,
+            flex: "1 1 auto",
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {item.texto}
+          {item.cantidad > 1 ? <span style={{ color: C.textMid }}> ×{item.cantidad}</span> : null}
+        </span>
+        {chip(est.bg, est.color, etiquetaEstadoItemCotizacion(item.estado))}
+        <span style={{ fontWeight: 800, whiteSpace: "nowrap" }}>{fmtDineroCotiz(nums.venta)}</span>
+        <span style={{ color: C.greenDark, fontWeight: 700, fontSize: 12, whiteSpace: "nowrap" }}>
+          {fmtDineroCotiz(nums.gananciaTotal)}
+        </span>
+      </button>
+      {abierto ? (
+      <div style={{ marginTop: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 16, color: C.text }}>
-            {item.texto}
-            {item.cantidad > 1 ? <span style={{ color: C.textMid }}> ×{item.cantidad}</span> : null}
+        <div style={{ display: "flex", gap: 12, minWidth: 0, flex: 1 }}>
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 10,
+              background: C.cardDark,
+              border: `1px solid ${C.border}`,
+              overflow: "hidden",
+              flexShrink: 0,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {foto ? (
+              <img src={foto} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            ) : (
+              <span style={{ fontSize: 10, color: C.textDim, textAlign: "center", padding: 4 }}>Sin foto</span>
+            )}
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
-            {chip(est.bg, est.color, etiquetaEstadoItemCotizacion(item.estado))}
-            {item.producto_nombre ? chip(C.cardDark, C.textMid, item.producto_nombre) : null}
-            {item.ean ? chip(C.cardDark, C.textMid, item.ean) : null}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: C.text }}>
+              {item.texto}
+              {item.cantidad > 1 ? <span style={{ color: C.textMid }}> ×{item.cantidad}</span> : null}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+              {chip(est.bg, est.color, etiquetaEstadoItemCotizacion(item.estado))}
+              {item.producto_nombre ? chip(C.cardDark, C.textMid, item.producto_nombre) : null}
+              {item.ean ? chip(C.cardDark, C.textMid, item.ean) : null}
+            </div>
+            <div style={{ position: "relative", marginTop: 8, maxWidth: 360 }}>
+              <Search size={14} style={{ position: "absolute", left: 10, top: 11, color: C.textDim }} />
+              <Inp
+                value={busq}
+                onChange={(e) => setBusq(e.target.value)}
+                placeholder="Buscar en el catálogo para traer la foto"
+                style={{ paddingLeft: 30 }}
+              />
+              {hits.length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    zIndex: 5,
+                    left: 0,
+                    right: 0,
+                    top: "100%",
+                    marginTop: 4,
+                    background: "#fff",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    overflow: "hidden",
+                  }}
+                >
+                  {hits.map((h) => {
+                    const mini = urlImagenPublicaTienda(h.imagen_url);
+                    return (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => ligarCatalogo(h)}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "8px 10px",
+                          border: "none",
+                          borderBottom: `1px solid ${C.border}`,
+                          background: "#fff",
+                          cursor: "pointer",
+                          font: "inherit",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 6,
+                            background: C.cardDark,
+                            overflow: "hidden",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {mini ? (
+                            <img src={mini} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                          ) : null}
+                        </span>
+                        <span>
+                          <span style={{ display: "block", fontWeight: 700, fontSize: 13, color: C.text }}>{h.nombre}</span>
+                          <span style={{ display: "block", fontSize: 11, color: C.textMid }}>
+                            {[h.marca, h.presentacion].filter(Boolean).join(" · ") || `Stock ${h.stock ?? 0}`}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+          <Btn onClick={() => {
+            if (window.confirm(`¿Quitar «${item.texto}» de esta cotización?`)) {
+              rpc("admin_eliminar_cotizacion_item", { p_id: item.id }, "Producto quitado");
+            }
+          }}>
+            <Trash2 size={14} /> Quitar
+          </Btn>
         <label style={{ minWidth: 160 }}>
           <FieldLabel>Recargo sobre costo</FieldLabel>
           <FieldSelect
@@ -877,6 +1424,7 @@ function ItemCotizacion({ item, rpc }) {
             ))}
           </FieldSelect>
         </label>
+        </div>
       </div>
 
       <div style={{ overflowX: "auto", marginTop: 12 }}>
@@ -962,7 +1510,7 @@ function ItemCotizacion({ item, rpc }) {
             inputMode="decimal"
             value={precioFuente}
             onChange={(e) => setPrecioFuente(e.target.value)}
-            placeholder="0.00"
+            placeholder="Costo"
           />
         </label>
         <label>
@@ -1035,9 +1583,10 @@ function ItemCotizacion({ item, rpc }) {
             inputMode="decimal"
             value={precioEdit}
             onChange={(e) => setPrecioEdit(e.target.value)}
-            onBlur={() => {
-              if (precioEdit !== "" && Number(precioEdit) !== Number(item.precio_venta)) {
-                guardarPrecio(precioEdit);
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                guardarProducto();
               }
             }}
           />
@@ -1055,6 +1604,14 @@ function ItemCotizacion({ item, rpc }) {
           <div style={{ fontSize: 11, color: C.textMid, fontWeight: 700 }}>Ganancia</div>
           <div style={{ fontWeight: 800, color: C.greenDark }}>{fmtDineroCotiz(nums.gananciaUnit)} / pza</div>
           <div style={{ fontSize: 12, color: C.textMid }}>{fmtDineroCotiz(nums.gananciaTotal)} del renglón</div>
+          {(costoSucio || precioSucio) && (
+            <div style={{ fontSize: 11, color: C.amber, fontWeight: 700, marginTop: 4 }}>Aún no está guardado</div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-end" }}>
+          <Btn primary onClick={guardarProducto}>
+            {guardando ? "Guardando…" : "Guardar"}
+          </Btn>
         </div>
       </div>
 
@@ -1068,6 +1625,8 @@ function ItemCotizacion({ item, rpc }) {
           </Btn>
         ))}
       </div>
+      </div>
+      ) : null}
     </section>
   );
 }

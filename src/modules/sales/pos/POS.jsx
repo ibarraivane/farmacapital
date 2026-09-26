@@ -10,14 +10,15 @@ import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
-import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
+import { mergeCatalogoDelta } from "../../../lib/catalogoDeltaPos";
+import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput, esperaBusquedaPos } from "../../../utils/barcodeProductLookup";
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
-import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
+import { modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
 import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
-import { IconoAnaquel, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
+import { IconoAnaquel, IconoBlister, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
 import PrecioOferta from "../../../components/PrecioOferta";
 import { precioLineaCajaPos, ordenarLotesFefo, resumenFefoMostrador } from "../../../lib/precioVentaExclusivo";
@@ -142,10 +143,31 @@ const POS_PRODUCTOS_PAGE = 500;
 const POS_PRODUCTOS_SELECT = [
   "id", "nombre", "sku", "codigo_barras", "categoria", "stock", "stock_minimo",
   "stock_unidades", "activo", "marca", "presentacion", "principio_activo",
-  "forma_farmaceutica", "precio", "precio_unidad", "venta_unidad", "unidades_por_caja",
+  "forma_farmaceutica", "precio", "precio_unidad", "precio_blister", "venta_unidad", "unidades_por_caja",
+  "piezas_por_blister", "stock_blisters",
   "imagen_url", "imagen_mobile_url", "ubicacion_texto", "descripcion", "tipo",
   "denominacion_generica", "denominacion_distintiva", "concentracion",
 ].join(",");
+
+function firmaLotesPos(p) {
+  return (p?.lotes || []).map((l) => `${l.id}:${l.cantidad_actual}:${l.activo}`).join("|");
+}
+
+/** Baja 1 del lote FEFO en memoria, igual que abrir_caja_lote. */
+function restarUnaCajaLocal(producto, hoy) {
+  const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
+  const primero = ordenarLotesFefo(lotes, hoy)[0];
+  if (!primero) return producto;
+  const nextLotes = lotes.map((l) => {
+    const mismo = primero.id != null && l.id != null
+      ? String(l.id) === String(primero.id)
+      : l === primero;
+    if (!mismo) return l;
+    const qty = Math.max(0, (Number(l.cantidad_actual) || 0) - 1);
+    return { ...l, cantidad_actual: qty, activo: qty > 0 ? l.activo !== false : false };
+  });
+  return { ...producto, lotes: nextLotes };
+}
 
 function normalizarListaProductosPos(data) {
   if (Array.isArray(data)) return data;
@@ -199,6 +221,35 @@ async function fetchProductosCatalogoPos(sessionToken) {
     return { data: [], error: fallback.error };
   }
   return { data: fallback.data || [], error: null };
+}
+
+/**
+ * Margen al pedir cambios: solo cubre un commit tardío (updated_at anterior a `ahora`).
+ * Corto a propósito: si fuera grande, cada evento volvería a bajar todo lo tocado en esa ventana.
+ * Lo que se escape lo recoge el refresco completo periódico.
+ */
+const CATALOGO_DELTA_MARGEN_MS = 30 * 1000;
+/** Refresco completo de seguridad aunque los deltas vayan bien. */
+const CATALOGO_FULL_CADA_MS = 5 * 60 * 1000;
+
+/**
+ * Solo los productos que cambiaron desde `desde` (ISO). Devuelve null si el RPC
+ * no existe todavía o falla: quien llama cae al refresco completo de siempre.
+ */
+async function fetchCatalogoDeltaPos(sessionToken, desde) {
+  if (!sessionToken || !desde) return null;
+  try {
+    const { data, error } = await supabase.rpc("empleado_listar_productos_pos_delta", {
+      p_session_token: sessionToken,
+      p_desde: desde,
+    });
+    if (error || !data || typeof data !== "object") return null;
+    const productos = Array.isArray(data.productos) ? data.productos : null;
+    if (!productos || !data.ahora) return null;
+    return { ahora: data.ahora, productos };
+  } catch {
+    return null;
+  }
 }
 
 function enrichPosProductosConLotes(prodsRaw, lotesByProducto = {}, hoy = hoyISOMexico()) {
@@ -320,7 +371,9 @@ function PosProductoFichaPanel({
   onSelectVariante,
   onAddCaja,
   onAddUnidad,
+  onAddBlister,
   onAbrirCaja,
+  onAbrirBlister,
   getStockCajasPOS,
   productoSinLotesPEPS,
   enCarrito = 0,
@@ -385,9 +438,14 @@ function PosProductoFichaPanel({
   const cajaFalsa = productoCajaEsFalsa(item);
   const stockVisible = stockMostradorPos(item, stockCajas);
   const precioFicha = precioMostradorPos(item);
+  const vendeBlister = productoVendeBlister(item);
+  const stockBlisters = Number(item.stock_blisters) || 0;
+  const stockPiezas = Number(item.stock_unidades) || 0;
   const agotado = cajaFalsa
     ? stockVisible <= 0
-    : stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
+    : stockCajas <= 0
+      && (!item.venta_unidad || stockPiezas === 0)
+      && (!vendeBlister || stockBlisters === 0);
   const sinPrecio = cajaFalsa ? precioFicha <= 0.01 : !productoEsVendible(item);
   const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
   const usoResuelto = posUsoParaMostrar(item, usoTexto);
@@ -648,6 +706,12 @@ function PosProductoFichaPanel({
             </div>
           )}
 
+          {vendeBlister && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>
+              {stockCajas} cajas · {stockBlisters} blisters · {stockPiezas} piezas
+            </div>
+          )}
+
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
             {sinPrecio ? (
               <Btn col={C.amber} disabled full>
@@ -670,20 +734,38 @@ function PosProductoFichaPanel({
               </Btn>
             ) : item.venta_unidad ? (
               <>
-                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={filaIconoBtn({ flex: "1 1 160px" })}>
+                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={filaIconoBtn({ flex: "1 1 140px" })}>
                   <IconoCaja size={18} />
                   Caja · {$(item.precio)}
                 </Btn>
+                {vendeBlister && (
+                  <Btn
+                    outline
+                    col={C.blue}
+                    disabled={stockCajas <= 0 && stockBlisters === 0}
+                    onClick={() => {
+                      if (stockBlisters > 0) onAddBlister(item);
+                      else if (stockCajas > 0) onAbrirCaja(item);
+                      else showToast("Sin stock disponible.", "warning");
+                    }}
+                    style={filaIconoBtn({ flex: "1 1 140px" })}
+                  >
+                    <IconoBlister size={18} />
+                    Blister · {$(precioBlisterParaVenta(item))}
+                  </Btn>
+                )}
                 <Btn
                   outline
                   col={C.green}
-                  disabled={stockCajas <= 0 && item.stock_unidades === 0}
+                  disabled={stockCajas <= 0 && stockPiezas === 0 && (!vendeBlister || stockBlisters === 0)}
                   onClick={() => {
-                    if (item.stock_unidades > 0) onAddUnidad(item);
+                    if (stockPiezas > 0) onAddUnidad(item);
+                    else if (vendeBlister && stockBlisters > 0) onAbrirBlister(item);
+                    else if (vendeBlister && stockCajas > 0) showToast("Abre un blister primero. La caja suelta blisters, no piezas.", "info");
                     else if (stockCajas > 0) onAbrirCaja(item);
                     else showToast("Sin stock disponible.", "warning");
                   }}
-                  style={filaIconoBtn({ flex: "1 1 160px" })}
+                  style={filaIconoBtn({ flex: "1 1 140px" })}
                 >
                   <IconoPieza size={18} />
                   Pieza · {$(precioUnidadParaVenta(item))}
@@ -726,6 +808,82 @@ function PosProductoFichaPanel({
   );
 }
 
+function PosCampoBusqueda({ forzar, onCommit, onClear, inputRef, onKeyDown, onFocus, onBlur, onTouchStart, onMouseDown, isNarrow, C }) {
+  const [texto, setTexto] = useState("");
+  const localRef = useRef("");
+  const vistoRef = useRef(0);
+  useEffect(() => {
+    if (!forzar || forzar.n === vistoRef.current) return;
+    vistoRef.current = forzar.n;
+    const next = forzar.value ?? "";
+    localRef.current = next;
+    setTexto(next);
+  }, [forzar]);
+  const hay = texto.trim().length > 0;
+  return (
+    <>
+      <input
+        ref={inputRef}
+        className="farmacapital-pos-srch farmacapital-field-input"
+        data-tour="pos-buscador"
+        inputMode="text"
+        enterKeyHint="enter"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        value={texto}
+        onTouchStart={onTouchStart}
+        onMouseDown={onMouseDown}
+        onChange={(e) => {
+          const v = e.currentTarget.value;
+          localRef.current = v;
+          setTexto(v);
+          onCommit(v);
+        }}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
+        placeholder="Código, SKU, nombre o molestia"
+        style={{ width: "100%", boxSizing: "border-box", padding: hay ? "9px 38px 9px 13px" : "9px 13px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#ffffff", color: C.text, WebkitTextFillColor: C.text, caretColor: C.text, colorScheme: "light", fontSize: isNarrow ? 16 : 13, outline: "none", fontFamily: "var(--fc-body)", touchAction: "manipulation", minHeight: 44 }}
+      />
+      {hay && (
+        <button
+          type="button"
+          onClick={() => {
+            localRef.current = "";
+            setTexto("");
+            onClear();
+          }}
+          aria-label="Borrar búsqueda"
+          title="Borrar búsqueda"
+          style={{
+            position: "absolute",
+            right: 8,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            border: "none",
+            background: "transparent",
+            color: C.textDim,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 18,
+            lineHeight: 1,
+            padding: 0,
+          }}
+        >
+          ×
+        </button>
+      )}
+    </>
+  );
+}
+
 export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSesionExpirada,onCerrarSesion}){
   const exigeCaja = esVendedor(usuario);
   const [cajaAbierta, setCajaAbierta] = useState(() => !esVendedor(usuario));
@@ -748,6 +906,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   }, [cart.length]);
   const [srch,setSrch]       = useState("");
   const srchRef = useRef(null);
+  const busquedaTimerRef = useRef(null);
+  const forzarBusquedaN = useRef(0);
+  const [forzarBusqueda, setForzarBusqueda] = useState({ n: 0, value: "" });
+  const fijarTextoBusqueda = useCallback((value) => {
+    clearTimeout(busquedaTimerRef.current);
+    const next = value ?? "";
+    setSrch(next);
+    forzarBusquedaN.current += 1;
+    setForzarBusqueda({ n: forzarBusquedaN.current, value: next });
+  }, []);
   const srchWrapRef = useRef(null);
   /** Tour POS: botón "?" va en la barra de carrito (no FAB esquina). */
   const posTourRef = useRef(null);
@@ -1107,11 +1275,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return () => clearTimeout(tmr);
   }, [tel]);
 
+  // Estado de sincronización del catálogo: desde cuándo pedir deltas y cuándo fue el último refresco completo.
+  const catalogoSyncRef = useRef({ desde: null, fullAt: 0, enCurso: false, pendiente: false });
+
   useEffect(()=>{
     const cargar = async () => {
       setLoad(true);
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
+        const inicioCargaMs = Date.now();
         const tok = sessionStorage.getItem("farmacapital_session_token");
         const [prodsRes, shown, lotesMap, especialesMap] = await Promise.all([
           tok
@@ -1139,6 +1311,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
         const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
         setProds(enrichPosProductosConLotes(prodsRaw, lotesMap));
+        catalogoSyncRef.current.desde = new Date(inicioCargaMs - CATALOGO_DELTA_MARGEN_MS).toISOString();
+        catalogoSyncRef.current.fullAt = Date.now();
         setPedOn(shown.cola || []);
         setPedOnHist(shown.hist || []);
 
@@ -1153,10 +1327,38 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     cargar();
   },[refrescarCitasPOS]);
 
+  /**
+   * Refresco del catálogo tras un cambio (venta, recepción, edición…).
+   * Antes: bajaba TODO el catálogo (+ lotes) en cada evento, de cada terminal.
+   * Ahora: pide solo los productos cambiados (RPC delta) y los mezcla; cada 5 min
+   * o si el RPC no existe/falla, hace el refresco completo de siempre.
+   * Un solo refresco a la vez: si llegan eventos durante uno, se repite una vez al final.
+   */
   const refrescarCatalogoPos = useCallback(async () => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) return;
+    const sync = catalogoSyncRef.current;
+    if (sync.enCurso) {
+      sync.pendiente = true;
+      return;
+    }
+    sync.enCurso = true;
     try {
+      const inicioMs = Date.now();
+      const requiereFull = !sync.desde || inicioMs - sync.fullAt > CATALOGO_FULL_CADA_MS;
+      if (!requiereFull) {
+        const delta = await fetchCatalogoDeltaPos(tok, sync.desde);
+        if (delta) {
+          if (delta.productos.length) {
+            const especialesMap = await fetchEspecialesCaducidadPos(tok);
+            especialesRef.current = especialesMap || {};
+            const enriquecidos = enrichPosProductosConLotes(delta.productos, {});
+            setProds((prev) => mergeCatalogoDelta(prev, enriquecidos));
+          }
+          sync.desde = new Date(new Date(delta.ahora).getTime() - CATALOGO_DELTA_MARGEN_MS).toISOString();
+          return;
+        }
+      }
       const [prodsRes, lotesMap, especialesMap] = await Promise.all([
         fetchProductosCatalogoPos(tok),
         fetchLotesMapPos(tok),
@@ -1165,10 +1367,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (prodsRes?.error) return;
       especialesRef.current = especialesMap || {};
       setProds(enrichPosProductosConLotes(Array.isArray(prodsRes.data) ? prodsRes.data : [], lotesMap));
+      sync.desde = new Date(inicioMs - CATALOGO_DELTA_MARGEN_MS).toISOString();
+      sync.fullAt = Date.now();
     } catch (_) { /* se queda el catálogo que ya está en pantalla */ }
+    finally {
+      sync.enCurso = false;
+      if (sync.pendiente) {
+        sync.pendiente = false;
+        setTimeout(() => refrescarCatalogoRef.current?.(), 0);
+      }
+    }
   }, []);
+  const refrescarCatalogoRef = useRef(null);
+  refrescarCatalogoRef.current = refrescarCatalogoPos;
 
-  useCatalogoVivo(refrescarCatalogoPos);
+  useCatalogoVivo(refrescarCatalogoPos, { debounceMs: 1500 });
 
   useEffect(() => {
     setFichaProd((prev) => {
@@ -1179,7 +1392,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         next.stock === prev.stock &&
         next.precio === prev.precio &&
         next.nombre === prev.nombre &&
-        next.min_caducidad_lotes === prev.min_caducidad_lotes
+        next.min_caducidad_lotes === prev.min_caducidad_lotes &&
+        Number(next.stock_unidades) === Number(prev.stock_unidades) &&
+        Number(next.stock_blisters) === Number(prev.stock_blisters) &&
+        firmaLotesPos(next) === firmaLotesPos(prev)
       ) return prev;
       return { ...prev, ...next };
     });
@@ -1233,6 +1449,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const fil = React.useMemo(() => {
     const s = queryCatalogoDesdeInputPos(srch);
     if (!s) return [];
+    // Dígitos a medias (la pistola aún no cierra el EAN): no recorras el catálogo.
+    if (isAllDigitsInput(srch) && !looksLikeCompleteScanInput(srch)) return [];
     const exact = findProductExactScan(productos, normalizeBarcodeRaw(srch) || s);
     if (exact) return [exact];
     if (isAllDigitsInput(srch)) return [];
@@ -1271,10 +1489,29 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   }, [fil, idsEnGrupoEquivalentes]);
 
   const clearPosSearch = useCallback(() => {
-    setSrch("");
+    fijarTextoBusqueda("");
     setFichaProd(null);
     srchRef.current?.focus();
-  }, []);
+  }, [fijarTextoBusqueda]);
+
+  const aplicarBusqueda = useCallback((v) => {
+    clearTimeout(busquedaTimerRef.current);
+    const espera = esperaBusquedaPos(v);
+    if (espera == null) return;
+    const run = () => {
+      setSrch(v);
+      if (!String(v || "").trim()) {
+        setFichaProd(null);
+        return;
+      }
+      const scanKey = normalizeBarcodeRaw(v) || String(v).trim();
+      const exact = findProductExactScan(productos, scanKey);
+      if (exact) setFichaProd(exact);
+      else if (!isAllDigitsInput(v) || isCompleteBarcodeLength(v) || looksLikeInternalSku(v)) setFichaProd(null);
+    };
+    if (espera === 0) run();
+    else busquedaTimerRef.current = setTimeout(run, espera);
+  }, [productos]);
 
   const srchAnteriorRef = useRef(srch);
   useEffect(() => {
@@ -1282,6 +1519,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const cambioBusqueda = srchAnteriorRef.current !== srch;
     srchAnteriorRef.current = srch;
     const s = queryCatalogoDesdeInputPos(srch);
+    if (isAllDigitsInput(srch) && !looksLikeCompleteScanInput(srch)) return;
     if (!s) {
       // Tras un beep bueno vaciamos el recuadro pero la ficha se queda.
       // Si no, el efecto ve "" y borra lo que acaba de abrir.
@@ -1378,13 +1616,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return (yaPagoConsulta ? 0 : precioBase) + totalCons;
   };
 
-  const add = (item, esUnidad=false) => {
-    if (!productoEsVendible(item)) {
+  const add = (item, modo=false) => {
+    const esUnidad = modo === true || modo === "unidad";
+    const esBlister = modo === "blister";
+    if (esBlister && precioBlisterParaVenta(item) <= 0) {
+      showToast(`"${item?.nombre || "Producto"}" no tiene precio de blister. Cárgalo en Inventario.`, "warning");
+      return false;
+    }
+    if (!esBlister && !productoEsVendible(item)) {
       showToast(`"${item?.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
       return false;
     }
     // Validar lotes vencidos solo si no queda nada vendible por FEFO
-    if (!esUnidad) {
+    if (!esUnidad && !esBlister) {
       const hoy = hoyISOMexico();
       const fefo = ordenarLotesFefo(item.lotes || [], hoy);
       const hayFilasLote = Array.isArray(item.lotes) && item.lotes.some((l) => l?.activo !== false);
@@ -1393,11 +1637,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         return false;
       }
     }
-    if (esMedicamentoControlado(item) && !esUnidad) {
+    if (esMedicamentoControlado(item) && !esUnidad && !esBlister) {
       setRxM(item);
       return false;
     }
-    if (esCategoriaAntibiotico(item.categoria) && !esUnidad) {
+    if (esCategoriaAntibiotico(item.categoria) && !esUnidad && !esBlister) {
       const yaEnCarrito = cart.some((c) => c.id === item.id || c.producto_id === item.id);
       if (!yaEnCarrito) {
         showToast("Antibiótico: se recomienda receta. No es obligatoria para cobrar.", "info");
@@ -1419,7 +1663,28 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         }
         return ex
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
+          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,esBlister:false,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
+      });
+      return added;
+    }
+    if (esBlister) {
+      if ((item.stock_blisters || 0) <= 0) {
+        showToast("Sin blisters disponibles.", "warning");
+        return false;
+      }
+      const keyB = item.id+"_blister";
+      const precioB = precioBlisterParaVenta(item);
+      let added = true;
+      setCart(p=>{
+        const ex = p.find(c=>c.id===keyB);
+        if (ex && ex.qty >= (item.stock_blisters || 0)) {
+          showToast(`Máx blisters sueltos: ${item.stock_blisters || 0}`, "warning");
+          added = false;
+          return p;
+        }
+        return ex
+          ? p.map(c=>c.id===keyB?{...c,qty:c.qty+1}:c)
+          : [...p,{...item,id:keyB,producto_id:item.id,qty:1,rxI:null,esUnidad:false,esBlister:true,precio:precioB,nombre:`${tituloPublicoProducto(item)} (blister)`}];
       });
       return added;
     }
@@ -1510,12 +1775,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       setCart((prev) => {
         let next = [...prev];
         for (const { producto, qty } of plan.lineas) {
-          const ex = next.find((c) => String(c.id) === String(producto.id) && !c.esUnidad);
+          const ex = next.find((c) => String(c.id) === String(producto.id) && !c.esUnidad && !c.esBlister);
           if (ex) {
             const newQty = (Number(ex.qty) || 0) + qty;
             const priced = precioCajaDesdeProducto(producto, newQty, especialesRef.current);
             next = next.map((c) =>
-              c.id === producto.id && !c.esUnidad ? { ...c, qty: newQty, rxI, ...priced } : c
+              c.id === producto.id && !c.esUnidad && !c.esBlister ? { ...c, qty: newQty, rxI, ...priced } : c
             );
           } else {
             next = [
@@ -1561,12 +1826,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const mismoEscaneo = prev.raw === raw && now - prev.ts < 400;
     escaneoOkRef.current = true;
     setFichaProd(exact);
-    setSrch("");
+    fijarTextoBusqueda("");
     srchRef.current?.focus();
     if (mismoEscaneo) return;
     lastScanBurstRef.current = { raw, ts: now };
     add(exact, false);
-  }, [add]);
+  }, [add, fijarTextoBusqueda]);
 
   const onHidScan = useCallback((raw) => {
     const exact = findProductExactScan(productos, raw);
@@ -1598,7 +1863,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (!exact) {
         if (shouldClearScanMiss(raw, { fromEnter: false })) {
           showToast("Código de barras no encontrado en inventario.", "warning");
-          setSrch("");
+          fijarTextoBusqueda("");
         }
         return;
       }
@@ -1606,7 +1871,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     }, 140);
 
     return () => clearTimeout(scanAddTimerRef.current);
-  }, [srch, productos, tab, finalizarEscaneoExitoso]);
+  }, [srch, productos, tab, finalizarEscaneoExitoso, fijarTextoBusqueda]);
 
 
   const getLoteCantidadDisponible = (lote) => {
@@ -1664,15 +1929,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const visible = stockMostradorPos(producto, cajas);
     const agotado = productoCajaEsFalsa(producto)
       ? visible <= 0
-      : cajas <= 0 && (!producto.venta_unidad || producto.stock_unidades === 0);
+      : cajas <= 0
+        && (!producto.venta_unidad || (Number(producto.stock_unidades) || 0) === 0)
+        && (!productoVendeBlister(producto) || (Number(producto.stock_blisters) || 0) === 0);
     return { agotado, etiqueta: agotado ? "Agotado" : `${visible} disp.` };
   };
 
-  const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {
+  const getCantidadEnCarrito = (cartActual, productoId, modo = false) => {
+    const want = modo === true ? "unidad" : modo === false ? "caja" : modo;
     return (cartActual || []).reduce((sum, item) => {
       const itemId = String(item.producto_id ?? item.id ?? "");
       const baseId = String(productoId ?? "");
-      if (item.esUnidad !== esUnidad) return sum;
+      if (modoVentaDeLinea(item) !== want) return sum;
       return itemId === baseId ? sum + (Number(item.qty) || 0) : sum;
     }, 0);
   };
@@ -1731,6 +1999,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return true;
   };
 
+  const aplicarStockPos = (productoId, mutator) => {
+    setProds((prev) => prev.map((p) => (String(p.id) === String(productoId) ? mutator(p) : p)));
+    setFichaProd((prev) => (prev && String(prev.id) === String(productoId) ? mutator(prev) : prev));
+  };
+
   const abrirCaja = async (item) => {
     if (getStockCajasPOS(item) <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -1743,10 +2016,55 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       showToast(`Error al abrir caja: ${error.message}`, "error");
       return;
     }
-    const nuevasUnidades =
-      data?.[0]?.stock_unidades_nuevo ??
-      ((item.stock_unidades || 0) + (item.unidades_por_caja || 0));
-    showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
+    const row = Array.isArray(data) ? data[0] : data;
+    const destino = unidadesAlAbrirCaja(item);
+    aplicarStockPos(item.id, (p) => {
+      const base = restarUnaCajaLocal(p, hoyISOMexico());
+      if (destino.stock === "blisters") {
+        return {
+          ...base,
+          stock_blisters: row?.stock_blisters_nuevo ?? ((Number(p.stock_blisters) || 0) + destino.cantidad),
+          stock_unidades: row?.stock_unidades_nuevo ?? p.stock_unidades,
+        };
+      }
+      return {
+        ...base,
+        stock_unidades: row?.stock_unidades_nuevo ?? ((Number(p.stock_unidades) || 0) + destino.cantidad),
+      };
+    });
+    if (destino.stock === "blisters") {
+      const n = row?.stock_blisters_nuevo ?? ((Number(item.stock_blisters) || 0) + destino.cantidad);
+      showToast(`Caja abierta. Blisters disponibles: ${n}`, "success");
+    } else {
+      const n = row?.stock_unidades_nuevo ?? ((Number(item.stock_unidades) || 0) + destino.cantidad);
+      showToast(`Caja abierta. Unidades disponibles: ${n}`, "success");
+    }
+  };
+
+  const abrirBlister = async (item) => {
+    if ((Number(item.stock_blisters) || 0) <= 0) {
+      showToast("Sin blisters sueltos. Abre una caja primero.", "warning");
+      return;
+    }
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada.", "error"); return; }
+    const { data, error } = await supabase.rpc("abrir_blister_secure", {
+      p_session_token: tok,
+      p_producto_id: item.id,
+    });
+    if (error) {
+      showToast(`Error al abrir blister: ${error.message}`, "error");
+      return;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    const ppb = parseInt(item.piezas_por_blister, 10) || 0;
+    aplicarStockPos(item.id, (p) => ({
+      ...p,
+      stock_blisters: row?.stock_blisters_nuevo ?? Math.max(0, (Number(p.stock_blisters) || 0) - 1),
+      stock_unidades: row?.stock_unidades_nuevo ?? ((Number(p.stock_unidades) || 0) + ppb),
+    }));
+    const piezas = row?.stock_unidades_nuevo ?? ((Number(item.stock_unidades) || 0) + ppb);
+    showToast(`Blister abierto. Piezas disponibles: ${piezas}`, "success");
   };
 
   const RX_IND_PRESETS = ["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"];
@@ -1866,13 +2184,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         const pid = c.producto_id ?? c.id;
         const p = productos.find((x) => String(x.id) === String(pid));
         const requested = Number(c.qty) || 0;
-        const available = c.esUnidad ? (Number(p?.stock_unidades) || 0) : getStockFifoDisponible(p);
+        const modoLinea = modoVentaDeLinea(c);
+        const available = modoLinea === "unidad"
+          ? (Number(p?.stock_unidades) || 0)
+          : modoLinea === "blister"
+            ? (Number(p?.stock_blisters) || 0)
+            : getStockFifoDisponible(p);
         if (!p || requested <= available) return null;
         return {
           nombre: p.nombre || c.nombre || `Producto ${pid}`,
           requested,
           available,
-          unidad: c.esUnidad ? "unidad(es)" : "caja(s)",
+          unidad: modoLinea === "unidad" ? "unidad(es)" : modoLinea === "blister" ? "blister(s)" : "caja(s)",
         };
       })
       .filter(Boolean);
@@ -1936,7 +2259,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         producto_id: c.producto_id ?? c.id,
         cantidad: c.qty,
         precio_unitario: cobroLinea(c.precio, 1),
-        modo_venta: c.esUnidad ? "unidad" : "caja",
+        modo_venta: modoVentaDeLinea(c),
       }));
 
       const usaMixtoOCredito = creditoNum > 0 || metodoPagoFinal === "mixto";
@@ -2187,6 +2510,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       })) {
         showToast(t.msg, t.tipo);
       }
+      if (estadoHist === "completado") {
+        fetch("/api/notifications/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "pedir-resena",
+            pedidoId: pedido.id,
+            employeeSessionToken: tok,
+          }),
+        }).catch(() => {});
+      }
       recargarPedidosOnline();
     } catch (e) {
       console.error("[POS] surtirOnline:", e);
@@ -2423,7 +2757,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               <div style={{flex:1,lineHeight:1.3}}>
                 <div style={{color:C.text,fontSize:14,fontWeight:700}}>{item.nombre}</div>
                 {(() => {
-                  if (item.esUnidad) {
+                  if (item.esUnidad || item.esBlister) {
                     return item.fuentePrecio === "caducidad" ? (
                       <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
                     ) : null;
@@ -2450,16 +2784,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 <button onClick={()=>setCart(p=>p.map(c=>{
                   if(c.id!==item.id) return c;
                   const qty = Math.max(1, c.qty - 1);
-                  if (c.esUnidad) return { ...c, qty };
+                  if (c.esUnidad || c.esBlister) return { ...c, qty };
                   const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id)) || c;
                   return { ...c, qty, ...precioCajaDesdeProducto(prod, qty, especialesRef.current) };
                 }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>−</button>
                 <span style={{color:C.text,fontSize:15,fontWeight:800,minWidth:20,textAlign:"center"}}>{item.qty}</span>
             <button onClick={()=>setCart(p=>p.map(c=>{
               if(c.id!==item.id) return c;
-              if(c.esUnidad){
-                const maxU = item.stock_unidades||0;
-                if(c.qty>=maxU){ showToast(`Máx unidades: ${maxU}`,"warning"); return c; }
+              if(c.esUnidad || c.esBlister){
+                const prodLive = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
+                const maxU = c.esBlister
+                  ? (Number(prodLive?.stock_blisters ?? item.stock_blisters) || 0)
+                  : (Number(prodLive?.stock_unidades ?? item.stock_unidades) || 0);
+                if(c.qty>=maxU){ showToast(c.esBlister ? `Máx blisters: ${maxU}` : `Máx unidades: ${maxU}`,"warning"); return c; }
                 return {...c,qty:c.qty+1};
               }
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
@@ -3407,34 +3744,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <form ref={srchWrapRef} onSubmit={(e)=>{ e.preventDefault(); e.stopPropagation(); }} style={{flex:1,minWidth:0,position:"relative"}}>
-              <input ref={(el)=>{ srchRef.current = el; }} className="farmacapital-pos-srch farmacapital-field-input" value={srch}
-                data-tour="pos-buscador"
-                inputMode="text"
-                enterKeyHint="enter"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
+              <PosCampoBusqueda
+                forzar={forzarBusqueda}
+                onCommit={aplicarBusqueda}
+                onClear={clearPosSearch}
+                inputRef={srchRef}
+                isNarrow={isNarrow}
+                C={C}
                 onTouchStart={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
                 onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
-                onChange={e=>{
-                  const v = e.currentTarget.value;
-                  setSrch(v);
-                  if (!v.trim()) {
-                    setFichaProd(null);
-                    return;
-                  }
-                  const scanKey = normalizeBarcodeRaw(v) || v.trim();
-                  const exact = findProductExactScan(productos, scanKey);
-                  if (exact) {
-                    setFichaProd(exact);
-                  } else if (!isAllDigitsInput(v) || isCompleteBarcodeLength(v) || looksLikeInternalSku(v)) {
-                    setFichaProd(null);
-                  }
-                }}
                 onFocus={(e)=>{
                   unlockInputForTouchKeyboard(e.currentTarget);
-                  if (isAllDigitsInput(srch)) e.currentTarget.select();
+                  if (isAllDigitsInput(e.currentTarget.value)) e.currentTarget.select();
                 }}
                 onBlur={(e)=>{
                   lockInputAfterTouchKeyboard(e.currentTarget);
@@ -3445,7 +3766,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                     const enCaja = e.currentTarget.value;
                     if (shouldReplaceScanInput(enCaja, scanLastKeyTsRef.current, now)) {
                       e.preventDefault();
-                      setSrch(e.key);
+                      fijarTextoBusqueda(e.key);
                       setFichaProd(null);
                       scanLastKeyTsRef.current = now;
                       return;
@@ -3468,42 +3789,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                       }
                       if (shouldClearScanMiss(raw, { fromEnter: true })) {
                         showToast("Código de barras no encontrado en inventario.","warning");
-                        setSrch("");
+                        fijarTextoBusqueda("");
                       }
                     }
                   }
                 }}
-                placeholder="Código, SKU, nombre o molestia"
-                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isNarrow?16:13,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation",minHeight:44}}/>
-              {srch.trim() && (
-                <button
-                  type="button"
-                  onClick={clearPosSearch}
-                  aria-label="Borrar búsqueda"
-                  title="Borrar búsqueda"
-                  style={{
-                    position: "absolute",
-                    right: 8,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    border: "none",
-                    background: "transparent",
-                    color: C.textDim,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 18,
-                    lineHeight: 1,
-                    padding: 0,
-                  }}
-                >
-                  ×
-                </button>
-              )}
+              />
               </form>
               {!isMobilePos && (
               <button onClick={()=>setCartOpen(p=>!p)} style={{
@@ -3547,7 +3838,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}
               onAddUnidad={(it) => add(it, true)}
+              onAddBlister={(it) => add(it, "blister")}
               onAbrirCaja={abrirCaja}
+              onAbrirBlister={abrirBlister}
               getStockCajasPOS={getStockCajasPOS}
               productoSinLotesPEPS={productoSinLotesPEPS}
               enCarrito={fichaProd ? getCantidadEnCarrito(cart, fichaProd.id, false) : 0}
@@ -3591,7 +3884,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}
               onAddUnidad={(it) => add(it, true)}
+              onAddBlister={(it) => add(it, "blister")}
               onAbrirCaja={abrirCaja}
+              onAbrirBlister={abrirBlister}
               getStockCajasPOS={getStockCajasPOS}
               productoSinLotesPEPS={productoSinLotesPEPS}
               enCarrito={0}

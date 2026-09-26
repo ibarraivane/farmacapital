@@ -146,10 +146,12 @@
       html {
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
-        height: auto;
-        overflow-x: hidden;
+        height: 100%;
+        overflow-x: clip;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        /* none: Chrome del teléfono no recarga al jalar la página. */
+        overscroll-behavior: none;
       }
       body {
         font-family: var(--fc-body);
@@ -159,14 +161,16 @@
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
         height: auto;
+        min-height: 100%;
         /* clip, no hidden: hidden + overflow-y visible se vuelve auto y
            en escritorio la rueda no baja la página. */
         overflow-x: clip;
         overflow-y: visible;
         -webkit-overflow-scrolling: touch;
-        /* Evita zoom por doble toque; overscroll auto evita scroll “pegajoso” en iOS. */
+        /* manipulation evita el zoom por doble toque. overscroll none
+           evita que Chrome Android convierta el jalón en recarga. */
         touch-action: manipulation;
-        overscroll-behavior-y: auto;
+        overscroll-behavior: none;
       }
       /* Intro FarmaCapital — HTML/CSS, logo oficial PNG.
          Cruz 0–21.072%, centro 10.505%, wordmark desde 25.570%.

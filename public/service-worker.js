@@ -1,5 +1,5 @@
 self.addEventListener('install', () => self.skipWaiting());
-// build 2026-08-29T13-admin-iphone-767
+// build 2026-09-21-tienda-v2-produccion
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();

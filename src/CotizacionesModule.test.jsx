@@ -59,10 +59,14 @@ it("lista cotizaciones y abre la ficha con comparativa y recargo/margen", async 
   expect(nombre).toHaveStyle({ background: "#ffffff" });
 
   fireEvent.click(screen.getByText(/C-142/));
+  expect(screen.queryByText(/Agregar fuente/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Anthelios UV Air/ }));
   expect(await screen.findByText(/Agregar fuente/)).toBeInTheDocument();
   expect(screen.getAllByText(/Dermaexpress/).length).toBeGreaterThan(0);
   expect(screen.getAllByText(/Recargo/).length).toBeGreaterThan(0);
   expect(screen.getByText(/sobre venta/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Guardar" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Quitar" })).toBeInTheDocument();
   await waitFor(() =>
     expect(supabase.rpc).toHaveBeenCalledWith(
       "admin_obtener_cotizacion",

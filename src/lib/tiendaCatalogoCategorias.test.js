@@ -71,6 +71,15 @@ describe("irACatalogoCategoria", () => {
     expect(sessionStorage.getItem("farmacapital_catalogo_scroll")).toBeNull();
     expect(pages).toEqual([["catalogo", { rx: false, catalogoScroll: "top" }]]);
   });
+
+  test("avisa al catálogo ya abierto para que aplique el filtro", () => {
+    const heard = [];
+    const onCat = () => heard.push(sessionStorage.getItem("farmacapital_cat"));
+    window.addEventListener("fc-catalogo-categoria", onCat);
+    irACatalogoCategoria(() => {}, "Suplemento");
+    window.removeEventListener("fc-catalogo-categoria", onCat);
+    expect(heard).toEqual(["Suplemento"]);
+  });
 });
 
 describe("vista catálogo grid/bandas", () => {
