@@ -30,7 +30,10 @@ const sqlDoc = read("sql/patch_cotizaciones_documento_20260925.sql");
 const sqlProd = read("sql/patch_cotizaciones_producto_20260926.sql");
 const lib = read("src/lib/cotizaciones.js");
 const ui = read("src/CotizacionesModule.jsx");
-const mostrador = read("src/PedidosMostradorModule.jsx");
+const mostrador = [
+  read("src/PedidosMostradorModule.jsx"),
+  read("src/components/FilaSolicitudMostrador.jsx"),
+].join("\n");
 const constants = read("src/constants.js");
 const permissions = read("src/utils/permissions.js");
 const admin = read("src/Admin.jsx");

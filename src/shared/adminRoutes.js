@@ -20,6 +20,7 @@ const SLUG_TO_PAGE = {
   trans: "dash",
   "pedidos-online": "ped_online",
   ped_online: "ped_online",
+  encargos: "ped_mostrador",
   "lo-que-buscan": "ped_mostrador",
   ped_mostrador: "ped_mostrador",
   cotizaciones: "cotiz",
