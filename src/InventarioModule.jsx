@@ -1521,21 +1521,22 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                     </span>
                   ) : null}
                 </label>
-                <input type="number" min="0" step="0.01" value={form.precio_unidad}
+                <input type="number" min="0" step="0.01" value={form.precio_unidad ?? ""}
                   onChange={e=>{
-                    const pieza = Math.ceil(parseFloat(e.target.value)||0);
+                    const raw = e.target.value;
                     setForm(f => {
-                      const next = { ...f, precio_unidad: pieza };
+                      const next = { ...f, precio_unidad: raw };
                       if (blistersPorCaja(f.unidades_por_caja, f.piezas_por_blister) >= 2) {
                         next.precio_blister = precioCapturadoOSugerido(
                           f.precio_blister,
-                          sugerirPrecioBlister(f.precio, f.costo, f.unidades_por_caja, f.piezas_por_blister, f.categoria, f.tipo, pieza),
+                          sugerirPrecioBlister(f.precio, f.costo, f.unidades_por_caja, f.piezas_por_blister, f.categoria, f.tipo, raw),
                         );
                       }
                       return next;
                     });
                   }}
-                  style={inputStyle} placeholder="3"/>
+                  className="farmacapital-field-input"
+                  style={inputBlister} placeholder="3"/>
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
                   {costoPieza > 0 ? <>Costo/pieza ${costoPieza.toFixed(2)}</> : "Indicá costo y unidades/caja"}
                   {precioPieza > 0 && minPrecioPieza > 0 && precioPieza < minPrecioPieza
@@ -1586,7 +1587,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   ) : null}
                 </label>
                 <input type="number" min="0" step="0.01" value={form.precio_blister ?? ""}
-                  onChange={e=>set("precio_blister", Math.ceil(parseFloat(e.target.value)||0))}
+                  onChange={e=>set("precio_blister", e.target.value)}
                   className="farmacapital-field-input"
                   style={inputBlister} placeholder="45" readOnly={blistersVenta < 2}/>
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
