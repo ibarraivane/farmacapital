@@ -5,6 +5,8 @@ import {
   patchProductoSinColumnaProveedor,
   productoIdDeLote,
   proveedorDesdeLotes,
+  stockObjetivoAjusteInline,
+  stockVisibleInventario,
 } from "./inventarioHubData";
 
 test("agrupa lotes aunque producto_id venga string o anidado", () => {
@@ -36,6 +38,17 @@ test("proveedor visible es el lote activo con más piezas", () => {
 
 test("sin nombre en lotes, el proveedor de tabla queda vacío", () => {
   expect(proveedorDesdeLotes([{ id: 1, cantidad_actual: 4, activo: true }])).toBe("");
+});
+
+test("la celda de stock y el clic usan los lotes, no la columna desfasada", () => {
+  const afrin = { stock: 4, stock_peps: 2, stock_minimo: 5 };
+  expect(stockVisibleInventario(afrin)).toBe(2);
+  expect(stockObjetivoAjusteInline(afrin, 2)).toBe(4);
+  expect(stockObjetivoAjusteInline(afrin, 3)).toBe(5);
+  expect(stockObjetivoAjusteInline(afrin, 0)).toBe(2);
+  expect(stockObjetivoAjusteInline({ stock: 4, stock_peps: 4 }, 3)).toBe(3);
+  expect(stockVisibleInventario({ stock: 4 })).toBe(4);
+  expect(stockVisibleInventario({ stock: 4, stock_peps: 0 })).toBe(0);
 });
 
 test("el patch de ficha no manda productos.proveedor", () => {
