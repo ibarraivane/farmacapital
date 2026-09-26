@@ -2446,8 +2446,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
   const cobrar = () => abrirModalRecetaVenta("efectivo");
 
+  const carritoCompraPersonalSoloCaja = cart.length > 0 && cart.every((c) => modoVentaDeLinea(c) === "caja");
+
   const abrirModalCompraPersonal = async () => {
     if (!cart.length) return;
+    if (!carritoCompraPersonalSoloCaja) {
+      showToast("Compra de personal solo aplica a cajas. Quita piezas sueltas o blisters del carrito.", "warning");
+      return;
+    }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada. Inicia sesión de nuevo.", "error"); return; }
     setModalCompraPersonal(true);
@@ -2463,6 +2469,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
   const enviarCompraPersonal = async () => {
     if (!cart.length || !beneficiarioId) return;
+    if (!carritoCompraPersonalSoloCaja) {
+      showToast("Compra de personal solo aplica a cajas. Quita piezas sueltas o blisters del carrito.", "warning");
+      return;
+    }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada. Inicia sesión de nuevo.", "error"); return; }
     setEnviandoCompraPersonal(true);
@@ -3106,11 +3116,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       </Box>
       </div>
       <div style={{marginTop:8}}>
-        <Btn onClick={abrirModalCompraPersonal} full outline col={C.blue} dis={!cart.length || guardando}>
+        <Btn onClick={abrirModalCompraPersonal} full outline col={C.blue} dis={!cart.length || guardando || !carritoCompraPersonalSoloCaja}>
           Compra de personal
         </Btn>
         <div style={{color:C.textDim,fontSize:10,marginTop:4,textAlign:"center"}}>
-          Manda este carrito a aprobación con precio de empleado, en vez de cobrarlo ahora.
+          {cart.length && !carritoCompraPersonalSoloCaja
+            ? "Solo cajas. Quita piezas sueltas o blisters para usar el precio de empleado."
+            : "Manda este carrito a aprobación con precio de empleado, en vez de cobrarlo ahora."}
         </div>
       </div>
       {modalCompraPersonal && (
@@ -3124,7 +3136,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               className="farmacapital-field-select"
               value={beneficiarioId}
               onChange={(e)=>setBeneficiarioId(e.target.value)}
-              style={{padding:"10px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:14,background:C.card,color:C.text}}
+              style={{padding:"10px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:14,background:"#ffffff",color:C.text,colorScheme:"light",WebkitTextFillColor:C.text}}
             >
               <option value="">Selecciona a quién corresponde…</option>
               {personalActivo.map((p)=>(
