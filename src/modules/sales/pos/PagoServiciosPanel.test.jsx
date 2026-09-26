@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import PagoServiciosPanel from "./PagoServiciosPanel";
 
 jest.mock("../../../supabase", () => ({
@@ -8,17 +8,27 @@ jest.mock("../../../supabase", () => ({
   },
 }));
 
-test("Servicios ofrece Efectivo y Tarjeta como métodos de cobro", async () => {
+test("Servicios ofrece Efectivo, Tarjeta y Mixto como métodos de cobro", async () => {
   render(<PagoServiciosPanel isNarrow />);
   expect(await screen.findByRole("button", { name: /Efectivo/ })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /^💳 Tarjeta$/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Mixto/ })).toBeInTheDocument();
   expect(screen.getByText(/CÓMO PAGÓ EL CLIENTE/)).toBeInTheDocument();
-  expect(screen.getByText(/Tarjeta suma al corte de tarjeta/)).toBeInTheDocument();
+  expect(screen.getByText(/Mixto parte cada monto/)).toBeInTheDocument();
 });
 
 test("si hay Point, también se puede cobrar ahí y queda como tarjeta", async () => {
   render(<PagoServiciosPanel isNarrow onCobrarPoint={() => {}} />);
-  expect(await screen.findByRole("button", { name: /Cobrar en Point/ })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /^💳 Tarjeta$/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /^💳 Tarjeta$/ }));
+  expect(screen.getByRole("button", { name: /Cobrar en Point/ })).toBeInTheDocument();
+});
+
+test("Mixto pide desglose de efectivo antes de registrar", async () => {
+  render(<PagoServiciosPanel isNarrow />);
+  fireEvent.click(await screen.findByRole("button", { name: /Mixto/ }));
+  expect(screen.getByText(/¿Cuánto va en efectivo/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Registrar mixto/ })).toBeDisabled();
 });
 
 test("Izzi suma $10 por default y el admin puede editar los recargos", async () => {

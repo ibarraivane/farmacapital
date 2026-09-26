@@ -3,7 +3,8 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
-import { CATALOGO_SERVICIOS, CLAVE_SERVICIOS_RECARGOS, catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, draftRecargosDe, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, recargoEsValido, recargosReciboParaGuardar, resumenPagosServicioDia, serviciosReciboDe, utilidadServicio } from "../../../lib/pagoServicio";
+import { CATALOGO_SERVICIOS, CLAVE_SERVICIOS_RECARGOS, catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, draftRecargosDe, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, partesPagoServicio, recargoEsValido, recargosReciboParaGuardar, resumenPagosServicioDia, serviciosReciboDe, utilidadServicio } from "../../../lib/pagoServicio";
+import { desgloseMixto, mensajeErrorMixto } from "../../../utils/pagoMixto";
 import { rolEsAdmin } from "../../../utils/permissions";
 import { printServicioTicket } from "../../../utils/servicioTicket";
 
@@ -32,6 +33,9 @@ export async function rpcRegistrarPagoServicio(payload) {
         liquidado_point: !!payload.liquidadoPoint,
         notas: payload.notas || null,
         cliente_id: payload.clienteId || null,
+        ...(payload.metodoPago === "mixto"
+          ? { monto_efectivo: payload.montoEfectivo, monto_tarjeta: payload.montoTarjeta }
+          : {}),
       }),
     });
     const data = await resp.json().catch(() => ({}));
@@ -63,6 +67,9 @@ export async function rpcRegistrarPagoServicio(payload) {
     p_liquidado_point: !!payload.liquidadoPoint,
     p_notas: payload.notas || null,
     p_cliente_id: payload.clienteId || null,
+    ...(payload.metodoPago === "mixto"
+      ? { p_monto_efectivo: payload.montoEfectivo, p_monto_tarjeta: payload.montoTarjeta }
+      : {}),
   });
   if (error) throw error;
   if (!data?.success) throw new Error(data?.error || "No se pudo registrar");
@@ -77,6 +84,8 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const [notas, setNotas] = useState("");
   const [liquidado, setLiquidado] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [metodoSel, setMetodoSel] = useState("efectivo");
+  const [mixtoEfectivoStr, setMixtoEfectivoStr] = useState("");
   const [historial, setHistorial] = useState([]);
   const [loadHist, setLoadHist] = useState(false);
   const [saldoMp, setSaldoMp] = useState(() => parseSaldoConfig([]));
@@ -98,6 +107,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const total = Number.isFinite(monto) && Number.isFinite(comision) ? Math.round((monto + comision) * 100) / 100 : 0;
   const compensacionMp = Number.isFinite(monto) ? compensacionMpDe(monto) : 0;
   const utilidad = Number.isFinite(comision) ? utilidadServicio({ comision, compensacionMp }) : 0;
+  const mixtoParts = metodoSel === "mixto" && total > 0 ? desgloseMixto(total, mixtoEfectivoStr) : null;
 
   const fetchSaldoMp = useCallback(async () => {
     try {
@@ -135,6 +145,8 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     setMontoStr("");
     setNotas("");
     setLiquidado(false);
+    setMetodoSel("efectivo");
+    setMixtoEfectivoStr("");
   };
 
   useEffect(() => {
@@ -178,7 +190,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     return true;
   };
 
-  const buildPayload = (metodoPago) => ({
+  const buildPayload = (metodoPago, montosMixto = null) => ({
     proveedor: servicio.proveedor,
     categoria: servicio.categoria,
     referencia: referencia.trim(),
@@ -188,15 +200,28 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     liquidadoPoint: liquidado,
     notas: notas.trim() || null,
     total,
+    ...(metodoPago === "mixto" && montosMixto
+      ? { montoEfectivo: montosMixto.efectivo, montoTarjeta: montosMixto.tarjeta }
+      : {}),
   });
 
-  const registrar = async (metodoPago) => {
+  const registrar = async (metodoPago, montosMixto = null) => {
     if (!validarForm()) return;
+    if (metodoPago === "mixto") {
+      const parts = montosMixto?.ok ? montosMixto : desgloseMixto(total, mixtoEfectivoStr);
+      if (!parts?.ok) {
+        showToast(mensajeErrorMixto(parts?.reason, total, $), "error");
+        return;
+      }
+      montosMixto = parts;
+    }
     setGuardando(true);
     try {
-      const payload = buildPayload(metodoPago);
+      const payload = buildPayload(metodoPago, montosMixto);
       const data = await rpcRegistrarPagoServicio(payload);
-      const como = labelMetodoServicio(metodoPago);
+      const como = metodoPago === "mixto" && montosMixto
+        ? `Mixto · Ef ${$(montosMixto.efectivo)} + Tarjeta ${$(montosMixto.tarjeta)}`
+        : labelMetodoServicio(metodoPago);
       showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)} · ${como}`, "success");
       printServicioTicket({
         ...payload,
@@ -204,6 +229,8 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
         total: data.total_cobrado,
         comision: data.comision ?? payload.comision,
         metodoPago,
+        montoEfectivo: payload.montoEfectivo,
+        montoTarjeta: payload.montoTarjeta,
       }, config);
       limpiarForm();
       fetchHistorial();
@@ -218,9 +245,24 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
 
   const cobrarTarjeta = () => registrar("tarjeta");
 
+  const cobrarMixto = () => registrar("mixto", mixtoParts);
+
   const cobrarTarjetaPoint = () => {
     if (!validarForm()) return;
     const folio = `SRV-${Date.now().toString().slice(-8)}`;
+    if (metodoSel === "mixto") {
+      if (!mixtoParts?.ok) {
+        showToast(mensajeErrorMixto(mixtoParts?.reason, total, $), "error");
+        return;
+      }
+      onCobrarPoint?.({
+        ...buildPayload("mixto", mixtoParts),
+        folio,
+        // Point solo cobra la pata tarjeta; el registro guarda el mixto completo.
+        totalPoint: mixtoParts.tarjeta,
+      });
+      return;
+    }
     onCobrarPoint?.({ ...buildPayload("tarjeta"), folio });
   };
 
@@ -391,15 +433,15 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
           {servicio.categoria === "recarga" ? (
-            <><strong>Recargas.</strong> Primero el tiempo aire en la Point. Aquí anotas el monto: <strong>sin recargo</strong>. Cobra en <strong>efectivo</strong> o <strong>tarjeta</strong>: cada uno se cuenta aparte en el corte.</>
+            <><strong>Recargas.</strong> Primero el tiempo aire en la Point. Aquí anotas el monto: <strong>sin recargo</strong>. Cobra en <strong>efectivo</strong>, <strong>tarjeta</strong> o <strong>mixto</strong>: cada parte se cuenta aparte en el corte.</>
           ) : (
-            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto: el recargo ({$(servicio.comision)}) se suma solo. Cobra en <strong>efectivo</strong> o <strong>tarjeta</strong>.</>
+            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto: el recargo ({$(servicio.comision)}) se suma solo. Cobra en <strong>efectivo</strong>, <strong>tarjeta</strong> o <strong>mixto</strong>.</>
           )}
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
           {servicio.categoria === "recarga"
-            ? "Efectivo entra al cajón. Tarjeta entra al corte de tarjeta, no al efectivo esperado. Mercado Pago te acredita aparte el 1% en su app (Actividad)."
-            : "El recargo va con el método que eligió el cliente. Mercado Pago te acredita aparte el 1% en su app (Actividad)."}
+            ? "Efectivo entra al cajón. Tarjeta entra al corte de tarjeta, no al efectivo esperado. En mixto, cada pata va a su cubeta. Mercado Pago te acredita aparte el 1% en su app (Actividad)."
+            : "El recargo va con el método que eligió el cliente. En mixto, efectivo y tarjeta se parten en el corte. Mercado Pago te acredita aparte el 1% en su app (Actividad)."}
         </div>
       </div>
 
@@ -498,21 +540,79 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
           </label>
 
           <div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>CÓMO PAGÓ EL CLIENTE</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: metodoSel === "mixto" ? 10 : 0 }}>
+            {[
+              ["efectivo", "💵 Efectivo", C.green],
+              ["tarjeta", "💳 Tarjeta", C.blue],
+              ["mixto", "💵💳 Mixto", BRAND.secondary],
+            ].map(([v, l, col]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => { setMetodoSel(v); if (v !== "mixto") setMixtoEfectivoStr(""); }}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 20,
+                  border: `1px solid ${metodoSel === v ? col : C.border}`,
+                  background: metodoSel === v ? `${col}18` : "#fff",
+                  color: metodoSel === v ? col : C.textMid,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          {metodoSel === "mixto" && (
+            <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
+              <div style={{ color: C.textDim, fontSize: 10, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>Pago mixto</div>
+              <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>¿Cuánto va en efectivo?</div>
+              <Inp
+                value={mixtoEfectivoStr}
+                onChange={(e) => setMixtoEfectivoStr(e.target.value)}
+                placeholder={total > 0 ? `Ej. ${(total / 2).toFixed(2)}` : "0.00"}
+                style={{ width: "100%", boxSizing: "border-box", marginBottom: 8 }}
+              />
+              {mixtoParts?.ok ? (
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <span style={{ color: C.textMid, fontSize: 12 }}>En efectivo <strong style={{ color: C.text }}>{$(mixtoParts.efectivo)}</strong></span>
+                  <span style={{ color: C.textMid, fontSize: 12 }}>En tarjeta <strong style={{ color: C.blue }}>{$(mixtoParts.tarjeta)}</strong></span>
+                </div>
+              ) : mixtoEfectivoStr.trim() !== "" ? (
+                <div style={{ color: C.red, fontSize: 11, fontWeight: 700 }}>{mensajeErrorMixto(mixtoParts?.reason, total, $)}</div>
+              ) : (
+                <div style={{ color: C.textDim, fontSize: 11 }}>Indica la parte en efectivo; el resto se cobra con tarjeta.</div>
+              )}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Btn col={C.green} onClick={cobrarEfectivo} dis={guardando}>
-              💵 Efectivo
-            </Btn>
-            <Btn col={C.blue} onClick={cobrarTarjeta} dis={guardando}>
-              💳 Tarjeta
-            </Btn>
-            {typeof onCobrarPoint === "function" && (
-              <Btn ol col={BRAND.secondary} onClick={cobrarTarjetaPoint} dis={guardando}>
-                Cobrar en Point
+            {metodoSel === "efectivo" && (
+              <Btn col={C.green} onClick={cobrarEfectivo} dis={guardando}>
+                Registrar efectivo
+              </Btn>
+            )}
+            {metodoSel === "tarjeta" && (
+              <Btn col={C.blue} onClick={cobrarTarjeta} dis={guardando}>
+                Registrar tarjeta
+              </Btn>
+            )}
+            {metodoSel === "mixto" && (
+              <Btn col={BRAND.secondary} onClick={cobrarMixto} dis={guardando || !mixtoParts?.ok}>
+                Registrar mixto
+              </Btn>
+            )}
+            {typeof onCobrarPoint === "function" && (metodoSel === "tarjeta" || metodoSel === "mixto") && (
+              <Btn ol col={BRAND.secondary} onClick={cobrarTarjetaPoint} dis={guardando || (metodoSel === "mixto" && !mixtoParts?.ok)}>
+                {metodoSel === "mixto" && mixtoParts?.ok
+                  ? `Cobrar tarjeta ${$(mixtoParts.tarjeta)} en Point`
+                  : "Cobrar en Point"}
               </Btn>
             )}
           </div>
           <div style={{ color: C.textDim, fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>
-            Efectivo suma al cajón. Tarjeta suma al corte de tarjeta (Point o BBVA), no al efectivo esperado. Point cobra comisión sobre el total: en CFE u otros montos grandes se pierde dinero.
+            Efectivo suma al cajón. Tarjeta suma al corte de tarjeta (Point o BBVA). Mixto parte cada monto. Point cobra comisión sobre lo que pases en la terminal.
           </div>
         </Box>
 
@@ -541,8 +641,10 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                   </div>
                 </div>
                 <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                  <Tag col={row.metodo_pago === "tarjeta" ? C.blue : C.amber} sm>
-                    {labelMetodoServicio(row.metodo_pago)}
+                  <Tag col={row.metodo_pago === "tarjeta" ? C.blue : row.metodo_pago === "mixto" ? BRAND.secondary : C.amber} sm>
+                    {row.metodo_pago === "mixto"
+                      ? `Mixto · Ef ${$(partesPagoServicio(row).efectivo)} + Tar ${$(partesPagoServicio(row).tarjeta)}`
+                      : labelMetodoServicio(row.metodo_pago)}
                   </Tag>
                   {row.liquidado_point && <Tag col={C.green} sm>Liquidado Point</Tag>}
                   <Btn sm ol col={C.textMid} onClick={() => printServicioTicket(row, config)}>

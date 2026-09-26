@@ -87,6 +87,8 @@ export function mapPagoServicio(s) {
     id: folio,
     created_at: s.created_at,
     metodo_pago: etiquetaMetodo(s.metodo_pago),
+    monto_efectivo: parseFloat(s.monto_efectivo || 0),
+    monto_tarjeta: parseFloat(s.monto_tarjeta || 0),
     total,
     comision,
     estado: "servicio",
@@ -113,6 +115,19 @@ export function recargoServiciosPorMetodo(tickets) {
       const metodo = String(t.metodo_pago || "").toLowerCase();
       if (metodo === "efectivo") acc.efectivo = Math.round((acc.efectivo + recargo) * 100) / 100;
       else if (metodo === "tarjeta") acc.tarjeta = Math.round((acc.tarjeta + recargo) * 100) / 100;
+      else if (metodo === "mixto") {
+        // Recargo del servicio mixto: no tenemos desglose del recargo; va a total.
+        // Si hay montos, prorrateamos por proporción efectivo/tarjeta del cobro.
+        const ef = parseFloat(t.monto_efectivo || t.montoEfectivo || 0);
+        const tar = parseFloat(t.monto_tarjeta || t.montoTarjeta || 0);
+        const tot = ef + tar;
+        if (tot > 0 && recargo > 0) {
+          const efPart = Math.round((recargo * (ef / tot)) * 100) / 100;
+          const tarPart = Math.round((recargo - efPart) * 100) / 100;
+          acc.efectivo = Math.round((acc.efectivo + efPart) * 100) / 100;
+          acc.tarjeta = Math.round((acc.tarjeta + tarPart) * 100) / 100;
+        }
+      }
       acc.total = Math.round((acc.total + recargo) * 100) / 100;
       return acc;
     },

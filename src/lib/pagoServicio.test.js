@@ -1,4 +1,4 @@
-import { catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, desgloseCobroServicios, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, normalizarMetodoServicio, parseRecargosOverrides, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, recargoVigenteDe, recargosReciboParaGuardar, resumenPagosServicioDia, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
+import { catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, desgloseCobroServicios, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, normalizarMetodoServicio, parseRecargosOverrides, parseSaldoConfig, partesPagoServicio, recargoCatalogoDe, recargoEsValido, recargoVigenteDe, recargosReciboParaGuardar, resumenPagosServicioDia, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
 
 describe("pagoServicio", () => {
   test("compensación MP es 1% redondeado a centavos", () => {
@@ -91,25 +91,46 @@ describe("pagoServicio", () => {
     expect(esMismoDiaMexico("2026-08-22T05:00:00.000Z", "2026-08-22")).toBe(false);
   });
 
-  test("tarjeta y Point/BBVA se guardan como tarjeta; lo demás es efectivo", () => {
+  test("tarjeta y Point/BBVA se guardan como tarjeta; mixto queda mixto", () => {
     expect(normalizarMetodoServicio("tarjeta")).toBe("tarjeta");
     expect(normalizarMetodoServicio("bbva_terminal")).toBe("tarjeta");
     expect(normalizarMetodoServicio("mercadopago_point")).toBe("tarjeta");
+    expect(normalizarMetodoServicio("mixto")).toBe("mixto");
     expect(normalizarMetodoServicio("efectivo")).toBe("efectivo");
     expect(normalizarMetodoServicio("")).toBe("efectivo");
+    expect(labelMetodoServicio("mixto")).toBe("Mixto");
   });
 
-  test("el resumen del día parte efectivo y tarjeta", () => {
+  test("el resumen del día parte efectivo, tarjeta y mixto", () => {
     const r = resumenPagosServicioDia([
       { total_cobrado: 50, comision: 0, monto_servicio: 50, metodo_pago: "efectivo" },
       { total_cobrado: 100, comision: 0, monto_servicio: 100, metodo_pago: "tarjeta" },
       { total_cobrado: 208, comision: 8, monto_servicio: 200, metodo_pago: "efectivo" },
+      {
+        total_cobrado: 100,
+        comision: 0,
+        monto_servicio: 100,
+        metodo_pago: "mixto",
+        monto_efectivo: 40,
+        monto_tarjeta: 60,
+      },
     ]);
-    expect(r.ops).toBe(3);
-    expect(r.efectivo).toBe(258);
-    expect(r.tarjeta).toBe(100);
-    expect(r.total).toBe(358);
+    expect(r.ops).toBe(4);
+    expect(r.efectivo).toBe(298);
+    expect(r.tarjeta).toBe(160);
+    expect(r.total).toBe(458);
     expect(r.comision).toBe(8);
+  });
+
+  test("partesPagoServicio desglosa mixto", () => {
+    expect(partesPagoServicio({
+      metodo_pago: "mixto",
+      total_cobrado: 100,
+      monto_efectivo: 30,
+      monto_tarjeta: 70,
+    })).toEqual({ metodo: "mixto", efectivo: 30, tarjeta: 70 });
+    expect(partesPagoServicio({ metodo_pago: "efectivo", total_cobrado: 50 }))
+      .toEqual({ metodo: "efectivo", efectivo: 50, tarjeta: 0 });
   });
 
   test("flujo de caja: el cajón es efectivo; tarjeta va aparte si el SQL ya la manda", () => {

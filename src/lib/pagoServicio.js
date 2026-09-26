@@ -191,18 +191,35 @@ export function tituloTicketServicio(categoria, proveedor) {
   return `PAGO ${prov}`.toUpperCase();
 }
 
-export const METODOS_PAGO_SERVICIO = ["efectivo", "tarjeta"];
+export const METODOS_PAGO_SERVICIO = ["efectivo", "tarjeta", "mixto"];
 
 export function normalizarMetodoServicio(metodo) {
   const m = String(metodo || "").toLowerCase().trim();
+  if (m === "mixto") return "mixto";
   if (m === "tarjeta" || m === "bbva_terminal" || m === "mercadopago_point") return "tarjeta";
   return "efectivo";
 }
 
 export function labelMetodoServicio(metodo) {
   const m = normalizarMetodoServicio(metodo);
+  if (m === "mixto") return "Mixto";
   if (m === "tarjeta") return "Tarjeta";
   return "Efectivo";
+}
+
+/** Parte efectivo / tarjeta de un pago de servicio (incluye mixto). */
+export function partesPagoServicio(row) {
+  const metodo = normalizarMetodoServicio(row?.metodo_pago);
+  const cobrado = money2(row?.total_cobrado);
+  if (metodo === "mixto") {
+    return {
+      metodo,
+      efectivo: money2(row?.monto_efectivo),
+      tarjeta: money2(row?.monto_tarjeta),
+    };
+  }
+  if (metodo === "tarjeta") return { metodo, efectivo: 0, tarjeta: cobrado };
+  return { metodo, efectivo: cobrado, tarjeta: 0 };
 }
 
 /** Totales del día para POS Servicios. Tarjeta no se mezcla con el cajón. */
@@ -217,9 +234,9 @@ export function resumenPagosServicioDia(rows) {
       acc.comision = money2(acc.comision + recargo);
       acc.compensacionMp = money2(acc.compensacionMp + comp);
       acc.utilidad = money2(acc.utilidad + utilidadServicio({ comision: recargo, compensacionMp: comp }));
-      const metodo = normalizarMetodoServicio(row?.metodo_pago);
-      if (metodo === "tarjeta") acc.tarjeta = money2(acc.tarjeta + cobrado);
-      else acc.efectivo = money2(acc.efectivo + cobrado);
+      const partes = partesPagoServicio(row);
+      acc.efectivo = money2(acc.efectivo + partes.efectivo);
+      acc.tarjeta = money2(acc.tarjeta + partes.tarjeta);
       return acc;
     },
     { ops: 0, total: 0, comision: 0, compensacionMp: 0, utilidad: 0, efectivo: 0, tarjeta: 0 },

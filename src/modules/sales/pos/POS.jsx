@@ -3488,7 +3488,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           mpCitaRef.current
             ? totalCobroConsulta(mpCitaRef.current)
             : mpServicioRef.current
-              ? mpServicioRef.current.total
+              ? (mpServicioRef.current.totalPoint
+                ?? mpServicioRef.current.montoTarjeta
+                ?? mpServicioRef.current.total)
               : (pay === "mixto" && mixtoMontosRef.current?.tarjeta > 0
                 ? mixtoMontosRef.current.tarjeta
                 : (creditoNum > 0 ? aCobrar : total))
@@ -3500,7 +3502,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         }
         hint={
           mpServicioRef.current
-            ? (mpServicioRef.current.categoria === "recarga"
+            ? (mpServicioRef.current.metodoPago === "mixto"
+              ? `Pago mixto: cobra solo ${mpServicioRef.current.montoTarjeta != null ? $(mpServicioRef.current.montoTarjeta) : "la parte en tarjeta"} en el Point. El efectivo ya lo capturaste aparte.`
+              : mpServicioRef.current.categoria === "recarga"
               ? "Cobra al cliente el monto de la recarga en la Point. El tiempo aire ya salió del saldo MP. Queda registrado como tarjeta en el corte, no como efectivo."
               : "Cobra al cliente el recibo + tu recargo en la Point. El servicio ya se pagó con saldo MP. Queda registrado como tarjeta en el corte, no como efectivo.")
             : pay === "mixto"

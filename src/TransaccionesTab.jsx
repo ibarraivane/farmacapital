@@ -385,7 +385,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const abrirEditar = (p) => {
     setModalEdit(p);
     const mp = esPagoServicio(p)
-      ? (p.metodo_pago === "efectivo" ? "efectivo" : "tarjeta")
+      ? (p.metodo_pago === "efectivo" || p.metodo_pago === "mixto" ? p.metodo_pago : "tarjeta")
       : (p.metodo_pago || "efectivo");
     setEditForm({
       estado: p.estado || "completado",
@@ -395,6 +395,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       monto_servicio: p.monto_servicio != null ? String(p.monto_servicio) : "",
       comision: p.comision != null ? String(p.comision) : "",
       atendido_por: p.atendido_por != null ? String(p.atendido_por) : "",
+      monto_efectivo: p.monto_efectivo != null ? String(p.monto_efectivo) : "",
+      monto_tarjeta: p.monto_tarjeta != null ? String(p.monto_tarjeta) : "",
     });
   };
 
@@ -433,6 +435,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           monto_servicio: editForm.monto_servicio,
           comision: editForm.comision,
           atendido_por: editForm.atendido_por ? Number(editForm.atendido_por) : null,
+          ...(editForm.metodo_pago === "mixto"
+            ? {
+                monto_efectivo: editForm.monto_efectivo,
+                monto_tarjeta: editForm.monto_tarjeta,
+              }
+            : { monto_efectivo: 0, monto_tarjeta: 0 }),
         });
       } else {
         const atendidoPor = editForm.atendido_por ? Number(editForm.atendido_por) : null;
@@ -1020,14 +1028,38 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={inpForm}>
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta</option>
+                {esPagoServicio(modalEditar) && <option value="mixto">Mixto</option>}
                 {!esPagoServicio(modalEditar) && (
                   <>
                     <option value="spei">SPEI / Transferencia</option>
                     <option value="mercadopago">Mercado Pago</option>
+                    <option value="mixto">Mixto</option>
                   </>
                 )}
               </select>
             </div>
+            {esPagoServicio(modalEditar) && editForm.metodo_pago === "mixto" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                <div>
+                  <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>EFECTIVO</label>
+                  <input
+                    value={editForm.monto_efectivo || ""}
+                    onChange={(e) => setEditForm((f) => ({ ...f, monto_efectivo: e.target.value }))}
+                    inputMode="decimal"
+                    style={inpForm}
+                  />
+                </div>
+                <div>
+                  <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>TARJETA</label>
+                  <input
+                    value={editForm.monto_tarjeta || ""}
+                    onChange={(e) => setEditForm((f) => ({ ...f, monto_tarjeta: e.target.value }))}
+                    inputMode="decimal"
+                    style={inpForm}
+                  />
+                </div>
+              </div>
+            )}
             <div style={{ marginBottom: 16 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>NOTAS</label>
               <textarea value={editForm.notas} onChange={(e) => setEditForm((f) => ({ ...f, notas: e.target.value }))} rows={3} placeholder="Observaciones…" style={{ ...inpForm, resize: "vertical" }} />

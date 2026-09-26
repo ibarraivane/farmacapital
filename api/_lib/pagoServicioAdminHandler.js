@@ -169,8 +169,22 @@ async function pagoServicioAdminHandler(req, res) {
             : 'El recargo de farmacia es obligatorio en recibos. No se guarda en cero.',
         });
       }
-      if (metodo !== 'efectivo' && metodo !== 'tarjeta') {
-        return res.status(400).json({ ok: false, error: 'metodo_pago inválido (efectivo o tarjeta)' });
+      if (metodo !== 'efectivo' && metodo !== 'tarjeta' && metodo !== 'mixto') {
+        return res.status(400).json({ ok: false, error: 'metodo_pago inválido (efectivo, tarjeta o mixto)' });
+      }
+
+      const totalCobrado = roundMoney(monto + (categoria === 'recarga' ? 0 : comision));
+      let montoEfectivo = 0;
+      let montoTarjeta = 0;
+      if (metodo === 'mixto') {
+        montoEfectivo = roundMoney(body.monto_efectivo);
+        montoTarjeta = roundMoney(body.monto_tarjeta);
+        if (!(montoEfectivo > 0) || !(montoTarjeta > 0)) {
+          return res.status(400).json({ ok: false, error: 'Pago mixto requiere monto_efectivo y monto_tarjeta mayores a 0' });
+        }
+        if (roundMoney(montoEfectivo + montoTarjeta) !== totalCobrado) {
+          return res.status(400).json({ ok: false, error: 'En mixto, efectivo + tarjeta debe igualar el total cobrado' });
+        }
       }
 
       const row = {
@@ -180,8 +194,10 @@ async function pagoServicioAdminHandler(req, res) {
         referencia: String(body.referencia || '').trim() || null,
         monto_servicio: monto,
         comision: categoria === 'recarga' ? 0 : comision,
-        total_cobrado: roundMoney(monto + (categoria === 'recarga' ? 0 : comision)),
+        total_cobrado: totalCobrado,
         metodo_pago: metodo,
+        monto_efectivo: montoEfectivo,
+        monto_tarjeta: montoTarjeta,
         liquidado_point: !!body.liquidado_point,
         notas: String(body.notas || '').trim() || null,
         cliente_id: body.cliente_id != null && body.cliente_id !== '' ? Number(body.cliente_id) : null,
@@ -223,7 +239,7 @@ async function pagoServicioAdminHandler(req, res) {
       const isEmp = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
       if (!isEmp) return res.status(403).json({ ok: false, error: 'requiere_empleado' });
       const qs = new URLSearchParams();
-      qs.set('select', 'id,folio,proveedor,categoria,referencia,monto_servicio,comision,compensacion_mp,costo_liquidacion,fuente_liquidacion,referencia_externa,total_cobrado,metodo_pago,liquidado_point,notas,created_at,atendido_por');
+      qs.set('select', 'id,folio,proveedor,categoria,referencia,monto_servicio,comision,compensacion_mp,costo_liquidacion,fuente_liquidacion,referencia_externa,total_cobrado,metodo_pago,monto_efectivo,monto_tarjeta,liquidado_point,notas,created_at,atendido_por');
       qs.set('order', 'created_at.desc');
       qs.set('limit', '300');
       if (body.desde) qs.append('created_at', `gte.${body.desde}`);
@@ -285,8 +301,14 @@ async function pagoServicioAdminHandler(req, res) {
     }
 
     const patch = {};
-    if (body.metodo_pago === 'efectivo' || body.metodo_pago === 'tarjeta') {
+    if (body.metodo_pago === 'efectivo' || body.metodo_pago === 'tarjeta' || body.metodo_pago === 'mixto') {
       patch.metodo_pago = body.metodo_pago;
+    }
+    if (body.monto_efectivo != null && body.monto_efectivo !== '') {
+      patch.monto_efectivo = roundMoney(body.monto_efectivo);
+    }
+    if (body.monto_tarjeta != null && body.monto_tarjeta !== '') {
+      patch.monto_tarjeta = roundMoney(body.monto_tarjeta);
     }
     if (body.notas !== undefined) {
       const n = String(body.notas || '').trim();
@@ -316,7 +338,7 @@ async function pagoServicioAdminHandler(req, res) {
 
     if (patch.monto_servicio != null || patch.comision != null) {
       const curResp = await fetch(
-        `${supabaseUrl}/rest/v1/pagos_servicio?id=eq.${id}&select=monto_servicio,comision,categoria`,
+        `${supabaseUrl}/rest/v1/pagos_servicio?id=eq.${id}&select=monto_servicio,comision,categoria,metodo_pago,monto_efectivo,monto_tarjeta,total_cobrado`,
         { headers }
       );
       const cur = await curResp.json().catch(() => []);
@@ -338,6 +360,35 @@ async function pagoServicioAdminHandler(req, res) {
         patch.compensacion_mp = roundMoney(monto * 0.01);
         patch.costo_liquidacion = monto;
         if (!patch.fuente_liquidacion) patch.fuente_liquidacion = 'saldo_mp';
+      }
+    }
+
+    const metodoFinal = patch.metodo_pago;
+    if (metodoFinal === 'mixto' || patch.monto_efectivo != null || patch.monto_tarjeta != null) {
+      const curResp2 = await fetch(
+        `${supabaseUrl}/rest/v1/pagos_servicio?id=eq.${id}&select=total_cobrado,metodo_pago,monto_efectivo,monto_tarjeta`,
+        { headers }
+      );
+      const cur2 = await curResp2.json().catch(() => []);
+      const row2 = Array.isArray(cur2) ? cur2[0] : null;
+      if (!row2) return res.status(404).json({ ok: false, error: 'no_encontrado' });
+      const metodo = metodoFinal || row2.metodo_pago;
+      const total = patch.total_cobrado != null ? patch.total_cobrado : roundMoney(row2.total_cobrado);
+      if (metodo === 'mixto') {
+        const ef = patch.monto_efectivo != null ? patch.monto_efectivo : roundMoney(row2.monto_efectivo);
+        const tar = patch.monto_tarjeta != null ? patch.monto_tarjeta : roundMoney(row2.monto_tarjeta);
+        if (!(ef > 0) || !(tar > 0) || roundMoney(ef + tar) !== roundMoney(total)) {
+          return res.status(400).json({
+            ok: false,
+            error: 'Pago mixto requiere monto_efectivo y monto_tarjeta que sumen el total',
+          });
+        }
+        patch.metodo_pago = 'mixto';
+        patch.monto_efectivo = ef;
+        patch.monto_tarjeta = tar;
+      } else if (metodoFinal === 'efectivo' || metodoFinal === 'tarjeta') {
+        patch.monto_efectivo = 0;
+        patch.monto_tarjeta = 0;
       }
     }
 
