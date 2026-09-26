@@ -47,6 +47,15 @@ export function blistersPorCaja(unidadesPorCaja, piezasPorBlister) {
   return n >= 2 ? n : 0;
 }
 
+/** Piezas de cada blister a partir de cuántos blisters trae la caja. 0 si no parte entero. */
+export function piezasDesdeBlistersPorCaja(unidadesPorCaja, blisters) {
+  const upc = parseInt(unidadesPorCaja, 10) || 0;
+  const n = parseInt(blisters, 10) || 0;
+  if (n < 2 || upc < 4 || upc % n !== 0) return 0;
+  const ppb = upc / n;
+  return ppb >= 2 ? ppb : 0;
+}
+
 /**
  * Tira por defecto para una caja que ya se vende por pieza.
  * 10 si salen 2 o más tiras; si no, 7; si no, la mitad cuando es par;
@@ -64,21 +73,92 @@ export function piezasPorBlisterDefault(unidadesPorCaja) {
   return 0;
 }
 
+/**
+ * Stock de caja abierta: tiras enteras + el resto cortado.
+ * 11 piezas con tira de 6 → 1 blister y 5 piezas. Una tira completa cuenta como blister.
+ */
+export function normalizarStockAbierto(stockBlisters, stockUnidades, piezasPorBlister) {
+  const ppb = parseInt(piezasPorBlister, 10) || 0;
+  const b = Math.max(0, parseInt(stockBlisters, 10) || 0);
+  const u = Math.max(0, parseInt(stockUnidades, 10) || 0);
+  if (ppb < 2) return { stock_blisters: b, stock_unidades: u, pool: u };
+  const pool = b * ppb + u;
+  return {
+    stock_blisters: Math.floor(pool / ppb),
+    stock_unidades: pool % ppb,
+    pool,
+  };
+}
+
+/** Pool de la caja abierta. Sin blister configurado, el pool son solo las piezas. */
+export function poolAbierto(producto) {
+  const ppb = parseInt(producto?.piezas_por_blister, 10) || 0;
+  const vende = blistersPorCaja(producto?.unidades_por_caja, ppb) >= 2;
+  return normalizarStockAbierto(
+    producto?.stock_blisters,
+    producto?.stock_unidades,
+    vende ? ppb : 0,
+  );
+}
+
+/** Piezas que ya ocupa el carrito entre sueltas y tiras. */
+export function piezasComprometidas(qtyUnidad, qtyBlister, piezasPorBlister) {
+  const u = Math.max(0, parseInt(qtyUnidad, 10) || 0);
+  const b = Math.max(0, parseInt(qtyBlister, 10) || 0);
+  const ppb = parseInt(piezasPorBlister, 10) || 0;
+  if (ppb < 2) return u;
+  return u + b * ppb;
+}
+
 /** Venta por blister solo dentro de la venta por pieza, y solo si la caja parte bien. */
 export function productoVendeBlister(producto) {
   if (!producto?.venta_unidad) return false;
   return blistersPorCaja(producto.unidades_por_caja, producto.piezas_por_blister) >= 2;
 }
 
-/** Misma regla que la pieza, con divisor = blisters por caja (no piezas). */
-export function calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria = "", tipo = "") {
+/**
+ * Precio del blister, peso entero: punto medio entre la fracción de la caja
+ * y el tope (esas piezas sueltas, sin llegar al precio de la caja).
+ * Por unidad queda más caro que la caja y más barato que la pieza.
+ * La tira sale más cara que una pieza y más barata que la caja.
+ */
+export function precioBlisterIntermedio(precioCaja, precioUnidad, unidadesPorCaja, piezasPorBlister) {
   const n = blistersPorCaja(unidadesPorCaja, piezasPorBlister);
   if (n < 2) return 0;
-  return calcPrecioUnidad(precio, costo, n, categoria, tipo);
+  const caja = Number(precioCaja) || 0;
+  const pieza = Number(precioUnidad) || 0;
+  const upc = parseInt(unidadesPorCaja, 10) || 0;
+  const ppb = parseInt(piezasPorBlister, 10) || 0;
+  if (caja <= 0 || pieza <= 0 || upc <= 0) return 0;
+
+  const prorrateo = (caja * ppb) / upc;
+  const techo = Math.min(pieza * ppb, caja);
+  let precio = Math.round((prorrateo + techo) / 2);
+  let piso = Math.floor(prorrateo) + 1;
+  if (ppb > 1) piso = Math.max(piso, Math.floor(pieza) + 1);
+  let maximo = Math.min(Math.ceil(caja) - 1, Math.floor(pieza * ppb - 1e-9));
+  if (piso > maximo) {
+    piso = Math.floor(prorrateo) + 1;
+    maximo = Math.ceil(caja) - 1;
+    if (piso > maximo) return 0;
+    return piso;
+  }
+  if (precio < piso) precio = piso;
+  if (precio > maximo) precio = maximo;
+  return precio;
 }
 
-export function sugerirPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria = "", tipo = "") {
-  return calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria, tipo);
+/** Sugerido del blister a partir del precio de pieza que sí se cobra. */
+export function calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria = "", tipo = "", precioUnidad) {
+  const n = blistersPorCaja(unidadesPorCaja, piezasPorBlister);
+  if (n < 2) return 0;
+  const pieza = Math.ceil(parseFloat(precioUnidad) || 0)
+    || calcPrecioUnidad(precio, costo, unidadesPorCaja, categoria, tipo);
+  return precioBlisterIntermedio(precio, pieza, unidadesPorCaja, piezasPorBlister);
+}
+
+export function sugerirPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria = "", tipo = "", precioUnidad) {
+  return calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria, tipo, precioUnidad);
 }
 
 /** Precio efectivo del blister: el guardado. La regla solo sugiere. */
@@ -86,13 +166,11 @@ export function precioBlisterParaVenta(producto) {
   if (!productoVendeBlister(producto)) return 0;
   const guardado = Math.ceil(parseFloat(producto.precio_blister) || 0);
   if (guardado > 0) return guardado;
-  return calcPrecioBlister(
+  return precioBlisterIntermedio(
     producto.precio,
-    producto.costo,
+    precioUnidadParaVenta(producto),
     producto.unidades_por_caja,
     producto.piezas_por_blister,
-    producto.categoria,
-    producto.tipo,
   );
 }
 
@@ -150,15 +228,51 @@ export function aplicarReglaPrecioUnidad(fields) {
   const ppb = parseInt(fields.piezas_por_blister, 10) || 0;
   const blisters = blistersPorCaja(upc, ppb);
   const manualBlister = Math.ceil(parseFloat(fields.precio_blister) || 0);
+  const pieza = manual > 0 ? manual : sugerido;
   const sugeridoBlister = blisters >= 2
-    ? calcPrecioUnidad(fields.precio, fields.costo, blisters, fields.categoria, fields.tipo)
+    ? precioBlisterIntermedio(fields.precio, pieza, upc, ppb)
     : 0;
+  const abierto = normalizarStockAbierto(
+    fields.stock_blisters,
+    fields.stock_unidades,
+    blisters >= 2 ? ppb : 0,
+  );
   return {
     ...fields,
     unidades_por_caja: upc,
-    precio_unidad: manual > 0 ? manual : sugerido,
+    precio_unidad: pieza,
     piezas_por_blister: blisters >= 2 ? ppb : 0,
     precio_blister: blisters >= 2 ? (manualBlister > 0 ? manualBlister : sugeridoBlister) : 0,
-    stock_blisters: blisters >= 2 ? (parseInt(fields.stock_blisters, 10) || 0) : 0,
+    stock_blisters: blisters >= 2 ? abierto.stock_blisters : 0,
+    stock_unidades: blisters >= 2 ? abierto.stock_unidades : (parseInt(fields.stock_unidades, 10) || 0),
   };
+}
+
+/** Número que está escrito en el campo. Vacío no es 0: 0 haría que Guardar ponga el sugerido. */
+export function precioEscrito(valor) {
+  if (valor == null) return null;
+  const t = String(valor).trim();
+  if (t === "" || t === "-" || t === "." || t === "-.") return null;
+  const n = Math.ceil(parseFloat(t));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * El precio que escribió el dueño gana. La regla solo llena el campo vacío.
+ */
+export function precioCapturadoOSugerido(capturado, sugerido) {
+  const actual = Math.ceil(parseFloat(capturado) || 0);
+  if (actual > 0) return actual;
+  return Math.ceil(parseFloat(sugerido) || 0);
+}
+
+/**
+ * Tras Guardar: el precio que quedó en la fila, si no es el que se envió.
+ * null si no hay fila o si sí se guardó.
+ */
+export function precioBlisterQueNoQuedo(enviado, fila) {
+  if (!enviado?.venta_unidad || !fila) return null;
+  const esperado = Math.ceil(parseFloat(enviado.precio_blister) || 0);
+  const quedo = Math.ceil(parseFloat(fila.precio_blister) || 0);
+  return quedo === esperado ? null : quedo;
 }
