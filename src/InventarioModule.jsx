@@ -1613,6 +1613,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   onChange={e=>set("stock_blisters", e.target.value)}
                   className="farmacapital-field-input"
                   style={inputBlister} placeholder="0" readOnly={blistersVenta < 2}/>
+                {piezasCaja >= 2 && (parseInt(form.stock_unidades, 10) || 0) >= piezasCaja ? (
+                  <div style={{ color: C.textDim, fontSize: 9, marginTop: 2 }}>
+                    Las {parseInt(form.stock_unidades, 10)} piezas sueltas arman {Math.floor((parseInt(form.stock_unidades, 10) || 0) / piezasCaja)} blisters.
+                  </div>
+                ) : null}
               </div>
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
                 💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> ·
