@@ -21,6 +21,7 @@ import {
   metaCompraDeProducto,
   nivelStockUrgencia,
   stockDe,
+  stockVisiblePorIdentidad,
 } from "./lib/reporteReabasto";
 import {
   agruparLotesPorProducto,
@@ -34,8 +35,8 @@ import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 const BRAND = { primary:"#0D1B2A", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2})}`;
 
-const calcStockUrgencia = (p, C) => {
-  const nivel = nivelStockUrgencia(p);
+const calcStockUrgencia = (p, C, stockPorNombre) => {
+  const nivel = nivelStockUrgencia(p, stockPorNombre);
   if (!nivel) return null;
   return estiloUrgencia(nivel, C);
 };
@@ -119,26 +120,28 @@ export default function ReabastoModule() {
   useEffect(()=>{ fetchProductos(); },[fetchProductos]);
   useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
+  const stockPorNombre = useMemo(() => stockVisiblePorIdentidad(productos), [productos]);
+
   const alertas = useMemo(() => (
     productos
-      .map(p=>({...p, urgencia: calcStockUrgencia(p, C)}))
+      .map(p=>({...p, urgencia: calcStockUrgencia(p, C, stockPorNombre)}))
       .filter(p=>p.urgencia)
       .sort((a,b)=>{
         const ord={AGOTADO:0,CRÍTICO:1,BAJO:2,PRONTO:3};
         return (ord[a.urgencia.nivel]??9)-(ord[b.urgencia.nivel]??9);
       })
-  ), [productos, C]);
+  ), [productos, C, stockPorNombre]);
 
   const colaCaduca = useMemo(() => (
     productos
       .map(p=>({
         ...p,
         caducidad: calcCaducidadUrgencia(p, C),
-        urgencia: calcCaducidadUrgencia(p, C) || calcStockUrgencia(p, C),
+        urgencia: calcCaducidadUrgencia(p, C) || calcStockUrgencia(p, C, stockPorNombre),
       }))
       .filter(p=>p.caducidad)
       .sort((a,b)=>(a.diasCaducidad ?? 9999)-(b.diasCaducidad ?? 9999))
-  ), [productos, C]);
+  ), [productos, C, stockPorNombre]);
 
   const menores = useMemo(() => (
     [...productos].sort((a,b)=>stockDe(a)-stockDe(b)).slice(0, 40)
@@ -146,8 +149,8 @@ export default function ReabastoModule() {
   const filasStock = useMemo(() => (
     alertas.length
       ? alertas
-      : menores.map(p=>({...p, urgencia: calcStockUrgencia(p, C) || { nivel:"OK", col:C.textMid, bg:C.cardDark, icon:"·" }}))
-  ), [alertas, menores, C]);
+      : menores.map(p=>({...p, urgencia: calcStockUrgencia(p, C, stockPorNombre) || { nivel:"OK", col:C.textMid, bg:C.cardDark, icon:"·" }}))
+  ), [alertas, menores, C, stockPorNombre]);
   const filasFuente = filtroUrgencia === "CADUCA" ? colaCaduca : filasStock;
   const surtidoresFiltro = useMemo(() => {
     const m = new Map();
@@ -171,11 +174,11 @@ export default function ReabastoModule() {
   }, [filasTienda, filtroUrgencia, selProds]);
   const listaVacia = !loading && !productos.length;
   const nMarcados = Object.values(selProds).filter((v) => v > 0).length;
-  const nAgotados = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "AGOTADO").length;
-  const nCriticos = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "CRÍTICO").length;
+  const nAgotados = productos.filter((p) => calcStockUrgencia(p, C, stockPorNombre)?.nivel === "AGOTADO").length;
+  const nCriticos = productos.filter((p) => calcStockUrgencia(p, C, stockPorNombre)?.nivel === "CRÍTICO").length;
   const nCaduca = colaCaduca.length;
-  const nBajo = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "BAJO").length;
-  const nPronto = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "PRONTO").length;
+  const nBajo = productos.filter((p) => calcStockUrgencia(p, C, stockPorNombre)?.nivel === "BAJO").length;
+  const nPronto = productos.filter((p) => calcStockUrgencia(p, C, stockPorNombre)?.nivel === "PRONTO").length;
 
   const toggleSel = (id) => {
     const fila = filasAlertas.find(p=>p.id===id) || productos.find(p=>p.id===id) || {};
