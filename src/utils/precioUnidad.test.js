@@ -9,6 +9,7 @@ import {
   margenBrutoPct,
   piezasPorBlisterDefault,
   precioBlisterParaVenta,
+  precioBlisterQueNoQuedo,
   precioUnidadParaVenta,
   productoVendeBlister,
   unidadesAlAbrirCaja,
@@ -119,5 +120,8 @@ test("abrir caja con blister suma tiras; sin blister suma piezas", () => {
   expect(unidadesAlAbrirCaja({ ...gasa })).toEqual({ stock: "unidades", cantidad: 100 });
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 0 }).precio_blister).toBe(60);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 40 }).precio_blister).toBe(40);
+  expect(precioBlisterQueNoQuedo({ venta_unidad: true, precio_blister: 20 }, { precio_blister: 32 })).toBe(32);
+  expect(precioBlisterQueNoQuedo({ venta_unidad: true, precio_blister: 20 }, { precio_blister: 20 })).toBe(null);
+  expect(precioBlisterQueNoQuedo({ venta_unidad: true, precio_blister: 20 }, null)).toBe(null);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, piezas_por_blister: 0, stock_blisters: 2 }).stock_blisters).toBe(0);
 });

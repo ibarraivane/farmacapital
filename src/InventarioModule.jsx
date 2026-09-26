@@ -20,7 +20,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
-import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct, normalizarStockAbierto } from "./utils/precioUnidad";
+import { sugerirPrecioUnidad, sugerirPrecioBlister, aplicarReglaPrecioUnidad, blistersPorCaja, margenBrutoPct, normalizarStockAbierto, precioBlisterQueNoQuedo } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
@@ -1091,6 +1091,21 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
             p_motivo: "Edición manual desde Inventario",
           });
           if (adjErr) err = adjErr;
+        }
+        if (!err && productoFields.venta_unidad) {
+          const { data: quedo } = await supabase
+            .from("productos")
+            .select("precio_blister")
+            .eq("id", form.id)
+            .maybeSingle();
+          const precioQuedo = precioBlisterQueNoQuedo(productoFields, quedo);
+          if (precioQuedo != null) {
+            showToast(
+              `El precio del blister no se guardó: sigue en $${precioQuedo}.`,
+              "error",
+            );
+            return;
+          }
         }
       } else {
         const pdata = {

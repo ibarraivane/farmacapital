@@ -238,3 +238,14 @@ export function aplicarReglaPrecioUnidad(fields) {
     stock_unidades: blisters >= 2 ? abierto.stock_unidades : (parseInt(fields.stock_unidades, 10) || 0),
   };
 }
+
+/**
+ * Tras Guardar: el precio que quedó en la fila, si no es el que se envió.
+ * null si no hay fila o si sí se guardó.
+ */
+export function precioBlisterQueNoQuedo(enviado, fila) {
+  if (!enviado?.venta_unidad || !fila) return null;
+  const esperado = Math.ceil(parseFloat(enviado.precio_blister) || 0);
+  const quedo = Math.ceil(parseFloat(fila.precio_blister) || 0);
+  return quedo === esperado ? null : quedo;
+}
