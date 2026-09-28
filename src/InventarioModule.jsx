@@ -43,6 +43,8 @@ import {
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
+import { guardarMostrarVitrina, leerMostrarVitrina, pasaVistaInventario } from "./lib/inventarioVista";
+import { esBajoPedido } from "./lib/bajoPedido";
 import {
   INV_CHECKBOX_COL_WIDTH,
   INV_COL_WIDTHS_DEFAULT,
@@ -2785,6 +2787,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const [busqueda,        setBusqueda]        = useState("");
   const [buscarFocusNonce, setBuscarFocusNonce] = useState(0);
   const [verInactivos,    setVerInactivos]    = useState(false);
+  /** Suplementos y dermatología (vitrina). Apagados: no distorsionan el medicamento del anaquel. */
+  const [mostrarVitrina, setMostrarVitrina] = useState(() => leerMostrarVitrina(
+    typeof localStorage !== "undefined" ? localStorage : null
+  ));
   const [filtroCategorias, setFiltroCategorias] = useState([]);
   const [filtroAlerta,    setFiltroAlerta]    = useState("todos");
   const [modal,           setModal]           = useState(null);
@@ -2886,8 +2892,16 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   }, []);
 
   // N8: Resetear página al cambiar filtros
-  useEffect(()=>{ setPaginaInv(1); },[filtroCategorias,filtroAlerta,busqueda,verInactivos]);
-  useEffect(()=>{ clearSelection(); },[filtroCategorias,filtroAlerta,busqueda,verInactivos,clearSelection]);
+  useEffect(()=>{ setPaginaInv(1); },[filtroCategorias,filtroAlerta,busqueda,verInactivos,mostrarVitrina]);
+  useEffect(()=>{ clearSelection(); },[filtroCategorias,filtroAlerta,busqueda,verInactivos,mostrarVitrina,clearSelection]);
+
+  const alternarVitrina = useCallback(() => {
+    setMostrarVitrina((v) => {
+      const next = !v;
+      guardarMostrarVitrina(typeof localStorage !== "undefined" ? localStorage : null, next);
+      return next;
+    });
+  }, []);
   const INV_POR_PAG = 50;
 
   const procesarArchivo = (file) => {
@@ -3283,6 +3297,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const stockPorIdentidad = useMemo(() => stockVisiblePorIdentidad(productos), [productos]);
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
+    if (!pasaVistaInventario(p, { mostrarVitrina, filtroAlerta })) return false;
     const cat = pasaFiltroCategorias(p, filtroCategorias);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const cubierto = esCodigoRepetido(p, stockPorIdentidad);
@@ -3299,7 +3314,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       filtroAlerta === "margen_alto" ? esAlertaMargen(auditarMargenProducto(p)) :
       true;
     return cat && alerta;
-  }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe, stockPorIdentidad]);
+  }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe, stockPorIdentidad, mostrarVitrina]);
 
   const filtradosTodosInv = useMemo(() => {
     const q = busqueda.trim();
@@ -3349,16 +3364,21 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     setSelectedIds(filtradosTodosInv.map((p) => p.id));
   };
 
-  const activos    = productos.filter(p => p.activo).length;
+  const catalogoConteo = useMemo(
+    () => (mostrarVitrina ? productos : productos.filter((p) => !esBajoPedido(p))),
+    [productos, mostrarVitrina]
+  );
+  const nVitrina = productos.filter((p) => esBajoPedido(p)).length;
+  const activos    = catalogoConteo.filter(p => p.activo).length;
   // Bajo pedido no cuenta como faltante de góndola.
   const agotadosInv = productos.filter(p => p.activo && !p.bajo_pedido && !esCodigoRepetido(p, stockPorIdentidad) && stockParaComprar(p, stockPorIdentidad) === 0).length;
   const bajoStock  = productos.filter(p => p.activo && !p.bajo_pedido && !esCodigoRepetido(p, stockPorIdentidad) && stockParaComprar(p, stockPorIdentidad) <= (p.stock_minimo??0)).length;
-  const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
-  const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
-  const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
-  const sinFoto = productos.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
-  const margenAlto = productos.filter(p => p.activo && esAlertaMargen(auditarMargenProducto(p))).length;
-  const inactivos  = productos.filter(p => !p.activo).length;
+  const porCaducar = catalogoConteo.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
+  const sinCodigoBarras = catalogoConteo.filter(p => p.activo && productoSinCodigoBarras(p)).length;
+  const sinPrecioVenta = catalogoConteo.filter(p => p.activo && productoSinPrecioVenta(p)).length;
+  const sinFoto = catalogoConteo.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
+  const margenAlto = catalogoConteo.filter(p => p.activo && esAlertaMargen(auditarMargenProducto(p))).length;
+  const inactivos  = catalogoConteo.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
     setModal({ ...p, _focusBarcode: focusBarcode });
@@ -4116,6 +4136,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         <span style={{padding:"4px 10px",borderRadius:8,background:C.bg,border:`1px solid ${C.border}`}}>
           Sin color = normal · Tenue = inactivo
         </span>
+        {!mostrarVitrina && filtroAlerta !== "bajo_pedido" && (
+        <span style={{padding:"4px 10px",borderRadius:8,background:"#fffbeb",color:"#92400e",fontWeight:600}}>
+          Suplementos y dermatología apagados{nVitrina > 0 ? ` (${nVitrina.toLocaleString("es-MX")})` : ""}. No se borran: siguen en «Te lo conseguimos».
+        </span>
+        )}
         {!modoConsulta && (
         <span style={{padding:"4px 10px",borderRadius:8,background:"#eff6ff",color:C.blue}}>
           📊 Referencias de mercado: Inventario → «Referencias de precio»
@@ -4144,7 +4169,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           autoFocus
           focusNonce={buscarFocusNonce}
           placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…"
-          items={productos}
+          items={mostrarVitrina || filtroAlerta === "bajo_pedido" ? productos : catalogoConteo}
           labelKey="nombre"
           subKey="sku"
           searchMode="inventario"
@@ -4171,6 +4196,22 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
           {!modoConsulta && <option value="margen_alto">Margen raro (PVP vs costo)</option>}
         </select>
+        <label
+          title="Prender o apagar en esta pantalla. No se borran del catálogo ni de «Te lo conseguimos»."
+          onClick={alternarVitrina}
+          style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}
+        >
+          <div
+            role="switch"
+            aria-checked={mostrarVitrina}
+            aria-label="Suplementos y dermatología"
+            style={{width:36,height:20,borderRadius:10,cursor:"pointer",
+              background:mostrarVitrina?C.blue:C.border,position:"relative",transition:"background .2s"}}
+          >
+            <div style={{position:"absolute",top:3,left:mostrarVitrina?18:3,width:14,height:14,borderRadius:"50%",background:C.card,transition:"left .2s"}}/>
+          </div>
+          Suplementos y dermatología
+        </label>
         {!modoConsulta && (
         <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}>
           <div onClick={()=>setVerInactivos(v=>!v)} style={{width:36,height:20,borderRadius:10,cursor:"pointer",
