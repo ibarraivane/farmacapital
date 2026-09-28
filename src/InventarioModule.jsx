@@ -43,7 +43,7 @@ import {
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
-import { fmtPrecioInventario, PASO_PRECIO_VENTA, snapPrecioVenta } from "./lib/denominacionPrecio";
+import { cifrasPrecioInventario, fmtPrecioInventario, PASO_PRECIO_VENTA, snapPrecioVenta } from "./lib/denominacionPrecio";
 import { guardarMostrarVitrina, leerMostrarVitrina, pasaVistaInventario } from "./lib/inventarioVista";
 import { aplicarModoCatalogo } from "./lib/catalogoConsulta";
 import { esBajoPedido } from "./lib/bajoPedido";
@@ -403,6 +403,11 @@ function InventarioEditableCell({
         fontSize: 11,
         fontFamily: mono ? "ui-monospace,Menlo,monospace" : undefined,
         boxSizing: "border-box",
+        background: "#ffffff",
+        color: "#0f172a",
+        colorScheme: "light",
+        WebkitTextFillColor: "#0f172a",
+        caretColor: "#0f172a",
       },
     };
     return (
@@ -482,7 +487,7 @@ const INV_COLUMN_DEFS = {
     hint: "Piezas en lotes activos. El clic edita ese mismo número.",
   },
   min: { label: "Mín", hint: "" },
-  precio: { label: "Precio", hint: "Precio de venta, de $0.50 en $0.50." },
+  precio: { label: "Precio", hint: "Precio de venta. Paso mínimo: 0.5 centavos ($0.005)." },
   costo: { label: "Costo", hint: "" },
   margen: { label: "Margen", hint: "Arriba: % de lo que cobraste. Abajo: recargo sobre el costo." },
   cad: { label: "Cad.", hint: "Mes/año del lote más próximo — clic para editar" },
@@ -818,7 +823,7 @@ const exportarCSV = (productos) => {
     return [
     p.sku||"", p.codigo_barras||"", p.nombre||"", p.categoria||"", p.tipo||"generico",
     p.stock??0, p.stock_minimo??0,
-    parseFloat(p.precio||0).toFixed(2), parseFloat(p.costo||0).toFixed(2),
+    cifrasPrecioInventario(p.precio || 0) || "0.00", parseFloat(p.costo||0).toFixed(2),
     p.proveedor||"", p.lote||p.min_lote||"", p.fecha_caducidad||p.min_caducidad_lotes||"",
     p.descuento_pct||0,
     p.marca_comercial||"", p.principio_activo||"", p.concentracion||"",
@@ -1003,7 +1008,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     const e = {};
     if (!(form.nombre ?? "").trim())                           e.nombre       = "Requerido";
     const precioVenta = snapPrecioVenta(form.precio);
-    if (precioVenta == null || precioVenta <= 0) e.precio = "Debe ser mayor a $0, de $0.50 en $0.50";
+    if (precioVenta == null || precioVenta <= 0) e.precio = "Debe ser mayor a $0";
     if (!form.costo||parseFloat(form.costo)<0)         e.costo        = "Debe ser 0 o mayor";
     if (form.stock === "" || form.stock === null)       e.stock        = "Requerido";
     const cb = codigoBarrasLimpio(form.codigo_barras);
@@ -1397,7 +1402,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   borderColor: errors.precio ? C.red : C.border,
                 }}
               />
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>De $0.50 en $0.50.</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>Paso mínimo: 0.5 centavos ($0.005).</div>
               {errors.precio && <span style={{ color: C.red, fontSize: 10 }}>{errors.precio}</span>}
             </div>
             {field("Costo","costo","number",true)}
@@ -3609,14 +3614,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     } else if (field === "precio") {
       const n = snapPrecioVenta(draft);
       if (n == null) {
-        showToast("Precio inválido. El paso es de $0.50.", "error");
+        showToast("Precio/costo inválido.", "error");
         return false;
       }
       patchValue = n;
     } else if (field === "costo") {
       const n = parseFloat(draft);
       if (Number.isNaN(n) || n < 0) {
-        showToast("Costo inválido.", "error");
+        showToast("Precio/costo inválido.", "error");
         return false;
       }
       patchValue = n;
