@@ -43,6 +43,7 @@ import {
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
+import { fmtPrecioInventario, PASO_PRECIO_VENTA, snapPrecioVenta } from "./lib/denominacionPrecio";
 import { guardarMostrarVitrina, leerMostrarVitrina, pasaVistaInventario } from "./lib/inventarioVista";
 import { aplicarModoCatalogo } from "./lib/catalogoConsulta";
 import { esBajoPedido } from "./lib/bajoPedido";
@@ -360,6 +361,8 @@ function InventarioEditableCell({
   onCancel,
   type = "text",
   options,
+  step,
+  min,
   mono = false,
   selectionMode = false,
   readOnly = false,
@@ -417,7 +420,14 @@ function InventarioEditableCell({
             })}
           </select>
         ) : (
-          <input type={type} {...controlProps} />
+          <input
+            type={type}
+            className="farmacapital-field-input"
+            step={step}
+            min={min}
+            inputMode={type === "number" ? "decimal" : undefined}
+            {...controlProps}
+          />
         )}
       </td>
     );
@@ -472,7 +482,7 @@ const INV_COLUMN_DEFS = {
     hint: "Piezas en lotes activos. El clic edita ese mismo número.",
   },
   min: { label: "Mín", hint: "" },
-  precio: { label: "Precio", hint: "" },
+  precio: { label: "Precio", hint: "Precio de venta, de $0.50 en $0.50." },
   costo: { label: "Costo", hint: "" },
   margen: { label: "Margen", hint: "Arriba: % de lo que cobraste. Abajo: recargo sobre el costo." },
   cad: { label: "Cad.", hint: "Mes/año del lote más próximo — clic para editar" },
@@ -769,7 +779,7 @@ const parsearCSV = (texto) => {
       tipo:          row.tipo || "generico",
       stock:         parseInt(row.stock) || 0,
       stock_minimo:  parseInt(row.stock_minimo) || 0,
-      precio:        parseFloat(row.precio_venta || row.precio) || 0,
+      precio:        snapPrecioVenta(row.precio_venta || row.precio) || 0,
       costo:         parseFloat(row.costo) || 0,
       proveedor:     row.proveedor || null,
       lote:          row.lote || null,
@@ -992,7 +1002,8 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   const validate = () => {
     const e = {};
     if (!(form.nombre ?? "").trim())                           e.nombre       = "Requerido";
-    if (!form.precio||parseFloat(form.precio)<=0) e.precio = "Debe ser mayor a $0";
+    const precioVenta = snapPrecioVenta(form.precio);
+    if (precioVenta == null || precioVenta <= 0) e.precio = "Debe ser mayor a $0, de $0.50 en $0.50";
     if (!form.costo||parseFloat(form.costo)<0)         e.costo        = "Debe ser 0 o mayor";
     if (form.stock === "" || form.stock === null)       e.stock        = "Requerido";
     const cb = codigoBarrasLimpio(form.codigo_barras);
@@ -1016,7 +1027,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         sku: (form.sku ?? "").trim() || null,
         codigo_barras: codigoBarrasLimpio(form.codigo_barras) || null,
         categoria: form.categoria,
-        precio: parseFloat(form.precio),
+        precio: snapPrecioVenta(form.precio),
         costo: costoNum,
         stock_minimo: form.stock_minimo !== "" ? parseInt(form.stock_minimo) : 0,
         tipo: form.tipo,
@@ -1366,7 +1377,29 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
             })()}
           </div>
           <div>
-            {field("Precio de venta","precio","number",true)}
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Precio de venta<span style={{ color: C.red }}> *</span></label>
+              <input
+                type="number"
+                className="farmacapital-field-input"
+                min="0"
+                step={PASO_PRECIO_VENTA}
+                inputMode="decimal"
+                value={form.precio}
+                onChange={(e) => set("precio", e.target.value)}
+                style={{
+                  ...inputStyle,
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  WebkitTextFillColor: "#0f172a",
+                  caretColor: "#0f172a",
+                  colorScheme: "light",
+                  borderColor: errors.precio ? C.red : C.border,
+                }}
+              />
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>De $0.50 en $0.50.</div>
+              {errors.precio && <span style={{ color: C.red, fontSize: 10 }}>{errors.precio}</span>}
+            </div>
             {field("Costo","costo","number",true)}
             {(() => {
               const ay = ayudaRecargoVsMargen(form.costo);
@@ -2576,11 +2609,13 @@ function renderInventarioColumnCell(colId, ctx) {
           field="precio"
           value={String(parseFloat(p.precio || 0))}
           type="number"
+          step={PASO_PRECIO_VENTA}
+          min="0"
           display={
             productoSinPrecioVenta(p) ? (
               <span style={{ color: C.red, fontWeight: 700, fontSize: 10 }}>No vendible</span>
             ) : (
-              `$${parseFloat(p.precio || 0).toFixed(2)}`
+              fmtPrecioInventario(p.precio)
             )
           }
           tdStyle={{ padding: "8px 12px", color: C.text, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("precio") }}
@@ -3571,10 +3606,17 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         showToast("Código de barras guardado", "success");
         return true;
       }
-    } else if (field === "precio" || field === "costo") {
+    } else if (field === "precio") {
+      const n = snapPrecioVenta(draft);
+      if (n == null) {
+        showToast("Precio inválido. El paso es de $0.50.", "error");
+        return false;
+      }
+      patchValue = n;
+    } else if (field === "costo") {
       const n = parseFloat(draft);
       if (Number.isNaN(n) || n < 0) {
-        showToast("Precio/costo inválido.", "error");
+        showToast("Costo inválido.", "error");
         return false;
       }
       patchValue = n;
