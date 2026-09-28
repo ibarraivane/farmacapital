@@ -73,13 +73,16 @@ export default function ReabastoModule() {
       supabase.from("producto_precios_referencia_actual").select("*"),
     ]);
 
-    if (prodRes.error) {
+    if (prodRes.error && !(prodRes.data || []).length) {
       if (!silencioso) {
         showToast("No se pudo cargar inventario: " + prodRes.error.message, "error");
         setProductos([]);
         setLoading(false);
       }
       return;
+    }
+    if (prodRes.error && !silencioso) {
+      showToast("El catálogo quedó incompleto: " + prodRes.error.message, "warning");
     }
     if (lotesRes.error && !silencioso) {
       showToast("No se pudieron cargar lotes PEPS: " + lotesRes.error.message, "warning");
