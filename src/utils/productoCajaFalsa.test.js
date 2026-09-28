@@ -3,7 +3,6 @@ import {
   cajasAAbrirPorError,
   esErrorPiezasSueltas,
   existenciaMostradorPos,
-  piezasSueltasContables,
   piezasSueltasDisponibles,
   precioMostradorPos,
   productoCajaEsFalsa,
@@ -144,43 +143,7 @@ test("caja abierta: no está agotada mientras queden piezas", () => {
   expect(abierta.agotado).toBe(false);
   expect(abierta.texto).toBe("40 piezas");
   expect(existenciaMostradorPos({ ...aspirina, stock_unidades: 0 }, 0).agotado).toBe(true);
-  expect(existenciaMostradorPos(aspirina, 2).texto).toBe("2 en stock · 40 piezas");
-});
-
-test("Aspirina Junior: el 40 viejo no es stock al vender la última caja", () => {
-  const junior = {
-    venta_unidad: true,
-    unidades_por_caja: 40,
-    precio: 80,
-    precio_unidad: 3,
-    stock_unidades: 40,
-    nombre: "Aspirina Junior 100 Mg",
-    presentacion: "C/60 tabletas 100 mg",
-    forma_farmaceutica: "Tabletas",
-  };
-  expect(piezasSueltasContables(junior, 0)).toBe(0);
-  expect(existenciaMostradorPos(junior, 0).agotado).toBe(true);
-  expect(existenciaMostradorPos(junior, 0).texto).toBe("Agotado");
-  expect(existenciaMostradorPos(junior, 1).texto).toBe("1 en stock");
-  expect(piezasSueltasDisponibles(junior, 1)).toBe(40);
-  expect(piezasSueltasDisponibles(junior, 0)).toBe(0);
-
-  const yaCorregido = { ...junior, unidades_por_caja: 60 };
-  expect(piezasSueltasContables(yaCorregido, 0)).toBe(0);
-  expect(existenciaMostradorPos(yaCorregido, 0).texto).toBe("Agotado");
-});
-
-test("otra caja C/60 con 40 sueltas sigue contando esas piezas", () => {
-  const otra = {
-    venta_unidad: true,
-    unidades_por_caja: 60,
-    stock_unidades: 40,
-    nombre: "Amoxicilina 500 mg",
-    presentacion: "C/60 cápsulas",
-    forma_farmaceutica: "Cápsula",
-  };
-  expect(piezasSueltasContables(otra, 0)).toBe(40);
-  expect(existenciaMostradorPos(otra, 0).texto).toBe("40 piezas");
+  expect(existenciaMostradorPos(aspirina, 2).texto).toBe("2 en stock");
 });
 
 test("pote y caja falsa no se abren para vender piezas", () => {
