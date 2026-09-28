@@ -7168,8 +7168,6 @@ export default function TiendaFarmaCapital(){
   // Refresh silencioso (catálogo vivo): actualiza lista/detalle/carrito, no cambia de página.
   // La vitrina completa solo baja en /conseguir. En el resto, una muestra corta para el home.
   const recargarProductosRef = useRef(async () => {});
-  const pageRef = useRef(page);
-  pageRef.current = page;
   const vitrinaCompletaRef = useRef(page === "conseguir");
   const vitrinaCacheRef = useRef([]);
   useEffect(()=>{
