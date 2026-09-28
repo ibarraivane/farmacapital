@@ -1,4 +1,4 @@
-import { FILTRO_ANAQUEL, aplicarModoCatalogo, traerProductosActivos } from "./catalogoConsulta";
+import { FILTRO_ANAQUEL, PRODUCTOS_SELECT_PUBLICO, aplicarModoCatalogo, traerProductosActivos } from "./catalogoConsulta";
 
 function cliente(filas) {
   const llamadas = [];
@@ -34,6 +34,9 @@ test("el anaquel no pide la vitrina", async () => {
   expect(error).toBeNull();
   expect(data).toHaveLength(2);
   expect(db.llamadas).toContainEqual(["or", FILTRO_ANAQUEL]);
+  expect(db.llamadas).toContainEqual(["select", PRODUCTOS_SELECT_PUBLICO]);
+  expect(PRODUCTOS_SELECT_PUBLICO.split(",")).not.toContain("costo");
+  expect(PRODUCTOS_SELECT_PUBLICO).not.toBe("*");
   expect(db.llamadas.some((c) => c[0] === "eq" && c[1] === "bajo_pedido")).toBe(false);
 });
 

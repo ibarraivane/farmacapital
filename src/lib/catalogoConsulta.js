@@ -8,6 +8,22 @@
 
 export const PAGE_CATALOGO = 1000;
 
+/**
+ * Columnas que la llave pública puede leer.
+ * `costo` no va: un `select=*` (o cualquier select que lo incluya) responde
+ * 42501 «permission denied for table productos».
+ */
+export const PRODUCTOS_SELECT_PUBLICO = [
+  "id", "nombre", "sku", "codigo_barras", "categoria", "subcategoria", "descripcion", "tipo",
+  "presentacion", "marca", "principio_activo", "concentracion", "forma_farmaceutica",
+  "denominacion_generica", "denominacion_distintiva", "laboratorio", "ubicacion_texto",
+  "precio", "precio_marca", "precio_unidad", "precio_blister", "descuento_pct", "descuento_mxn",
+  "stock", "stock_minimo", "stock_unidades", "stock_blisters", "activo", "visible_tienda",
+  "bajo_pedido", "requiere_receta", "controlado", "grupo_controlado", "venta_unidad",
+  "unidades_por_caja", "piezas_por_blister", "imagen_url", "imagen_mobile_url",
+  "created_at", "updated_at",
+].join(",");
+
 /** PostgREST: null y false son anaquel. true es la vitrina. */
 export const FILTRO_ANAQUEL = "bajo_pedido.eq.false,bajo_pedido.is.null";
 
@@ -24,7 +40,7 @@ export function aplicarModoCatalogo(q, modo = "anaquel") {
  */
 export async function traerProductosActivos(client, {
   modo = "anaquel",
-  select = "*",
+  select = PRODUCTOS_SELECT_PUBLICO,
   limite = 0,
   pageSize = PAGE_CATALOGO,
   order = "id",

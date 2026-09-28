@@ -9,9 +9,13 @@ import { aplicarModoCatalogo } from "./catalogoConsulta";
 
 export const PRODUCTOS_POR_PAGINA = 1000;
 
-/** Columnas que sí existen en `productos`. No incluir `proveedor`. */
+/**
+ * Columnas de reabasto. Sin `costo`: esa columna no tiene GRANT para anon
+ * y tumba el select entero («permission denied for table productos»).
+ * El costo llega por `empleado_listar_costos_productos`.
+ */
 export const PRODUCTOS_SELECT_HUB =
-  "id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,costo,activo,marca,presentacion,forma_farmaceutica";
+  "id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,forma_farmaceutica";
 
 export const PRODUCTOS_SELECT_LOTES =
   "id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria,activo";
@@ -99,6 +103,51 @@ export function patchProductoSinColumnaProveedor(patch) {
   return next;
 }
 
+/** El catálogo ya trajo `productos.costo`. null/"" es “aún no llegó”, no $0. */
+export function costoCatalogoConocido(p) {
+  return p != null && p.costo != null && p.costo !== "";
+}
+
+export function mapaCostosDesdeRpc(data, error) {
+  if (error) {
+    const msg = String(error.message || "");
+    const falta = error.code === "PGRST202"
+      || /could not find the function/i.test(msg)
+      || /schema cache/i.test(msg);
+    return { map: new Map(), omitido: falta, error: falta ? null : error };
+  }
+  const map = new Map();
+  for (const row of filasJson(data)) {
+    const id = Number(row?.id);
+    if (!Number.isFinite(id)) continue;
+    map.set(id, row.costo);
+  }
+  return { map, omitido: false, error: null };
+}
+
+export function conCostoCatalogo(p, costos) {
+  if (!p || !costos || costos.size === 0) return p;
+  const id = Number(p.id);
+  if (!costos.has(id)) return p;
+  return { ...p, costo: costos.get(id) };
+}
+
+export function aplicarCostosCatalogo(filas, costos) {
+  if (!costos || costos.size === 0) return filas || [];
+  return (filas || []).map((p) => conCostoCatalogo(p, costos));
+}
+
+/** Admin/gerente. Si el SQL aún no está en Supabase, devuelve mapa vacío. */
+export async function fetchCostosPorId(sessionToken) {
+  if (!sessionToken) return new Map();
+  const { data, error } = await supabase.rpc("empleado_listar_costos_productos", {
+    p_session_token: sessionToken,
+  });
+  const parsed = mapaCostosDesdeRpc(data, error);
+  if (parsed.error) console.warn("[Inventario] costos:", parsed.error.message);
+  return parsed.map;
+}
+
 export function filasJson(data) {
   let raw = data;
   if (raw == null) return [];
@@ -132,6 +181,8 @@ export async function fetchProductosPaginados({
   activosSolo = true,
   order = "nombre",
   incluirVitrina = false,
+  sessionToken = null,
+  conCosto = false,
 } = {}) {
   const filas = [];
   for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
@@ -147,7 +198,9 @@ export async function fetchProductosPaginados({
     filas.push(...(data || []));
     if ((data || []).length < PRODUCTOS_POR_PAGINA) break;
   }
-  return { data: filas, error: null };
+  if (!conCosto) return { data: filas, error: null };
+  const costos = await fetchCostosPorId(sessionToken);
+  return { data: aplicarCostosCatalogo(filas, costos), error: null };
 }
 
 export async function fetchLotesInventario(sessionToken) {

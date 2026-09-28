@@ -49,7 +49,9 @@ import AccionesPrecioRevision from "./components/AccionesPrecioRevision";
 import { costoComparacionDe, compraVigenteDe } from "./lib/ultimaCompra";
 import {
   agruparLotesPorProducto,
+  aplicarCostosCatalogo,
   enriquecerProductoConLotes,
+  fetchCostosPorId,
   fetchLotesInventario,
 } from "./lib/inventarioHubData";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
@@ -1037,19 +1039,24 @@ export default function PreciosReferenciaModule() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const prodRes = await supabase
-      .from("productos")
-      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
-      .eq("activo", true)
-      .or("bajo_pedido.eq.false,bajo_pedido.is.null")
-      .order("nombre");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const [prodRes, costos] = await Promise.all([
+      supabase
+        .from("productos")
+        .select("id,sku,nombre,categoria,tipo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
+        .eq("activo", true)
+        .or("bajo_pedido.eq.false,bajo_pedido.is.null")
+        .order("nombre"),
+      fetchCostosPorId(tok),
+    ]);
 
     if (prodRes.error) {
       showToast("Error cargando productos: " + prodRes.error.message, "error");
       setLoading(false);
       return false;
     }
-    setProductos(prodRes.data || []);
+    const productosConCosto = aplicarCostosCatalogo(prodRes.data || [], costos);
+    setProductos(productosConCosto);
 
     let refRows = [];
     const viewRes = await supabase.from("producto_precios_referencia_actual").select("*");
@@ -1075,13 +1082,12 @@ export default function PreciosReferenciaModule() {
     setRefsByProduct(buildReferenciasPorProducto(refRows));
     setFechasFuente(fechasActualizacionPorFuente(refRows));
 
-    const tok = sessionStorage.getItem("farmacapital_session_token");
     let lotesByProducto = {};
     if (tok) {
       const { data: lotes } = await fetchLotesInventario(tok);
       lotesByProducto = agruparLotesPorProducto(lotes);
     }
-    setProductos((prodRes.data || []).map((p) => enriquecerProductoConLotes(p, lotesByProducto[p.id])));
+    setProductos(productosConCosto.map((p) => enriquecerProductoConLotes(p, lotesByProducto[p.id])));
     const loaded = await cargarRevisionPrecios(supabase);
     setRevision(loaded.state);
     if (loaded.persistirEpoch) await guardarRevisionPrecios(supabase, loaded.state);

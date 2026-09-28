@@ -37,6 +37,9 @@ import {
   diasParaCaducar,
   enriquecerProductoConLotes,
   fetchLotesInventario,
+  conCostoCatalogo,
+  costoCatalogoConocido,
+  fetchCostosPorId,
   patchProductoSinColumnaProveedor,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
@@ -45,7 +48,7 @@ import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./l
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
 import { fmtPrecioInventario, PASO_PRECIO_VENTA, snapPrecioVenta } from "./lib/denominacionPrecio";
 import { guardarMostrarVitrina, leerMostrarVitrina, pasaVistaInventario } from "./lib/inventarioVista";
-import { aplicarModoCatalogo } from "./lib/catalogoConsulta";
+import { aplicarModoCatalogo, PRODUCTOS_SELECT_PUBLICO } from "./lib/catalogoConsulta";
 import { esBajoPedido } from "./lib/bajoPedido";
 import {
   INV_CHECKBOX_COL_WIDTH,
@@ -818,7 +821,8 @@ const exportarCSV = (productos) => {
     return [
     p.sku||"", p.codigo_barras||"", p.nombre||"", p.categoria||"", p.tipo||"generico",
     p.stock??0, p.stock_minimo??0,
-    parseFloat(p.precio||0).toFixed(2), parseFloat(p.costo||0).toFixed(2),
+    parseFloat(p.precio||0).toFixed(2),
+    costoCatalogoConocido(p) ? parseFloat(p.costo).toFixed(2) : "",
     p.proveedor||"", p.lote||p.min_lote||"", p.fecha_caducidad||p.min_caducidad_lotes||"",
     p.descuento_pct||0,
     p.marca_comercial||"", p.principio_activo||"", p.concentracion||"",
@@ -918,6 +922,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
       ...(initial || EMPTY),
       imagen_url: (initial || EMPTY).imagen_url || "",
       imagen_mobile_url: (initial || EMPTY).imagen_mobile_url || "",
+      costo: costoCatalogoConocido(initial) ? initial.costo : (initial?.id ? "" : (initial?.costo ?? "")),
       _focusBarcode: Boolean(initial?._focusBarcode),
     };
     for (const k of ["nombre", "sku", "codigo_barras", "proveedor", "lote"]) {
@@ -1004,7 +1009,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     if (!(form.nombre ?? "").trim())                           e.nombre       = "Requerido";
     const precioVenta = snapPrecioVenta(form.precio);
     if (precioVenta == null || precioVenta <= 0) e.precio = "Debe ser mayor a $0, de $0.50 en $0.50";
-    if (!form.costo||parseFloat(form.costo)<0)         e.costo        = "Debe ser 0 o mayor";
+    if (!form.costo||parseFloat(form.costo)<0) {
+      e.costo = initial?.id && !costoCatalogoConocido(initial)
+        ? "Aún no llega el costo. Aplica sql/patch_inventario_costos_sesion_20260928.sql y recarga."
+        : "Debe ser 0 o mayor";
+    }
     if (form.stock === "" || form.stock === null)       e.stock        = "Requerido";
     const cb = codigoBarrasLimpio(form.codigo_barras);
     if (cb && (cb.length < 8 || cb.length > 14)) {
@@ -1065,6 +1074,9 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           imagen_url: urlNow || null,
           imagen_mobile_url: urlNow || null,
         });
+        if (!costoCatalogoConocido(initial) && (form.costo === "" || form.costo == null)) {
+          delete patch.costo;
+        }
         const { error: editErr } = await supabase.rpc("admin_editar_producto", {
           p_session_token: tok,
           p_producto_id: form.id,
@@ -2647,14 +2659,14 @@ function renderInventarioColumnCell(colId, ctx) {
           {...inlineCellProps}
           productId={p.id}
           field="costo"
-          value={String(parseFloat(p.costo || 0))}
+          value={costoCatalogoConocido(p) ? String(parseFloat(p.costo)) : ""}
           type="number"
-          display={`$${parseFloat(p.costo || 0).toFixed(2)}`}
+          display={costoCatalogoConocido(p) ? `$${parseFloat(p.costo).toFixed(2)}` : "—"}
           tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("costo") }}
         />
       );
     case "margen": {
-      const audit = auditarMargenProducto(p);
+      const audit = costoCatalogoConocido(p) ? auditarMargenProducto(p) : { accion: "ok" };
       const recargo = ctx.mgnRecargo;
       return (
         <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg, ...w("margen") }}>
@@ -3284,7 +3296,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
         let q = supabase
           .from("productos")
-          .select("*")
+          .select(PRODUCTOS_SELECT_PUBLICO)
           .order("nombre")
           .order("id")
           .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
@@ -3316,9 +3328,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       return enriched;
     }
 
-    const [{ data, error }, lotesByProducto] = await Promise.all([
+    const [{ data, error }, lotesByProducto, costosPorId] = await Promise.all([
       traerTodos(),
       fetchLotesPorProducto(tok, { omitCosto: false }),
+      fetchCostosPorId(tok),
     ]);
     if (error) {
       if (!silencioso) {
@@ -3328,7 +3341,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       }
       return null;
     }
-    const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
+    const enriched = (data || []).map((p) => enrichProductoConLotes(
+      conCostoCatalogo(p, costosPorId),
+      lotesByProducto[p.id],
+    ));
     setProductos(enriched);
     if (!silencioso) setLoading(false);
     return enriched;
@@ -3378,7 +3394,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
       filtroAlerta === "sin_foto" ? productoSinFoto(p, fotoCatalogoDe) :
-      filtroAlerta === "margen_alto" ? esAlertaMargen(auditarMargenProducto(p)) :
+      filtroAlerta === "margen_alto" ? (costoCatalogoConocido(p) && esAlertaMargen(auditarMargenProducto(p))) :
       true;
     return cat && alerta;
   }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe, stockPorIdentidad, mostrarVitrina]);
@@ -3444,7 +3460,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const sinCodigoBarras = catalogoConteo.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = catalogoConteo.filter(p => p.activo && productoSinPrecioVenta(p)).length;
   const sinFoto = catalogoConteo.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
-  const margenAlto = catalogoConteo.filter(p => p.activo && esAlertaMargen(auditarMargenProducto(p))).length;
+  const margenAlto = catalogoConteo.filter(p => p.activo && costoCatalogoConocido(p) && esAlertaMargen(auditarMargenProducto(p))).length;
   const inactivos  = catalogoConteo.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
@@ -4549,11 +4565,16 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                 const proxCad = p.min_caducidad_lotes || resolverLoteCaducidadProducto(p)?.fecha_caducidad;
                 const dias    = diasParaCaducar(proxCad);
                 const nearCad = esPorCaducar(dias);
-                const mgnRes  = resumenRecargoYMargen(p.precio, p.costo);
+                const costoOk = costoCatalogoConocido(p);
+                const mgnRes  = costoOk
+                  ? resumenRecargoYMargen(p.precio, p.costo)
+                  : { margenLabel: "—", recargoLabel: "—", recargoPct: null };
                 const mgn     = mgnRes.margenLabel;
                 const mgnRecargo = mgnRes.recargoLabel;
-                const auditMgn = auditarMargenProducto(p);
-                const mgnCol  = auditMgn.accion === "bajar" || auditMgn.accion === "bajo_costo"
+                const auditMgn = costoOk ? auditarMargenProducto(p) : { accion: "ok" };
+                const mgnCol  = !costoOk
+                  ? C.textMid
+                  : auditMgn.accion === "bajar" || auditMgn.accion === "bajo_costo"
                   ? C.red
                   : auditMgn.accion === "revisar_costo"
                     ? C.amber

@@ -1,7 +1,13 @@
+import { PRODUCTOS_SELECT_PUBLICO } from "./catalogoConsulta";
 import {
+  PRODUCTOS_SELECT_HUB,
   agruparLotesPorProducto,
+  aplicarCostosCatalogo,
+  conCostoCatalogo,
+  costoCatalogoConocido,
   filasJson,
   loteObjetivoProveedor,
+  mapaCostosDesdeRpc,
   patchProductoSinColumnaProveedor,
   productoIdDeLote,
   proveedorDesdeLotes,
@@ -49,6 +55,30 @@ test("la celda de stock y el clic usan los lotes, no la columna desfasada", () =
   expect(stockObjetivoAjusteInline({ stock: 4, stock_peps: 4 }, 3)).toBe(3);
   expect(stockVisibleInventario({ stock: 4 })).toBe(4);
   expect(stockVisibleInventario({ stock: 4, stock_peps: 0 })).toBe(0);
+});
+
+test("el catálogo REST no pide costo ni select *", () => {
+  for (const select of [PRODUCTOS_SELECT_HUB, PRODUCTOS_SELECT_PUBLICO]) {
+    expect(select.split(",")).not.toContain("costo");
+    expect(select).not.toBe("*");
+  }
+});
+
+test("el costo del RPC se pega por id y el vacío no es $0", () => {
+  expect(costoCatalogoConocido({ costo: 0 })).toBe(true);
+  expect(costoCatalogoConocido({ costo: null })).toBe(false);
+  expect(costoCatalogoConocido({})).toBe(false);
+
+  const faltaba = mapaCostosDesdeRpc(null, { code: "PGRST202", message: "Could not find the function" });
+  expect(faltaba.omitido).toBe(true);
+  expect(faltaba.map.size).toBe(0);
+
+  const parsed = mapaCostosDesdeRpc([{ id: "12", costo: 9.5 }, { id: 13, costo: 0 }], null);
+  expect(conCostoCatalogo({ id: 12, nombre: "A" }, parsed.map)).toEqual({ id: 12, nombre: "A", costo: 9.5 });
+  expect(aplicarCostosCatalogo([{ id: 13 }, { id: 99, costo: 4 }], parsed.map)).toEqual([
+    { id: 13, costo: 0 },
+    { id: 99, costo: 4 },
+  ]);
 });
 
 test("el patch de ficha no manda productos.proveedor", () => {
