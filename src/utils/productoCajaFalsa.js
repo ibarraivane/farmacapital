@@ -1,5 +1,6 @@
 /** Caja de catálogo que en el mostrador se vende suelta (pote, C/1, jeringa). */
 
+import { cuentaPiezasCajaMostrador } from "./cajaAbiertaMostrador";
 import { precioUnidadParaVenta, productoVendeBlister } from "./precioUnidad";
 
 function num(v) {
@@ -55,13 +56,42 @@ export function stockMostradorPos(p, stockCajas) {
   return num(stockCajas);
 }
 
+function piezasEnPresentacion(p) {
+  return Math.floor(cuentaPiezasCajaMostrador({ ...p, unidades_por_caja: 0 }));
+}
+
+/**
+ * El contador suelto trae el empaque, no tabletas que se hayan vendido.
+ * Junior es C/60 y `unidades_por_caja` estuvo en 40: al vender la última
+ * caja el POS decía “40 piezas” con el anaquel vacío.
+ */
+function contadorEsEmpaqueViejo(p, sueltas) {
+  const upc = Math.floor(num(p?.unidades_por_caja));
+  const deFicha = piezasEnPresentacion(p);
+  if (upc >= 2 && deFicha >= 2 && sueltas === upc && sueltas !== deFicha) return true;
+  const ficha = `${p?.nombre || ""} ${p?.presentacion || ""}`.toLowerCase();
+  if (/\baspirina junior\b/.test(ficha) && deFicha === 60 && sueltas === 40) return true;
+  return false;
+}
+
+/**
+ * Piezas del contador suelto que sí se pueden cobrar.
+ */
+export function piezasSueltasContables(p, _stockCajas) {
+  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  if (sueltas <= 0) return 0;
+  if (contadorEsEmpaqueViejo(p, sueltas)) return 0;
+  return sueltas;
+}
+
 /**
  * Agotado solo cuando no queda caja, blister ni pieza suelta.
  * Con la caja ya abierta, el letrero cuenta las piezas (no “0 en stock”).
+ * Si además hay cajas cerradas, se ven las dos existencias.
  */
 export function existenciaMostradorPos(p, stockCajas) {
   const cajas = Math.max(0, Math.floor(num(stockCajas)));
-  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  const sueltas = piezasSueltasContables(p, cajas);
   const blisters = Math.max(0, Math.floor(num(p?.stock_blisters)));
   const vendeBlister = productoVendeBlister(p);
 
@@ -83,6 +113,13 @@ export function existenciaMostradorPos(p, stockCajas) {
   }
   if (sinCajas && blisters > 0) {
     return { agotado: false, etiqueta: `${blisters} blister`, texto: `${blisters} blister(s)` };
+  }
+  if (!sinCajas && sueltas > 0) {
+    return {
+      agotado: false,
+      etiqueta: `${cajas} caja · ${sueltas} pzas`,
+      texto: `${cajas} en stock · ${sueltas} piezas`,
+    };
   }
   return { agotado: false, etiqueta: `${cajas} disp.`, texto: `${cajas} en stock` };
 }
@@ -114,7 +151,7 @@ export function puedeAbrirCajaParaPiezas(p) {
 
 /** Piezas que se pueden vender: sueltas más lo que sale de abrir cajas cerradas. */
 export function piezasSueltasDisponibles(p, stockCajas) {
-  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  const sueltas = piezasSueltasContables(p, stockCajas);
   if (!puedeAbrirCajaParaPiezas(p)) return sueltas;
   const cajas = Math.max(0, Math.floor(num(stockCajas)));
   const upc = Math.max(2, Math.floor(num(p.unidades_por_caja)));
@@ -123,7 +160,7 @@ export function piezasSueltasDisponibles(p, stockCajas) {
 
 /** Cuántas cajas hay que abrir para cubrir `piezasPedidas`. */
 export function cajasAAbrirParaPiezas(p, stockCajas, piezasPedidas) {
-  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  const sueltas = piezasSueltasContables(p, stockCajas);
   const pedidas = Math.max(0, Math.floor(num(piezasPedidas)));
   if (pedidas <= sueltas) return 0;
   if (!puedeAbrirCajaParaPiezas(p)) return 0;
