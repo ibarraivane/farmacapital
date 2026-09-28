@@ -1,11 +1,13 @@
 -- Inventario · 28-sep-2026
 --
--- La llave pública ya no puede leer productos.costo. Un select=* (o cualquier
--- select que pida esa columna) responde:
+-- Respaldo si la base vuelve a cerrar productos.costo para anon.
+-- Un select que pide esa columna sin GRANT responde:
 --   permission denied for table productos
+-- y el catálogo se queda vacío.
 --
--- No se vuelve a dar GRANT de costo a anon: la tienda usa la misma llave.
--- El catálogo de mostrador lo pide por sesión. Solo admin y gerente lo ven.
+-- No se da GRANT de costo a anon: la tienda usa la misma llave.
+-- Mientras la columna se pueda leer, el anaquel la pide directo.
+-- Si no, el mostrador la pide por esta sesión. Solo admin y gerente la ven.
 -- El vendedor recibe [].
 --
 -- Pegar en Supabase → SQL Editor → Run. Idempotente.

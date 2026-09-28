@@ -9,9 +9,9 @@
 export const PAGE_CATALOGO = 1000;
 
 /**
- * Columnas que la llave pública puede leer.
- * `costo` no va: un `select=*` (o cualquier select que lo incluya) responde
- * 42501 «permission denied for table productos».
+ * Columnas de la tienda. `costo` no va: el anaquel lo pide en su propio select.
+ * Si la base vuelve a cerrar esa columna, un select que la incluya responde
+ * 42501 y tumba la consulta entera. La vitrina pública no lo necesita.
  */
 export const PRODUCTOS_SELECT_PUBLICO = [
   "id", "nombre", "sku", "codigo_barras", "categoria", "subcategoria", "descripcion", "tipo",

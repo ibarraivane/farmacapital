@@ -311,7 +311,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const [provRes, prodRes] = await Promise.all([
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
       fetchProductosPaginados({
-        select: "id,nombre,sku,codigo_barras,descripcion,activo,precio,tipo",
+        select: "id,nombre,sku,codigo_barras,descripcion,activo,costo,precio,tipo",
         activosSolo: true,
         order: "nombre",
         incluirVitrina: true,
@@ -340,7 +340,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const tok = sessionTok();
     if (!tok) return;
     const prodRes = await fetchProductosPaginados({
-      select: "id,nombre,sku,codigo_barras,descripcion,activo,precio,tipo",
+      select: "id,nombre,sku,codigo_barras,descripcion,activo,costo,precio,tipo",
       activosSolo: true,
       order: "nombre",
       incluirVitrina: true,

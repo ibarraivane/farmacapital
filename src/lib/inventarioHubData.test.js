@@ -5,12 +5,15 @@ import {
   aplicarCostosCatalogo,
   conCostoCatalogo,
   costoCatalogoConocido,
+  errorEsPermisoDenegado,
   filasJson,
+  filasTraenCosto,
   loteObjetivoProveedor,
   mapaCostosDesdeRpc,
   patchProductoSinColumnaProveedor,
   productoIdDeLote,
   proveedorDesdeLotes,
+  selectSinCosto,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
 } from "./inventarioHubData";
@@ -57,11 +60,17 @@ test("la celda de stock y el clic usan los lotes, no la columna desfasada", () =
   expect(stockVisibleInventario({ stock: 4, stock_peps: 0 })).toBe(0);
 });
 
-test("el catálogo REST no pide costo ni select *", () => {
-  for (const select of [PRODUCTOS_SELECT_HUB, PRODUCTOS_SELECT_PUBLICO]) {
-    expect(select.split(",")).not.toContain("costo");
-    expect(select).not.toBe("*");
-  }
+test("la tienda no pide costo; el anaquel sí, y sabe reintentar sin él", () => {
+  expect(PRODUCTOS_SELECT_PUBLICO.split(",")).not.toContain("costo");
+  expect(PRODUCTOS_SELECT_PUBLICO).not.toBe("*");
+  expect(PRODUCTOS_SELECT_HUB.split(",")).toContain("costo");
+  expect(selectSinCosto(PRODUCTOS_SELECT_HUB).split(",")).not.toContain("costo");
+  expect(selectSinCosto("id,nombre")).toBeNull();
+  expect(errorEsPermisoDenegado({ code: "42501", message: "permission denied for table productos" })).toBe(true);
+  expect(errorEsPermisoDenegado({ message: "column does not exist" })).toBe(false);
+  expect(filasTraenCosto([{ id: 1, costo: 4 }])).toBe(true);
+  expect(filasTraenCosto([{ id: 1 }])).toBe(false);
+  expect(filasTraenCosto([])).toBe(false);
 });
 
 test("el costo del RPC se pega por id y el vacío no es $0", () => {

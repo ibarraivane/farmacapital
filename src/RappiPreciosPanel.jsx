@@ -50,7 +50,7 @@ import {
 } from "./lib/preciosRevision";
 import AccionesPrecioRevision from "./components/AccionesPrecioRevision";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
-import { aplicarCostosCatalogo, fetchCostosPorId } from "./lib/inventarioHubData";
+import { aplicarCostosCatalogo, errorEsPermisoDenegado, fetchCostosPorId, filasTraenCosto } from "./lib/inventarioHubData";
 import { filasPartnerComoCatalogo } from "./lib/rappiPlantilla";
 
 function botTsFilaRappi(refs) {
@@ -230,21 +230,23 @@ export default function RappiPreciosPanel() {
     const silent = opts.silent === true;
     if (!silent) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const [prodRes, filasCatalogo, costos] = await Promise.all([
-      supabase
-        .from("productos")
-        .select("id,sku,nombre,categoria,tipo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,codigo_barras")
-        .eq("activo", true)
-        .order("nombre"),
+    const selectRappi = "id,sku,nombre,categoria,tipo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,codigo_barras";
+    const pedirProductos = (select) => supabase.from("productos").select(select).eq("activo", true).order("nombre");
+    const [prodPrimero, filasCatalogo] = await Promise.all([
+      pedirProductos(`${selectRappi},costo`),
       cargarFilasCatalogoRappi(),
-      fetchCostosPorId(tok),
     ]);
+    let prodRes = prodPrimero;
+    if (errorEsPermisoDenegado(prodRes.error)) prodRes = await pedirProductos(selectRappi);
     if (prodRes.error) {
       showToast("Error cargando productos: " + prodRes.error.message, "error");
       setLoading(false);
       return false;
     }
-    const list = enriquecerListaConPartner(aplicarCostosCatalogo(prodRes.data || [], costos));
+    const productosConCosto = filasTraenCosto(prodRes.data)
+      ? (prodRes.data || [])
+      : aplicarCostosCatalogo(prodRes.data || [], await fetchCostosPorId(tok));
+    const list = enriquecerListaConPartner(productosConCosto);
     setProductos(list);
     setEnRappi(idsEnCatalogoRappi(list, [...filasCatalogo, ...filasPartnerComoCatalogo()]));
 

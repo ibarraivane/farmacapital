@@ -51,8 +51,10 @@ import {
   agruparLotesPorProducto,
   aplicarCostosCatalogo,
   enriquecerProductoConLotes,
+  errorEsPermisoDenegado,
   fetchCostosPorId,
   fetchLotesInventario,
+  filasTraenCosto,
 } from "./lib/inventarioHubData";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
@@ -1040,22 +1042,24 @@ export default function PreciosReferenciaModule() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const [prodRes, costos] = await Promise.all([
-      supabase
-        .from("productos")
-        .select("id,sku,nombre,categoria,tipo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
-        .eq("activo", true)
-        .or("bajo_pedido.eq.false,bajo_pedido.is.null")
-        .order("nombre"),
-      fetchCostosPorId(tok),
-    ]);
+    const selectPrecios = "id,sku,nombre,categoria,tipo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva";
+    const pedirProductos = (select) => supabase
+      .from("productos")
+      .select(select)
+      .eq("activo", true)
+      .or("bajo_pedido.eq.false,bajo_pedido.is.null")
+      .order("nombre");
+    let prodRes = await pedirProductos(`${selectPrecios},costo`);
+    if (errorEsPermisoDenegado(prodRes.error)) prodRes = await pedirProductos(selectPrecios);
 
     if (prodRes.error) {
       showToast("Error cargando productos: " + prodRes.error.message, "error");
       setLoading(false);
       return false;
     }
-    const productosConCosto = aplicarCostosCatalogo(prodRes.data || [], costos);
+    const productosConCosto = filasTraenCosto(prodRes.data)
+      ? (prodRes.data || [])
+      : aplicarCostosCatalogo(prodRes.data || [], await fetchCostosPorId(tok));
     setProductos(productosConCosto);
 
     let refRows = [];

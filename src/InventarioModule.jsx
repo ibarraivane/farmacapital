@@ -37,9 +37,11 @@ import {
   diasParaCaducar,
   enriquecerProductoConLotes,
   fetchLotesInventario,
-  conCostoCatalogo,
+  aplicarCostosCatalogo,
   costoCatalogoConocido,
+  errorEsPermisoDenegado,
   fetchCostosPorId,
+  filasTraenCosto,
   patchProductoSinColumnaProveedor,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
@@ -149,19 +151,6 @@ async function fetchLotesPorProducto(sessionToken, { omitCosto = false } = {}) {
 
 function enrichProductoConLotes(p, lotes) {
   return enriquecerProductoConLotes(p, lotes);
-}
-
-async function refetchProductoLotes(productoId) {
-  const { data, error } = await supabase
-    .from("productos")
-    .select("id, stock, lotes(id, numero_lote, fecha_caducidad, cantidad_actual, costo_unitario, activo)")
-    .eq("id", productoId)
-    .single();
-  if (error || !data) return null;
-  return {
-    ...data,
-    lotes_activos: (data.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0),
-  };
 }
 
 async function rpcGuardarCaducidadProducto(sessionToken, productoId, fecha, loteId = null) {
@@ -3291,12 +3280,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       return { data: filas, error: null, conLotes: false };
     };
 
-    const traerTodos = async () => {
+    const traerTodos = async (select) => {
       const filas = [];
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
         let q = supabase
           .from("productos")
-          .select(PRODUCTOS_SELECT_PUBLICO)
+          .select(select)
           .order("nombre")
           .order("id")
           .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
@@ -3328,11 +3317,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       return enriched;
     }
 
-    const [{ data, error }, lotesByProducto, costosPorId] = await Promise.all([
-      traerTodos(),
+    const selectConCosto = `${PRODUCTOS_SELECT_PUBLICO},costo`;
+    let [{ data, error }, lotesByProducto] = await Promise.all([
+      traerTodos(selectConCosto),
       fetchLotesPorProducto(tok, { omitCosto: false }),
-      fetchCostosPorId(tok),
     ]);
+    if (error && errorEsPermisoDenegado(error)) {
+      ({ data, error } = await traerTodos(PRODUCTOS_SELECT_PUBLICO));
+    }
     if (error) {
       if (!silencioso) {
         showToast("No se pudo cargar el inventario: " + error.message, "error");
@@ -3341,10 +3333,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       }
       return null;
     }
-    const enriched = (data || []).map((p) => enrichProductoConLotes(
-      conCostoCatalogo(p, costosPorId),
-      lotesByProducto[p.id],
-    ));
+    const filas = filasTraenCosto(data) ? data : aplicarCostosCatalogo(data, await fetchCostosPorId(tok));
+    const enriched = (filas || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
     setProductos(enriched);
     if (!silencioso) setLoading(false);
     return enriched;
