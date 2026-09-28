@@ -1,0 +1,13 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,nombre_mostrador,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,306978,2026-09-28,Farma Mayoreo,7503007859624,BLUMEN JABON LIQ,Blumen jabón líquido Coconut Paradise 525 ml,1,35.98,35.98,,,FC-07859624,539.74,alta
+2,306978,2026-09-28,Farma Mayoreo,7503007859648,BLUMEN JABON LIQ,Blumen jabón líquido Cherry Blossom 525 ml,2,35.98,71.96,,,FC-07859648,539.74,ya
+3,306978,2026-09-28,Farma Mayoreo,7503007859617,BLUMEN JABON LIQ,Blumen jabón líquido Kiwi 525 ml,2,35.98,71.96,,,FC-07859617,539.74,alta
+4,306978,2026-09-28,Farma Mayoreo,7506267905131,JABON BLUMEN JL,Blumen jabón líquido Cherry Blossom 221 ml,2,17.69,35.38,,,FC-67905131,539.74,ya
+5,306978,2026-09-28,Farma Mayoreo,7503008344617,VITAMINA PROGELA,Vitamina E Progela 850 mg C/30,2,44.97,89.94,0040U,,FC-08344617,539.74,alta
+6,306978,2026-09-28,Farma Mayoreo,7506313000377,ACETONA MADRID 4,Acetona Madrid,2,10.00,20.00,03-05-19,,FC-13000377,539.74,alta
+7,306978,2026-09-28,Farma Mayoreo,7506313000810,MADRID ACEITE DE,Aceite Madrid,3,11.98,35.94,03-05-19,,FC-13000810,539.74,alta
+8,306978,2026-09-28,Farma Mayoreo,7506313000230,MADRID ACEITE DE,Aceite Madrid,3,11.98,35.94,2712-017,,FC-13000230,539.74,alta
+9,306978,2026-09-28,Farma Mayoreo,7506313000155,MADRID ACEITE DE,Aceite Madrid,3,11.98,35.94,2712-017,,FC-13000155,539.74,alta
+10,306978,2026-09-28,Farma Mayoreo,7506267905186,JBN BLUMEN JL CP,Blumen jabón líquido Coconut 221 ml,2,17.69,35.38,,,FC-67905186,539.74,ya
+11,306978,2026-09-28,Farma Mayoreo,7506267905148,JABON BLUMEN JL,Blumen jabón líquido Kiwi Starfruit 221 ml,2,17.69,35.38,,,FC-67905148,539.74,alta
+12,306978,2026-09-28,Farma Mayoreo,7506313000972,MADRID ACEITE DE,Aceite Madrid,3,11.98,35.94,,,FC-13000972,539.74,alta
