@@ -10,7 +10,8 @@ import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
-import { mergeCatalogoDelta } from "../../../lib/catalogoDeltaPos";
+import { filasDeltaAnaquel, mergeCatalogoDelta } from "../../../lib/catalogoDeltaPos";
+import { aplicarModoCatalogo } from "../../../lib/catalogoConsulta";
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput, esperaBusquedaPos } from "../../../utils/barcodeProductLookup";
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
@@ -196,10 +197,13 @@ function normalizarListaProductosPos(data) {
 async function fetchProductosPosPaginado() {
   const filas = [];
   for (let desde = 0; ; desde += POS_PRODUCTOS_PAGE) {
-    const { data, error } = await supabase
-      .from("productos")
-      .select(POS_PRODUCTOS_SELECT)
-      .eq("activo", true)
+    const { data, error } = await aplicarModoCatalogo(
+      supabase
+        .from("productos")
+        .select(POS_PRODUCTOS_SELECT)
+        .eq("activo", true),
+      "anaquel",
+    )
       .order("nombre")
       .order("id")
       .range(desde, desde + POS_PRODUCTOS_PAGE - 1);
@@ -216,21 +220,20 @@ async function fetchProductosPosPaginado() {
  * el buscador queda vacío aunque Inventario sí encuentre el producto.
  */
 async function fetchProductosCatalogoPos(sessionToken) {
+  // El RPC junta todo el catálogo en un JSON (vitrina incluida) y llena la respuesta.
+  // El anaquel pagina y los lotes llegan aparte.
+  const paginado = await fetchProductosPosPaginado();
+  if (!paginado.error && (paginado.data || []).length > 0) return paginado;
   if (sessionToken) {
     const { data, error } = await supabase.rpc("empleado_listar_productos_con_lotes_pos", {
       p_session_token: sessionToken,
     });
-    const list = normalizarListaProductosPos(data);
-    if (!error && list.length > 0) {
-      return { data: list, error: null };
-    }
+    const list = normalizarListaProductosPos(data).filter((p) => p?.bajo_pedido !== true);
+    if (!error && list.length > 0) return { data: list, error: null };
     if (error) console.warn("[POS] RPC catálogo:", error.message || error);
   }
-  const fallback = await fetchProductosPosPaginado();
-  if (fallback.error) {
-    return { data: [], error: fallback.error };
-  }
-  return { data: fallback.data || [], error: null };
+  if (paginado.error) return { data: [], error: paginado.error };
+  return { data: paginado.data || [], error: null };
 }
 
 /**
@@ -1374,7 +1377,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           if (delta.productos.length) {
             const especialesMap = await fetchEspecialesCaducidadPos(tok);
             especialesRef.current = especialesMap || {};
-            const enriquecidos = enrichPosProductosConLotes(delta.productos, {});
+            const enriquecidos = enrichPosProductosConLotes(filasDeltaAnaquel(delta.productos), {});
             setProds((prev) => mergeCatalogoDelta(prev, enriquecidos));
           }
           sync.desde = new Date(new Date(delta.ahora).getTime() - CATALOGO_DELTA_MARGEN_MS).toISOString();

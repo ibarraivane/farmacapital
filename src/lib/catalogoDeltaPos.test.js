@@ -1,4 +1,4 @@
-import { mergeCatalogoDelta } from "./catalogoDeltaPos";
+import { filasDeltaAnaquel, mergeCatalogoDelta } from "./catalogoDeltaPos";
 
 describe("mergeCatalogoDelta", () => {
   const base = [
@@ -31,6 +31,15 @@ describe("mergeCatalogoDelta", () => {
       { id: 77, activo: false },
     ]);
     expect(out.map((p) => p.id)).toEqual([2, 3]);
+  });
+
+  test("un suplemento que cambió sale del POS y no se agrega", () => {
+    const delta = filasDeltaAnaquel([
+      { id: 2, nombre: "Whey", activo: true, bajo_pedido: true },
+      { id: 9, nombre: "Anthelios", activo: true, bajo_pedido: true },
+    ]);
+    const out = mergeCatalogoDelta(base, delta);
+    expect(out.map((p) => p.id)).toEqual([1, 3]);
   });
 
   test("id numérico y texto se tratan igual", () => {

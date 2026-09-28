@@ -314,6 +314,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         select: "id,nombre,sku,codigo_barras,descripcion,activo,costo,precio,tipo",
         activosSolo: true,
         order: "nombre",
+        incluirVitrina: true,
       }),
     ]);
     await cargarLista();
@@ -340,6 +341,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       select: "id,nombre,sku,codigo_barras,descripcion,activo,costo,precio,tipo",
       activosSolo: true,
       order: "nombre",
+      incluirVitrina: true,
     });
     if (!prodRes.error) setProductos(prodRes.data || []);
     await cargarLista();

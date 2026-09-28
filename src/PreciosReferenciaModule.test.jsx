@@ -6,6 +6,7 @@ function mockThenable(result) {
   const q = {
     select: () => q,
     eq: () => q,
+    or: () => q,
     order: () => q,
     limit: () => q,
     maybeSingle: () => Promise.resolve(result),

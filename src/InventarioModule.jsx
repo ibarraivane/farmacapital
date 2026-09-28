@@ -44,6 +44,7 @@ import {
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
 import { guardarMostrarVitrina, leerMostrarVitrina, pasaVistaInventario } from "./lib/inventarioVista";
+import { aplicarModoCatalogo } from "./lib/catalogoConsulta";
 import { esBajoPedido } from "./lib/bajoPedido";
 import {
   INV_CHECKBOX_COL_WIDTH,
@@ -3173,6 +3174,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     avisarCatalogoCambio({ origen: "inventario" });
   };
 
+  const incluirVitrinaConsulta = mostrarVitrina || filtroAlerta === "bajo_pedido";
+
   const fetchProductos = useCallback(async (opts) => {
     const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
     if (!silencioso) setLoading(true);
@@ -3194,7 +3197,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     };
 
     const traerConsultaVendedor = async () => {
-      if (tok) {
+      // El RPC arma el catálogo entero (vitrina incluida). Solo si el interruptor está prendido.
+      if (tok && incluirVitrinaConsulta) {
         const { data, error } = await supabase.rpc("empleado_listar_productos_con_lotes_pos", {
           p_session_token: tok,
         });
@@ -3206,13 +3210,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       }
       const filas = [];
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
-        const { data, error } = await supabase
+        let q = supabase
           .from("productos")
-          .select("id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,principio_activo,forma_farmaceutica,precio")
+          .select("id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,principio_activo,forma_farmaceutica,precio,bajo_pedido")
           .eq("activo", true)
           .order("nombre")
-          .order("id")
-          .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
+          .order("id");
+        if (!incluirVitrinaConsulta) q = aplicarModoCatalogo(q, "anaquel");
+        const { data, error } = await q.range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
         if (error) return { data: null, error, conLotes: false };
         filas.push(...(data || []).map(stripCosto));
         if ((data || []).length < PRODUCTOS_POR_PAGINA) break;
@@ -3230,6 +3235,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           .order("id")
           .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
         if (!verInactivos) q = q.eq("activo", true);
+        if (!incluirVitrinaConsulta) q = aplicarModoCatalogo(q, "anaquel");
         const { data, error } = await q;
         if (error) return { data: null, error };
         filas.push(...(data || []));
@@ -3272,9 +3278,16 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     setProductos(enriched);
     if (!silencioso) setLoading(false);
     return enriched;
-  }, [verInactivos, modoConsulta]);
+  }, [verInactivos, modoConsulta, incluirVitrinaConsulta]);
 
-  useEffect(() => { fetchProductos(); }, [fetchProductos]);
+  const catalogoListoRef = useRef(false);
+  useEffect(() => {
+    let vivo = true;
+    fetchProductos(catalogoListoRef.current ? { silencioso: true } : undefined).finally(() => {
+      if (vivo) catalogoListoRef.current = true;
+    });
+    return () => { vivo = false; };
+  }, [fetchProductos]);
 
   // Tras guardar, el realtime vuelve a pedir TODO el catálogo. Con esto la
   // pantalla que acaba de grabar no espera esa descarga: pinta el renglón y

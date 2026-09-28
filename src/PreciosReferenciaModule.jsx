@@ -1041,6 +1041,7 @@ export default function PreciosReferenciaModule() {
       .from("productos")
       .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
       .eq("activo", true)
+      .or("bajo_pedido.eq.false,bajo_pedido.is.null")
       .order("nombre");
 
     if (prodRes.error) {

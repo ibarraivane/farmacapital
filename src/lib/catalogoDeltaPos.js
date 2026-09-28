@@ -3,6 +3,13 @@
  * reemplaza por id, agrega los nuevos al final y quita los que quedaron inactivos.
  * Si no hay cambios devuelve el mismo arreglo (sin re-render).
  */
+/** La vitrina no entra al POS: si cambió, se trata como baja para quitarla de pantalla. */
+export function filasDeltaAnaquel(delta) {
+  return (Array.isArray(delta) ? delta : []).map((p) => (
+    p?.bajo_pedido === true ? { ...p, activo: false } : p
+  ));
+}
+
 export function mergeCatalogoDelta(prev, delta) {
   if (!Array.isArray(delta) || !delta.length) return prev;
   const porId = new Map();

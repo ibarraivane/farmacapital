@@ -78,6 +78,7 @@ import {
   prepararListaTienda,
   tipoCarrito,
 } from "./lib/bajoPedido";
+import { traerProductosActivos } from "./lib/catalogoConsulta";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
 import { CANJES_PUNTOS, canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo, pesosDePuntos } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
@@ -205,9 +206,9 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
 // Bajo pedido no es agotado: es vitrina /conseguir a propósito.
 const productoAgotadoTienda = (p) => Number(p?.stock) <= 0 && !esBajoPedido(p);
 
-/** Catálogo tienda: activos en línea (incluye agotados, como POS). */
+/** Catálogo de anaquel. La vitrina (suplementos y dermatología) vive en /conseguir. */
 const poolCatalogoTienda = (productos) =>
-  (productos || []).filter((p) => p.activo !== false);
+  (productos || []).filter((p) => p.activo !== false && !esBajoPedido(p));
 
 /** Orden: disponibles primero, agotados al final; respeta rank de búsqueda si aplica. */
 function sortCatalogoTienda(arr, busq) {
@@ -7165,7 +7166,12 @@ export default function TiendaFarmaCapital(){
 
   // Cargar productos con timeout y reintentos para sobrevivir cold start de Supabase.
   // Refresh silencioso (catálogo vivo): actualiza lista/detalle/carrito, no cambia de página.
+  // La vitrina completa solo baja en /conseguir. En el resto, una muestra corta para el home.
   const recargarProductosRef = useRef(async () => {});
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const vitrinaCompletaRef = useRef(page === "conseguir");
+  const vitrinaCacheRef = useRef([]);
   useEffect(()=>{
     clearStaleProductosCache();
     let cancelled = false;
@@ -7199,9 +7205,22 @@ export default function TiendaFarmaCapital(){
     };
     const loadProductos = async (intento = 1, { silencioso = false } = {})=>{
       try {
-        const queryPromise = supabase.from("productos").select("*").eq("activo",true).order("id");
+        const conVitrina = vitrinaCompletaRef.current || pageRef.current === "conseguir";
+        const queryPromise = Promise.all([
+          traerProductosActivos(supabase, { modo: "anaquel" }),
+          traerProductosActivos(supabase, { modo: "vitrina", limite: conVitrina ? 0 : 24 }),
+        ]);
         const timeoutPromise = new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),20000));
-        const {data,error} = await Promise.race([queryPromise,timeoutPromise]);
+        const [anaquelRes, vitrinaRes] = await Promise.race([queryPromise, timeoutPromise]);
+        const data = anaquelRes?.data;
+        const error = anaquelRes?.error;
+        const vitrina = vitrinaRes?.error ? [] : (vitrinaRes?.data || []);
+        if (conVitrina && !vitrinaRes?.error) {
+          vitrinaCompletaRef.current = true;
+          vitrinaCacheRef.current = vitrina;
+        } else if (!vitrinaCompletaRef.current) {
+          vitrinaCacheRef.current = vitrina;
+        }
         if (cancelled) return;
         if (error) {
           const isTimeout = (error.message||"").toLowerCase().includes("upstream request timeout");
@@ -7212,8 +7231,9 @@ export default function TiendaFarmaCapital(){
           }
           return;
         }
-        if (data?.length) {
-          aplicarLista(data);
+        const lista = [...(data || []), ...vitrinaCacheRef.current];
+        if (lista.length) {
+          aplicarLista(lista);
         } else if (data && data.length === 0) {
           setProductos([]);
         }
@@ -7231,6 +7251,21 @@ export default function TiendaFarmaCapital(){
     return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);
   useCatalogoVivo(() => recargarProductosRef.current());
+
+  useEffect(() => {
+    if (page !== "conseguir" || vitrinaCompletaRef.current) return undefined;
+    let cancel = false;
+    traerProductosActivos(supabase, { modo: "vitrina" }).then((res) => {
+      if (cancel || res.error) return;
+      vitrinaCompletaRef.current = true;
+      vitrinaCacheRef.current = res.data || [];
+      setProductos((prev) => {
+        const anaquel = (prev || []).filter((p) => !esBajoPedido(p));
+        return [...anaquel, ...prepararListaTienda(res.data || [])];
+      });
+    });
+    return () => { cancel = true; };
+  }, [page]);
 
   useEffect(() => {
     let cancel = false;

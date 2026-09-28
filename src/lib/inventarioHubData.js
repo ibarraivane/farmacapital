@@ -5,6 +5,7 @@
  */
 
 import { supabase } from "../supabase";
+import { aplicarModoCatalogo } from "./catalogoConsulta";
 
 export const PRODUCTOS_POR_PAGINA = 1000;
 
@@ -130,6 +131,7 @@ export async function fetchProductosPaginados({
   select = PRODUCTOS_SELECT_HUB,
   activosSolo = true,
   order = "nombre",
+  incluirVitrina = false,
 } = {}) {
   const filas = [];
   for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
@@ -139,6 +141,7 @@ export async function fetchProductosPaginados({
       .order(order)
       .order("id");
     if (activosSolo) q = q.eq("activo", true);
+    if (!incluirVitrina) q = aplicarModoCatalogo(q, "anaquel");
     const { data, error } = await q.range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
     if (error) return { data: null, error };
     filas.push(...(data || []));

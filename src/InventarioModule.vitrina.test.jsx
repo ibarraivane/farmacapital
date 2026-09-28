@@ -13,6 +13,7 @@ jest.mock("./supabase", () => {
     const q = {
       select: () => q,
       eq: () => q,
+      or: () => q,
       order: () => q,
       range: () => q,
       in: () => q,
@@ -62,7 +63,7 @@ test("el interruptor apaga y prende suplementos y dermatología sin borrarlos", 
 
   await waitFor(() => {
     expect(screen.queryByText("Anthelios UV Air")).not.toBeInTheDocument();
+    expect(screen.getByText("Omeprazol 20 mg")).toBeInTheDocument();
   });
   expect(screen.queryByText("Whey Gold")).not.toBeInTheDocument();
-  expect(screen.getByText("Omeprazol 20 mg")).toBeInTheDocument();
 });
