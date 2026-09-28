@@ -21,6 +21,13 @@ function esPlaceholderCompetencia(body) {
   return crypto.createHash('md5').update(body).digest('hex') === PLACEHOLDER_FAHORRO_MD5;
 }
 
+/** Segundos de caché del navegador/CDN por bucket (nombres únicos con timestamp). */
+function cacheControlPorBucket(bucket) {
+  if (bucket === 'banners') return 'max-age=31536000';
+  if (bucket === 'productos') return 'max-age=604800';
+  return 'no-cache';
+}
+
 async function ensureCortesBucket(supabaseUrl, serviceKey) {
   const headers = {
     apikey: serviceKey,
@@ -130,6 +137,9 @@ async function handler(req, res) {
         Authorization: `Bearer ${serviceKey}`,
         'Content-Type': contentType,
         'x-upsert': upsert,
+        // Sin esto Storage guarda «no-cache» y cada visita vuelve a validar/bajar
+        // el banner. Los nombres llevan timestamp, así que un archivo nunca cambia.
+        'cache-control': cacheControlPorBucket(bucket),
       },
       body,
     });

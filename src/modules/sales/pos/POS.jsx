@@ -240,7 +240,7 @@ async function fetchProductosCatalogoPos(sessionToken) {
  */
 const CATALOGO_DELTA_MARGEN_MS = 30 * 1000;
 /** Refresco completo de seguridad aunque los deltas vayan bien. */
-const CATALOGO_FULL_CADA_MS = 5 * 60 * 1000;
+const CATALOGO_FULL_CADA_MS = 30 * 60 * 1000;
 
 /**
  * Solo los productos que cambiaron desde `desde` (ISO). Devuelve null si el RPC
@@ -1352,7 +1352,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   /**
    * Refresco del catálogo tras un cambio (venta, recepción, edición…).
    * Antes: bajaba TODO el catálogo (+ lotes) en cada evento, de cada terminal.
-   * Ahora: pide solo los productos cambiados (RPC delta) y los mezcla; cada 5 min
+   * Ahora: pide solo los productos cambiados (RPC delta) y los mezcla; cada 30 min
    * o si el RPC no existe/falla, hace el refresco completo de siempre.
    * Un solo refresco a la vez: si llegan eventos durante uno, se repite una vez al final.
    */

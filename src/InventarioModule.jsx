@@ -19,6 +19,8 @@ import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
+import { marcaDeltaDesde, mezclarCatalogoDelta, requiereRefrescoCompleto } from "./lib/catalogoDelta";
+import { fetchProductosConCosto } from "./lib/productosStaff";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
@@ -138,6 +140,25 @@ async function fetchLotesPorProducto(sessionToken, { omitCosto = false } = {}) {
     }));
   }
   return slim;
+}
+
+/** Refresco completo de seguridad del inventario; entre uno y otro solo se piden cambios. */
+const INVENTARIO_CATALOGO_FULL_CADA_MS = 10 * 60 * 1000;
+
+function quitarCostoInventario(p) {
+  if (!p || typeof p !== "object") return p;
+  const next = { ...p };
+  delete next.costo;
+  if (Array.isArray(next.lotes)) {
+    next.lotes = next.lotes.map((l) => {
+      if (!l || typeof l !== "object") return l;
+      const sl = { ...l };
+      delete sl.costo_unitario;
+      delete sl.costo;
+      return sl;
+    });
+  }
+  return next;
 }
 
 function enrichProductoConLotes(p, lotes) {
@@ -3159,8 +3180,19 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     avisarCatalogoCambio({ origen: "inventario" });
   };
 
+  // Marca del último refresco completo; el refresco por Realtime pide solo lo
+  // que cambió desde ahí (antes: cada venta = catálogo completo por pantalla abierta).
+  const syncInventarioRef = useRef({ desde: null, fullAt: 0, modo: "", enCurso: false, pendiente: false });
+  const marcarInventarioCompleto = useCallback((rows, modo, inicioMs) => {
+    const sync = syncInventarioRef.current;
+    sync.desde = marcaDeltaDesde(rows, null);
+    sync.fullAt = inicioMs;
+    sync.modo = modo;
+  }, []);
+
   const fetchProductos = useCallback(async (opts) => {
     const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
+    const inicioFull = Date.now();
     if (!silencioso) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const stripCosto = (p) => {
@@ -3206,7 +3238,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       return { data: filas, error: null, conLotes: false };
     };
 
-    const traerTodos = async () => {
+    const traerTodosTabla = async () => {
       const filas = [];
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
         let q = supabase
@@ -3224,6 +3256,16 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       return { data: filas, error: null };
     };
 
+    const traerTodos = async () => {
+      const via = await fetchProductosConCosto({
+        sessionToken: tok,
+        soloActivos: !verInactivos,
+        fallbackQuery: traerTodosTabla,
+      });
+      if (via.error) return { data: null, error: via.error };
+      return { data: via.data || [], error: null };
+    };
+
     if (modoConsulta) {
       const { data, error, conLotes } = await traerConsultaVendedor();
       if (error) {
@@ -3238,6 +3280,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       if (!conLotes) lotesByProducto = await fetchLotesPorProducto(tok, { omitCosto: true });
       const enriched = (data || []).map((p) => enrichProductoConLotes(p, p.lotes || lotesByProducto[p.id]));
       setProductos(enriched);
+      marcarInventarioCompleto(data, `c|${verInactivos ? 1 : 0}`, inicioFull);
       if (!silencioso) setLoading(false);
       return enriched;
     }
@@ -3256,9 +3299,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     }
     const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
     setProductos(enriched);
+    marcarInventarioCompleto(data, `a|${verInactivos ? 1 : 0}`, inicioFull);
     if (!silencioso) setLoading(false);
     return enriched;
-  }, [verInactivos, modoConsulta]);
+  }, [verInactivos, modoConsulta, marcarInventarioCompleto]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
 
@@ -3275,10 +3319,71 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       String(p.id) === String(id) ? { ...p, ...patch } : p
     )));
   }, []);
+  const refrescarInventarioDelta = useCallback(async () => {
+    const sync = syncInventarioRef.current;
+    if (sync.enCurso) { sync.pendiente = true; return; }
+    sync.enCurso = true;
+    const modo = `${modoConsulta ? "c" : "a"}|${verInactivos ? 1 : 0}`;
+    try {
+      if (sync.modo !== modo || requiereRefrescoCompleto(sync, INVENTARIO_CATALOGO_FULL_CADA_MS)) {
+        await fetchProductos({ silencioso: true });
+        return;
+      }
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      let filas;
+      let delta;
+      if (modoConsulta) {
+        const { data, error } = await supabase.rpc("empleado_listar_productos_pos_delta", {
+          p_session_token: tok,
+          p_desde: sync.desde,
+        });
+        if (error || !data || !Array.isArray(data.productos)) throw error || new Error("delta");
+        filas = data.productos;
+        delta = filas.map(quitarCostoInventario).map((p) => enrichProductoConLotes(p, p.lotes));
+      } else {
+        const via = await fetchProductosConCosto({
+          sessionToken: tok,
+          soloActivos: false,
+          desde: sync.desde,
+          fallbackQuery: async () => supabase
+            .from("productos")
+            .select("*")
+            .gte("updated_at", sync.desde)
+            .order("id"),
+        });
+        if (via.error || !Array.isArray(via.data)) throw via.error || new Error("delta");
+        filas = via.data;
+        if (filas.length) {
+          const lotesByProducto = await fetchLotesPorProducto(tok, { omitCosto: false });
+          delta = filas.map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
+        } else {
+          delta = [];
+        }
+      }
+      sync.desde = marcaDeltaDesde(filas, sync.desde);
+      if (delta.length) {
+        setProductos((prev) => mezclarCatalogoDelta(prev, delta, {
+          conservarInactivos: !modoConsulta && verInactivos,
+        }));
+      }
+    } catch (_) {
+      // RPC/columna no disponible o error de red: refresco completo de siempre.
+      await fetchProductos({ silencioso: true });
+    } finally {
+      sync.enCurso = false;
+      if (sync.pendiente) {
+        sync.pendiente = false;
+        setTimeout(() => refrescarInventarioDeltaRef.current?.(), 0);
+      }
+    }
+  }, [fetchProductos, modoConsulta, verInactivos]);
+  const refrescarInventarioDeltaRef = useRef(null);
+  refrescarInventarioDeltaRef.current = refrescarInventarioDelta;
+
   useCatalogoVivo(() => {
     if (Date.now() < silencioCatalogoRef.current) return;
-    fetchProductos({ silencioso: true });
-  });
+    refrescarInventarioDelta();
+  }, { debounceMs: 1500 });
 
   const stockPorIdentidad = useMemo(() => stockVisiblePorIdentidad(productos), [productos]);
 

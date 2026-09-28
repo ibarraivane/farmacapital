@@ -19,6 +19,50 @@ import {
  * @param {"1:1"|"16:9"|"16:5"} [aspectRatio]
  * @param {"small"|"medium"|"large"} [size]
  */
+/** Banners: PNG/JPG pesados se convierten a WebP antes de subir (1–2.6 MB → ~150–300 KB). */
+const BANNER_WEBP_MIN_BYTES = 300 * 1024;
+const BANNER_MAX_LADO = 2400;
+const BANNER_WEBP_CALIDAD = 0.86;
+
+/**
+ * Devuelve `{ blob, mime }` en WebP si conviene, o `null` para subir el original.
+ * Nunca toca GIF (animados) ni imágenes ya ligeras. Si el navegador no sabe
+ * codificar WebP (toBlob devuelve PNG) o el resultado no es más chico, sube el original.
+ */
+async function comprimirBannerWebp(file, mime) {
+  if (mime !== "image/png" && mime !== "image/jpeg") return null;
+  if (!file || file.size < BANNER_WEBP_MIN_BYTES) return null;
+  if (typeof document === "undefined" || typeof URL === "undefined") return null;
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+    const w0 = img.naturalWidth || img.width;
+    const h0 = img.naturalHeight || img.height;
+    if (!w0 || !h0) return null;
+    const escala = Math.min(1, BANNER_MAX_LADO / Math.max(w0, h0));
+    const w = Math.round(w0 * escala);
+    const h = Math.round(h0 * escala);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, w, h);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", BANNER_WEBP_CALIDAD));
+    if (!blob || blob.type !== "image/webp" || blob.size >= file.size) return null;
+    return { blob, mime: "image/webp", width: w, height: h };
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export default function ImageUploader({
   bucket,
   currentUrl,
@@ -61,13 +105,14 @@ export default function ImageUploader({
       img.src = url;
     });
 
-  const handleFile = async (file) => {
-    if (!file) return;
+  const handleFile = async (fileOriginal) => {
+    if (!fileOriginal) return;
+    let file = fileOriginal;
     const rawExt = (file.name.split(".").pop() || "").toLowerCase();
     const ext = rawExt === "jfif" ? "jpg" : rawExt;
     const fallbackMime = extToMime[ext] || "";
-    const fileMime = file.type && file.type.startsWith("image/") ? file.type : fallbackMime;
-    if (!fileMime) {
+    const fileMimeOriginal = file.type && file.type.startsWith("image/") ? file.type : fallbackMime;
+    if (!fileMimeOriginal) {
       showToast("Por favor selecciona una imagen válida", "error");
       return;
     }
@@ -77,11 +122,11 @@ export default function ImageUploader({
       return;
     }
 
-    const dimsPre = await readImageDimensions(file);
+    const dimsOriginal = await readImageDimensions(file);
     if (esPlaceholderImagenCompetencia({
       byteLength: file.size,
-      width: dimsPre?.width,
-      height: dimsPre?.height,
+      width: dimsOriginal?.width,
+      height: dimsOriginal?.height,
     })) {
       showToast(mensajeRechazoImagenCompetencia(), "error");
       return;
@@ -91,6 +136,16 @@ export default function ImageUploader({
     setProgress(10);
 
     try {
+      let fileMime = fileMimeOriginal;
+      let dimsPre = dimsOriginal;
+      if (bucket === "banners") {
+        const webp = await comprimirBannerWebp(file, fileMime);
+        if (webp) {
+          file = webp.blob;
+          fileMime = webp.mime;
+          dimsPre = { width: webp.width, height: webp.height };
+        }
+      }
       const finalExt =
         fileMime === "image/jpeg" ? "jpg" :
         fileMime === "image/png" ? "png" :
@@ -133,7 +188,7 @@ export default function ImageUploader({
         publicUrl = data.publicUrl;
       } else {
         const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file, {
-          cacheControl: "3600",
+          cacheControl: bucket === "banners" ? "31536000" : "3600",
           upsert: true,
           contentType: fileMime,
         });

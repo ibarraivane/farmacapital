@@ -45,6 +45,8 @@ import { hoyISOMexico } from "./lib/fecha";
 import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, siguienteIndiceFotoTarjeta } from "./hooks/useProductoImagenes";
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl, urlImagenPublicaTienda } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
+import { marcaDeltaDesde, mezclarCatalogoDelta, requiereRefrescoCompleto } from "./lib/catalogoDelta";
+import { PRODUCTOS_SELECT_TIENDA } from "./lib/productosSelectPublico";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { pageIdToTiendaPath, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
@@ -203,6 +205,9 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
 // Recibir sube lotes → trigger → productos.stock. Compra online (SQL
  // patch_online_stock_al_crear) baja el mismo stock al crear el pedido.
 // Bajo pedido no es agotado: es vitrina /conseguir a propósito.
+/** Refresco completo de seguridad del catálogo de la tienda (el resto son deltas). */
+const TIENDA_CATALOGO_FULL_CADA_MS = 15 * 60 * 1000;
+
 const productoAgotadoTienda = (p) => Number(p?.stock) <= 0 && !esBajoPedido(p);
 
 /** Catálogo tienda: activos en línea (incluye agotados, como POS). */
@@ -7166,6 +7171,7 @@ export default function TiendaFarmaCapital(){
   // Cargar productos con timeout y reintentos para sobrevivir cold start de Supabase.
   // Refresh silencioso (catálogo vivo): actualiza lista/detalle/carrito, no cambia de página.
   const recargarProductosRef = useRef(async () => {});
+  const syncTiendaRef = useRef({ raw: null, desde: null, fullAt: 0, enCurso: false, pendiente: false });
   useEffect(()=>{
     clearStaleProductosCache();
     let cancelled = false;
@@ -7198,8 +7204,10 @@ export default function TiendaFarmaCapital(){
       }));
     };
     const loadProductos = async (intento = 1, { silencioso = false } = {})=>{
+      const sync = syncTiendaRef.current;
+      const inicioFull = Date.now();
       try {
-        const queryPromise = supabase.from("productos").select("*").eq("activo",true).order("id");
+        const queryPromise = supabase.from("productos").select(PRODUCTOS_SELECT_TIENDA).eq("activo",true).order("id");
         const timeoutPromise = new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),20000));
         const {data,error} = await Promise.race([queryPromise,timeoutPromise]);
         if (cancelled) return;
@@ -7213,8 +7221,13 @@ export default function TiendaFarmaCapital(){
           return;
         }
         if (data?.length) {
+          sync.raw = data;
+          sync.desde = marcaDeltaDesde(data, null);
+          sync.fullAt = inicioFull;
           aplicarLista(data);
         } else if (data && data.length === 0) {
+          sync.raw = [];
+          sync.desde = null;
           setProductos([]);
         }
         if (!silencioso) setLoadingProductos(false);
@@ -7224,13 +7237,52 @@ export default function TiendaFarmaCapital(){
         if (!silencioso) setLoadingProductos(false);
       }
     };
-    recargarProductosRef.current = () => loadProductos(1, { silencioso: true });
+    // Refresco silencioso (Realtime / volver a la pestaña): solo lo que cambió
+    // desde la última marca. Antes cada venta hacía que cada visitante bajara
+    // el catálogo completo (~9 MB sin comprimir). Completo cada 15 min.
+    const refrescarSilencioso = async () => {
+      const sync = syncTiendaRef.current;
+      if (sync.enCurso) { sync.pendiente = true; return; }
+      if (!Array.isArray(sync.raw) || requiereRefrescoCompleto(sync, TIENDA_CATALOGO_FULL_CADA_MS)) {
+        sync.enCurso = true;
+        try { await loadProductos(1, { silencioso: true }); } finally { sync.enCurso = false; }
+      } else {
+        sync.enCurso = true;
+        try {
+          const { data, error } = await supabase
+            .from("productos")
+            .select(PRODUCTOS_SELECT_TIENDA)
+            .eq("activo", true)
+            .gte("updated_at", sync.desde)
+            .order("id");
+          if (!cancelled && !error && Array.isArray(data)) {
+            sync.desde = marcaDeltaDesde(data, sync.desde);
+            if (data.length) {
+              const merged = mezclarCatalogoDelta(sync.raw, data);
+              if (merged !== sync.raw) {
+                sync.raw = merged;
+                aplicarLista(merged);
+              }
+            }
+          }
+        } catch (_) {
+          /* se queda lo que hay; el siguiente completo corrige */
+        } finally {
+          sync.enCurso = false;
+        }
+      }
+      if (sync.pendiente && !cancelled) {
+        sync.pendiente = false;
+        setTimeout(() => recargarProductosRef.current(), 0);
+      }
+    };
+    recargarProductosRef.current = refrescarSilencioso;
     loadProductos();
-    const onVis = ()=>{ if (document.visibilityState==="visible") loadProductos(1, { silencioso: true }); };
+    const onVis = ()=>{ if (document.visibilityState==="visible") refrescarSilencioso(); };
     document.addEventListener("visibilitychange", onVis);
     return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);
-  useCatalogoVivo(() => recargarProductosRef.current());
+  useCatalogoVivo(() => recargarProductosRef.current(), { debounceMs: 3000 });
 
   useEffect(() => {
     let cancel = false;

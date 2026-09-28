@@ -5,6 +5,8 @@
  */
 
 import { supabase } from "../supabase";
+import { fetchProductosConCosto } from "./productosStaff";
+import { selectIncluyeCosto } from "./productosSelectPublico";
 
 export const PRODUCTOS_POR_PAGINA = 1000;
 
@@ -131,6 +133,16 @@ export async function fetchProductosPaginados({
   activosSolo = true,
   order = "nombre",
 } = {}) {
+  if (selectIncluyeCosto(select) && typeof sessionStorage !== "undefined") {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (tok) {
+      const via = await fetchProductosConCosto({
+        sessionToken: tok,
+        soloActivos: activosSolo,
+      });
+      if (via.via === "rpc") return { data: via.data, error: via.error };
+    }
+  }
   const filas = [];
   for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
     let q = supabase

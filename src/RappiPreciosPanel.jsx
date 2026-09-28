@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
+import { fetchProductosConCosto } from "./lib/productosStaff";
 import { AyudaDesplegable, Btn, HorizontalScrollSync, SkeletonTable, showToast } from "./ui";
 import {
   FUENTE_META,
@@ -228,12 +229,17 @@ export default function RappiPreciosPanel() {
   const fetchAll = useCallback(async (opts = {}) => {
     const silent = opts.silent === true;
     if (!silent) setLoading(true);
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const [prodRes, filasCatalogo] = await Promise.all([
-      supabase
-        .from("productos")
-        .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,codigo_barras")
-        .eq("activo", true)
-        .order("nombre"),
+      fetchProductosConCosto({
+        sessionToken: tok,
+        soloActivos: true,
+        fallbackQuery: () => supabase
+          .from("productos")
+          .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,codigo_barras")
+          .eq("activo", true)
+          .order("nombre"),
+      }),
       cargarFilasCatalogoRappi(),
     ]);
     if (prodRes.error) {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
+import { fetchProductosConCosto } from "./lib/productosStaff";
 import { AyudaDesplegable, showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
 import {
   FUENTES_COMPRA,
@@ -1037,11 +1038,16 @@ export default function PreciosReferenciaModule() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const prodRes = await supabase
-      .from("productos")
-      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
-      .eq("activo", true)
-      .order("nombre");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const prodRes = await fetchProductosConCosto({
+      sessionToken: tok,
+      soloActivos: true,
+      fallbackQuery: () => supabase
+        .from("productos")
+        .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
+        .eq("activo", true)
+        .order("nombre"),
+    });
 
     if (prodRes.error) {
       showToast("Error cargando productos: " + prodRes.error.message, "error");
@@ -1074,7 +1080,6 @@ export default function PreciosReferenciaModule() {
     setRefsByProduct(buildReferenciasPorProducto(refRows));
     setFechasFuente(fechasActualizacionPorFuente(refRows));
 
-    const tok = sessionStorage.getItem("farmacapital_session_token");
     let lotesByProducto = {};
     if (tok) {
       const { data: lotes } = await fetchLotesInventario(tok);
