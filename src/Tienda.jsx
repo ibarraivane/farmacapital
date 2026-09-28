@@ -7173,6 +7173,7 @@ export default function TiendaFarmaCapital(){
   useEffect(()=>{
     clearStaleProductosCache();
     let cancelled = false;
+    let ultimaCargaCatalogo = 0;
     const MAX_INTENTOS = 4;
     const aplicarLista = (raw) => {
       // Bajo pedido: precio = ancla con MP (precio_ancla guarda el de inventario). Una sola vez aquí.
@@ -7229,6 +7230,7 @@ export default function TiendaFarmaCapital(){
           }
           return;
         }
+        ultimaCargaCatalogo = Date.now();
         const lista = [...(data || []), ...vitrinaCacheRef.current];
         if (lista.length) {
           aplicarLista(lista);
@@ -7244,7 +7246,13 @@ export default function TiendaFarmaCapital(){
     };
     recargarProductosRef.current = () => loadProductos(1, { silencioso: true });
     loadProductos();
-    const onVis = ()=>{ if (document.visibilityState==="visible") loadProductos(1, { silencioso: true }); };
+    // Volver a la pestaña no vuelve a bajar el catálogo. Eso era egress en cada cambio de app.
+    // El catálogo vivo sí refresca cuando de verdad cambia un producto.
+    const onVis = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - ultimaCargaCatalogo < 15 * 60 * 1000) return;
+      loadProductos(1, { silencioso: true });
+    };
     document.addEventListener("visibilitychange", onVis);
     return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);

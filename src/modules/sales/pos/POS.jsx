@@ -242,8 +242,8 @@ async function fetchProductosCatalogoPos(sessionToken) {
  * Lo que se escape lo recoge el refresco completo periódico.
  */
 const CATALOGO_DELTA_MARGEN_MS = 30 * 1000;
-/** Refresco completo de seguridad aunque los deltas vayan bien. */
-const CATALOGO_FULL_CADA_MS = 5 * 60 * 1000;
+/** Refresco completo de seguridad. 30 min: cada 5 min se volvía a bajar el catálogo y se comía el egress del plan gratis. */
+const CATALOGO_FULL_CADA_MS = 30 * 60 * 1000;
 
 /**
  * Solo los productos que cambiaron desde `desde` (ISO). Devuelve null si el RPC
