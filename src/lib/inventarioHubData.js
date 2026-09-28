@@ -15,6 +15,46 @@ export const PRODUCTOS_SELECT_HUB =
 export const PRODUCTOS_SELECT_LOTES =
   "id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria,activo";
 
+/**
+ * Ficha de la tabla de Inventario, sin `descripcion` ni `notas`.
+ * `select("*")` de todo el catálogo pasa el tope de tiempo o de tamaño y la
+ * pantalla se queda en el skeleton.
+ */
+export const PRODUCTOS_SELECT_INVENTARIO = [
+  "id", "nombre", "sku", "codigo_barras",
+  "categoria", "subcategoria",
+  "stock", "stock_minimo", "costo", "precio",
+  "activo", "marca", "presentacion", "forma_farmaceutica",
+  "principio_activo", "concentracion", "tipo",
+  "ubicacion_texto", "descuento_pct",
+  "imagen_url", "imagen_mobile_url",
+  "bajo_pedido",
+  "denominacion_generica", "denominacion_distintiva",
+  "venta_unidad", "unidades_por_caja", "precio_unidad", "stock_unidades",
+  "requiere_receta",
+].join(",");
+
+/** Misma ficha para vendedor, sin costo. */
+export const PRODUCTOS_SELECT_INVENTARIO_CONSULTA = PRODUCTOS_SELECT_INVENTARIO
+  .split(",")
+  .map((c) => c.trim())
+  .filter((c) => c && c !== "costo")
+  .join(",");
+
+export const LOTES_POR_PAGINA = 1000;
+
+const LOTES_SELECT_DIRECTO = [
+  "id", "producto_id", "numero_lote", "fecha_caducidad", "cantidad_actual",
+  "costo_unitario", "activo", "fecha_recepcion",
+  "proveedores(id,nombre)",
+  "productos(nombre,sku,categoria)",
+].join(",");
+
+const LOTES_SELECT_DIRECTO_PLANO = [
+  "id", "producto_id", "numero_lote", "fecha_caducidad", "cantidad_actual",
+  "costo_unitario", "activo", "fecha_recepcion",
+].join(",");
+
 export function fechaCaducidadInvalida(fecha) {
   if (!fecha) return false;
   const y = parseInt(String(fecha).slice(0, 4), 10);
@@ -126,34 +166,182 @@ export function agruparLotesPorProducto(lotesRaw) {
   return byProducto;
 }
 
+export function mensajeErrorSupabase(error) {
+  return String(error?.message || error?.details || error?.hint || "");
+}
+
+/** PostgREST / Postgres cuando el select pide una columna que no está en la tabla. */
+export function columnaInexistenteDeError(error) {
+  const msg = mensajeErrorSupabase(error);
+  const directa = /column (?:[\w"]+\.)?["']?(\w+)["']? does not exist/i.exec(msg);
+  if (directa) return directa[1];
+  const cache = /could not find the ['"](\w+)['"] column/i.exec(msg);
+  if (cache) return cache[1];
+  return null;
+}
+
+export function esErrorColumnaInexistente(error) {
+  if (!error) return false;
+  if (error.code === "42703" || error.code === "PGRST204") return true;
+  return columnaInexistenteDeError(error) != null;
+}
+
+export function esErrorFuncionInexistente(error) {
+  if (!error) return false;
+  if (error.code === "PGRST202" || error.code === "42883") return true;
+  return /could not find the function|42883|PGRST202/i.test(mensajeErrorSupabase(error));
+}
+
+/** Quita del select la columna que Postgres acaba de rechazar. */
+export function selectSinColumnaInexistente(select, error) {
+  const col = columnaInexistenteDeError(error);
+  if (!col) return null;
+  const parts = String(select || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (!parts.includes(col) || parts.length < 2) return null;
+  return parts.filter((c) => c !== col).join(",");
+}
+
+/**
+ * La tabla sale del skeleton en cuanto hay filas, o cuando la primera página
+ * ya respondió (aunque el catálogo esté vacío o haya fallado).
+ */
+export function inventarioDebeSalirDelSkeleton({ filas, error, primeraPaginaLista } = {}) {
+  if ((filas || []).length > 0) return true;
+  if (error) return true;
+  return !!primeraPaginaLista;
+}
+
+/** Pinta filas crudas hasta que el mapa de lotes existe; después aplica PEPS. */
+export function publicarFilasInventario(filas, lotesByProducto) {
+  const list = Array.isArray(filas) ? filas : [];
+  if (!lotesByProducto) return list;
+  return list.map((p) => enriquecerProductoConLotes(
+    p,
+    lotesByProducto[p.id] || lotesByProducto[String(p.id)] || []
+  ));
+}
+
+/**
+ * Si la tabla ya devolvió filas, esa página alcanza (no hace falta el RPC).
+ * Un resultado directo vacío puede ser RLS, no “no hay lotes”: entonces vale
+ * la página nueva y, si esa función aún no existe, el RPC completo.
+ */
+export function resolverCargaLotes({ pagina, directo } = {}) {
+  if (directo && !directo.error && (directo.data || []).length > 0) return "directo";
+  if (pagina && !pagina.unsupported && !pagina.error) return "pagina";
+  return "completo";
+}
+
 export async function fetchProductosPaginados({
   select = PRODUCTOS_SELECT_HUB,
   activosSolo = true,
   order = "nombre",
+  onPage,
+  vigente = () => true,
 } = {}) {
   const filas = [];
-  for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
+  let selectActual = select;
+  let reintentosColumna = 0;
+  for (let desde = 0; ;) {
+    if (!vigente()) return { data: filas, error: null, aborted: true };
     let q = supabase
       .from("productos")
-      .select(select)
+      .select(selectActual)
       .order(order)
       .order("id");
     if (activosSolo) q = q.eq("activo", true);
     const { data, error } = await q.range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
-    if (error) return { data: null, error };
-    filas.push(...(data || []));
-    if ((data || []).length < PRODUCTOS_POR_PAGINA) break;
+    if (error) {
+      const sinCol = selectSinColumnaInexistente(selectActual, error);
+      if (sinCol && reintentosColumna < 12) {
+        selectActual = sinCol;
+        reintentosColumna += 1;
+        continue;
+      }
+      onPage?.({ rows: filas.slice(), page: [], error, done: true });
+      return { data: filas.length ? filas : null, error };
+    }
+    const page = data || [];
+    filas.push(...page);
+    const done = page.length < PRODUCTOS_POR_PAGINA;
+    onPage?.({ rows: filas.slice(), page, error: null, done });
+    if (done) break;
+    desde += PRODUCTOS_POR_PAGINA;
   }
   return { data: filas, error: null };
 }
 
-export async function fetchLotesInventario(sessionToken) {
-  if (!sessionToken) return { data: [], error: null };
+async function paginarLotesDirecto(select) {
+  const filas = [];
+  for (let desde = 0; ; desde += LOTES_POR_PAGINA) {
+    const { data, error } = await supabase
+      .from("lotes")
+      .select(select)
+      .or("activo.is.null,activo.eq.true")
+      .order("id")
+      .range(desde, desde + LOTES_POR_PAGINA - 1);
+    if (error) return { data: [], error };
+    const page = data || [];
+    filas.push(...page);
+    if (page.length < LOTES_POR_PAGINA) break;
+  }
+  return { data: filas, error: null };
+}
+
+async function fetchLotesInventarioDirecto() {
+  const rico = await paginarLotesDirecto(LOTES_SELECT_DIRECTO);
+  if (!rico.error) return rico;
+  // El embed de proveedor/producto a veces no está en el schema cache.
+  // Una columna que no existe sí se puede reintentar en plano; un error de
+  // permiso o de relación cae al RPC, que sí trae el nombre del proveedor.
+  const msg = mensajeErrorSupabase(rico.error);
+  const reintentarPlano = esErrorColumnaInexistente(rico.error) || /fecha_recepcion/i.test(msg);
+  if (!reintentarPlano) return rico;
+  return paginarLotesDirecto(LOTES_SELECT_DIRECTO_PLANO);
+}
+
+async function fetchLotesPorRpcPagina(sessionToken) {
+  const filas = [];
+  let despues = 0;
+  for (;;) {
+    const { data, error } = await supabase.rpc("empleado_listar_lotes_inventario_pagina", {
+      p_session_token: sessionToken,
+      p_despues_de: despues,
+      p_limite: LOTES_POR_PAGINA,
+    });
+    if (error) {
+      return { data: filas, error, unsupported: esErrorFuncionInexistente(error) };
+    }
+    const page = filasJson(data);
+    filas.push(...page);
+    if (page.length < LOTES_POR_PAGINA) return { data: filas, error: null, unsupported: false };
+    const next = Number(page[page.length - 1]?.id);
+    if (!Number.isFinite(next) || next <= despues) {
+      return { data: filas, error: null, unsupported: false };
+    }
+    despues = next;
+  }
+}
+
+async function fetchLotesRpcCompleto(sessionToken) {
   const { data, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
     p_session_token: sessionToken,
   });
   if (error) return { data: [], error };
   return { data: filasJson(data), error: null };
+}
+
+export async function fetchLotesInventario(sessionToken) {
+  if (!sessionToken) return { data: [], error: null };
+  const directo = await fetchLotesInventarioDirecto();
+  if (resolverCargaLotes({ directo }) === "directo") {
+    return { data: directo.data, error: null };
+  }
+  const pagina = await fetchLotesPorRpcPagina(sessionToken);
+  if (resolverCargaLotes({ pagina, directo }) === "pagina") {
+    return { data: pagina.data || [], error: null };
+  }
+  return fetchLotesRpcCompleto(sessionToken);
 }
 
 export function enriquecerProductoConLotes(p, lotes) {

@@ -32,12 +32,15 @@ import {
   opcionesCategoriaSelect,
 } from "./constants/categoriasProducto";
 import {
-  PRODUCTOS_POR_PAGINA,
+  PRODUCTOS_SELECT_INVENTARIO,
+  PRODUCTOS_SELECT_INVENTARIO_CONSULTA,
   agruparLotesPorProducto,
   diasParaCaducar,
-  enriquecerProductoConLotes,
   fetchLotesInventario,
+  fetchProductosPaginados,
+  inventarioDebeSalirDelSkeleton,
   patchProductoSinColumnaProveedor,
+  publicarFilasInventario,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
 } from "./lib/inventarioHubData";
@@ -121,10 +124,10 @@ const resolverLoteCaducidadProducto = (product) => {
 };
 
 async function fetchLotesPorProducto(sessionToken, { omitCosto = false } = {}) {
-  if (!sessionToken) return {};
-  const { data: list } = await fetchLotesInventario(sessionToken);
+  if (!sessionToken) return { map: {}, error: null };
+  const { data: list, error } = await fetchLotesInventario(sessionToken);
   const grouped = agruparLotesPorProducto(list);
-  if (!omitCosto) return grouped;
+  if (error || !omitCosto) return { map: grouped, error: error || null };
   const slim = {};
   for (const [pid, lotes] of Object.entries(grouped)) {
     slim[pid] = lotes.map((l) => ({
@@ -137,11 +140,7 @@ async function fetchLotesPorProducto(sessionToken, { omitCosto = false } = {}) {
       proveedor_nombre: l.proveedor_nombre,
     }));
   }
-  return slim;
-}
-
-function enrichProductoConLotes(p, lotes) {
-  return enriquecerProductoConLotes(p, lotes);
+  return { map: slim, error: null };
 }
 
 async function refetchProductoLotes(productoId) {
@@ -2782,6 +2781,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const fotoCatalogoDe = useImagenesPrincipales();
   const [productos,       setProductos]       = useState([]);
   const [loading,         setLoading]         = useState(true);
+  const [avisoCarga,      setAvisoCarga]      = useState("");
+  const tieneFilasRef = useRef(false);
+  const fetchGenRef = useRef(0);
+  const lotesMapRef = useRef(null);
   const [busqueda,        setBusqueda]        = useState("");
   const [buscarFocusNonce, setBuscarFocusNonce] = useState(0);
   const [verInactivos,    setVerInactivos]    = useState(false);
@@ -3161,103 +3164,86 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
   const fetchProductos = useCallback(async (opts) => {
     const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
-    if (!silencioso) setLoading(true);
+    const gen = ++fetchGenRef.current;
+    const vigente = () => gen === fetchGenRef.current;
+    if (!silencioso && !tieneFilasRef.current) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const stripCosto = (p) => {
-      if (!p || typeof p !== "object") return p;
-      const next = { ...p };
-      delete next.costo;
-      if (Array.isArray(next.lotes)) {
-        next.lotes = next.lotes.map((l) => {
-          if (!l || typeof l !== "object") return l;
-          const sl = { ...l };
-          delete sl.costo_unitario;
-          delete sl.costo;
-          return sl;
-        });
+
+    let filasActuales = [];
+    let lotesMap = lotesMapRef.current;
+    let pinto = false;
+
+    const publicar = (filas, map, aviso) => {
+      if (!vigente()) return null;
+      filasActuales = filas;
+      if (map) {
+        lotesMap = map;
+        lotesMapRef.current = map;
       }
-      return next;
+      const visibles = publicarFilasInventario(filas, lotesMap);
+      const salir = inventarioDebeSalirDelSkeleton({
+        filas: visibles,
+        primeraPaginaLista: pinto,
+      });
+      if (salir) {
+        setProductos(visibles);
+        tieneFilasRef.current = visibles.length > 0;
+        if (!silencioso) setLoading(false);
+        pinto = true;
+      }
+      setAvisoCarga(aviso || "");
+      return visibles;
     };
 
-    const traerConsultaVendedor = async () => {
-      if (tok) {
-        const { data, error } = await supabase.rpc("empleado_listar_productos_con_lotes_pos", {
-          p_session_token: tok,
-        });
-        if (!error && data != null) {
-          const list = Array.isArray(data) ? data : [];
-          return { data: list.map(stripCosto), error: null, conLotes: true };
-        }
-        if (error) console.warn("[Inventario] RPC consulta vendedor:", error.message);
-      }
-      const filas = [];
-      for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
-        const { data, error } = await supabase
-          .from("productos")
-          .select("id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,principio_activo,forma_farmaceutica,precio")
-          .eq("activo", true)
-          .order("nombre")
-          .order("id")
-          .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
-        if (error) return { data: null, error, conLotes: false };
-        filas.push(...(data || []).map(stripCosto));
-        if ((data || []).length < PRODUCTOS_POR_PAGINA) break;
-      }
-      return { data: filas, error: null, conLotes: false };
-    };
+    const prodRes = await fetchProductosPaginados({
+      select: modoConsulta ? PRODUCTOS_SELECT_INVENTARIO_CONSULTA : PRODUCTOS_SELECT_INVENTARIO,
+      activosSolo: modoConsulta ? true : !verInactivos,
+      order: "nombre",
+      vigente,
+      onPage: ({ rows, error, done }) => {
+        if (!vigente()) return;
+        if (error && !rows.length) return;
+        publicar(
+          rows,
+          null,
+          done ? "Actualizando existencias…" : "Cargando el resto del catálogo…"
+        );
+      },
+    });
 
-    const traerTodos = async () => {
-      const filas = [];
-      for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
-        let q = supabase
-          .from("productos")
-          .select("*")
-          .order("nombre")
-          .order("id")
-          .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
-        if (!verInactivos) q = q.eq("activo", true);
-        const { data, error } = await q;
-        if (error) return { data: null, error };
-        filas.push(...(data || []));
-        if ((data || []).length < PRODUCTOS_POR_PAGINA) break;
-      }
-      return { data: filas, error: null };
-    };
+    if (!vigente()) return null;
 
-    if (modoConsulta) {
-      const { data, error, conLotes } = await traerConsultaVendedor();
-      if (error) {
-        if (!silencioso) {
-          showToast("No se pudo cargar el inventario: " + error.message, "error");
-          setProductos([]);
-          setLoading(false);
-        }
-        return null;
-      }
-      let lotesByProducto = {};
-      if (!conLotes) lotesByProducto = await fetchLotesPorProducto(tok, { omitCosto: true });
-      const enriched = (data || []).map((p) => enrichProductoConLotes(p, p.lotes || lotesByProducto[p.id]));
-      setProductos(enriched);
-      if (!silencioso) setLoading(false);
-      return enriched;
-    }
-
-    const [{ data, error }, lotesByProducto] = await Promise.all([
-      traerTodos(),
-      fetchLotesPorProducto(tok, { omitCosto: false }),
-    ]);
-    if (error) {
+    if (prodRes.error && !pinto) {
       if (!silencioso) {
-        showToast("No se pudo cargar el inventario: " + error.message, "error");
+        showToast("No se pudo cargar el inventario: " + prodRes.error.message, "error");
         setProductos([]);
+        tieneFilasRef.current = false;
         setLoading(false);
+        setAvisoCarga("");
       }
       return null;
     }
-    const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
-    setProductos(enriched);
-    if (!silencioso) setLoading(false);
-    return enriched;
+    if (prodRes.error && pinto && !silencioso) {
+      showToast("El catálogo quedó incompleto: " + prodRes.error.message, "warning");
+    }
+    if (prodRes.aborted) return null;
+    if (!pinto) {
+      setProductos([]);
+      tieneFilasRef.current = false;
+      if (!silencioso) setLoading(false);
+      setAvisoCarga("");
+    }
+
+    const { map, error: lotesError } = await fetchLotesPorProducto(tok, { omitCosto: modoConsulta });
+    if (!vigente()) return null;
+    const filas = prodRes.data || filasActuales;
+    if (lotesError) {
+      if (!silencioso) {
+        showToast("Las existencias por lote no cargaron. Se muestra el stock de la ficha.", "warning");
+      }
+      return publicar(filas, lotesMapRef.current || {}, "");
+    }
+    return publicar(filas, map || {}, "");
   }, [verInactivos, modoConsulta]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
@@ -4042,6 +4028,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
             {modoConsulta
               ? "Toca el código de barras o la caducidad para corregirlos. El precio se consulta en el POS."
               : "Clic en cualquier celda para editar · ↔ Columnas para ordenar y ajustar anchos"}
+            {avisoCarga ? ` · ${avisoCarga}` : ""}
           </p>
         </div>
         <div style={isMobileInv ? {

@@ -51,6 +51,7 @@ import {
   agruparLotesPorProducto,
   enriquecerProductoConLotes,
   fetchLotesInventario,
+  fetchProductosPaginados,
 } from "./lib/inventarioHubData";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
@@ -1037,16 +1038,19 @@ export default function PreciosReferenciaModule() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const prodRes = await supabase
-      .from("productos")
-      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
-      .eq("activo", true)
-      .order("nombre");
+    const prodRes = await fetchProductosPaginados({
+      select: "id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva",
+      activosSolo: true,
+      order: "nombre",
+    });
 
-    if (prodRes.error) {
+    if (prodRes.error && !(prodRes.data || []).length) {
       showToast("Error cargando productos: " + prodRes.error.message, "error");
       setLoading(false);
       return false;
+    }
+    if (prodRes.error) {
+      showToast("El catálogo quedó incompleto: " + prodRes.error.message, "warning");
     }
     setProductos(prodRes.data || []);
 

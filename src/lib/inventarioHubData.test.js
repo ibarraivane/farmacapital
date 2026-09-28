@@ -1,10 +1,15 @@
 import {
   agruparLotesPorProducto,
+  columnaInexistenteDeError,
   filasJson,
+  inventarioDebeSalirDelSkeleton,
   loteObjetivoProveedor,
   patchProductoSinColumnaProveedor,
   productoIdDeLote,
   proveedorDesdeLotes,
+  publicarFilasInventario,
+  resolverCargaLotes,
+  selectSinColumnaInexistente,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
 } from "./inventarioHubData";
@@ -49,6 +54,46 @@ test("la celda de stock y el clic usan los lotes, no la columna desfasada", () =
   expect(stockObjetivoAjusteInline({ stock: 4, stock_peps: 4 }, 3)).toBe(3);
   expect(stockVisibleInventario({ stock: 4 })).toBe(4);
   expect(stockVisibleInventario({ stock: 4, stock_peps: 0 })).toBe(0);
+});
+
+test("la primera página saca al inventario del skeleton sin esperar lotes", () => {
+  expect(inventarioDebeSalirDelSkeleton({ filas: [], primeraPaginaLista: false })).toBe(false);
+  expect(inventarioDebeSalirDelSkeleton({ filas: [{ id: 1 }], primeraPaginaLista: false })).toBe(true);
+  expect(inventarioDebeSalirDelSkeleton({ filas: [], primeraPaginaLista: true })).toBe(true);
+  expect(inventarioDebeSalirDelSkeleton({ filas: [], error: { message: "timeout" } })).toBe(true);
+});
+
+test("sin mapa de lotes se pintan las filas; con mapa se aplica el stock PEPS", () => {
+  const filas = [{ id: 7, nombre: "Afrin", stock: 4 }];
+  expect(publicarFilasInventario(filas, null)).toEqual(filas);
+  const visibles = publicarFilasInventario(filas, {
+    7: [{ id: 1, cantidad_actual: 2, activo: true }],
+  });
+  expect(visibles[0].stock_peps).toBe(2);
+  expect(visibles[0].nombre).toBe("Afrin");
+});
+
+test("un select rechazado pierde solo la columna que no existe", () => {
+  const error = { message: 'column productos.subcategoria does not exist' };
+  expect(columnaInexistenteDeError(error)).toBe("subcategoria");
+  expect(selectSinColumnaInexistente("id,nombre,subcategoria,precio", error)).toBe("id,nombre,precio");
+  expect(selectSinColumnaInexistente("id,nombre", { message: "Could not find the 'notas' column of 'productos' in the schema cache" }))
+    .toBe(null);
+});
+
+test("lotes: si la tabla trae filas se usan; si no, la página nueva; si no existe, el RPC completo", () => {
+  expect(resolverCargaLotes({
+    pagina: { data: [{ id: 1 }], error: null, unsupported: false },
+    directo: null,
+  })).toBe("pagina");
+  expect(resolverCargaLotes({
+    pagina: { data: [], error: { message: "Could not find the function" }, unsupported: true },
+    directo: { data: [{ id: 9 }], error: null },
+  })).toBe("directo");
+  expect(resolverCargaLotes({
+    pagina: { unsupported: true, error: { code: "PGRST202" } },
+    directo: { data: [], error: null },
+  })).toBe("completo");
 });
 
 test("el patch de ficha no manda productos.proveedor", () => {
