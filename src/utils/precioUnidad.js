@@ -1,6 +1,7 @@
 /** Regla de precio por pieza suelta: margen mayor que caja + penalización vs paquete. */
 
 import { recargoCategoriaEsHigiene } from "../constants/categoriasProducto";
+import { snapPrecioVenta } from "../lib/denominacionPrecio";
 import { margenSobreVentaPct } from "../lib/margenMarkup";
 
 export const PENALIZACION_CAJA = 1.12; // Σ piezas ≥ 12% sobre precio caja
@@ -114,10 +115,20 @@ export function modoVentaDeLinea(item) {
   return "caja";
 }
 
-/** Precio efectivo en POS: el que guardó el dueño. La regla solo sugiere. */
+/**
+ * Precio manual de pieza en pasos de $0.50. 0 si viene vacío, cero o negativo.
+ * $1.50 se queda. $1.20 → $1.00. $1.30 → $1.50.
+ */
+export function precioUnidadManual(valor) {
+  const snapped = snapPrecioVenta(valor);
+  if (snapped == null || snapped <= 0) return 0;
+  return snapped;
+}
+
+/** Precio efectivo en POS: el que guardó el dueño, en $0.50. La regla solo sugiere. */
 export function precioUnidadParaVenta(producto) {
   if (!producto?.venta_unidad) return 0;
-  const guardado = Math.ceil(parseFloat(producto.precio_unidad) || 0);
+  const guardado = precioUnidadManual(producto.precio_unidad);
   if (guardado > 0) return guardado;
   return calcPrecioUnidad(
     producto.precio,
@@ -126,6 +137,14 @@ export function precioUnidadParaVenta(producto) {
     producto.categoria,
     producto.tipo,
   );
+}
+
+/** Importe de piezas sueltas: unitario en $0.50 × cantidad. No redondea a peso entero. */
+export function cobroUnidad(precio, qty = 1) {
+  const unit = precioUnidadManual(precio);
+  const q = parseInt(qty, 10) || 0;
+  if (unit <= 0 || q <= 0) return 0;
+  return (Math.round(unit * 100) * q) / 100;
 }
 
 export function margenBrutoPct(precioVenta, costo) {
@@ -145,7 +164,7 @@ export function aplicarReglaPrecioUnidad(fields) {
     };
   }
   const upc = parseInt(fields.unidades_por_caja, 10) || 0;
-  const manual = Math.ceil(parseFloat(fields.precio_unidad) || 0);
+  const manual = precioUnidadManual(fields.precio_unidad);
   const sugerido = calcPrecioUnidad(fields.precio, fields.costo, upc, fields.categoria, fields.tipo);
   const ppb = parseInt(fields.piezas_por_blister, 10) || 0;
   const blisters = blistersPorCaja(upc, ppb);

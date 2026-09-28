@@ -43,7 +43,7 @@ import {
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
-import { cifrasPrecioInventario, fmtPrecioInventario, PASO_PRECIO_VENTA, snapPrecioVenta } from "./lib/denominacionPrecio";
+import { fmtPrecioInventario, PASO_PRECIO_VENTA, snapPrecioVenta } from "./lib/denominacionPrecio";
 import { guardarMostrarVitrina, leerMostrarVitrina, pasaVistaInventario } from "./lib/inventarioVista";
 import { aplicarModoCatalogo } from "./lib/catalogoConsulta";
 import { esBajoPedido } from "./lib/bajoPedido";
@@ -403,11 +403,6 @@ function InventarioEditableCell({
         fontSize: 11,
         fontFamily: mono ? "ui-monospace,Menlo,monospace" : undefined,
         boxSizing: "border-box",
-        background: "#ffffff",
-        color: "#0f172a",
-        colorScheme: "light",
-        WebkitTextFillColor: "#0f172a",
-        caretColor: "#0f172a",
       },
     };
     return (
@@ -487,7 +482,7 @@ const INV_COLUMN_DEFS = {
     hint: "Piezas en lotes activos. El clic edita ese mismo número.",
   },
   min: { label: "Mín", hint: "" },
-  precio: { label: "Precio", hint: "Precio de venta. Paso mínimo: 0.5 centavos ($0.005)." },
+  precio: { label: "Precio", hint: "Precio de venta, de $0.50 en $0.50." },
   costo: { label: "Costo", hint: "" },
   margen: { label: "Margen", hint: "Arriba: % de lo que cobraste. Abajo: recargo sobre el costo." },
   cad: { label: "Cad.", hint: "Mes/año del lote más próximo — clic para editar" },
@@ -823,7 +818,7 @@ const exportarCSV = (productos) => {
     return [
     p.sku||"", p.codigo_barras||"", p.nombre||"", p.categoria||"", p.tipo||"generico",
     p.stock??0, p.stock_minimo??0,
-    cifrasPrecioInventario(p.precio || 0) || "0.00", parseFloat(p.costo||0).toFixed(2),
+    parseFloat(p.precio||0).toFixed(2), parseFloat(p.costo||0).toFixed(2),
     p.proveedor||"", p.lote||p.min_lote||"", p.fecha_caducidad||p.min_caducidad_lotes||"",
     p.descuento_pct||0,
     p.marca_comercial||"", p.principio_activo||"", p.concentracion||"",
@@ -1008,7 +1003,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     const e = {};
     if (!(form.nombre ?? "").trim())                           e.nombre       = "Requerido";
     const precioVenta = snapPrecioVenta(form.precio);
-    if (precioVenta == null || precioVenta <= 0) e.precio = "Debe ser mayor a $0";
+    if (precioVenta == null || precioVenta <= 0) e.precio = "Debe ser mayor a $0, de $0.50 en $0.50";
     if (!form.costo||parseFloat(form.costo)<0)         e.costo        = "Debe ser 0 o mayor";
     if (form.stock === "" || form.stock === null)       e.stock        = "Requerido";
     const cb = codigoBarrasLimpio(form.codigo_barras);
@@ -1048,7 +1043,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         activo: form.activo,
         venta_unidad: form.venta_unidad || false,
         unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja) || 0 : 0,
-        precio_unidad: form.venta_unidad ? Math.ceil(parseFloat(form.precio_unidad) || 0) : 0,
+        precio_unidad: form.venta_unidad ? form.precio_unidad : 0,
         stock_unidades: form.venta_unidad ? parseInt(form.stock_unidades) || 0 : 0,
       });
 
@@ -1172,7 +1167,8 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
 
   const upcVenta = parseInt(form.unidades_por_caja, 10) || 0;
   const costoPieza = upcVenta > 0 && form.costo !== "" ? (parseFloat(form.costo) || 0) / upcVenta : 0;
-  const precioPieza = Math.ceil(parseFloat(form.precio_unidad) || 0);
+  const precioPiezaRaw = parseFloat(form.precio_unidad);
+  const precioPieza = Number.isFinite(precioPiezaRaw) && precioPiezaRaw > 0 ? precioPiezaRaw : 0;
   const minPrecioPieza = upcVenta > 0
     ? sugerirPrecioUnidad(form.precio, form.costo, upcVenta, form.categoria, form.tipo)
     : 0;
@@ -1402,7 +1398,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   borderColor: errors.precio ? C.red : C.border,
                 }}
               />
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>Paso mínimo: 0.5 centavos ($0.005).</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>De $0.50 en $0.50.</div>
               {errors.precio && <span style={{ color: C.red, fontSize: 10 }}>{errors.precio}</span>}
             </div>
             {field("Costo","costo","number",true)}
@@ -1492,10 +1488,28 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                     </span>
                   ) : null}
                 </label>
-                <input type="number" min="0" step="0.01" value={form.precio_unidad}
-                  onChange={e=>set("precio_unidad",Math.ceil(parseFloat(e.target.value)||0))}
-                  style={inputStyle} placeholder="3"/>
+                <input
+                  type="number"
+                  className="farmacapital-field-input"
+                  min="0"
+                  step={PASO_PRECIO_VENTA}
+                  inputMode="decimal"
+                  value={form.precio_unidad}
+                  onChange={(e) => set("precio_unidad", e.target.value)}
+                  placeholder="1.50"
+                  style={{
+                    ...inputStyle,
+                    background: "#ffffff",
+                    color: "#0f172a",
+                    WebkitTextFillColor: "#0f172a",
+                    caretColor: "#0f172a",
+                    colorScheme: "light",
+                  }}
+                />
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
+                  De $0.50 en $0.50
+                  {precioPieza > 0 ? <> · {fmtPrecioInventario(precioPieza)}</> : null}
+                  {" · "}
                   {costoPieza > 0 ? <>Costo/pieza ${costoPieza.toFixed(2)}</> : "Indicá costo y unidades/caja"}
                   {precioPieza > 0 && minPrecioPieza > 0 && precioPieza < minPrecioPieza
                     ? <> · sugerido ${minPrecioPieza} (se guarda el que indiques)</>
@@ -1512,7 +1526,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               </div>
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
                 💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> ·
-                Sugerido: <strong>${upcVenta ? minPrecioPieza : "-"}</strong>/unidad (puedes poner menos)
+                Sugerido: <strong>{upcVenta ? fmtPrecioInventario(minPrecioPieza) : "—"}</strong>/unidad (puedes poner menos)
                 {margenPiezaPct != null && margenCajaPct != null ? (
                   <> · margen pieza <strong style={{ color: margenPiezaColor }}>{margenPiezaPct}%</strong> vs caja {margenCajaPct}%</>
                 ) : null}
@@ -3614,14 +3628,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     } else if (field === "precio") {
       const n = snapPrecioVenta(draft);
       if (n == null) {
-        showToast("Precio/costo inválido.", "error");
+        showToast("Precio inválido. El paso es de $0.50.", "error");
         return false;
       }
       patchValue = n;
     } else if (field === "costo") {
       const n = parseFloat(draft);
       if (Number.isNaN(n) || n < 0) {
-        showToast("Precio/costo inválido.", "error");
+        showToast("Costo inválido.", "error");
         return false;
       }
       patchValue = n;

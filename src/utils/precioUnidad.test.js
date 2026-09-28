@@ -3,9 +3,11 @@ import {
   blistersPorCaja,
   calcPrecioBlister,
   calcPrecioUnidad,
+  cobroUnidad,
   margenBrutoPct,
   piezasPorBlisterDefault,
   precioBlisterParaVenta,
+  precioUnidadManual,
   precioUnidadParaVenta,
   productoVendeBlister,
   unidadesAlAbrirCaja,
@@ -30,6 +32,35 @@ test("guardar $3 no lo sube a la regla", () => {
 
 test("POS cobra el precio que se guardó", () => {
   expect(precioUnidadParaVenta({ ...gasa, precio_unidad: 3 })).toBe(3);
+});
+
+test("$1.50 de pieza se queda en $1.50 y no sube a $2", () => {
+  expect(precioUnidadManual(1.5)).toBe(1.5);
+  expect(precioUnidadManual("1.50")).toBe(1.5);
+  expect(aplicarReglaPrecioUnidad({ ...gasa, precio_unidad: 1.5 }).precio_unidad).toBe(1.5);
+  expect(precioUnidadParaVenta({ ...gasa, precio_unidad: 1.5 })).toBe(1.5);
+  expect(cobroUnidad(1.5, 1)).toBe(1.5);
+  expect(cobroUnidad(1.5, 2)).toBe(3);
+});
+
+test("$1.20 baja a $1.00 y $1.30 sube a $1.50", () => {
+  expect(aplicarReglaPrecioUnidad({ ...gasa, precio_unidad: 1.2 }).precio_unidad).toBe(1);
+  expect(aplicarReglaPrecioUnidad({ ...gasa, precio_unidad: 1.3 }).precio_unidad).toBe(1.5);
+  expect(precioUnidadParaVenta({ ...gasa, precio_unidad: 1.2 })).toBe(1);
+  expect(precioUnidadParaVenta({ ...gasa, precio_unidad: 1.3 })).toBe(1.5);
+  expect(cobroUnidad(1.2, 1)).toBe(1);
+  expect(cobroUnidad(1.3, 1)).toBe(1.5);
+});
+
+test("el blister guardado sigue en peso entero", () => {
+  const conMedio = aplicarReglaPrecioUnidad({
+    ...cajaBlister,
+    precio_unidad: 1.5,
+    precio_blister: 40.4,
+  });
+  expect(conMedio.precio_unidad).toBe(1.5);
+  expect(conMedio.precio_blister).toBe(41);
+  expect(precioBlisterParaVenta({ ...cajaBlister, precio_blister: 40.5 })).toBe(41);
 });
 
 test("si no hay precio, usa la regla", () => {

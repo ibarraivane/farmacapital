@@ -1,9 +1,11 @@
-/** Cobro al público en mostrador: peso entero más cercano. Nunca centavos. */
+import { snapPrecioVenta } from "../lib/denominacionPrecio";
+
+/** Cobro al público: de $0.50 en $0.50. $1.50 se queda en $1.50. */
 
 export function pesoPublico(n) {
-  const x = parseFloat(n);
-  if (!Number.isFinite(x) || x <= 0) return 0;
-  return Math.round(x);
+  const x = snapPrecioVenta(n);
+  if (x == null || x <= 0) return 0;
+  return x;
 }
 
 /** Importe de una línea del ticket (unitario ya en pesos × cantidad). */

@@ -16,7 +16,7 @@ import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, look
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
-import { modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
+import { cobroUnidad, modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
 import {
   cajasAAbrirParaPiezas,
   cajasAAbrirPorError,
@@ -648,7 +648,7 @@ function PosProductoFichaPanel({
                 {item.descuento_pct > 0 && !cajaFalsa ? (
                   <PrecioOferta prod={item} size="md" showAhorro={false} />
                 ) : (
-                  $(pesoPublico(precioFicha))
+                  $(cajaFalsa ? (precioUnidadParaVenta(item) || precioFicha) : pesoPublico(precioFicha))
                 )}
               </div>
               {!cajaFalsa && Math.abs((parseFloat(item.precio) || 0) - pesoPublico(item.precio)) > 0.001 && !(item.descuento_pct > 0) && (
@@ -741,7 +741,7 @@ function PosProductoFichaPanel({
                 style={filaIconoBtn()}
               >
                 <IconoPieza size={18} />
-                Agregar · {$(pesoPublico(precioFicha))}
+                Agregar · {$(precioUnidadParaVenta(item) || precioFicha)}
               </Btn>
             ) : item.venta_unidad ? (
               <>
@@ -2166,7 +2166,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
   // P2.2: Total a cobrar = precio de línea (FEFO). Sin descuento_pct (T1').
   const calcularTotalConPromos = () => {
-    return cart.reduce((a,c) => a + cobroLinea(c.precio, c.qty), 0);
+    return cart.reduce((a, c) => a + (modoVentaDeLinea(c) === "unidad" ? cobroUnidad(c.precio, c.qty) : cobroLinea(c.precio, c.qty)), 0);
   };
   const sub   = calcularTotalConPromos();
   const ptsG  = Math.floor(sub/10);
@@ -2303,7 +2303,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       const cartItemsMapped = cart.map(c=>({
         producto_id: c.producto_id ?? c.id,
         cantidad: c.qty,
-        precio_unitario: cobroLinea(c.precio, 1),
+        precio_unitario: modoVentaDeLinea(c) === "unidad" ? cobroUnidad(c.precio, 1) : cobroLinea(c.precio, 1),
         modo_venta: modoVentaDeLinea(c),
       }));
 
@@ -2881,7 +2881,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               return {...c,qty,...precioCajaDesdeProducto(prod || c, qty, especialesRef.current)};
             }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>+</button>
               </div>
-              <span style={{color:C.blue,fontWeight:800,fontSize:16}}>{$(cobroLinea(item.precio, item.qty))}</span>
+              <span style={{color:C.blue,fontWeight:800,fontSize:16}}>{$(modoVentaDeLinea(item) === "unidad" ? cobroUnidad(item.precio, item.qty) : cobroLinea(item.precio, item.qty))}</span>
             </div>
           </div>
         ))}
