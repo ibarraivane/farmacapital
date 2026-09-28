@@ -93,7 +93,7 @@ async function traer(productoId) {
     .eq("producto_id", productoId)
     .order("posicion", { ascending: true })
     .then(({ data, error }) => {
-      const urls = error ? [] : (data || []).map((r) => normalizar(r.url)).filter(Boolean);
+      const urls = error ? [] : ordenarUrlsTarjeta(data || []);
       cache.set(productoId, urls);
       enVuelo.delete(productoId);
       return urls;
@@ -107,15 +107,36 @@ async function traer(productoId) {
   return promesa;
 }
 
+let revisionGaleria = 0;
+const oyentesGaleria = new Set();
+
+function useRevisionGaleria() {
+  const [v, setV] = useState(revisionGaleria);
+  useEffect(() => {
+    const fn = (n) => setV(n);
+    oyentesGaleria.add(fn);
+    return () => oyentesGaleria.delete(fn);
+  }, []);
+  return v;
+}
+
 /** Limpia el caché tras editar las fotos de un producto (o de todos). */
 export function invalidarImagenesProducto(productoId) {
   if (productoId == null) cache.clear();
   else cache.delete(productoId);
   principales = null;
+  cargaPrincipales = null;
+  cargaGen += 1;
+  revisionGaleria += 1;
+  oyentesGaleria.forEach((fn) => fn(revisionGaleria));
+  version += 1;
+  suscriptores.forEach((fn) => fn(version));
+  if (suscriptores.size) cargarPrincipales();
 }
 
 export function useProductoImagenes(productoId, imagenPrincipal = "") {
   const base = normalizar(imagenPrincipal);
+  const v = useRevisionGaleria();
   const [extra, setExtra] = useState(() => cache.get(productoId) || []);
   const [cargando, setCargando] = useState(() => productoId != null && !cache.has(productoId));
 
@@ -138,7 +159,7 @@ export function useProductoImagenes(productoId, imagenPrincipal = "") {
       setCargando(false);
     });
     return () => { vivo = false; };
-  }, [productoId]);
+  }, [productoId, v]);
 
   return { imagenes: ordenarGaleriaProducto(base, extra), cargando };
 }
@@ -151,6 +172,7 @@ export function useProductoImagenes(productoId, imagenPrincipal = "") {
 let principales = null;
 let cargaPrincipales = null;
 let version = 0;
+let cargaGen = 0;
 const suscriptores = new Set();
 
 async function traerImagenesCatalogo() {
@@ -176,8 +198,10 @@ function cargarPrincipales() {
   if (principales) return Promise.resolve(principales);
   if (cargaPrincipales) return cargaPrincipales;
 
+  const gen = ++cargaGen;
   cargaPrincipales = traerImagenesCatalogo()
     .then((filas) => {
+      if (gen !== cargaGen) return principales;
       principales = mapaUrlsTarjetaPorProducto(filas);
       cargaPrincipales = null;
       version += 1;
@@ -185,6 +209,7 @@ function cargarPrincipales() {
       return principales;
     })
     .catch(() => {
+      if (gen !== cargaGen) return principales;
       principales = new Map();
       cargaPrincipales = null;
       return principales;
