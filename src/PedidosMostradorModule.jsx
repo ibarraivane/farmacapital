@@ -1,25 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
-import { Calculator, ClipboardList, MessageCircle, Plus, QrCode, RefreshCw, Search, X } from "lucide-react";
+import { ClipboardList, Plus, QrCode, RefreshCw, Search, X } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import { rolEsAdmin } from "./utils/permissions";
 import {
   ESTADOS_SOLICITUD,
+  ETIQUETA_ENCARGOS,
   FILTROS_LISTA,
   PAGOS,
   URGENCIAS,
   etiquetaEstado,
-  etiquetaOrigen,
-  etiquetaPago,
-  etiquetaTipo,
-  etiquetaUrgencia,
   normalizarTextoSolicitud,
   puedeGuardarSolicitud,
-  siguientesEstados,
 } from "./lib/pedidosMostrador";
-import { buildSolicitudWhatsAppCliente } from "./lib/solicitudTienda";
 import EncargosBajoPedidoPanel from "./components/EncargosBajoPedidoPanel";
+import FilaSolicitudMostrador from "./components/FilaSolicitudMostrador";
 import { folioCotizacion, stashCotizacionAbierta } from "./lib/cotizaciones";
 
 const C = C_LIGHT;
@@ -50,46 +46,6 @@ function fmtCuando(iso) {
   });
 }
 
-function chip(bg, color, text) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: bg,
-        color,
-        fontSize: 11,
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {text}
-    </span>
-  );
-}
-
-function colorEstado(estado) {
-  switch (estado) {
-    case "pendiente":
-      return { bg: C.amberDim, color: C.amber };
-    case "pedir":
-      return { bg: C.blueDim, color: C.blue };
-    case "pedido":
-      return { bg: C.purpleDim, color: C.purple };
-    case "llego":
-      return { bg: C.greenDim, color: C.greenDark };
-    default:
-      return { bg: C.cardDark, color: C.textMid };
-  }
-}
-
-function colorUrgencia(u) {
-  if (u === "hoy") return { bg: C.redDim, color: C.red };
-  if (u === "manana") return { bg: C.amberDim, color: C.amber };
-  return { bg: C.cardDark, color: C.textMid };
-}
-
 export default function PedidosMostradorModule({ usuario, onNavigate }) {
   const esAdmin = rolEsAdmin(usuario?.rol);
   const [filtro, setFiltro] = useState("abiertas");
@@ -115,6 +71,7 @@ export default function PedidosMostradorModule({ usuario, onNavigate }) {
   const [actualizandoId, setActualizandoId] = useState(null);
   const [cotizPorSolicitud, setCotizPorSolicitud] = useState({});
   const [promoviendoId, setPromoviendoId] = useState(null);
+  const [abiertaId, setAbiertaId] = useState(null);
 
   const cargar = useCallback(async () => {
     const tok = sessionTok();
@@ -174,6 +131,10 @@ export default function PedidosMostradorModule({ usuario, onNavigate }) {
   }, [cargar]);
 
   useEffect(() => {
+    setAbiertaId(null);
+  }, [filtro]);
+
+  useEffect(() => {
     const q = busq.trim();
     if (q.length < 2) {
       setHits([]);
@@ -216,7 +177,7 @@ export default function PedidosMostradorModule({ usuario, onNavigate }) {
   const guardar = async () => {
     const textoFinal = normalizarTextoSolicitud(producto?.nombre || texto);
     if (!puedeGuardarSolicitud({ texto: textoFinal, cantidad })) {
-      showToast("Escribe qué buscan (mín. 2 caracteres)", "warning");
+      showToast("Escribe qué piden (mín. 2 caracteres)", "warning");
       return;
     }
     const tok = sessionTok();
@@ -333,9 +294,9 @@ export default function PedidosMostradorModule({ usuario, onNavigate }) {
             <ClipboardList size={20} />
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>Lo que buscan</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>{ETIQUETA_ENCARGOS}</h1>
             <p style={{ margin: "2px 0 0", color: C.textMid, fontSize: 13 }}>
-              Lo que piden en mostrador o en la tienda web. Incluye cliente y si dejaron depósito.
+              Lo que piden en mostrador o en la tienda y no hay en anaquel. Toca una línea para ver el detalle.
             </p>
           </div>
         </div>
@@ -415,7 +376,7 @@ export default function PedidosMostradorModule({ usuario, onNavigate }) {
           </div>
 
           <label style={{ display: "block", marginBottom: 10 }}>
-            <span style={{ color: C.textMid, fontSize: 11, fontWeight: 700 }}>¿Qué buscan?</span>
+            <span style={{ color: C.textMid, fontSize: 11, fontWeight: 700 }}>¿Qué piden?</span>
             <input
               value={producto ? producto.nombre : texto}
               onChange={(e) => {
@@ -705,140 +666,32 @@ export default function PedidosMostradorModule({ usuario, onNavigate }) {
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {lista.map((s) => {
-              const est = colorEstado(s.estado);
-              const urg = colorUrgencia(s.urgencia);
-              const next = siguientesEstados(s.estado);
-              return (
-                <article
+          {lista.length > 0 && (
+            <div
+              style={{
+                background: C.card,
+                border: `1px solid ${C.border}`,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
+              {lista.map((s, i) => (
+                <FilaSolicitudMostrador
                   key={s.id}
-                  style={{
-                    background: C.card,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 12,
-                    padding: "12px 14px",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                    <div style={{ flex: 1, minWidth: 180 }}>
-                      <div style={{ fontWeight: 800, fontSize: 15, color: C.text, marginBottom: 4 }}>
-                        {s.texto}
-                        {s.cantidad > 1 ? (
-                          <span style={{ color: C.textMid, fontWeight: 700 }}> ×{s.cantidad}</span>
-                        ) : null}
-                      </div>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
-                        {chip(est.bg, est.color, etiquetaEstado(s.estado))}
-                        {chip(urg.bg, urg.color, etiquetaUrgencia(s.urgencia))}
-                        {chip(C.cardDark, C.textMid, etiquetaTipo(s.tipo))}
-                        {s.origen === "tienda"
-                          ? chip(C.tealDim, C.teal, etiquetaOrigen("tienda"))
-                          : chip(C.cardDark, C.textMid, etiquetaOrigen(s.origen))}
-                        {s.pago_tipo && s.pago_tipo !== "nada"
-                          ? chip(C.greenDim, C.greenDark, etiquetaPago(s.pago_tipo, s.pago_monto))
-                          : null}
-                      </div>
-                      <div style={{ fontSize: 12, color: C.textMid }}>
-                        {s.origen === "tienda"
-                          ? "Llegó de la tienda web"
-                          : `Vendedor: ${s.anotado_por_nombre || "—"}`}
-                        {" · "}
-                        {fmtCuando(s.created_at)}
-                        {s.producto_nombre ? ` · Catálogo: ${s.producto_nombre}` : ""}
-                      </div>
-                      {(s.cliente_nombre || s.cliente_telefono || s.cliente_email) && (
-                        <div style={{ fontSize: 12, color: C.text, marginTop: 4 }}>
-                          Cliente: {s.cliente_nombre || "—"}
-                          {s.cliente_telefono ? ` · ${s.cliente_telefono}` : ""}
-                          {s.cliente_email ? ` · ${s.cliente_email}` : ""}
-                        </div>
-                      )}
-                      {s.direccion ? (
-                        <div style={{ fontSize: 12, color: C.textMid, marginTop: 4 }}>Envío: {s.direccion}</div>
-                      ) : null}
-                      {s.notas ? (
-                        <div style={{ fontSize: 12, color: C.text, marginTop: 4 }}>Nota: {s.notas}</div>
-                      ) : null}
-                      {s.cliente_telefono ? (
-                        <a
-                          href={buildSolicitudWhatsAppCliente({
-                            telefono: s.cliente_telefono,
-                            texto: s.texto,
-                            nombre: s.cliente_nombre,
-                          })}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            marginTop: 8,
-                            color: "#16a34a",
-                            fontWeight: 700,
-                            fontSize: 12,
-                            textDecoration: "none",
-                          }}
-                        >
-                          <MessageCircle size={14} /> Pasar costo por WhatsApp
-                        </a>
-                      ) : null}
-                      {esAdmin ? (
-                        <button
-                          type="button"
-                          disabled={promoviendoId === s.id}
-                          onClick={() => abrirCotizacion(s)}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            marginTop: 8,
-                            marginLeft: s.cliente_telefono ? 12 : 0,
-                            padding: 0,
-                            border: "none",
-                            background: "transparent",
-                            color: C.blue,
-                            fontWeight: 700,
-                            fontSize: 12,
-                            cursor: promoviendoId === s.id ? "wait" : "pointer",
-                          }}
-                        >
-                          <Calculator size={14} />
-                          {cotizPorSolicitud[s.id]
-                            ? `Abrir ${cotizPorSolicitud[s.id].folio || folioCotizacion(cotizPorSolicitud[s.id].id)}`
-                            : "Abrir cotización"}
-                        </button>
-                      ) : null}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {next.map((e) => (
-                        <button
-                          key={e}
-                          type="button"
-                          disabled={actualizandoId === s.id}
-                          onClick={() => cambiarEstado(s.id, e)}
-                          style={{
-                            padding: "6px 10px",
-                            borderRadius: 7,
-                            border: `1px solid ${C.border}`,
-                            background: C.cardDark,
-                            color: C.text,
-                            fontWeight: 700,
-                            fontSize: 11,
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                            opacity: actualizandoId === s.id ? 0.6 : 1,
-                          }}
-                        >
-                          → {etiquetaEstado(e)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  solicitud={s}
+                  abierta={abiertaId === s.id}
+                  conDivision={i > 0}
+                  esAdmin={esAdmin}
+                  cotizacion={cotizPorSolicitud[s.id] || null}
+                  promoviendo={promoviendoId === s.id}
+                  actualizando={actualizandoId === s.id}
+                  onToggle={() => setAbiertaId((cur) => (cur === s.id ? null : s.id))}
+                  onCambiarEstado={(estado) => cambiarEstado(s.id, estado)}
+                  onAbrirCotizacion={() => abrirCotizacion(s)}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
 

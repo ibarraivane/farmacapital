@@ -16,6 +16,7 @@ import {
 import { C_LIGHT, BRAND } from "./constants";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { urlImagenPublicaTienda } from "./lib/imagenCompetencia";
+import { ETIQUETA_ENCARGOS } from "./lib/pedidosMostrador";
 import { supabase } from "./supabase";
 import { Inp, showToast } from "./ui";
 import {
@@ -518,7 +519,7 @@ export default function CotizacionesModule({ usuario }) {
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>Cotizaciones</h1>
             <p style={{ margin: "2px 0 0", color: C.textMid, fontSize: 13 }}>
               Oficina del dueño: quién pide, dónde lo encontraste, a cuánto lo compras y cuánto se gana.
-              El piso sigue en «Lo que buscan».
+              El piso sigue en «{ETIQUETA_ENCARGOS}».
             </p>
           </div>
         </div>
@@ -700,7 +701,7 @@ export default function CotizacionesModule({ usuario }) {
         <div style={{ textAlign: "center", color: C.textMid, padding: 28 }}>
           No hay cotizaciones con este filtro.
           <div style={{ fontSize: 12, marginTop: 6 }}>
-            Crea una o ábrela desde «Lo que buscan» con Abrir cotización.
+            Crea una o ábrela desde «{ETIQUETA_ENCARGOS}» con Abrir cotización.
           </div>
         </div>
       )}
@@ -968,7 +969,7 @@ function FichaCotizacion({ detalle, loading, onVolver, onRefresh, rpc }) {
               {chip(est.bg, est.color, etiquetaEstadoCotizacion(detalle.estado))}
               {chip(colorUrgencia(detalle.urgencia).bg, colorUrgencia(detalle.urgencia).color, etiquetaUrgenciaCotizacion(detalle.urgencia))}
               {chip(C.cardDark, C.textMid, etiquetaOrigenCotizacion(detalle.origen))}
-              {detalle.solicitud_id ? chip(C.tealDim, C.teal, `Lo que buscan LQ-${detalle.solicitud_id}`) : null}
+              {detalle.solicitud_id ? chip(C.tealDim, C.teal, `${ETIQUETA_ENCARGOS} LQ-${detalle.solicitud_id}`) : null}
             </div>
             <div style={{ fontSize: 13, color: C.text, marginTop: 8 }}>
               {detalle.cliente_telefono || "Sin teléfono"}

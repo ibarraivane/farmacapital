@@ -1,4 +1,4 @@
-/** Solicitud «te lo conseguimos» desde la tienda → Lo que buscan. */
+/** Solicitud «te lo conseguimos» desde la tienda → Encargos. */
 
 export const SOLICITUD_STAFF_EMAILS = [
   "contacto@farmacapital.mx",

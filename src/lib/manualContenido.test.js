@@ -97,8 +97,12 @@ describe("manualContenido", () => {
     expect(hayrol(undefined, "vendedor")).toBe(true);
   });
 
-  test("Lo que buscan cubre tienda web, correos y flyer", () => {
+  test("Encargos cubre tienda web, correos y flyer", () => {
     const t = TEMAS.find((x) => x.id === "lo-que-buscan");
+    expect(t.titulo).toBe("Encargos");
+    const glosario = GLOSARIO.find((x) => x.id === "lo-que-buscan");
+    expect(glosario.term).toBe("Encargos");
+    expect(glosario.aliases.join(" ")).toMatch(/lo que buscan/i);
     const blob = [t.resumen, ...(t.pasos || []), ...(t.dudas || []).flatMap((d) => [d.q, d.a])].join(" ");
     expect(blob).toMatch(/tienda web/i);
     expect(blob).toMatch(/contacto@farmacapital.mx/);

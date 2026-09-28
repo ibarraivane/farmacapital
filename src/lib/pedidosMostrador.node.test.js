@@ -20,9 +20,14 @@ describe("pedidosMostrador", async () => {
     etiquetaOrigen,
     etiquetaPago,
     siguientesEstados,
+    ETIQUETA_ENCARGOS,
     normalizarTextoSolicitud,
     puedeGuardarSolicitud,
   } = mod;
+
+  it("el menú se llama Encargos", () => {
+    assert.equal(ETIQUETA_ENCARGOS, "Encargos");
+  });
 
   it("normaliza espacios y recorta a 200", () => {
     assert.equal(normalizarTextoSolicitud("  bumetadina   1mg  "), "bumetadina 1mg");

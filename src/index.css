@@ -937,3 +937,50 @@ details.fc-fold summary:focus-visible {
   }
   .farmacapital-pedido-hist-row__accion { justify-content: flex-start; }
 }
+
+/* Encargos: cada pedido es una línea. El detalle sale al tocarla. */
+.fc-encargo-linea {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px minmax(8rem, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color-scheme: light;
+  min-width: 0;
+}
+.fc-encargo-linea:hover {
+  background: #f1f5f9;
+}
+.fc-encargo-linea__nombre {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+  font-size: 14px;
+  color: #0f172a;
+}
+.fc-encargo-linea__meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .fc-encargo-linea {
+    grid-template-columns: 16px minmax(0, 1fr);
+    row-gap: 4px;
+  }
+  .fc-encargo-linea__meta {
+    grid-column: 2;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

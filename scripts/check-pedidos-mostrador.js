@@ -2,7 +2,7 @@
 "use strict";
 
 /**
- * Chequeos estáticos del módulo «Lo que buscan».
+ * Chequeos estáticos del módulo Encargos (antes «Lo que buscan»).
  * Corre sin React: node scripts/check-pedidos-mostrador.js
  */
 const fs = require("fs");
@@ -27,7 +27,11 @@ function mustInclude(haystack, needle, msg) {
 
 const sql = read("sql/patch_pedidos_mostrador_20260904.sql");
 const sqlTienda = read("sql/patch_solicitudes_tienda_20260906.sql");
-const ui = read("src/PedidosMostradorModule.jsx");
+const ui = [
+  read("src/PedidosMostradorModule.jsx"),
+  read("src/components/FilaSolicitudMostrador.jsx"),
+].join("\n");
+const libPedidos = read("src/lib/pedidosMostrador.js");
 const constants = read("src/constants.js");
 const permissions = read("src/utils/permissions.js");
 const admin = read("src/Admin.jsx");
@@ -74,8 +78,11 @@ mustInclude(ui, "farmacapital_session_token", "UI debe usar el token de sesión 
 mustInclude(ui, "anotado_por_nombre", "UI debe mostrar el vendedor que anotó");
 
 // ── Cableado menú / permisos / rutas ─────────────────────────
+mustInclude(ui, "aria-expanded", "cada encargo debe desplegarse al tocarlo");
+mustInclude(ui, "fc-encargo-linea", "la lista debe ser una línea");
+mustInclude(libPedidos, 'ETIQUETA_ENCARGOS = "Encargos"', "el módulo se llama Encargos");
 mustInclude(constants, "ped_mostrador", "constants debe registrar ped_mostrador");
-mustInclude(constants, "Lo que buscan", "constants debe etiquetar el módulo");
+mustInclude(constants, "ETIQUETA_ENCARGOS", "constants debe etiquetar el módulo con ETIQUETA_ENCARGOS");
 mustInclude(permissions, "ped_mostrador", "permissions debe incluir ped_mostrador para vendedor");
 mustInclude(admin, "PedidosMostradorModule", "Admin debe lazy-cargar el módulo");
 mustInclude(admin, 'case "ped_mostrador"', "Admin debe enrutar ped_mostrador");
