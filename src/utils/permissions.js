@@ -38,6 +38,7 @@ export const NAV_VENDEDOR_DEFAULT = [
   "pos",
   "dev",
   "ped_mostrador",
+  "compra_personal", // Compra de personal (precio de empleado): solicitar y cobrar. Sin costo/margen.
   "agenda",
   "recibir",
   "inv",
@@ -87,6 +88,11 @@ export function puedeVerModulo(usuario, moduloId) {
     if (usuario.rol === "doctora") return false;
     return puedeVerModulo(usuario, "inv");
   }
+  // Compra de personal es del piso (POS). Si el vendedor ya tiene módulos
+  // personalizados de antes de este alta, igual debe poder cobrar lo aprobado.
+  if (moduloId === "compra_personal" && usuario.rol === "vendedor") {
+    return puedeVerModulo(usuario, "pos");
+  }
   if (rolEsAdmin(usuario.rol)) return true;
 
   if (usuario.rol === "vendedor" && MODULOS_BLOQUEADOS_VENDEDOR.includes(moduloId)) {
@@ -120,6 +126,11 @@ export function inyectarNavOperacionPiso(ids) {
     if (afterDev >= 0) out.splice(afterDev + 1, 0, "ped_mostrador");
     else if (out.includes("pos")) out.splice(out.indexOf("pos") + 1, 0, "ped_mostrador");
     else out.push("ped_mostrador");
+  }
+  if (!out.includes("compra_personal") && out.includes("pos")) {
+    const afterMostrador = out.indexOf("ped_mostrador");
+    if (afterMostrador >= 0) out.splice(afterMostrador + 1, 0, "compra_personal");
+    else out.splice(out.indexOf("pos") + 1, 0, "compra_personal");
   }
   if (!out.includes("ayuda")) {
     const at = out.indexOf("inv");
