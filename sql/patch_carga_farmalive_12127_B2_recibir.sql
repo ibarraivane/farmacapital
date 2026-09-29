@@ -1,27 +1,21 @@
--- Farmalive 12127 · PARTE B2 · cola Recibir (despues de B1)
--- Crea/actualiza borrador folio 12127 e inserta 109 renglones.
+-- Farmalive 12127 · B2 · cola Recibir (despues de B1 altas + costos)
+-- Join por codigo_barras / sku (sin fc_buscar en masa).
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
-  'Farmalive',
-  '12127',
-  '2026-09-28',
-  11696.80,
-  'borrador',
-  'Ticket Farmalive 12127 · Club Iztapalapa 1 · 28-sep-2026 16:24 · 109 art / 238 pzas · $11,696.80 · precio neto · cola Recibir'
+  'Farmalive', '12127', '2026-09-28', 11696.80, 'borrador',
+  'Ticket Farmalive 12127 · Club Iztapalapa 1 · 28-sep-2026 · 238 pzas · $11,696.80'
 where not exists (
   select 1 from public.recepciones
-  where folio = '12127'
-    and coalesce(proveedor, '') ilike '%farmalive%'
+  where folio = '12127' and coalesce(proveedor, '') ilike '%farmalive%'
 );
 
 update public.recepciones
-set
-  total_ticket = 11696.80,
-  fecha = '2026-09-28',
-  proveedor = 'Farmalive',
-  notas = 'Ticket Farmalive 12127 · Club Iztapalapa 1 · 28-sep-2026 16:24 · 109 art / 238 pzas · $11,696.80 · precio neto · cola Recibir',
-  updated_at = now()
+set total_ticket = 11696.80,
+    fecha = '2026-09-28',
+    proveedor = 'Farmalive',
+    notas = 'Ticket Farmalive 12127 · Club Iztapalapa 1 · 28-sep-2026 · 238 pzas · $11,696.80',
+    updated_at = now()
 where folio = '12127'
   and coalesce(proveedor, '') ilike '%farmalive%'
   and estado = 'borrador';
@@ -40,48 +34,35 @@ insert into public.recepcion_items (
 )
 select
   r.id,
-  v.pid,
+  p.id,
   t.ean,
   t.nombre,
   t.qty,
   null,
   t.lote,
   t.costo,
-  (v.pid is null),
+  (p.id is null),
   'pdf',
   false,
-  (
-    v.pid is not null and exists (
-      select 1 from public.lotes l
-      where l.producto_id = v.pid
-        and coalesce(l.activo, true)
-        and coalesce(l.cantidad_actual, 0) > 0
-    )
-  ),
+  false,
   null
 from public._fc_fl_12127_staging t
 join public.recepciones r
   on r.folio = '12127'
  and coalesce(r.proveedor, '') ilike '%farmalive%'
  and r.estado = 'borrador'
-left join lateral (
-  select coalesce(
-    public.fc_buscar_producto_escaneo(t.ean),
-    public.fc_buscar_producto_escaneo(t.sku)
-  ) as pid
-) v on true
+left join public.productos p
+  on p.codigo_barras = t.ean
+  or p.sku = t.sku
 order by t.linea;
 
 select
-  r.folio,
-  r.proveedor,
-  r.estado,
-  r.total_ticket,
+  r.folio, r.estado, r.total_ticket,
   count(i.*) as renglones,
   sum(i.cantidad) as piezas,
-  bool_or(i.pendiente_alta) as tiene_pendiente_alta
+  count(i.*) filter (where i.pendiente_alta) as pendientes_alta
 from public.recepciones r
 left join public.recepcion_items i on i.recepcion_id = r.id
 where r.folio = '12127'
   and coalesce(r.proveedor, '') ilike '%farmalive%'
-group by r.id, r.folio, r.proveedor, r.estado, r.total_ticket;
+group by r.id, r.folio, r.estado, r.total_ticket;

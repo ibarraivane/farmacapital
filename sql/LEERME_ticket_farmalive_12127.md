@@ -4,15 +4,10 @@ Club Iztapalapa 1 · Club de Precios · ticket **12127** · 28/09/2026 16:24.
 
 ## Cómo pegar en Supabase (si sale «Load failed»)
 
-El monolito / B completa a veces fallan. Corre **en orden**:
+Ver pasos cortos con links raw: [`LEERME_farmalive_12127_PASOS.md`](LEERME_farmalive_12127_PASOS.md).
 
-1. [`A1_staging`](patch_carga_farmalive_12127_A1_staging.sql) → ~55 renglones  
-2. [`A2_staging`](patch_carga_farmalive_12127_A2_staging.sql) → **109** / **238**  
-3. [`B1_catalogo`](patch_carga_farmalive_12127_B1_catalogo.sql) → altas + costos  
-4. [`B2_recibir`](patch_carga_farmalive_12127_B2_recibir.sql) → cola Recibir (109 renglones)  
-5. [`B3_fotos`](patch_carga_farmalive_12127_B3_fotos.sql) → galería + borra staging  
-
-Si A1+A2 ya están y solo falló el 3 anterior: empieza en **B1** (no hace falta repetir A).
+Si A1+A2 ya corrieron: `B1_01` … `B1_08` (altas de a 8) → `B1_costos` → `B2_recibir` → `B3_fotos`.
+No uses `B1_catalogo.sql` (obsoleto; provoca Load failed).
 
 | Artículos | Piezas | Subtotal ticket | Descuento | **Total** |
 |-----------|--------|-----------------|-----------|-----------|
