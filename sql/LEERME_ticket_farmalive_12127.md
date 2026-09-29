@@ -4,14 +4,15 @@ Club Iztapalapa 1 · Club de Precios · ticket **12127** · 28/09/2026 16:24.
 
 ## Cómo pegar en Supabase (si sale «Load failed»)
 
-El monolito a veces tira `Load failed (api.supabase.com)`. Corre **en orden**:
+El monolito / B completa a veces fallan. Corre **en orden**:
 
-1. [`patch_carga_farmalive_12127_A1_staging.sql`](patch_carga_farmalive_12127_A1_staging.sql) → debe decir ~55 renglones  
-2. [`patch_carga_farmalive_12127_A2_staging.sql`](patch_carga_farmalive_12127_A2_staging.sql) → **109** renglones / **238** piezas  
-3. [`patch_carga_farmalive_12127_B_aplicar.sql`](patch_carga_farmalive_12127_B_aplicar.sql) → altas + cola Recibir (borra el staging)
+1. [`A1_staging`](patch_carga_farmalive_12127_A1_staging.sql) → ~55 renglones  
+2. [`A2_staging`](patch_carga_farmalive_12127_A2_staging.sql) → **109** / **238**  
+3. [`B1_catalogo`](patch_carga_farmalive_12127_B1_catalogo.sql) → altas + costos  
+4. [`B2_recibir`](patch_carga_farmalive_12127_B2_recibir.sql) → cola Recibir (109 renglones)  
+5. [`B3_fotos`](patch_carga_farmalive_12127_B3_fotos.sql) → galería + borra staging  
 
-Alternativa: `A_staging.sql` (todo el staging) y luego `B_aplicar.sql`.  
-Si la red aguanta: el archivo único `patch_carga_farmalive_12127.sql`.
+Si A1+A2 ya están y solo falló el 3 anterior: empieza en **B1** (no hace falta repetir A).
 
 | Artículos | Piezas | Subtotal ticket | Descuento | **Total** |
 |-----------|--------|-----------------|-----------|-----------|

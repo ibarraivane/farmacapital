@@ -1,9 +1,12 @@
--- Farmalive 12127 · PARTE B · altas + cola Recibir (correr después de A)
--- Requiere public._fc_fl_12127_staging con 109 renglones.
+-- Farmalive 12127 · PARTE B (completa) · usar si A1+A2 ya corrrieron.
+-- Si este archivo falla, corre en orden: B1 → B2 → B3 (mas chicos).
+-- Correcciones vs version anterior:
+--   * public._fc_fl_12127_staging calificado
+--   * fotos con DISTINCT ON (ean) — Sico viene 2 veces
+--   * es_principal=false al insertar (ux_producto_imagenes_una_principal)
+--   * sin begin/commit envolvente (el Editor a veces tira Load failed)
 
-begin;
-
--- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
+-- === B1 catalogo ===
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -40,13 +43,12 @@ select
   t.imagen
 from (
   select distinct on (ean) *
-  from _fc_fl_12127_staging
+  from public._fc_fl_12127_staging
   order by ean, linea
 ) t
 where public.fc_buscar_producto_escaneo(t.ean) is null
   and public.fc_buscar_producto_escaneo(t.sku) is null;
 
--- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
 set
   costo = t.costo,
@@ -56,7 +58,7 @@ set
   end
 from (
   select distinct on (ean) *
-  from _fc_fl_12127_staging
+  from public._fc_fl_12127_staging
   order by ean, linea
 ) t
 where p.id = coalesce(
@@ -68,7 +70,6 @@ where p.id = coalesce(
     or coalesce(p.precio, 0) <= 0
   );
 
--- Ficha vacía / foto si falta. No pisa una foto que ya esté.
 update public.productos p
 set
   nombre = case
@@ -87,7 +88,7 @@ set
   codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
 from (
   select distinct on (ean) *
-  from _fc_fl_12127_staging
+  from public._fc_fl_12127_staging
   order by ean, linea
 ) t
 where p.id = coalesce(
@@ -95,6 +96,7 @@ where p.id = coalesce(
   public.fc_buscar_producto_escaneo(t.sku)
 );
 
+-- === B2 recibir ===
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
   'Farmalive',
@@ -102,7 +104,7 @@ select
   '2026-09-28',
   11696.80,
   'borrador',
-  'Ticket Farmalive 12127 · Club Iztapalapa 1 · 28-sep-2026 16:24 · Club de Precios · tarjeta · 109 art / 238 pzas · subtotal $12,642.62 − desc $945.82 = $11,696.80 · precio neto · Suerox EAN canónico · cola Recibir; stock al confirmar pistola + MMAA'
+  'Ticket Farmalive 12127 · Club Iztapalapa 1 · 28-sep-2026 16:24 · 109 art / 238 pzas · $11,696.80 · precio neto · cola Recibir'
 where not exists (
   select 1 from public.recepciones
   where folio = '12127'
@@ -114,7 +116,7 @@ set
   total_ticket = 11696.80,
   fecha = '2026-09-28',
   proveedor = 'Farmalive',
-  notas = 'Ticket Farmalive 12127 · Club Iztapalapa 1 · 28-sep-2026 16:24 · Club de Precios · tarjeta · 109 art / 238 pzas · subtotal $12,642.62 − desc $945.82 = $11,696.80 · precio neto · Suerox EAN canónico · cola Recibir; stock al confirmar pistola + MMAA',
+  notas = 'Ticket Farmalive 12127 · Club Iztapalapa 1 · 28-sep-2026 16:24 · 109 art / 238 pzas · $11,696.80 · precio neto · cola Recibir',
   updated_at = now()
 where folio = '12127'
   and coalesce(proveedor, '') ilike '%farmalive%'
@@ -153,7 +155,7 @@ select
     )
   ),
   null
-from _fc_fl_12127_staging t
+from public._fc_fl_12127_staging t
 join public.recepciones r
   on r.folio = '12127'
  and coalesce(r.proveedor, '') ilike '%farmalive%'
@@ -166,6 +168,7 @@ left join lateral (
 ) v on true
 order by t.linea;
 
+-- === B3 fotos ===
 insert into public.producto_imagenes
   (producto_id, url, storage_path, posicion, es_principal, origen)
 select
@@ -176,12 +179,13 @@ select
     select max(i.posicion) from public.producto_imagenes i
     where i.producto_id = p.id
   ), 0) + 1,
-  not exists (
-    select 1 from public.producto_imagenes i
-    where i.producto_id = p.id and coalesce(i.es_principal, false)
-  ),
+  false,
   'propia'
-from _fc_fl_12127_staging t
+from (
+  select distinct on (ean) *
+  from public._fc_fl_12127_staging
+  order by ean, linea
+) t
 join public.productos p on p.id = coalesce(
   public.fc_buscar_producto_escaneo(t.ean),
   public.fc_buscar_producto_escaneo(t.sku)
@@ -193,12 +197,27 @@ where t.imagen is not null
       and (i.url = t.imagen or i.storage_path = t.foto_file)
   );
 
--- Diagnóstico
+update public.producto_imagenes i
+set es_principal = true
+from public.productos p
+join (
+  select distinct on (ean) ean, imagen, foto_file, sku
+  from public._fc_fl_12127_staging
+  order by ean, linea
+) t on p.id = coalesce(
+  public.fc_buscar_producto_escaneo(t.ean),
+  public.fc_buscar_producto_escaneo(t.sku)
+)
+where i.producto_id = p.id
+  and t.imagen is not null
+  and (i.url = t.imagen or i.storage_path = t.foto_file)
+  and not exists (
+    select 1 from public.producto_imagenes x
+    where x.producto_id = p.id and coalesce(x.es_principal, false)
+  );
+
 select
-  r.folio,
-  r.proveedor,
-  r.estado,
-  r.total_ticket,
+  r.folio, r.estado, r.total_ticket,
   count(i.*) as renglones,
   sum(i.cantidad) as piezas,
   bool_or(i.pendiente_alta) as tiene_pendiente_alta
@@ -206,19 +225,6 @@ from public.recepciones r
 left join public.recepcion_items i on i.recepcion_id = r.id
 where r.folio = '12127'
   and coalesce(r.proveedor, '') ilike '%farmalive%'
-group by r.id, r.folio, r.proveedor, r.estado, r.total_ticket;
-
-select
-  t.linea,
-  t.ean,
-  t.nombre,
-  t.qty,
-  t.costo,
-  case when public.fc_buscar_producto_escaneo(t.ean) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
-  t.ya as marcado_ya
-from _fc_fl_12127_staging t
-order by t.linea;
+group by r.id, r.folio, r.estado, r.total_ticket;
 
 drop table if exists public._fc_fl_12127_staging;
-
-commit;
