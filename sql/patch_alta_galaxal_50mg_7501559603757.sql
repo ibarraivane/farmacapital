@@ -36,8 +36,8 @@ select
   'Tableta',
   226,
   250,
-  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@JSDELIVR_SHA/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg',
-  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@JSDELIVR_SHA/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@82541ecd/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@82541ecd/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg',
   0,
   1,
   true,
@@ -73,11 +73,11 @@ set
   disponible = coalesce(nullif(btrim(p.disponible), ''), 'inmediato'),
   imagen_url = coalesce(
     nullif(btrim(p.imagen_url), ''),
-    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@JSDELIVR_SHA/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg'
+    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@82541ecd/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg'
   ),
   imagen_mobile_url = coalesce(
     nullif(btrim(p.imagen_mobile_url), ''),
-    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@JSDELIVR_SHA/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg'
+    'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@82541ecd/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg'
   )
 where p.codigo_barras = '7501559603757'
    or p.sku = 'FC-59603757';
@@ -87,7 +87,7 @@ insert into public.producto_imagenes (
 )
 select
   p.id,
-  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@JSDELIVR_SHA/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg',
+  'https://cdn.jsdelivr.net/gh/ibarraivane/farmacapital@82541ecd/public/catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg',
   'catalogo-propia/galaxal-lacosamida-50mg-c14-7501559603757.jpg',
   0,
   true,
