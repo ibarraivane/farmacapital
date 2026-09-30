@@ -38,7 +38,7 @@ insert into _fc_nd6090551411
    marca, presentacion, forma, laboratorio, principio_activo, receta, alta_nueva)
 values
   (1, '7501026462245', 'FC-26462078', 'Chupón Ternura flor y balón con miel', 'CHUPON TERNURA FLOR/BALON MIEL S', 18, 3.10, 4, 'marca', 'Bebés', 'Chupones', 'Ternura', '1 pieza', 'Chupón', 'M.A. Carter', null, false, false),
-  (2, '4042809591446', 'FC-09591446', 'Leukoplast Hypafix', 'LEUKOPLAST HYPAFIX 10 CM X 2M', 1, 71.63, 90, 'marca', 'Botiquín', 'Material de curación', 'Leukoplast', '10 cm × 2 m', 'Lámina adhesiva', 'Essity', null, false, true),
+  (2, '4042809591446', 'FC-09591446', 'Leukoplast Hypafix', 'LEUKOPLAST HYPAFIX 10 CM X 2M', 1, 71.63, 90, 'marca', 'Botiquín', 'Material de curación', 'Leukoplast', '10 cm x 2 m', 'Lamina adhesiva', 'Essity', null, false, true),
   (3, '650240032431', 'FC-40032431', 'Asepxia polvo compacto Canela', 'MJE ASEPXIA PVO COM TONO CANELA 10G', 1, 126.02, 158, 'marca', 'Cuidado personal', 'Maquillaje', 'Asepxia', '10 g', 'Polvo compacto', 'Genomma Lab', null, false, true),
   (4, '650240032455', 'FC-40032455', 'Asepxia BB polvo compacto Natural Mate', 'MJE ASEPXIABBPVOCOMPNATMA 10G', 1, 126.02, 158, 'marca', 'Cuidado personal', 'Maquillaje', 'Asepxia', '10 g', 'Polvo compacto', 'Genomma Lab', null, false, true);
 
@@ -113,23 +113,24 @@ where not exists (
   where folio = '6090551411' and coalesce(proveedor, '') ilike '%nadro%'
 );
 
+-- Reabrir aunque no esté en borrador (si un run previo dejó estado raro).
 update public.recepciones
 set
+  estado = 'borrador',
+  cerrado_en = null,
   total_ticket = 440.18,
   fecha = '2026-09-28',
   proveedor = 'Nadro',
   notas = 'Pedido Nadro 6090551411 · CFDI 28-09-26 · EAN iNadro · cola Recibir; stock al confirmar pistola · chupón/Hypafix DV corregido',
   updated_at = now()
 where folio = '6090551411'
-  and coalesce(proveedor, '') ilike '%nadro%'
-  and estado = 'borrador';
+  and coalesce(proveedor, '') ilike '%nadro%';
 
 delete from public.recepcion_items i
 using public.recepciones r
 where i.recepcion_id = r.id
   and r.folio = '6090551411'
-  and coalesce(r.proveedor, '') ilike '%nadro%'
-  and r.estado = 'borrador';
+  and coalesce(r.proveedor, '') ilike '%nadro%';
 
 insert into public.recepcion_items (
   recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,

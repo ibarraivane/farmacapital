@@ -22,14 +22,21 @@ Subtotal renglones $379.47 + IVA $60.71 = **$440.18**.
 
 El chupón **ya estaba** en catálogo (`FC-26462078`). El papel imprimió un dígito mal; el código de la tira es `7501026462245`.
 
-## Qué pegar en Supabase
+## Qué pegar en Supabase (orden)
 
-1. `sql/patch_carga_nadro_6090551411.sql` — altas + cola Recibir borrador.
-2. Tras deploy Vercel: `sql/patch_fotos_nadro_6090551411.sql`.
+1. **Primero** `sql/patch_carga_nadro_6090551411.sql` — crea altas + el ticket en cola Recibir.
+   - Al final del Run tienen que salir **4 renglones** (chupón / Hypafix / Asepxia Canela / Natural Mate).
+   - Si sale 0 filas o error, el ticket **no** aparece en Recibir.
+2. Merge del PR + deploy a producción (las fotos viven en `public/catalogo-propia/`).
+3. **Después del deploy** `sql/patch_fotos_nadro_6090551411.sql` — solo apunta `imagen_url`. **No crea el ticket.**
 
 CSV: `sql/generated/ticket_nadro_6090551411.csv`.
 
 Stock **0** hasta escanear con pistola y capturar MMAA de la caja. No inventar `0000`.
+
+### Si Recibir sigue vacío
+
+Corriste solo el de fotos, o el de carga falló/rollback. Volvé a pegar **solo** `patch_carga_nadro_6090551411.sql` completo (begin → commit) y mirá el SELECT final: 4 filas.
 
 ## Ficha (no el código del PDF)
 

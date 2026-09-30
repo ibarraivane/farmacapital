@@ -75,8 +75,8 @@ RAW = [
         "Botiquín",
         "Material de curación",
         "Leukoplast",
-        "10 cm × 2 m",
-        "Lámina adhesiva",
+        "10 cm x 2 m",
+        "Lamina adhesiva",
         "Essity",
         None,
         False,
@@ -326,23 +326,24 @@ where not exists (
   where folio = {sql_str(FOLIO)} and coalesce(proveedor, '') ilike '%nadro%'
 );
 
+-- Reabrir aunque no esté en borrador (si un run previo dejó estado raro).
 update public.recepciones
 set
+  estado = 'borrador',
+  cerrado_en = null,
   total_ticket = {TOTAL_TICKET:.2f},
   fecha = {sql_str(FECHA)},
   proveedor = {sql_str(PROVEEDOR)},
   notas = {sql_str(f"Pedido Nadro {FOLIO} · CFDI 28-09-26 · EAN iNadro · cola Recibir; stock al confirmar pistola · chupón/Hypafix DV corregido")},
   updated_at = now()
 where folio = {sql_str(FOLIO)}
-  and coalesce(proveedor, '') ilike '%nadro%'
-  and estado = 'borrador';
+  and coalesce(proveedor, '') ilike '%nadro%';
 
 delete from public.recepcion_items i
 using public.recepciones r
 where i.recepcion_id = r.id
   and r.folio = {sql_str(FOLIO)}
-  and coalesce(r.proveedor, '') ilike '%nadro%'
-  and r.estado = 'borrador';
+  and coalesce(r.proveedor, '') ilike '%nadro%';
 
 insert into public.recepcion_items (
   recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,
