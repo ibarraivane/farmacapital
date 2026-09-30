@@ -4,6 +4,18 @@ Factura CFDI Nadro México Sur · UUID `63A7365A-98A6-4068-83F3-1897395A2AE8` ·
 
 Subtotal renglones $379.47 + IVA $60.71 = **$440.18**.
 
+## Por qué Recibir seguía vacío (2026-09-30)
+
+En producción **solo** se corrió `patch_fotos_…` (el chupón tiene la `imagen_url` nueva). **No** se corrió `patch_carga_…`:
+
+| Chequeo vivo | Resultado |
+|---|---|
+| Hypafix `4042809591446` / Asepxia ×2 | **no existen** en `productos` |
+| Chupón `FC-26462078` | sigue costo **$3.39** y nombre viejo (carga pondría **$3.10** + nombre flor/balón) |
+| Fotos en `/catalogo-propia/…` | el deploy del PR **no** está en `main` → Vercel sirve `index.html` |
+
+El deploy de Vercel **no** crea tickets. Sin fila en `recepciones` + `recepcion_items`, Recibir no muestra Nadro.
+
 ## Veredicto
 
 | EAN pistola | Ticket | SKU | Piezas | Costo u. | Acción |
@@ -20,30 +32,17 @@ Subtotal renglones $379.47 + IVA $60.71 = **$440.18**.
 | `7501025462245` | `7501026462245` |
 | `4042809591448` | `4042809591446` |
 
-El chupón **ya estaba** en catálogo (`FC-26462078`). El papel imprimió un dígito mal; el código de la tira es `7501026462245`.
+## Qué hace falta
 
-## Qué pegar en Supabase (orden)
+1. Aplicar **`sql/patch_carga_nadro_6090551411.sql`** en Supabase (o el one-shot del agente vía `/api/backup?action=aplicar-nadro-6090551411`).
+   - SELECT final = **4 filas**. Si da 0, el ticket no existe.
+2. Merge del PR + deploy (fotos en `public/catalogo-propia/`).
+3. Después: `sql/patch_fotos_nadro_6090551411.sql`.
 
-1. **Primero** `sql/patch_carga_nadro_6090551411.sql` — crea altas + el ticket en cola Recibir.
-   - Al final del Run tienen que salir **4 renglones** (chupón / Hypafix / Asepxia Canela / Natural Mate).
-   - Si sale 0 filas o error, el ticket **no** aparece en Recibir.
-2. Merge del PR + deploy a producción (las fotos viven en `public/catalogo-propia/`).
-3. **Después del deploy** `sql/patch_fotos_nadro_6090551411.sql` — solo apunta `imagen_url`. **No crea el ticket.**
+Diagnóstico rápido: `sql/diag_nadro_6090551411.sql`.
 
 CSV: `sql/generated/ticket_nadro_6090551411.csv`.
 
 Stock **0** hasta escanear con pistola y capturar MMAA de la caja. No inventar `0000`.
-
-### Si Recibir sigue vacío
-
-Corriste solo el de fotos, o el de carga falló/rollback. Volvé a pegar **solo** `patch_carga_nadro_6090551411.sql` completo (begin → commit) y mirá el SELECT final: 4 filas.
-
-## Ficha (no el código del PDF)
-
-- **Chupón:** Ternura flor y balón con miel (marca Ternura; Nadro dice CARTER = fabricante).
-- **Hypafix:** Leukoplast Hypafix 10 cm × 2 m (marca Leukoplast; Nadro dice ESSITY).
-- **Asepxia Canela / Natural Mate:** nombres de mostrador desde descripción iNadro; marca Asepxia (no GENOMMALAB).
-
-Precios sugeridos de alta: recargo **+25%** al costo (marca).
 
 Regenerar: `python3 scripts/generar_carga_nadro_6090551411.py`
