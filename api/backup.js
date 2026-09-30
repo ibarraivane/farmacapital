@@ -37,10 +37,6 @@ const { drainRappiQueue } = require('./_lib/rappiSync');
 const { runCaducidadJob } = require('./_lib/caducidadJob');
 const { runMonitorPreciosJob } = require('./_lib/monitorPreciosJob');
 const { runCatalogEnrichJob } = require('./_lib/catalog/enrichJob');
-const { aplicarCargaNadro6090551411 } = require('./_lib/aplicarCargaNadro6090551411');
-
-/** One-shot: aplicar ticket Nadro 6090551411 sin CRON_SECRET (agente). Quitar tras uso. */
-const NADRO_6090551411_APPLY_TOKEN = 'gPOfUOgzQ-PQwO9d1G_YY20GOml72SdD8ch6mcq3PT4';
 
 function getQuery(req) {
   try {
