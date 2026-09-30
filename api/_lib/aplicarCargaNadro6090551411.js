@@ -89,6 +89,33 @@ const FOLIO = '6090551411';
 const NOTAS =
   'Pedido Nadro 6090551411 · CFDI 28-09-26 · EAN iNadro · cola Recibir; stock al confirmar pistola · chupón/Hypafix DV corregido';
 
+const FOTOS = [
+  {
+    ean: '7501026462245',
+    skus: ['FC-26462078', 'FC-ND-26462078'],
+    url: 'https://www.farmacapital.mx/catalogo-propia/chupon-ternura-flor-balon-miel-7501026462245.jpg',
+    hint: 'catalogo-propia/chupon-ternura-flor-balon-miel',
+  },
+  {
+    ean: '4042809591446',
+    skus: ['FC-09591446', 'FC-ND-09591446'],
+    url: 'https://www.farmacapital.mx/catalogo-propia/leukoplast-hypafix-10cm-x-2m-4042809591446.jpg',
+    hint: 'catalogo-propia/leukoplast-hypafix-10cm-x-2m',
+  },
+  {
+    ean: '650240032431',
+    skus: ['FC-40032431', 'FC-ND-40032431'],
+    url: 'https://www.farmacapital.mx/catalogo-propia/asepxia-polvo-compacto-canela-10g-650240032431.jpg',
+    hint: 'catalogo-propia/asepxia-polvo-compacto-canela',
+  },
+  {
+    ean: '650240032455',
+    skus: ['FC-40032455', 'FC-ND-40032455'],
+    url: 'https://www.farmacapital.mx/catalogo-propia/asepxia-bb-polvo-compacto-natural-mate-10g-650240032455.jpg',
+    hint: 'catalogo-propia/asepxia-bb-polvo-compacto-natural-mate',
+  },
+];
+
 function headers(serviceKey, extra = {}) {
   return {
     apikey: serviceKey,
@@ -268,6 +295,69 @@ async function asegurarRecepcion(supabaseUrl, serviceKey) {
   return id;
 }
 
+async function aplicarFotos(supabaseUrl, serviceKey) {
+  const out = [];
+  for (const f of FOTOS) {
+    const skuFilter = f.skus.map((s) => `"${s}"`).join(',');
+    const rows = await rest(
+      supabaseUrl,
+      serviceKey,
+      'GET',
+      `productos?or=(codigo_barras.eq.${f.ean},sku.in.(${skuFilter}))&select=id,imagen_url`
+    );
+    for (const p of rows || []) {
+      const cur = String(p.imagen_url || '');
+      if (!cur || !cur.includes(f.hint)) {
+        await rest(
+          supabaseUrl,
+          serviceKey,
+          'PATCH',
+          `productos?id=eq.${p.id}`,
+          { imagen_url: f.url },
+          'return=minimal'
+        );
+        out.push({ producto_id: p.id, url: f.url });
+      }
+      const existing = await rest(
+        supabaseUrl,
+        serviceKey,
+        'GET',
+        `producto_imagenes?producto_id=eq.${p.id}&url=like.*${encodeURIComponent(f.hint)}*&select=id&limit=1`
+      );
+      if (!existing || !existing.length) {
+        const maxPos = await rest(
+          supabaseUrl,
+          serviceKey,
+          'GET',
+          `producto_imagenes?producto_id=eq.${p.id}&select=posicion&order=posicion.desc&limit=1`
+        );
+        const pos = (maxPos && maxPos[0] && Number(maxPos[0].posicion)) || 0;
+        const principales = await rest(
+          supabaseUrl,
+          serviceKey,
+          'GET',
+          `producto_imagenes?producto_id=eq.${p.id}&es_principal=eq.true&select=id&limit=1`
+        );
+        await rest(
+          supabaseUrl,
+          serviceKey,
+          'POST',
+          'producto_imagenes',
+          {
+            producto_id: p.id,
+            url: f.url,
+            posicion: pos + 1,
+            es_principal: !(principales && principales.length),
+            origen: 'propia',
+          },
+          'return=minimal'
+        );
+      }
+    }
+  }
+  return out;
+}
+
 async function aplicarCargaNadro6090551411({ supabaseUrl, serviceKey }) {
   if (!supabaseUrl || !serviceKey) {
     throw new Error('supabase_not_configured');
@@ -313,6 +403,8 @@ async function aplicarCargaNadro6090551411({ supabaseUrl, serviceKey }) {
     throw new Error(`items_esperados_4_obtuve_${Array.isArray(insertedItems) ? insertedItems.length : 0}`);
   }
 
+  const fotos = await aplicarFotos(supabaseUrl, serviceKey);
+
   return {
     ok: true,
     folio: FOLIO,
@@ -324,6 +416,7 @@ async function aplicarCargaNadro6090551411({ supabaseUrl, serviceKey }) {
       costo_estimado: i.costo_estimado,
       producto_id: i.producto_id,
     })),
+    fotos,
   };
 }
 
