@@ -19,7 +19,7 @@ create temp table _fc_cf_s327411 (
   nombre text not null,
   snap text not null,
   qty integer not null,
-  costo numeric(12,3) not null,
+  costo numeric(12,4) not null,
   precio numeric(12,2) not null,
   tipo text not null,
   categoria text not null,

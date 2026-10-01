@@ -22,7 +22,7 @@ create temp table _fc_bara_14438 (
   nombre text not null,
   snap text not null,
   qty integer not null,
-  costo numeric(12,3) not null,
+  costo numeric(12,4) not null,
   precio numeric(12,2) not null,
   tipo text not null,
   categoria text not null,
@@ -272,8 +272,8 @@ order by i.id;
 -- IFC F8 Tienda · folio 126446 · 2026-09-30 17:02 · CJ 01 · cliente LUIS ANGEL
 -- 38 artículos / 12 productos · total $867.00. Costo = P.PUBLICO unitario.
 -- Piezas ticket (suma qty): 38. Total $867.00.
--- 10 alta(s) stock 0. 2 ya estaban: solo costo / ficha vacía, no PVP.
--- Sin EAN (match por SKU): FC-IFC-CORTA-TRY12, FC-IFC-CORTA-BOBO12, FC-IFC-PINZA-LADY, FC-IFC-YOLI-ENCH, FC-IFC-MYK-IZQ-CH, FC-IFC-MYK-IZQ-GD, FC-IFC-MYK-DER-MD, FC-IFC-MYK-DER-CH, FC-IFC-ALICATA-GDE, FC-IFC-MER-RICINO, FC-D4AC123B.
+-- 9 alta(s) stock 0. 3 ya estaban: solo costo / ficha vacía, no PVP.
+-- Sin EAN (match por SKU): FC-IFC-MYK-IZQ-CH, FC-IFC-MYK-IZQ-GD, FC-IFC-MYK-DER-MD, FC-IFC-MYK-DER-CH, FC-D4AC123B.
 -- Costo = P.U. unitario del ticket (NUNCA el importe del renglón).
 -- Caducidad NO del papel: MMAA de la caja. No inventar 0000.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -289,7 +289,7 @@ create temp table _fc_ifc_126446 (
   nombre text not null,
   snap text not null,
   qty integer not null,
-  costo numeric(12,3) not null,
+  costo numeric(12,4) not null,
   precio numeric(12,2) not null,
   tipo text not null,
   categoria text not null,
@@ -312,17 +312,17 @@ insert into _fc_ifc_126446 (
   subcategoria, forma, marca, laboratorio, presentacion, principio_activo,
   concentracion, receta, ya, imagen, foto_file, lote
 ) values
-  (1, null, 'FC-IFC-CORTA-TRY12', 'Cortaúñas Try mediano C/12', 'CORTAUNAS TRY MEDIANO C/12', 1, 75.00, 94, 'marca', 'Cuidado personal', 'Manicure', 'Accesorio', 'Try', null, 'Paquete C/12', null, null, false, false, null, null, null),
-  (2, null, 'FC-IFC-CORTA-BOBO12', 'Cortaúñas Bobo mediano sin cadena C/12', 'CORTAUNAS BOBO (Z608) MEDIANO S/CADENA C/12 PZS', 1, 65.50, 82, 'marca', 'Cuidado personal', 'Manicure', 'Accesorio', 'Bobo', null, 'Paquete C/12', null, null, false, false, null, null, null),
-  (3, null, 'FC-IFC-PINZA-LADY', 'Pinza depilar Lady grande', 'PINZA DEPILAR LADY GRANDE', 5, 8.00, 10, 'marca', 'Cuidado personal', 'Manicure', 'Accesorio', 'Lady', null, 'Pieza', null, null, false, false, null, null, null),
-  (4, null, 'FC-IFC-YOLI-ENCH', 'Yoli enchinador de pestañas', 'YOLI ENCHINADOR', 4, 16.00, 20, 'marca', 'Cuidado personal', 'Maquillaje', 'Accesorio', 'Yoli', null, 'Pieza', null, null, false, false, null, null, null),
+  (1, '6932119800025', 'FC-19800025', 'Cortaúñas Try mediano C/12', 'CORTAUNAS TRY MEDIANO C/12', 1, 75.00, 94, 'marca', 'Cuidado personal', 'Manicure', 'Accesorio', 'Try', null, 'Paquete C/12 (no venta individual)', null, null, false, false, null, null, null),
+  (2, '6976824588236', 'FC-24588236', 'Cortaúñas Bobo mediano sin cadena C/12', 'CORTAUNAS BOBO (Z608) MEDIANO S/CADENA C/12 PZS', 1, 65.50, 82, 'marca', 'Cuidado personal', 'Manicure', 'Accesorio', 'Bobo', null, 'Paquete C/12', null, null, false, false, null, null, null),
+  (3, '7501370204577', 'FC-70204577', 'Curtis Lady pinza tijera cejas', 'PINZA DEPILAR LADY GRANDE', 5, 8.00, 10, 'marca', 'Cuidado personal', 'Manicure', 'Accesorio', 'Curtis', 'Curtis', '1 pieza · modelo 57LC', null, null, false, true, null, null, null),
+  (4, '7501370202023', 'FC-70202023', 'Yoli enchinador de pestañas', 'YOLI ENCHINADOR', 4, 16.00, 20, 'marca', 'Cuidado personal', 'Maquillaje', 'Accesorio', 'Yoli', 'Curtis', '1 pieza · modelo 102CV', null, null, false, false, null, null, null),
   (5, '7501877602203', 'FC-77602203', 'Miyako muñequera tipo guante izquierda neopreno mediana', 'MIYAKO MUNEQUERA T/GUANT IZQUI NEOP MEDI', 1, 77.50, 97, 'marca', 'Botiquín', 'Soportes', 'Muñequera', 'Miyako', null, 'Pieza mediana izquierda', null, null, false, false, null, null, null),
   (6, null, 'FC-IFC-MYK-IZQ-CH', 'Miyako muñequera tipo guante izquierda neopreno chica', 'MIYAKO MUNEQUERA T/GUANTE IZQUI NEOP CHI', 1, 77.50, 97, 'marca', 'Botiquín', 'Soportes', 'Muñequera', 'Miyako', null, 'Pieza chica izquierda', null, null, false, false, null, null, null),
   (7, null, 'FC-IFC-MYK-IZQ-GD', 'Miyako muñequera tipo guante izquierda neopreno grande', 'MIYAKO MUNEQUERA T/GUANT IZQUI NEOP GRAN', 1, 77.50, 97, 'marca', 'Botiquín', 'Soportes', 'Muñequera', 'Miyako', null, 'Pieza grande izquierda', null, null, false, false, null, null, null),
   (8, null, 'FC-IFC-MYK-DER-MD', 'Miyako muñequera tipo guante derecha neopreno mediana', 'MIYAKO MUNEQUERA T/GUAN DERECH NEOP MEDI', 1, 77.50, 97, 'marca', 'Botiquín', 'Soportes', 'Muñequera', 'Miyako', null, 'Pieza mediana derecha', null, null, false, false, null, null, null),
   (9, null, 'FC-IFC-MYK-DER-CH', 'Miyako muñequera tipo guante derecha neopreno chica', 'MIYAKO MUNEQUERA T/GUAN DERECH NEOP CHIC', 1, 77.50, 97, 'marca', 'Botiquín', 'Soportes', 'Muñequera', 'Miyako', null, 'Pieza chica derecha', null, null, false, false, null, null, null),
-  (10, null, 'FC-IFC-ALICATA-GDE', 'Alicata económica mango colores grande', 'ALICATA ECONOMICA MANGO COLORES GDE', 2, 30.00, 38, 'marca', 'Cuidado personal', 'Manicure', 'Accesorio', null, null, 'Pieza', null, null, false, false, null, null, null),
-  (11, null, 'FC-IFC-MER-RICINO', 'Mercurio aceite de ricino', 'MERCURIO ACEITE RICINO C/25', 10, 9.00, 12, 'marca', 'Cuidado personal', 'Cuidado capilar', 'Aceite', 'Mercurio', null, 'Frasco (caja C/25)', null, null, false, true, null, null, null),
+  (10, '6855265655229', 'FC-65655229', 'Alicata / set manicure económico mango colores', 'ALICATA ECONOMICA MANGO COLORES GDE', 2, 30.00, 38, 'marca', 'Cuidado personal', 'Manicure', 'Accesorio', null, null, 'Pieza / set', null, null, false, false, null, null, null),
+  (11, '3311000001292', 'FC-00001292', 'Mercurio aceite de ricino 50 ml', 'MERCURIO ACEITE RICINO C/25', 10, 9.00, 12, 'marca', 'Cuidado personal', 'Cuidado capilar', 'Aceite', 'Mercurio', 'Droguería Mercurio', 'Frasco 50 ml', null, null, false, true, null, null, null),
   (12, null, 'FC-D4AC123B', 'Mercurio aceite de almendras', 'MERCURIO ACEITE ALMENDRAS C/25', 10, 8.50, 11, 'marca', 'Cuidado personal', 'Cuidado capilar', 'Aceite', 'Mercurio', null, 'Frasco (caja C/25)', null, null, false, true, null, null, null);
 
 insert into public.productos (
@@ -569,7 +569,7 @@ create temp table _fc_lv_t280035422 (
   nombre text not null,
   snap text not null,
   qty integer not null,
-  costo numeric(12,3) not null,
+  costo numeric(12,4) not null,
   precio numeric(12,2) not null,
   tipo text not null,
   categoria text not null,
@@ -837,7 +837,7 @@ create temp table _fc_cf_s327411 (
   nombre text not null,
   snap text not null,
   qty integer not null,
-  costo numeric(12,3) not null,
+  costo numeric(12,4) not null,
   precio numeric(12,2) not null,
   tipo text not null,
   categoria text not null,
@@ -1101,7 +1101,7 @@ order by i.id;
 -- Costo = P.U. neto post-descuento. Lote de fábrica sí. Caducidad NO.
 -- Piezas ticket (suma qty): 71. Total $2532.66.
 -- 2 alta(s) stock 0. 12 ya estaban: solo costo / ficha vacía, no PVP.
--- Sin EAN (match por SKU): EQ-AVT195, EQ-DEN073, EQ-SER181.
+-- Sin EAN (match por SKU): EQ-DEN073.
 -- Costo = P.U. unitario del ticket (NUNCA el importe del renglón).
 -- Caducidad NO del papel: MMAA de la caja. No inventar 0000.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -1117,7 +1117,7 @@ create temp table _fc_eq_446466 (
   nombre text not null,
   snap text not null,
   qty integer not null,
-  costo numeric(12,3) not null,
+  costo numeric(12,4) not null,
   precio numeric(12,2) not null,
   tipo text not null,
   categoria text not null,
@@ -1141,11 +1141,11 @@ insert into _fc_eq_446466 (
   concentracion, receta, ya, imagen, foto_file, lote
 ) values
   (1, '7501349012943', 'FC-5BC5F234', 'Fluconazol 150 mg C/1', 'AMS165 FLUCONAZOL 1 CAPS 150 MG', 20, 13.07, 21, 'generico', 'Medicamentos', null, 'Cápsula', 'AMSA', 'AMSA', 'Caja con 1 cápsula', 'Fluconazol', '150 mg', true, true, null, null, 'U25N344'),
-  (2, null, 'EQ-AVT195', 'Tusilen adulto jarabe 118 ml', 'AVT195 TUSILEN AD 1 JBE 240/30/50MG/100/118 ML', 3, 25.86, 33, 'marca', 'Medicamentos', null, 'Jarabe', 'Tusilen', 'Avitus', 'Frasco 118 ml', null, '240/30/50 mg/100 ml', false, false, null, null, '26195002'),
+  (2, '7506624900809', 'FC-24900809', 'Tusilen adulto jarabe 118 ml', 'AVT195 TUSILEN AD 1 JBE 240/30/50MG/100/118 ML', 3, 25.86, 33, 'marca', 'Medicamentos', null, 'Jarabe', 'Tusilen', 'Avitus / Allen', 'Frasco 118 ml', 'Dextrometorfano / guaifenesina / fenilefrina', '0.300/2.4/0.050 g/100 ml', false, false, null, null, '26195002'),
   (3, null, 'EQ-DEN073', 'Delaphil 20 mg C/4', 'DEN073 DELAPHIL 4 TAB 20 MG', 10, 23.65, 38, 'generico', 'Medicamentos', null, 'Tableta', 'Delaphil', null, 'Caja con 4 tabletas', null, '20 mg', true, true, null, null, '26F009'),
   (4, '780083140922', 'FC-83140922', 'Ampigrin adulto 3 ámpulas', 'COL009 AMPIGRIN AD 3 AMP 500/500/100/30MG/3 ML', 2, 81.01, 102, 'marca', 'Medicamentos', null, 'Inyectable', 'Ampigrin', 'Collins', '3 ámpulas', null, '500/500/100/30 mg/3 ml', true, true, 'https://www.farmacapital.mx/catalogo-propia/ampigrin-ad-3amp.jpg', 'catalogo-propia/ampigrin-ad-3amp.jpg', '26240138'),
   (5, '7501563380637', 'EQ-RAD100', 'Fenazopiridina 100 mg C/20', 'RAD100 FENAZOPIRIDINA 1 FCO 20 TAB 100 MG', 5, 21.09, 34, 'generico', 'Medicamentos', null, 'Tableta', 'Randall', 'Randall', 'Frasco 20 tabletas', 'Fenazopiridina', '100 mg', false, true, null, null, '30224'),
-  (6, null, 'EQ-SER181', 'Ruquimox 200 mg C/20', 'SER181 RUQUIMOX 20 TAB 200 MG', 2, 166.16, 266, 'generico', 'Medicamentos', null, 'Tableta', 'Ruquimox', null, 'Caja con 20 tabletas', null, '200 mg', true, false, null, null, '260525'),
+  (6, '7501258215947', 'FC-58215947', 'Ruquimax hidroxicloroquina 200 mg C/20', 'SER181 RUQUIMOX 20 TAB 200 MG', 2, 166.16, 266, 'generico', 'Medicamentos', null, 'Tableta', 'Ruquimax', 'Serral', 'Caja con 20 tabletas', 'Hidroxicloroquina', '200 mg', true, false, null, null, '260525'),
   (7, '7501075722543', 'EQ-NOV163', 'Pabesorag 150/12.5 mg C/28', 'NOV163 PABESORAG 28 TAB 150/12.5 MG', 6, 60.48, 97, 'generico', 'Medicamentos', null, 'Tableta', 'Pabesorag', 'Novag', 'Caja con 28 tabletas', null, '150/12.5 mg', true, true, null, null, 'B10436'),
   (8, '7502009745140', 'FC-09745140', 'Clamoxin S suspensión 600/42.9 mg 50 ml', 'MAV226 CLAMOXIN S 1 SUSP 600/42.90MG/50 ML', 2, 48.07, 77, 'generico', 'Medicamentos', null, 'Suspensión', 'Clamoxin', 'MAVI', 'Frasco 50 ml', 'Amoxicilina / ácido clavulánico', '600/42.9 mg/5 ml', true, true, null, null, '256773'),
   (9, '7502009740503', 'FC-09740503', 'Clamoxin 12H JR suspensión 400/57 mg 50 ml', 'MAV014 CLAMOXIN 12H JR 1 SUSP 400/57MG/5/50 ML', 2, 37.17, 60, 'generico', 'Medicamentos', null, 'Suspensión', 'Clamoxin', 'MAVI', 'Frasco 50 ml', 'Amoxicilina / ácido clavulánico', '400/57 mg/5 ml', true, true, null, null, '260568'),
@@ -1399,7 +1399,7 @@ create temp table _fc_bf42_84416 (
   nombre text not null,
   snap text not null,
   qty integer not null,
-  costo numeric(12,3) not null,
+  costo numeric(12,4) not null,
   precio numeric(12,2) not null,
   tipo text not null,
   categoria text not null,

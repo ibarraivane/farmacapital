@@ -3,7 +3,7 @@
 -- Costo = P.U. neto post-descuento. Lote de fábrica sí. Caducidad NO.
 -- Piezas ticket (suma qty): 71. Total $2532.66.
 -- 2 alta(s) stock 0. 12 ya estaban: solo costo / ficha vacía, no PVP.
--- Sin EAN (match por SKU): EQ-AVT195, EQ-DEN073, EQ-SER181.
+-- Sin EAN (match por SKU): EQ-DEN073.
 -- Costo = P.U. unitario del ticket (NUNCA el importe del renglón).
 -- Caducidad NO del papel: MMAA de la caja. No inventar 0000.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -19,7 +19,7 @@ create temp table _fc_eq_446466 (
   nombre text not null,
   snap text not null,
   qty integer not null,
-  costo numeric(12,3) not null,
+  costo numeric(12,4) not null,
   precio numeric(12,2) not null,
   tipo text not null,
   categoria text not null,
@@ -43,11 +43,11 @@ insert into _fc_eq_446466 (
   concentracion, receta, ya, imagen, foto_file, lote
 ) values
   (1, '7501349012943', 'FC-5BC5F234', 'Fluconazol 150 mg C/1', 'AMS165 FLUCONAZOL 1 CAPS 150 MG', 20, 13.07, 21, 'generico', 'Medicamentos', null, 'Cápsula', 'AMSA', 'AMSA', 'Caja con 1 cápsula', 'Fluconazol', '150 mg', true, true, null, null, 'U25N344'),
-  (2, null, 'EQ-AVT195', 'Tusilen adulto jarabe 118 ml', 'AVT195 TUSILEN AD 1 JBE 240/30/50MG/100/118 ML', 3, 25.86, 33, 'marca', 'Medicamentos', null, 'Jarabe', 'Tusilen', 'Avitus', 'Frasco 118 ml', null, '240/30/50 mg/100 ml', false, false, null, null, '26195002'),
+  (2, '7506624900809', 'FC-24900809', 'Tusilen adulto jarabe 118 ml', 'AVT195 TUSILEN AD 1 JBE 240/30/50MG/100/118 ML', 3, 25.86, 33, 'marca', 'Medicamentos', null, 'Jarabe', 'Tusilen', 'Avitus / Allen', 'Frasco 118 ml', 'Dextrometorfano / guaifenesina / fenilefrina', '0.300/2.4/0.050 g/100 ml', false, false, null, null, '26195002'),
   (3, null, 'EQ-DEN073', 'Delaphil 20 mg C/4', 'DEN073 DELAPHIL 4 TAB 20 MG', 10, 23.65, 38, 'generico', 'Medicamentos', null, 'Tableta', 'Delaphil', null, 'Caja con 4 tabletas', null, '20 mg', true, true, null, null, '26F009'),
   (4, '780083140922', 'FC-83140922', 'Ampigrin adulto 3 ámpulas', 'COL009 AMPIGRIN AD 3 AMP 500/500/100/30MG/3 ML', 2, 81.01, 102, 'marca', 'Medicamentos', null, 'Inyectable', 'Ampigrin', 'Collins', '3 ámpulas', null, '500/500/100/30 mg/3 ml', true, true, 'https://www.farmacapital.mx/catalogo-propia/ampigrin-ad-3amp.jpg', 'catalogo-propia/ampigrin-ad-3amp.jpg', '26240138'),
   (5, '7501563380637', 'EQ-RAD100', 'Fenazopiridina 100 mg C/20', 'RAD100 FENAZOPIRIDINA 1 FCO 20 TAB 100 MG', 5, 21.09, 34, 'generico', 'Medicamentos', null, 'Tableta', 'Randall', 'Randall', 'Frasco 20 tabletas', 'Fenazopiridina', '100 mg', false, true, null, null, '30224'),
-  (6, null, 'EQ-SER181', 'Ruquimox 200 mg C/20', 'SER181 RUQUIMOX 20 TAB 200 MG', 2, 166.16, 266, 'generico', 'Medicamentos', null, 'Tableta', 'Ruquimox', null, 'Caja con 20 tabletas', null, '200 mg', true, false, null, null, '260525'),
+  (6, '7501258215947', 'FC-58215947', 'Ruquimax hidroxicloroquina 200 mg C/20', 'SER181 RUQUIMOX 20 TAB 200 MG', 2, 166.16, 266, 'generico', 'Medicamentos', null, 'Tableta', 'Ruquimax', 'Serral', 'Caja con 20 tabletas', 'Hidroxicloroquina', '200 mg', true, false, null, null, '260525'),
   (7, '7501075722543', 'EQ-NOV163', 'Pabesorag 150/12.5 mg C/28', 'NOV163 PABESORAG 28 TAB 150/12.5 MG', 6, 60.48, 97, 'generico', 'Medicamentos', null, 'Tableta', 'Pabesorag', 'Novag', 'Caja con 28 tabletas', null, '150/12.5 mg', true, true, null, null, 'B10436'),
   (8, '7502009745140', 'FC-09745140', 'Clamoxin S suspensión 600/42.9 mg 50 ml', 'MAV226 CLAMOXIN S 1 SUSP 600/42.90MG/50 ML', 2, 48.07, 77, 'generico', 'Medicamentos', null, 'Suspensión', 'Clamoxin', 'MAVI', 'Frasco 50 ml', 'Amoxicilina / ácido clavulánico', '600/42.9 mg/5 ml', true, true, null, null, '256773'),
   (9, '7502009740503', 'FC-09740503', 'Clamoxin 12H JR suspensión 400/57 mg 50 ml', 'MAV014 CLAMOXIN 12H JR 1 SUSP 400/57MG/5/50 ML', 2, 37.17, 60, 'generico', 'Medicamentos', null, 'Suspensión', 'Clamoxin', 'MAVI', 'Frasco 50 ml', 'Amoxicilina / ácido clavulánico', '400/57 mg/5 ml', true, true, null, null, '260568'),

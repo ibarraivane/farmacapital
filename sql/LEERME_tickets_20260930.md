@@ -22,3 +22,22 @@ No pegar este `LEERME_*.md`.
 - **F-42 #46** Grisi Ricitos Biopure: EAN cortado entre fotos → sin EAN hasta escanear.
 
 Regenerar: `python3 scripts/generar_carga_tickets_20260930.py`
+
+## EANs de caja (01-oct) — si la carga ya corrió
+
+Pegar **después** de los `patch_carga_*`:
+
+- `sql/patch_ean_tickets_20260930_ifc_eq.sql`
+
+| SKU viejo | EAN | SKU nuevo | Producto |
+|-----------|-----|-----------|----------|
+| FC-IFC-CORTA-TRY12 | `6932119800025` | `FC-19800025` | Cortaúñas Try C/12 |
+| FC-IFC-CORTA-BOBO12 | `6976824588236` | `FC-24588236` | Cortaúñas Bobo C/12 |
+| FC-IFC-PINZA-LADY | `7501370204577` | `FC-70204577` | Curtis Lady 57LC |
+| FC-IFC-YOLI-ENCH | `7501370202023` | `FC-70202023` | Yoli enchinador |
+| FC-IFC-ALICATA-GDE | `6855265655229` | `FC-65655229` | Alicata / set |
+| FC-IFC-MER-RICINO | `3311000001292` | `FC-00001292` | Mercurio ricino 50 ml (ya existía) |
+| EQ-AVT195 | `7506624900809` | `FC-24900809` | Tusilen adulto |
+| EQ-SER181 | `7501258215947` | `FC-58215947` | **Ruquimax** (hidroxicloroquina) |
+
+No toca costos ni cantidades. Miyako (salvo la 1ª) y aceite de almendras siguen sin EAN de caja.
