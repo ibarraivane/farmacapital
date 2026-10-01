@@ -1,0 +1,1317 @@
+{
+  "fecha_compra": "2026-09-30",
+  "tickets": [
+    {
+      "proveedor": "Baracentro",
+      "folio": "14438",
+      "fecha": "2026-09-30",
+      "hora": "17:25",
+      "total": 95.0,
+      "piezas": 1,
+      "lineas": [
+        {
+          "ean": "7501438363321",
+          "codigo_proveedor": "007501438363321",
+          "nombre_ticket": "KUUL FIX ME URB",
+          "cantidad": 1,
+          "precio_unitario": 95.0,
+          "importe": 95.0,
+          "lote": null
+        }
+      ],
+      "verificacion": {
+        "suma_importes": 95.0,
+        "ok": true,
+        "notas": "Código impreso 007501438363321 → EAN 7501438363321 (strip 00; check digit OK). KUUL FIX ME URB = gel/fix (styling), no encontrado en catálogo local por EAN."
+      }
+    },
+    {
+      "proveedor": "IFC",
+      "folio": "CJ 01Fol 126446",
+      "fecha": "2026-09-30",
+      "hora": "17:02",
+      "total": 867.0,
+      "piezas": 38,
+      "lineas": [
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "CORTAUNAS TRY MEDIANO C/12",
+          "cantidad": 1,
+          "precio_unitario": 75.0,
+          "importe": 75.0,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "CORTAUNAS BOBO (Z608) MEDIANO S/CADENA C/12 PZS",
+          "cantidad": 1,
+          "precio_unitario": 65.5,
+          "importe": 65.5,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "PINZA DEPILAR LADY GRANDE",
+          "cantidad": 5,
+          "precio_unitario": 8.0,
+          "importe": 40.0,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "YOLI ENCHINADOR",
+          "cantidad": 4,
+          "precio_unitario": 16.0,
+          "importe": 64.0,
+          "lote": null
+        },
+        {
+          "ean": "7501877602203",
+          "codigo_proveedor": "81970",
+          "nombre_ticket": "MIYAKO MUNEQUERA T/GUANT IZQUI NEOP MEDI",
+          "cantidad": 1,
+          "precio_unitario": 77.5,
+          "importe": 77.5,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "MIYAKO MUNEQUERA T/GUANTE IZQUI NEOP CHI",
+          "cantidad": 1,
+          "precio_unitario": 77.5,
+          "importe": 77.5,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "MIYAKO MUNEQUERA T/GUANT IZQUI NEOP GRAN",
+          "cantidad": 1,
+          "precio_unitario": 77.5,
+          "importe": 77.5,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "MIYAKO MUNEQUERA T/GUAN DERECH NEOP MEDI",
+          "cantidad": 1,
+          "precio_unitario": 77.5,
+          "importe": 77.5,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "MIYAKO MUNEQUERA T/GUAN DERECH NEOP CHIC",
+          "cantidad": 1,
+          "precio_unitario": 77.5,
+          "importe": 77.5,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "ALICATA ECONOMICA MANGO COLORES GDE",
+          "cantidad": 2,
+          "precio_unitario": 30.0,
+          "importe": 60.0,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "1128623",
+          "nombre_ticket": "MERCURIO ACEITE RICINO C/25",
+          "cantidad": 10,
+          "precio_unitario": 9.0,
+          "importe": 90.0,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "790523",
+          "nombre_ticket": "MERCURIO ACEITE ALMENDRAS C/25",
+          "cantidad": 10,
+          "precio_unitario": 8.5,
+          "importe": 85.0,
+          "lote": null
+        }
+      ],
+      "verificacion": {
+        "suma_importes": 867.0,
+        "ok": true,
+        "notas": "Folio confirmado 126446 (no 126445). Miyako EAN 7501877602203 + código interno 81970. Precio tomado de columna P.PUBLICO (P.UNIT. vacío en mayoreo)."
+      }
+    },
+    {
+      "proveedor": "Dulceria La Famosa",
+      "folio": "T280035422",
+      "fecha": "2026-09-30",
+      "hora": "17:25",
+      "total": 149.2,
+      "piezas": 2,
+      "lineas": [
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "SKITTLES ORIGINAL, 24/10PZ.",
+          "cantidad": 2,
+          "precio_unitario": 74.6,
+          "importe": 149.2,
+          "lote": null
+        }
+      ],
+      "verificacion": {
+        "suma_importes": 149.2,
+        "ok": true,
+        "notas": "OK"
+      }
+    },
+    {
+      "proveedor": "Cityfarma",
+      "folio": "S327411",
+      "fecha": "2026-09-30",
+      "hora": "17:22",
+      "total": 4165.25,
+      "piezas": 43,
+      "lineas": [
+        {
+          "ean": "7501349014190",
+          "codigo_proveedor": null,
+          "nombre_ticket": "ACIDO ALENDRONICO 70",
+          "cantidad": 5,
+          "precio_unitario": 23.87,
+          "importe": 119.35,
+          "lote": null
+        },
+        {
+          "ean": "7501300450227",
+          "codigo_proveedor": null,
+          "nombre_ticket": "BACTRIM SUSP 200/40M",
+          "cantidad": 3,
+          "precio_unitario": 185.63,
+          "importe": 556.89,
+          "lote": null
+        },
+        {
+          "ean": "7501008427330",
+          "codigo_proveedor": null,
+          "nombre_ticket": "BEPANTHEN 100GR POM",
+          "cantidad": 2,
+          "precio_unitario": 131.67,
+          "importe": 263.34,
+          "lote": null
+        },
+        {
+          "ean": "7501008427347",
+          "codigo_proveedor": null,
+          "nombre_ticket": "BEPANTHEN 30GR",
+          "cantidad": 3,
+          "precio_unitario": 64.37,
+          "importe": 193.11,
+          "lote": null
+        },
+        {
+          "ean": "7506022331502",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DIFLOSENSI 10MG C28",
+          "cantidad": 4,
+          "precio_unitario": 298.91,
+          "importe": 1195.64,
+          "lote": null
+        },
+        {
+          "ean": "7501390912599",
+          "codigo_proveedor": null,
+          "nombre_ticket": "LACTIFLORA FEM PROBI",
+          "cantidad": 1,
+          "precio_unitario": 362.93,
+          "importe": 362.93,
+          "lote": null
+        },
+        {
+          "ean": "7501109902866",
+          "codigo_proveedor": null,
+          "nombre_ticket": "MOTRIN INF SUSP 20M",
+          "cantidad": 2,
+          "precio_unitario": 184.49,
+          "importe": 368.98,
+          "lote": null
+        },
+        {
+          "ean": "7501417006133",
+          "codigo_proveedor": null,
+          "nombre_ticket": "PASTA LASSAR 145G DO",
+          "cantidad": 4,
+          "precio_unitario": 43.46,
+          "importe": 173.84,
+          "lote": null
+        },
+        {
+          "ean": "7501314704156",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SENOSIAIN AD C 10",
+          "cantidad": 4,
+          "precio_unitario": 58.74,
+          "importe": 234.96,
+          "lote": null
+        },
+        {
+          "ean": "7501314704187",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SENOSIAIN BEBE C 10",
+          "cantidad": 4,
+          "precio_unitario": 58.74,
+          "importe": 234.96,
+          "lote": null
+        },
+        {
+          "ean": "7501314704163",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SENOSIAIN NIÑO C 10",
+          "cantidad": 4,
+          "precio_unitario": 58.74,
+          "importe": 234.96,
+          "lote": null
+        },
+        {
+          "ean": "785118754259",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SUPRATEX JBE 120ML L",
+          "cantidad": 2,
+          "precio_unitario": 41.52,
+          "importe": 83.04,
+          "lote": null
+        },
+        {
+          "ean": "650240052545",
+          "codigo_proveedor": null,
+          "nombre_ticket": "XL3 C10 ANTIGRIPAL",
+          "cantidad": 5,
+          "precio_unitario": 28.65,
+          "importe": 143.25,
+          "lote": null
+        }
+      ],
+      "verificacion": {
+        "suma_importes": 4165.25,
+        "ok": true,
+        "notas": "Pendiente de pago $4165.25 = suma importes. Subtotal $4115.19 + IVA16% $50.06. ACIDO ALENDRONICO 70 (no 10). SENOSIAIN AD EAN 7501314704156 (catálogo adulto; check OK). SENOSIAIN BEBE EAN 7501314704187 (confirmado; no 4167). SUPRATEX EAN 785118754259 (no 750… ni …299). XL3 EAN 650240052545 (zoom: termina en 5; catálogo/Farmalive; no …546). BEPANTHEN 100GR 7501008427330."
+      }
+    },
+    {
+      "proveedor": "Equilibrio Farmaceutico",
+      "folio": "446466",
+      "fecha": "2026-09-30",
+      "hora": "16:57",
+      "total": 2532.66,
+      "piezas": 71,
+      "lineas": [
+        {
+          "ean": null,
+          "codigo_proveedor": "AMS165",
+          "nombre_ticket": "FLUCONAZOL 1 CAPS 150 MG",
+          "cantidad": 20,
+          "precio_unitario": 13.07,
+          "importe": 261.4,
+          "lote": "U25N344"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "AVT195",
+          "nombre_ticket": "TUSILEN AD 1 JBE 240/30/50MG/100/118 ML",
+          "cantidad": 3,
+          "precio_unitario": 25.86,
+          "importe": 77.58,
+          "lote": "26195002"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "DEN073",
+          "nombre_ticket": "DELAPHIL 4 TAB 20 MG",
+          "cantidad": 10,
+          "precio_unitario": 23.65,
+          "importe": 236.5,
+          "lote": "26F009"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "COL009",
+          "nombre_ticket": "AMPIGRIN AD 3 AMP 500/500/100/30MG/3 ML",
+          "cantidad": 2,
+          "precio_unitario": 81.01,
+          "importe": 162.02,
+          "lote": "26240138"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "RAD100",
+          "nombre_ticket": "FENAZOPIRIDINA 1 FCO 20 TAB 100 MG",
+          "cantidad": 5,
+          "precio_unitario": 21.09,
+          "importe": 105.45,
+          "lote": "30224"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "SER181",
+          "nombre_ticket": "RUQUIMOX 20 TAB 200 MG",
+          "cantidad": 2,
+          "precio_unitario": 166.16,
+          "importe": 332.32,
+          "lote": "260525"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "NOV163",
+          "nombre_ticket": "PABESORAG 28 TAB 150/12.5 MG",
+          "cantidad": 6,
+          "precio_unitario": 60.48,
+          "importe": 362.88,
+          "lote": "B10436"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "MAV226",
+          "nombre_ticket": "CLAMOXIN S 1 SUSP 600/42.90MG/50 ML",
+          "cantidad": 2,
+          "precio_unitario": 48.07,
+          "importe": 96.14,
+          "lote": "256773"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "MAV014",
+          "nombre_ticket": "CLAMOXIN 12H JR 1 SUSP 400/57MG/5/50 ML",
+          "cantidad": 2,
+          "precio_unitario": 37.17,
+          "importe": 74.34,
+          "lote": "260568"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "MAV013",
+          "nombre_ticket": "CLAMOXIN 12H PED 1 SUSP 200/28.5MG/40",
+          "cantidad": 2,
+          "precio_unitario": 25.99,
+          "importe": 51.98,
+          "lote": "257267"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "COL090",
+          "nombre_ticket": "TEMPIRE 1 GOT 100MG/30 ML",
+          "cantidad": 3,
+          "precio_unitario": 20.0,
+          "importe": 60.0,
+          "lote": "26141514"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "AMS424",
+          "nombre_ticket": "IRBESARTAN 14 TAB 300 MG",
+          "cantidad": 3,
+          "precio_unitario": 77.88,
+          "importe": 233.64,
+          "lote": "U26E329"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "MAV111",
+          "nombre_ticket": "CLAMOXIN 10 TAB 500/125 MG",
+          "cantidad": 5,
+          "precio_unitario": 48.51,
+          "importe": 242.55,
+          "lote": "262924"
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": "LAN057",
+          "nombre_ticket": "BACAT 30 TAB 20 MG",
+          "cantidad": 6,
+          "precio_unitario": 39.31,
+          "importe": 235.86,
+          "lote": "L26G0410A"
+        }
+      ],
+      "verificacion": {
+        "suma_importes": 2532.66,
+        "ok": true,
+        "notas": "P.U. = precio unitario DESPUÉS de descuento (campo P.U.), no precio de lista. Lote incluido desde papel. Caducidad impresa NO se almacena (MMAA se toma de la caja al recibir). Ticket 446466 PEDIDO ONLINE. Usted ahorró $20487.92. OK"
+      }
+    },
+    {
+      "proveedor": "Bodega F-42",
+      "folio": "Caja 3/84416",
+      "fecha": "2026-09-30",
+      "hora": "16:47",
+      "total": 6972.1,
+      "piezas": 128,
+      "subtotal_sin_iva": 6010.44,
+      "impuestos": 961.66,
+      "lineas": [
+        {
+          "ean": "7798140259893",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH TIO NACHO ANT-DANO ALOE 415ML",
+          "cantidad": 1,
+          "precio_unitario": 85.84,
+          "importe": 85.84,
+          "lote": null
+        },
+        {
+          "ean": "650240057489",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH TIO NACHO A-CAI C-MADRE 415ML",
+          "cantidad": 1,
+          "precio_unitario": 85.84,
+          "importe": 85.84,
+          "lote": null
+        },
+        {
+          "ean": "650240035166",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH TIO NACHO ANTICA EN 415ML",
+          "cantidad": 1,
+          "precio_unitario": 86.83,
+          "importe": 86.83,
+          "lote": null
+        },
+        {
+          "ean": "7500435129367",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DESOD SECRET PH-BALAN STICK GEL45G",
+          "cantidad": 3,
+          "precio_unitario": 59.11,
+          "importe": 177.33,
+          "lote": null
+        },
+        {
+          "ean": "4005900841483",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA NIV SUN AFTER C/ALOE 200 ML",
+          "cantidad": 1,
+          "precio_unitario": 85.97,
+          "importe": 85.97,
+          "lote": null
+        },
+        {
+          "ean": "7506306238640",
+          "codigo_proveedor": null,
+          "nombre_ticket": "JBN CAMAY 72",
+          "cantidad": 3,
+          "precio_unitario": 15.473,
+          "importe": 46.42,
+          "lote": null
+        },
+        {
+          "ean": "7501943489066",
+          "codigo_proveedor": null,
+          "nombre_ticket": "JBN ESCUDO BCO NEUTRO 110G C/3",
+          "cantidad": 1,
+          "precio_unitario": 37.5,
+          "importe": 37.5,
+          "lote": null
+        },
+        {
+          "ean": "7501943489073",
+          "codigo_proveedor": null,
+          "nombre_ticket": "JBN ESCUDO AZUL NATURA 110G C/3",
+          "cantidad": 1,
+          "precio_unitario": 37.49,
+          "importe": 37.49,
+          "lote": null
+        },
+        {
+          "ean": "4005808944385",
+          "codigo_proveedor": null,
+          "nombre_ticket": "BLOQ NIVEA SUNKIDSWIMFP50150M",
+          "cantidad": 1,
+          "precio_unitario": 235.85,
+          "importe": 235.85,
+          "lote": null
+        },
+        {
+          "ean": "42419860",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA NIV A-BACTE 3EN1 P/MANOS 75ML",
+          "cantidad": 1,
+          "precio_unitario": 45.92,
+          "importe": 45.92,
+          "lote": null
+        },
+        {
+          "ean": "42360537",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA NIVEA ACLAR NAT P/MANO 75ML MAR27",
+          "cantidad": 2,
+          "precio_unitario": 52.94,
+          "importe": 105.88,
+          "lote": null
+        },
+        {
+          "ean": "4005900645289",
+          "codigo_proveedor": null,
+          "nombre_ticket": "GEL NIVEA FACIAL LIMP ROSAS 150ML",
+          "cantidad": 1,
+          "precio_unitario": 104.46,
+          "importe": 104.46,
+          "lote": null
+        },
+        {
+          "ean": "4006000068565",
+          "codigo_proveedor": null,
+          "nombre_ticket": "AGUA MICE NIVEA REPARADORA 400ML",
+          "cantidad": 1,
+          "precio_unitario": 118.87,
+          "importe": 118.87,
+          "lote": null
+        },
+        {
+          "ean": "4006000273839",
+          "codigo_proveedor": null,
+          "nombre_ticket": "AGUA MIC NIVEA LUMINOU GLOW 400MLN",
+          "cantidad": 1,
+          "precio_unitario": 113.85,
+          "importe": 113.85,
+          "lote": null
+        },
+        {
+          "ean": "4006000173108",
+          "codigo_proveedor": null,
+          "nombre_ticket": "AGUA MICE NIVEA DERMA SKIN 400ML N",
+          "cantidad": 1,
+          "precio_unitario": 115.06,
+          "importe": 115.06,
+          "lote": null
+        },
+        {
+          "ean": "7791293025803",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DESOD AXE MEN EXCITE SPY 150ML",
+          "cantidad": 2,
+          "precio_unitario": 45.83,
+          "importe": 91.66,
+          "lote": null
+        },
+        {
+          "ean": "42417644",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA NIVEA CUIDADO INT P/MANO 75ML",
+          "cantidad": 1,
+          "precio_unitario": 48.58,
+          "importe": 48.58,
+          "lote": null
+        },
+        {
+          "ean": "7501054514381",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA NIVEA SOFT FAC-CORP 200ML",
+          "cantidad": 1,
+          "precio_unitario": 81.61,
+          "importe": 81.61,
+          "lote": null
+        },
+        {
+          "ean": "7794640170133",
+          "codigo_proveedor": null,
+          "nombre_ticket": "C D SENSODYNE REPAR-PROT 100G",
+          "cantidad": 2,
+          "precio_unitario": 122.765,
+          "importe": 245.53,
+          "lote": null
+        },
+        {
+          "ean": "7794640171550",
+          "codigo_proveedor": null,
+          "nombre_ticket": "C D SENSODYNE RAPIDO ALIVIO 100G",
+          "cantidad": 2,
+          "precio_unitario": 117.67,
+          "importe": 235.34,
+          "lote": null
+        },
+        {
+          "ean": "7506306244795",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DESOD AXE INTENSE 48H SPY 150ML",
+          "cantidad": 2,
+          "precio_unitario": 45.83,
+          "importe": 91.66,
+          "lote": null
+        },
+        {
+          "ean": "7506306226852",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DESOD AXE NOM ANARCHY SPY 150ML",
+          "cantidad": 2,
+          "precio_unitario": 45.83,
+          "importe": 91.66,
+          "lote": null
+        },
+        {
+          "ean": "7791293025797",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DESOD AXE MEN DARK TEMP SPY150ML",
+          "cantidad": 2,
+          "precio_unitario": 45.83,
+          "importe": 91.66,
+          "lote": null
+        },
+        {
+          "ean": "7506306209855",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DESOD AXE ANARC FLO 48H SPY 150ML",
+          "cantidad": 2,
+          "precio_unitario": 45.83,
+          "importe": 91.66,
+          "lote": null
+        },
+        {
+          "ean": "7506339349030",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DEO OLD SPICE SPORT SPY 150ML",
+          "cantidad": 3,
+          "precio_unitario": 57.17,
+          "importe": 171.51,
+          "lote": null
+        },
+        {
+          "ean": "7506346604498",
+          "codigo_proveedor": null,
+          "nombre_ticket": "BOTIQUIN KOHN PRIMEROS AUXILIOS",
+          "cantidad": 1,
+          "precio_unitario": 98.99,
+          "importe": 98.99,
+          "lote": null
+        },
+        {
+          "ean": "070330736580",
+          "codigo_proveedor": null,
+          "nombre_ticket": "BIC FLEX 3 BL C/2 OFERTA 15%",
+          "cantidad": 1,
+          "precio_unitario": 51.85,
+          "importe": 51.85,
+          "lote": null
+        },
+        {
+          "ean": "7702018072408",
+          "codigo_proveedor": null,
+          "nombre_ticket": "MAQ GTTE VENUS SIMPLY3 C/4",
+          "cantidad": 1,
+          "precio_unitario": 100.15,
+          "importe": 100.15,
+          "lote": null
+        },
+        {
+          "ean": "037836051401",
+          "codigo_proveedor": null,
+          "nombre_ticket": "JBN CDPR GRISI 450ML SHOWER GEL COCO",
+          "cantidad": 1,
+          "precio_unitario": 54.37,
+          "importe": 54.37,
+          "lote": null
+        },
+        {
+          "ean": "7891024030813",
+          "codigo_proveedor": null,
+          "nombre_ticket": "ENJ BUC COLGATE SENS PRO-ALIV 250ML",
+          "cantidad": 2,
+          "precio_unitario": 64.775,
+          "importe": 129.55,
+          "lote": null
+        },
+        {
+          "ean": "7509546666959",
+          "codigo_proveedor": null,
+          "nombre_ticket": "ENJ BUC COLGA TOTAL ENC-SAL 250ML",
+          "cantidad": 2,
+          "precio_unitario": 57.79,
+          "importe": 115.58,
+          "lote": null
+        },
+        {
+          "ean": "7891010258699",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH JOHNSONS KIDS 2 EN 1 400 ML N",
+          "cantidad": 1,
+          "precio_unitario": 87.02,
+          "importe": 87.02,
+          "lote": null
+        },
+        {
+          "ean": "7702031293231",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH JOHNSONS BABY MANZANILLA 200ML",
+          "cantidad": 1,
+          "precio_unitario": 60.67,
+          "importe": 60.67,
+          "lote": null
+        },
+        {
+          "ean": "7509546695587",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA PALMOL OPT P/PEIN KERAT 250MLN",
+          "cantidad": 1,
+          "precio_unitario": 36.67,
+          "importe": 36.67,
+          "lote": null
+        },
+        {
+          "ean": "7509552963366",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH ELVIVE GLYCOLIC CRISTAL 680 MLN",
+          "cantidad": 1,
+          "precio_unitario": 110.46,
+          "importe": 110.46,
+          "lote": null
+        },
+        {
+          "ean": "037836050312",
+          "codigo_proveedor": null,
+          "nombre_ticket": "JBN LIQ GRISI LECH/BURR 450ML",
+          "cantidad": 1,
+          "precio_unitario": 53.74,
+          "importe": 53.74,
+          "lote": null
+        },
+        {
+          "ean": "810120501260",
+          "codigo_proveedor": null,
+          "nombre_ticket": "GRISI 450ML JBN LIQ ALOE VERA",
+          "cantidad": 1,
+          "precio_unitario": 52.51,
+          "importe": 52.51,
+          "lote": null
+        },
+        {
+          "ean": "7501007528427",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA LUBRID REP/INT SENS 400ML",
+          "cantidad": 1,
+          "precio_unitario": 96.76,
+          "importe": 96.76,
+          "lote": null
+        },
+        {
+          "ean": "7501943489165",
+          "codigo_proveedor": null,
+          "nombre_ticket": "JBN LIQ ESCUDO BLANCO NEUT 225ML",
+          "cantidad": 3,
+          "precio_unitario": 24.507,
+          "importe": 73.52,
+          "lote": null
+        },
+        {
+          "ean": "7506195148679",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH H&S 2 EN 1 SVE-MAN 90ML",
+          "cantidad": 2,
+          "precio_unitario": 15.15,
+          "importe": 30.3,
+          "lote": null
+        },
+        {
+          "ean": "7506195148686",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH H&S LIMP RENOV 90ML",
+          "cantidad": 2,
+          "precio_unitario": 15.19,
+          "importe": 30.38,
+          "lote": null
+        },
+        {
+          "ean": "7509552816266",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH FRUCTIS OIL-R LISO COCO 650ML",
+          "cantidad": 1,
+          "precio_unitario": 90.9,
+          "importe": 90.9,
+          "lote": null
+        },
+        {
+          "ean": "7501026462092",
+          "codigo_proveedor": null,
+          "nombre_ticket": "TERNURA 18 PZS CHUPON ORTODONTICO",
+          "cantidad": 2,
+          "precio_unitario": 78.02,
+          "importe": 156.04,
+          "lote": null
+        },
+        {
+          "ean": "850040940732",
+          "codigo_proveedor": null,
+          "nombre_ticket": "RICITOS DE ORO 250ML ALOE Y CALENDULA",
+          "cantidad": 1,
+          "precio_unitario": 46.64,
+          "importe": 46.64,
+          "lote": null
+        },
+        {
+          "ean": "7501022133019",
+          "codigo_proveedor": null,
+          "nombre_ticket": "RICITOS DE ORO 400ML SH LAVANDA + PLASTIL",
+          "cantidad": 1,
+          "precio_unitario": 64.08,
+          "importe": 64.08,
+          "lote": null
+        },
+        {
+          "ean": null,
+          "codigo_proveedor": null,
+          "nombre_ticket": "JBN GRISI RICITOS ORO BIOPURE 90G",
+          "cantidad": 2,
+          "precio_unitario": 22.325,
+          "importe": 44.65,
+          "lote": null
+        },
+        {
+          "ean": "7509546654997",
+          "codigo_proveedor": null,
+          "nombre_ticket": "MOUSSE CAPRICE FINAL TOUCH 200 G",
+          "cantidad": 2,
+          "precio_unitario": 54.44,
+          "importe": 108.88,
+          "lote": null
+        },
+        {
+          "ean": "7506306257610",
+          "codigo_proveedor": null,
+          "nombre_ticket": "DESOD PVO REXONA EFICC FRESH 200 G",
+          "cantidad": 1,
+          "precio_unitario": 66.78,
+          "importe": 66.78,
+          "lote": null
+        },
+        {
+          "ean": "7509546695570",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA PALMO OPT P/PEIN KER RH 250MLN",
+          "cantidad": 1,
+          "precio_unitario": 36.67,
+          "importe": 36.67,
+          "lote": null
+        },
+        {
+          "ean": "7501361121500",
+          "codigo_proveedor": null,
+          "nombre_ticket": "ODOLEX NATURALS 150GR TALCO DESODORANTE",
+          "cantidad": 1,
+          "precio_unitario": 17.77,
+          "importe": 17.77,
+          "lote": null
+        },
+        {
+          "ean": "7501361124013",
+          "codigo_proveedor": null,
+          "nombre_ticket": "TCO ODOLEX FRESH 150G",
+          "cantidad": 1,
+          "precio_unitario": 17.77,
+          "importe": 17.77,
+          "lote": null
+        },
+        {
+          "ean": "7501048690046",
+          "codigo_proveedor": null,
+          "nombre_ticket": "PROTEC 13 PZS BOTIQUIN PRIMEROS AUXILIOS",
+          "cantidad": 1,
+          "precio_unitario": 78.78,
+          "importe": 78.78,
+          "lote": null
+        },
+        {
+          "ean": "7500435171038",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CEP DENT ORAL-B 40 SUAVE 2PZ",
+          "cantidad": 2,
+          "precio_unitario": 34.43,
+          "importe": 68.86,
+          "lote": null
+        },
+        {
+          "ean": "070942302401",
+          "codigo_proveedor": null,
+          "nombre_ticket": "HILO DENT GUM EXPANDING 40 MTS",
+          "cantidad": 2,
+          "precio_unitario": 64.37,
+          "importe": 128.74,
+          "lote": null
+        },
+        {
+          "ean": "7501006711387",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CEP DENT PRO D-OUT 2X1MED",
+          "cantidad": 1,
+          "precio_unitario": 38.56,
+          "importe": 38.56,
+          "lote": null
+        },
+        {
+          "ean": "3014260014445",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CEP DENT ORAL-B COMPLE SVE 40 2X1",
+          "cantidad": 2,
+          "precio_unitario": 40.54,
+          "importe": 81.08,
+          "lote": null
+        },
+        {
+          "ean": "7501086494286",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CEP DENT ORAL-B GDE 60 SVE",
+          "cantidad": 1,
+          "precio_unitario": 31.02,
+          "importe": 31.02,
+          "lote": null
+        },
+        {
+          "ean": "7501086494262",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CEP DENT ORAL-B INDICAT35SVE",
+          "cantidad": 1,
+          "precio_unitario": 31.02,
+          "importe": 31.02,
+          "lote": null
+        },
+        {
+          "ean": "7509546655055",
+          "codigo_proveedor": null,
+          "nombre_ticket": "MOUSSE CAPRICE VOLUM-CTRL 200 G",
+          "cantidad": 2,
+          "precio_unitario": 54.44,
+          "importe": 108.88,
+          "lote": null
+        },
+        {
+          "ean": "7501056342258",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA SEDAL RECONS ESTRUCTUR 135ML",
+          "cantidad": 2,
+          "precio_unitario": 18.165,
+          "importe": 36.33,
+          "lote": null
+        },
+        {
+          "ean": "7501056340100",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA SEDAL ANTI SPONGE 300 ML",
+          "cantidad": 2,
+          "precio_unitario": 50.065,
+          "importe": 100.13,
+          "lote": null
+        },
+        {
+          "ean": "7509552992304",
+          "codigo_proveedor": null,
+          "nombre_ticket": "ACOND ELVIVE COLAGENO 370ML",
+          "cantidad": 1,
+          "precio_unitario": 70.63,
+          "importe": 70.63,
+          "lote": null
+        },
+        {
+          "ean": "7501943418349",
+          "codigo_proveedor": null,
+          "nombre_ticket": "JBN KBB MAX MZNLL-ALOE VERA 75G",
+          "cantidad": 2,
+          "precio_unitario": 11.675,
+          "importe": 23.35,
+          "lote": null
+        },
+        {
+          "ean": "037836033742",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH RICITOS DE ORO LECH ALMEN 250ML",
+          "cantidad": 1,
+          "precio_unitario": 67.71,
+          "importe": 67.71,
+          "lote": null
+        },
+        {
+          "ean": "7500435258425",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH H&S 90ML ROMERO ANTI CAIDA C24",
+          "cantidad": 2,
+          "precio_unitario": 17.05,
+          "importe": 34.1,
+          "lote": null
+        },
+        {
+          "ean": "7501361111501",
+          "codigo_proveedor": null,
+          "nombre_ticket": "TCO DESOD ODOLEX 150 G",
+          "cantidad": 1,
+          "precio_unitario": 17.77,
+          "importe": 17.77,
+          "lote": null
+        },
+        {
+          "ean": "7501101311055",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SUPER WET 250GR GEL FIJ PLUS INVIS",
+          "cantidad": 2,
+          "precio_unitario": 13.93,
+          "importe": 27.86,
+          "lote": null
+        },
+        {
+          "ean": "7501007457796",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH PANT BRILLO EXTREMO 400 ML",
+          "cantidad": 1,
+          "precio_unitario": 75.7,
+          "importe": 75.7,
+          "lote": null
+        },
+        {
+          "ean": "7501007457802",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH. PANTENE BRILLO EXTREMO 750ML",
+          "cantidad": 1,
+          "precio_unitario": 109.68,
+          "importe": 109.68,
+          "lote": null
+        },
+        {
+          "ean": "7501001165321",
+          "codigo_proveedor": null,
+          "nombre_ticket": "ACOND PANT RIZOS DEFINID 400ML",
+          "cantidad": 1,
+          "precio_unitario": 75.7,
+          "importe": 75.7,
+          "lote": null
+        },
+        {
+          "ean": "7502235820369",
+          "codigo_proveedor": null,
+          "nombre_ticket": "HILO DENT GUM EXPANDING 10.9 M",
+          "cantidad": 2,
+          "precio_unitario": 21.575,
+          "importe": 43.15,
+          "lote": null
+        },
+        {
+          "ean": "7506306257603",
+          "codigo_proveedor": null,
+          "nombre_ticket": "PVO DESOD REXONA EFFI ANT-PRO 200G",
+          "cantidad": 1,
+          "precio_unitario": 64.12,
+          "importe": 64.12,
+          "lote": null
+        },
+        {
+          "ean": "7702031244509",
+          "codigo_proveedor": null,
+          "nombre_ticket": "CRA LUBRIDERM P NORMAL 400ML",
+          "cantidad": 1,
+          "precio_unitario": 96.76,
+          "importe": 96.76,
+          "lote": null
+        },
+        {
+          "ean": "7509552874983",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH ELVIVE HIDRA HIALU PURE 680ML",
+          "cantidad": 1,
+          "precio_unitario": 110.46,
+          "importe": 110.46,
+          "lote": null
+        },
+        {
+          "ean": "7503002163023",
+          "codigo_proveedor": null,
+          "nombre_ticket": "GEL X-TREME TRANSP 250 G",
+          "cantidad": 4,
+          "precio_unitario": 24.302,
+          "importe": 97.21,
+          "lote": null
+        },
+        {
+          "ean": "7501007457826",
+          "codigo_proveedor": null,
+          "nombre_ticket": "ACOND PANT BRILLO EXTREMO 400ML",
+          "cantidad": 1,
+          "precio_unitario": 75.7,
+          "importe": 75.7,
+          "lote": null
+        },
+        {
+          "ean": "7502224510042",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILICA SEDA PURE 3N1 KIDS 120ML",
+          "cantidad": 1,
+          "precio_unitario": 58.56,
+          "importe": 58.56,
+          "lote": null
+        },
+        {
+          "ean": "7502245720062",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILICA SILKHAIR-F NARANJA 120 ML",
+          "cantidad": 2,
+          "precio_unitario": 33.165,
+          "importe": 66.33,
+          "lote": null
+        },
+        {
+          "ean": "7502245720109",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILICA SILKHAIR-F UVA 60 ML",
+          "cantidad": 2,
+          "precio_unitario": 20.975,
+          "importe": 41.95,
+          "lote": null
+        },
+        {
+          "ean": "7502245720086",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILICA SILKHAIR-F COCO 120 ML",
+          "cantidad": 1,
+          "precio_unitario": 33.16,
+          "importe": 33.16,
+          "lote": null
+        },
+        {
+          "ean": "7502245720079",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILKHAIR UVA 120ML SILICA",
+          "cantidad": 1,
+          "precio_unitario": 33.16,
+          "importe": 33.16,
+          "lote": null
+        },
+        {
+          "ean": "7502245720116",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILKHAIR NJA 60ML SILICA",
+          "cantidad": 2,
+          "precio_unitario": 20.975,
+          "importe": 41.95,
+          "lote": null
+        },
+        {
+          "ean": "7502224510097",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILICA SEDA PURE 3N1 PAPAYA 120ML",
+          "cantidad": 1,
+          "precio_unitario": 58.55,
+          "importe": 58.55,
+          "lote": null
+        },
+        {
+          "ean": "7502245720222",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILKHAIR CEREZA 60 ML SILICA",
+          "cantidad": 1,
+          "precio_unitario": 20.97,
+          "importe": 20.97,
+          "lote": null
+        },
+        {
+          "ean": "7502245720093",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SILICA SILKHAIR-F CEREZ/FRESA 120ML",
+          "cantidad": 1,
+          "precio_unitario": 33.16,
+          "importe": 33.16,
+          "lote": null
+        },
+        {
+          "ean": "7509552908718",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH FRUCTIS BORRADOR DAND 650ML",
+          "cantidad": 1,
+          "precio_unitario": 78.53,
+          "importe": 78.53,
+          "lote": null
+        },
+        {
+          "ean": "7509552817393",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH ELVIVE COLOR-VIVE UV 680 ML",
+          "cantidad": 1,
+          "precio_unitario": 110.46,
+          "importe": 110.46,
+          "lote": null
+        },
+        {
+          "ean": "7509552962628",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH FRUCTIS CONTROL GRASA 650 ML N",
+          "cantidad": 1,
+          "precio_unitario": 84.67,
+          "importe": 84.67,
+          "lote": null
+        },
+        {
+          "ean": "7702031293286",
+          "codigo_proveedor": null,
+          "nombre_ticket": "SH JOHNSON'S BABY CABE OSC 200 ML",
+          "cantidad": 1,
+          "precio_unitario": 60.67,
+          "importe": 60.67,
+          "lote": null
+        }
+      ],
+      "verificacion": {
+        "suma_importes": 6972.1,
+        "ok": true,
+        "notas": "Subtotal+Impuestos=6972.1 == Total 6972.1. Total/1.16=6010.43 ≈ Subtotal 6010.44. Los P.U./importes de línea YA incluyen IVA (suma importes ≈ Total pagado). P.U. se usa como costo unitario (lo pagado por pieza). Ítem 46: línea de código/P.U. cortada entre fotos; nombre visible '(x2) JBN GRISI RICITOS ORO BIOPURE 90G'; importe derivado Total−suma_resto=44.65, P.U.=22.325; EAN no legible. OK"
+      }
+    }
+  ],
+  "resumen": [
+    {
+      "proveedor": "Baracentro",
+      "folio": "14438",
+      "lineas": 1,
+      "piezas": 1,
+      "total": 95.0,
+      "verificacion_ok": true
+    },
+    {
+      "proveedor": "IFC",
+      "folio": "CJ 01Fol 126446",
+      "lineas": 12,
+      "piezas": 38,
+      "total": 867.0,
+      "verificacion_ok": true
+    },
+    {
+      "proveedor": "Dulceria La Famosa",
+      "folio": "T280035422",
+      "lineas": 1,
+      "piezas": 2,
+      "total": 149.2,
+      "verificacion_ok": true
+    },
+    {
+      "proveedor": "Cityfarma",
+      "folio": "S327411",
+      "lineas": 13,
+      "piezas": 43,
+      "total": 4165.25,
+      "verificacion_ok": true
+    },
+    {
+      "proveedor": "Equilibrio Farmaceutico",
+      "folio": "446466",
+      "lineas": 14,
+      "piezas": 71,
+      "total": 2532.66,
+      "verificacion_ok": true
+    },
+    {
+      "proveedor": "Bodega F-42",
+      "folio": "Caja 3/84416",
+      "lineas": 89,
+      "piezas": 128,
+      "total": 6972.1,
+      "verificacion_ok": true
+    }
+  ]
+}
