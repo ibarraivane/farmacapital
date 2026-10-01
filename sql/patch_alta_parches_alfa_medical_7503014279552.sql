@@ -12,6 +12,10 @@
 -- Costo Nadro $53.15 · tipo marca → PVP ceil(53.15×1.25) = $67
 -- Stock 0 hasta Recibir. Sin inventar lote ni caducidad.
 --
+-- NO hay EAN de fábrica por tamaño (solo esta caja mixta).
+-- Para vender por pieza grande/chica tras abrir caja, corre también:
+--   sql/patch_alta_parches_alfa_piezas_tamanos.sql
+--
 -- Foto: public/catalogo-propia/parches-adhesivos-alfa-medical-blancos-c10.jpg
 --       packshot Mercadofarma / caja oficial.
 --       jsDelivr del commit (inmediato) + /catalogo-propia/ tras deploy.
