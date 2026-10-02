@@ -8,4 +8,6 @@ export const EAN_PARES_CONOCIDOS = [
   // Teatrical 19 g: ticket Farmalive 12 dígitos (se come un 0) ↔ caja 13.
   ["650240079009", "6502400079009", "6502400070009"],
   ["650240078996", "6502400078996"],
+  // Motrin Infantil 120 ml: caja Kenvue ↔ EAN ticket/viejo J&J
+  ["7501109902866", "7501007535494"],
 ];
