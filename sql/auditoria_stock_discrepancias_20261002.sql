@@ -61,7 +61,7 @@ select
   '1_recepcion' as seccion,
   r.folio,
   r.estado,
-  r.proveedor_nombre,
+  r.proveedor,
   r.created_at,
   i.codigo_escaneado,
   i.cantidad,

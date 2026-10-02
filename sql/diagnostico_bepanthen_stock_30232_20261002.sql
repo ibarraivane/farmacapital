@@ -80,7 +80,7 @@ select
   r.id as recepcion_id,
   r.folio,
   r.estado,
-  r.proveedor_nombre,
+  r.proveedor,
   r.created_at,
   i.id as item_id,
   i.codigo_escaneado,
