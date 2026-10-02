@@ -2,6 +2,8 @@
  * Auditoría de stock fantasma / discrepancias de anaquel.
  *
  * Caso 2-oct-2026: Bepanthen Protectora 30 g (FC-08427330) con 30232.
+ * Movimientos Recibir Cityfarma S327411:
+ *   entrada 3 (RX-…-5028) + entrada 30229 (RX-…-5029) = 30232.
  * En JS, si `productos.stock` llega como texto: "30" + 232 === "30232".
  * El gramaje de la ficha (30 g) se pegó a otro número; no son tubos reales.
  */

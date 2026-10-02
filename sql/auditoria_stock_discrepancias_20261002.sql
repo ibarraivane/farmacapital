@@ -3,11 +3,14 @@
 -- Solo lectura. Pegar en Supabase → SQL Editor → Run.
 --
 -- Cómo se infla el número (el 30232 no es un conteo):
---   1) Concatenación JS/SQL: stock texto "30" (de 30 g) + 232 = "30232".
---   2) Recibir / pistola: la cantidad del renglón tomó el gramaje o un
---      escaneo extra, y se grabó un lote con esa cifra.
---   3) OCR de ticket: el parser pega el "30" del nombre como qty
---      (visto en Multiusos «Pomada Otc 30»).
+--   Confirmado en movimientos (1-oct-2026, ticket Cityfarma S327411):
+--     03:14:06  entrada 3      lote RX-S327411-5028
+--     03:14:52  entrada 30229  lote RX-S327411-5029
+--     3 + 30229 = 30232.
+--   El segundo renglón de Recibir guardó cantidad absurda (ticket/OCR o
+--   tecleo en el campo cantidad; el UI solo cortaba a 5 dígitos).
+--   También: concatenación JS ("30" + 232) y OCR que toma el «30» del
+--   nombre como piezas (Multiusos «Pomada Otc 30»).
 --
 -- productos.stock es caché: trg_sync_productos_stock = sum(lotes activos).
 -- Si el catálogo dice 30232, hay lote(s) con esa suma.
