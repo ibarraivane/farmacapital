@@ -1,24 +1,27 @@
 ---
-description: Nunca subir logo/placeholder de otra farmacia (Del Ahorro) como foto de producto
+description: Nunca mostrar logos de competencia ni fotos de mayoreo (Nadro/Levic) como packshot
 alwaysApply: true
 ---
 
-# Sin placeholder de competencia en imágenes
+# Sin placeholder de competencia ni fotos de proveedor
 
-FarmaCapital **no** usa el logo ni el placeholder de otra farmacia como foto de catálogo o marketing.
+FarmaCapital **no** usa el logo de otra farmacia ni hotlinks de mayoreo (Nadro, Levic/Visoti) como foto de catálogo o marketing.
 
 ## Qué pasó (no repetir)
 
-Fahorro a veces responde un PNG 500×500 (MD5 `59370f17…`, ~6334 bytes) con la **«A» rosa** cuando el EAN no tiene packshot. Eso se guardó en `catalogo-propia/` y salió en `/conseguir` (Atoderm).
+1. Fahorro a veces responde un PNG 500×500 (MD5 `59370f17…`, ~6334 bytes) con la **«A» rosa** cuando el EAN no tiene packshot. Eso se guardó en `catalogo-propia/` y salió en `/conseguir` (Atoderm).
+2. Se cargaron hotlinks Nadro/Levic (`nadro.vtexassets.com`, `visoti.mx`) y copias `distribuidor/nadro-*` en Storage. Salían en vitrina con branding / marca de agua del proveedor.
 
 ## Obligatorio
 
-1. **Packshot del producto** (marca, mayoreo, retailer con foto real) o dejar `imagen_url` vacío.
+1. **Packshot propio** (caja fotografiada o `catalogo-propia/`) o dejar vacío → la UI muestra **«Imagen próximamente»**.
 2. Antes de guardar en `catalogo-propia/` o Storage: rechazar con `esPlaceholderImagenCompetencia` / `scripts/lib/imagen_competencia.py`.
-3. **No** poner `imagen_url` hotlink a `fahorro.com` / `production-media.fahorro.com`. Copiar a `catalogo-propia/` solo si es packshot real.
-4. En tienda, `urlImagenPublicaTienda` ya oculta hosts Fahorro.
+3. **No** poner `imagen_url` hotlink a `fahorro.com`, `nadro.vtexassets.com`, `visoti.mx` ni rutas `distribuidor/nadro-*`.
+4. En tienda, `urlImagenPublicaTienda` oculta competencia y mayoreo.
+5. El sync Nadro **solo** actualiza precios de compra; no sube fotos.
 
 ## Prohibido
 
 - Guardar el logo «A» / “imagen no disponible” de Del Ahorro, Similares, Guadalajara, etc. como foto de producto.
-- Decir “ya tiene imagen” cuando es el placeholder de la cadena.
+- Mostrar fotos del portal Nadro/Levic en tienda, inventario o POS.
+- Decir “ya tiene imagen” cuando es placeholder de cadena o branding de mayoreo.

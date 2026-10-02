@@ -29,9 +29,14 @@ function urlImagenPublicaTienda(rawUrl) {
   try {
     const host = new URL(url).hostname;
     if (/(^|\.)fahorro\.com$/i.test(host)) return "";
+    if (/(^|\.)nadro\.vtexassets\.com$/i.test(host)) return "";
+    if (/(^|\.)nadro\.mx$/i.test(host)) return "";
+    if (/(^|\.)i22\.nadro\.mx$/i.test(host)) return "";
+    if (/(^|\.)visoti\.mx$/i.test(host)) return "";
   } catch {
     return "";
   }
+  if (/\/distribuidor\/nadro-/i.test(url)) return "";
   return url;
 }
 

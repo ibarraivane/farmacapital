@@ -44,14 +44,6 @@ async function productosPendientes(supabaseUrl, serviceKey) {
     'productos?select=id,sku,nombre,codigo_barras,imagen_url,principio_activo,tipo,categoria&activo=eq.true&codigo_barras=not.is.null&order=nombre.asc&limit=800'
   );
   if (!prod.ok || !Array.isArray(prod.data)) return [];
-  const imgs = await rest(
-    supabaseUrl,
-    serviceKey,
-    'producto_imagenes?select=producto_id&limit=4000'
-  );
-  const conFoto = new Set(
-    (imgs.ok && Array.isArray(imgs.data) ? imgs.data : []).map((r) => r.producto_id)
-  );
   const refs = await rest(
     supabaseUrl,
     serviceKey,
@@ -63,12 +55,12 @@ async function productosPendientes(supabaseUrl, serviceKey) {
   return (prod.data || []).filter((p) => {
     const ean = String(p.codigo_barras || '').replace(/\D/g, '');
     if (ean.length < 8) return false;
-    const sinFoto = !String(p.imagen_url || '').trim() && !conFoto.has(p.id);
-    return sinFoto || !conPrecio.has(p.id);
+    // Solo precios: las fotos de Nadro no se muestran ni se suben.
+    return !conPrecio.has(p.id);
   }).map((p) => ({
     ...p,
     ean: String(p.codigo_barras || '').replace(/\D/g, ''),
-    necesitaFoto: !String(p.imagen_url || '').trim() && !conFoto.has(p.id),
+    necesitaFoto: false,
     necesitaPrecio: !conPrecio.has(p.id),
     med: Boolean(String(p.principio_activo || '').trim())
       || /generico|genérico|marca/i.test(String(p.tipo || ''))
@@ -76,28 +68,10 @@ async function productosPendientes(supabaseUrl, serviceKey) {
   })).sort((a, b) => Number(b.med) - Number(a.med) || a.id - b.id);
 }
 
-async function subirFoto(supabaseUrl, serviceKey, ean, imageUrl) {
-  const imgRes = await fetch(imageUrl, {
-    headers: { 'User-Agent': 'FarmaCapitalPricingBot/1.0 (+https://www.farmacapital.mx)' },
-  });
-  if (!imgRes.ok) return null;
-  const buf = Buffer.from(await imgRes.arrayBuffer());
-  if (buf.length < 800) return null;
-  const ct = String(imgRes.headers.get('content-type') || 'image/jpeg').split(';')[0];
-  const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg';
-  const path = `distribuidor/nadro-${ean}.${ext}`;
-  const up = await fetch(`${supabaseUrl}/storage/v1/object/productos/${path}`, {
-    method: 'POST',
-    headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      'Content-Type': ct,
-      'x-upsert': 'true',
-    },
-    body: buf,
-  });
-  if (!up.ok && up.status !== 400) return null;
-  return `${supabaseUrl}/storage/v1/object/public/productos/${path}`;
+async function subirFoto() {
+  // Política 2026-10-02: no subir ni mostrar fotos de Nadro en catálogo.
+  // El sync solo sirve para precios de compra.
+  return null;
 }
 
 async function nadroSyncHandler(req, res) {

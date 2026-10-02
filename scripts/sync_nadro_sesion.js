@@ -3,7 +3,7 @@
  *
  * - Precio Farmacia (lo que te cobran) → Referencias → Compra, columna Nadro.
  *   Nunca el Público ni el $100 de vitrina.
- * - Foto solo si el producto no tiene imagen_url ni galería.
+ * - Fotos de Nadro: NO se suben (política 2026-10-02; vitrina muestra «Imagen próximamente»).
  *
  *   PLAYWRIGHT_BROWSERS_PATH=0 node scripts/sync_nadro_sesion.js
  *   PLAYWRIGHT_BROWSERS_PATH=0 node scripts/sync_nadro_sesion.js --limit 20
@@ -172,31 +172,9 @@ async function precioFarmaciaPdp(page, url) {
   return null;
 }
 
-async function subirFoto(url, key, ean, imageUrl) {
-  const imgRes = await fetch(imageUrl, {
-    headers: { "User-Agent": "FarmaCapitalPricingBot/1.0 (+https://www.farmacapital.mx)" },
-  });
-  if (!imgRes.ok) return null;
-  const buf = Buffer.from(await imgRes.arrayBuffer());
-  if (buf.length < 800) return null;
-  const ct = String(imgRes.headers.get("content-type") || "image/jpeg").split(";")[0];
-  const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
-  const ruta = `distribuidor/nadro-${ean}.${ext}`;
-  const up = await fetch(`${url}/storage/v1/object/${BUCKET}/${ruta}`, {
-    method: "POST",
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": ct,
-      "x-upsert": "true",
-    },
-    body: buf,
-  });
-  if (!up.ok && up.status !== 400) return null;
-  return {
-    publicUrl: `${url}/storage/v1/object/public/${BUCKET}/${ruta}`,
-    ruta,
-  };
+async function subirFoto() {
+  // Política 2026-10-02: no subir fotos de Nadro. Solo precios de compra.
+  return null;
 }
 
 async function main() {
@@ -220,7 +198,6 @@ async function main() {
     serviceKey,
     "productos?select=id,nombre,codigo_barras,imagen_url,principio_activo,tipo,categoria&activo=eq.true&codigo_barras=not.is.null&order=nombre.asc"
   );
-  const gal = new Set((await pageAll(supabaseUrl, serviceKey, "producto_imagenes?select=producto_id")).map((r) => r.producto_id));
   const refsNadro = await pageAll(
     supabaseUrl,
     serviceKey,
@@ -233,15 +210,14 @@ async function main() {
   const progress = loadProgress();
   const cand = prods.map((p) => {
     const ean = digits(p.codigo_barras);
-    const sinFoto = !String(p.imagen_url || "").trim() && !gal.has(p.id);
     return {
       ...p,
       ean,
-      necesitaFoto: sinFoto,
+      necesitaFoto: false,
       necesitaPrecio: !conPrecioHoy.has(p.id),
       med: esMedicamento(p),
     };
-  }).filter((p) => p.ean.length >= 8 && (p.necesitaPrecio || p.necesitaFoto) && !progress.done[p.id]);
+  }).filter((p) => p.ean.length >= 8 && p.necesitaPrecio && !progress.done[p.id]);
 
   cand.sort((a, b) => {
     if (a.ean === CANARY_EAN) return -1;

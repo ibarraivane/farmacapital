@@ -16,7 +16,7 @@ it("sin galería se queda el packshot", () => {
   expect(ordenarGaleriaProducto("packshot.jpg", [])).toEqual(["packshot.jpg"]);
 });
 
-it("no deja pasar URLs de Del Ahorro en galería ni tarjeta", () => {
+it("no deja pasar URLs de Del Ahorro ni de Nadro/Levic en galería ni tarjeta", () => {
   expect(
     ordenarGaleriaProducto("https://production-media.fahorro.com/media/x.jpg", [
       "https://www.fahorro.com/media/y.jpg",
@@ -24,8 +24,15 @@ it("no deja pasar URLs de Del Ahorro en galería ni tarjeta", () => {
     ]),
   ).toEqual(["https://www.farmacapital.mx/catalogo-propia/ok.jpg"]);
   expect(
+    ordenarGaleriaProducto("https://nadro.vtexassets.com/arquivos/ids/1.jpg", [
+      "https://visoti.mx/imagenes/Grande/MAV088.webp",
+      "https://www.farmacapital.mx/catalogo-propia/ok.jpg",
+    ]),
+  ).toEqual(["https://www.farmacapital.mx/catalogo-propia/ok.jpg"]);
+  expect(
     ordenarUrlsTarjeta([
       { url: "https://www.fahorro.com/media/catalog/product/a.jpg", posicion: 1, es_principal: true },
+      { url: "https://nadro.vtexassets.com/arquivos/ids/9.jpg", posicion: 1, es_principal: false },
       { url: "https://www.farmacapital.mx/catalogo-propia/ok.jpg", posicion: 2, es_principal: false },
     ]),
   ).toEqual(["https://www.farmacapital.mx/catalogo-propia/ok.jpg"]);

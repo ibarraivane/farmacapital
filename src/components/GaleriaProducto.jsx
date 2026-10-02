@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BRAND, C_LIGHT } from "../constants";
+import { TEXTO_IMAGEN_PROXIMAMENTE } from "../lib/imagenCompetencia";
 
 /**
  * Galería de fotos de un producto: flechas ‹ › sobre la imagen y puntos abajo.
@@ -12,7 +13,7 @@ import { BRAND, C_LIGHT } from "../constants";
  * @param {string[]} imagenes  URLs ya ordenadas; la primera es la que se ve.
  * @param {string} [alt]
  * @param {number} [maxAlto]   Alto máximo de la imagen en px.
- * @param {number} [iconoVacio] Tamaño del placeholder cuando no hay fotos.
+ * @param {number} [iconoVacio] Tamaño del placeholder cuando no hay fotos (legacy; ya no se usa ícono).
  * @param {object} [style]     Estilos del contenedor.
  * @param {() => void} [onImagenClick] Si se pasa, la foto se vuelve pulsable
  *   (p. ej. para abrir el zoom). Las flechas quedan fuera de ese botón, no
@@ -75,13 +76,28 @@ export default function GaleriaProducto({
     if (Math.abs(dx) > 40) ir(dx < 0 ? 1 : -1);
   };
 
-  if (!total) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24, ...style }}>
-        <Package size={iconoVacio} strokeWidth={1} color={C.dim} aria-hidden />
-      </div>
-    );
-  }
+  const placeholder = (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        minHeight: Math.min(120, Number(iconoVacio) || 88),
+        color: C.dim,
+        fontSize: 13,
+        fontWeight: 600,
+        textAlign: "center",
+        lineHeight: 1.35,
+        ...style,
+      }}
+      aria-label={TEXTO_IMAGEN_PROXIMAMENTE}
+    >
+      {TEXTO_IMAGEN_PROXIMAMENTE}
+    </div>
+  );
+
+  if (!total) return placeholder;
 
   const actual = fotos[i];
   const soloUna = total < 2;
@@ -138,7 +154,7 @@ export default function GaleriaProducto({
     >
       <div style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {rotas.has(actual) ? (
-          <Package size={iconoVacio} strokeWidth={1} color={C.dim} aria-hidden />
+          <span style={{ color: C.dim, fontSize: 13, fontWeight: 600 }}>{TEXTO_IMAGEN_PROXIMAMENTE}</span>
         ) : onImagenClick ? (
           <button
             type="button"

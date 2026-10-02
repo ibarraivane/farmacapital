@@ -18,12 +18,13 @@ describe("urlImagenPublicaTienda / competencia", () => {
     expect(tiendaCardImageUrl("https://production-media.fahorro.com/media/catalog/product/x.jpg")).toBe("");
   });
 
-  test("deja pasar packshots propios y Nadro", () => {
+  test("deja pasar packshots propios y bloquea Nadro", () => {
     const propia = "https://www.farmacapital.mx/catalogo-propia/bioderma-atoderm-intensive-baume-200ml-3701129802069.jpg";
     expect(esUrlImagenCompetencia(propia)).toBe(false);
     expect(urlImagenPublicaTienda(propia)).toBe(propia);
     const nadro = "https://nadro.vtexassets.com/arquivos/ids/123/foto.jpg";
-    expect(urlImagenPublicaTienda(nadro)).toBe(nadro);
+    expect(urlImagenPublicaTienda(nadro)).toBe("");
+    expect(tiendaCardImageUrl(nadro)).toBe("");
   });
 });
 
@@ -35,9 +36,8 @@ describe("tiendaCardImageUrl", () => {
     expect(tiendaCardImageUrl("not a url")).toBe("not a url");
   });
 
-  test("no toca hosts ajenos ni data/blob/gif/svg", () => {
-    const nadro = "https://nadro.vtexassets.com/arquivos/ids/123/foto.jpg";
-    expect(tiendaCardImageUrl(nadro)).toBe(nadro);
+  test("no toca data/blob/gif/svg; bloquea mayoreo", () => {
+    expect(tiendaCardImageUrl("https://nadro.vtexassets.com/arquivos/ids/123/foto.jpg")).toBe("");
     expect(tiendaCardImageUrl("data:image/png;base64,aaa")).toBe("data:image/png;base64,aaa");
     expect(tiendaCardImageUrl("blob:https://www.farmacapital.mx/abc")).toBe("blob:https://www.farmacapital.mx/abc");
     const gif = `${SUPA}/storage/v1/object/public/productos/1/anim.gif`;
