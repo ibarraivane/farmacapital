@@ -9,6 +9,7 @@ Fotos Central de Abastos + factura Nadro (Palillero). Pegar **cada** SQL en Supa
 | Mayorista de Dulces T620721328 | `patch_carga_dulces_T620721328.sql` | 241 | $335.20 |
 | Bodega F-42 83017 | `patch_carga_bodega_f42_83017.sql` | 11 | $309.95 |
 | Farmalive 1028 | `patch_carga_farmalive_1028.sql` | 26 | $883.96 |
+| Cityfarma S328174 | `patch_carga_cityfarma_s328174.sql` | 2 | $200.46 |
 
 ## Altas nuevas (stock 0)
 
@@ -20,6 +21,7 @@ Fotos Central de Abastos + factura Nadro (Palillero). Pegar **cada** SQL en Supa
 - Ricitos de Oro crema lavanda 100 mL · colonia avena/vainilla · **TODO foto**
 - Nuvel crema manos suaves / hidratada 65 mL · **TODO foto**
 - Chupa Chups Mini bolsa 240 · Vero Mix Clásico 1.5 kg · **TODO foto**
+- Autevazen levetiracetam 1 g C/30 (`7506331301173`) · Cityfarma
 
 ## Notas
 

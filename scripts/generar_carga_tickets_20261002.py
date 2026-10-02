@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Tickets 02-oct-2026 (fotos Central de Abastos + Nadro) → cola Recibir.
 
-5 pedidos:
+6 pedidos:
   Nadro 6090680530 (01-oct) · Equilibrio 446721 · Mayorista de Dulces T620721328
-  Bodega F-42 83017 · Farmalive 1028
+  Bodega F-42 83017 · Farmalive 1028 · Cityfarma S328174
 
 Nombres de mostrador desde ficha (no el código del ticket).
 Sin caducidad inventada (MMAA de la caja). Equilibrio sí trae lote de fábrica.
@@ -407,6 +407,23 @@ PRODUCTOS: dict[str, dict] = {
         ya=False,
         # TODO foto packshot bolsa 240.
     ),
+    # ── Cityfarma ──
+    "7506331301173": p(
+        "7506331301173",
+        nombre="Autevazen levetiracetam 1 g",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Antiepiléptico",
+        forma="Tableta",
+        marca="Autevazen",
+        laboratorio="Aurovida",
+        presentacion="Caja con 30 tabletas",
+        principio="Levetiracetam",
+        concentracion="1 g",
+        receta=True,
+        ya=False,
+        foto_file="autevazen-levetiracetam-1g-c30-7506331301173.jpg",
+    ),
 }
 
 
@@ -548,6 +565,28 @@ TICKETS = [
             row("650240019180", "POMADA DE LA CAMPANA TEPEZCOHUITE 35 GR | GENOMMA LAB", 5, neto(24.40)),
             row("7501065628145", "POMADA DE LA CAMPANA 35 GR | GENOMMA LAB", 5, neto(24.40)),
             row("7501065628121", "POMADA DE LA CAMPANA 19 GR | GENOMMA LAB", 5, neto(16.30)),
+        ],
+    },
+    {
+        "key": "cityfarma_s328174",
+        "folio": "S328174",
+        "proveedor": "Cityfarma Iztapalapa",
+        "proveedor_ilike": "cityfarma",
+        "fecha": "2026-10-02",
+        "total": 200.46,
+        "notas": (
+            "Ticket Cityfarma S328174 · 02-oct-2026 · foto térmica · "
+            "Pendiente de pago $200.46 · cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "tmp": "_fc_cf_s328174",
+        "header": (
+            "Cityfarma Iztapalapa · orden S328174 · 2026-10-02 17:19\n"
+            "-- Ticket térmico. IVA 0%. Pendiente de pago = $200.46.\n"
+            "-- Autevazen levetiracetam 1 g C/30 EAN 7506331301173 (Aurovida).\n"
+            "-- Sin lote ni caducidad (MMAA de la caja). No inventar 0000."
+        ),
+        "rows": [
+            row("7506331301173", "AUTEVAZEN 1G LEVETIR", 2, 100.23),
         ],
     },
 ]
@@ -985,6 +1024,7 @@ Fotos Central de Abastos + factura Nadro (Palillero). Pegar **cada** SQL en Supa
 | Mayorista de Dulces T620721328 | `patch_carga_dulces_T620721328.sql` | 241 | $335.20 |
 | Bodega F-42 83017 | `patch_carga_bodega_f42_83017.sql` | 11 | $309.95 |
 | Farmalive 1028 | `patch_carga_farmalive_1028.sql` | 26 | $883.96 |
+| Cityfarma S328174 | `patch_carga_cityfarma_s328174.sql` | 2 | $200.46 |
 
 ## Altas nuevas (stock 0)
 
@@ -996,6 +1036,7 @@ Fotos Central de Abastos + factura Nadro (Palillero). Pegar **cada** SQL en Supa
 - Ricitos de Oro crema lavanda 100 mL · colonia avena/vainilla · **TODO foto**
 - Nuvel crema manos suaves / hidratada 65 mL · **TODO foto**
 - Chupa Chups Mini bolsa 240 · Vero Mix Clásico 1.5 kg · **TODO foto**
+- Autevazen levetiracetam 1 g C/30 (`7506331301173`) · Cityfarma
 
 ## Notas
 
