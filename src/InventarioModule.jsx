@@ -38,6 +38,8 @@ import {
   enriquecerProductoConLotes,
   fetchLotesInventario,
   patchProductoSinColumnaProveedor,
+  STOCK_ABSURDO_MAX,
+  stockAbsurdoInventario,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
 } from "./lib/inventarioHubData";
@@ -1018,6 +1020,13 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     setSaving(true);
     try {
       const stockInt = parseInt(form.stock) || 0;
+      if (stockAbsurdoInventario(stockInt)) {
+        setErrors({
+          stock: `Más de ${STOCK_ABSURDO_MAX} piezas no se guarda (suele ser error de captura)`,
+        });
+        setSaving(false);
+        return;
+      }
       const costoNum = parseFloat(form.costo) || 0;
 
       // Campos del producto (sin stock/costo que viajan al lote en el alta)
@@ -2593,19 +2602,29 @@ function renderInventarioColumnCell(colId, ctx) {
           tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("proveedor") }}
         />
       );
-    case "stock":
+    case "stock": {
+      const piezasVisibles = stockVisibleInventario(p);
+      const stockFantasma = stockAbsurdoInventario(piezasVisibles);
       return (
         <InventarioEditableCell
           key={colId}
           {...inlineCellProps}
           productId={p.id}
           field="stock"
-          value={String(stockVisibleInventario(p))}
+          value={String(piezasVisibles)}
           type="number"
-          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : cubierto ? C.textMid : C.green }}>{stockVisibleInventario(p)}</span>}
+          display={
+            <span
+              style={{ fontWeight: 700, color: stockFantasma ? C.red : bajo ? C.amber : cubierto ? C.textMid : C.green }}
+              title={stockFantasma ? `Stock absurdo (>${STOCK_ABSURDO_MAX}). Cuenta el anaquel y corrige.` : undefined}
+            >
+              {piezasVisibles}
+            </span>
+          }
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("stock") }}
         />
       );
+    }
     case "min":
       return (
         <InventarioEditableCell
@@ -3575,6 +3594,13 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       const n = parseInt(draft, 10);
       if (Number.isNaN(n) || n < 0) {
         showToast("Stock inválido.", "error");
+        return false;
+      }
+      if (stockAbsurdoInventario(n)) {
+        showToast(
+          `Stock absurdo (>${STOCK_ABSURDO_MAX} piezas). Cuenta el anaquel; si es correcto, ajústalo por SQL.`,
+          "error"
+        );
         return false;
       }
       if (n === stockVisibleInventario(product)) return true;
