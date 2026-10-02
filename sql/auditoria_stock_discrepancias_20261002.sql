@@ -77,8 +77,9 @@ select
   '1_ventas' as seccion,
   ped.id as pedido_id,
   ped.created_at,
-  ped.folio,
   ped.estado,
+  ped.tipo,
+  ped.total as total_pedido,
   i.cantidad,
   i.precio_unitario
 from public.pedido_items i
