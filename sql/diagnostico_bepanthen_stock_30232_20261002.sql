@@ -40,8 +40,7 @@ select
   l.costo_unitario,
   l.activo,
   l.fecha_recepcion,
-  l.created_at,
-  l.updated_at
+  l.created_at
 from public.lotes l
 join public.productos p on p.id = l.producto_id
 where p.sku = 'FC-08427330'

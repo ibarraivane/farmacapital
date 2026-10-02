@@ -38,8 +38,8 @@ select
   l.cantidad_actual,
   l.activo,
   l.fecha_caducidad,
-  l.created_at,
-  l.updated_at
+  l.fecha_recepcion,
+  l.created_at
 from public.lotes l
 where l.producto_id = 445
 order by coalesce(l.cantidad_actual, 0) desc, l.id desc;
