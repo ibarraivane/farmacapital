@@ -43,6 +43,7 @@ import {
   stockObjetivoAjusteInline,
   stockVisibleInventario,
 } from "./lib/inventarioHubData";
+import { clasificarStockSospechoso, esStockSospechoso, stockSumaPiezas } from "./lib/auditoriaStock";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
 import { fmtPrecioInventario, PASO_PRECIO_VENTA, snapPrecioVenta } from "./lib/denominacionPrecio";
@@ -1627,6 +1628,10 @@ function RecibirModal({ productos, onClose, onReceived, initialProductId = null 
   const handleRecibir = async () => {
     if (!selId) { setError("Escanea o selecciona un producto"); return; }
     if (!cantidad || parseInt(cantidad, 10) <= 0) { setError("Cantidad inválida"); return; }
+    if (stockAbsurdoInventario(parseInt(cantidad, 10))) {
+      setError(`Cantidad absurda (>${STOCK_ABSURDO_MAX}). Revisa que no se haya pegado el gramaje o un escaneo.`);
+      return;
+    }
     setSaving(true);
     setError("");
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -1772,8 +1777,8 @@ function RecibirModal({ productos, onClose, onReceived, initialProductId = null 
             {selProd && cantidad && parseInt(cantidad, 10) > 0 && (
               <div style={{background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:8,padding:"10px 14px",marginTop:4}}>
                 <div style={{color:C.textMid,fontSize:10,fontWeight:700}}>NUEVO STOCK</div>
-                <div style={{color:C.green,fontWeight:800,fontSize:22}}>{(selProd.stock || 0) + parseInt(cantidad, 10)}</div>
-                <div style={{color:C.textMid,fontSize:10}}>({selProd.stock} + {cantidad})</div>
+                <div style={{color:C.green,fontWeight:800,fontSize:22}}>{stockSumaPiezas(stockVisibleInventario(selProd), cantidad)}</div>
+                <div style={{color:C.textMid,fontSize:10}}>({stockVisibleInventario(selProd)} + {cantidad})</div>
               </div>
             )}
           </div>
@@ -2604,7 +2609,7 @@ function renderInventarioColumnCell(colId, ctx) {
       );
     case "stock": {
       const piezasVisibles = stockVisibleInventario(p);
-      const stockFantasma = stockAbsurdoInventario(piezasVisibles);
+      const alertaStock = clasificarStockSospechoso(p, piezasVisibles);
       return (
         <InventarioEditableCell
           key={colId}
@@ -2615,8 +2620,8 @@ function renderInventarioColumnCell(colId, ctx) {
           type="number"
           display={
             <span
-              style={{ fontWeight: 700, color: stockFantasma ? C.red : bajo ? C.amber : cubierto ? C.textMid : C.green }}
-              title={stockFantasma ? `Stock absurdo (>${STOCK_ABSURDO_MAX}). Cuenta el anaquel y corrige.` : undefined}
+              style={{ fontWeight: 700, color: alertaStock ? C.red : bajo ? C.amber : cubierto ? C.textMid : C.green }}
+              title={alertaStock ? `Stock fantasma: ${alertaStock.detalle}. Cuenta el anaquel y corrige.` : undefined}
             >
               {piezasVisibles}
             </span>
@@ -3159,7 +3164,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         const { data: respCreacion, error: rpcErr } = await supabase.rpc("create_producto_secure", {
           p_session_token: tok,
           p_producto_data: patchProductoSinColumnaProveedor({ ...resto, codigo_barras: cbNorm, costo: costo ?? null, ...extrasPatch }),
-          p_cantidad_inicial: stock || 0,
+          p_cantidad_inicial: parseInt(stock, 10) || 0,
           p_numero_lote: lote || null,
           p_fecha_caducidad: fecha_caducidad || null,
           p_costo_unitario: costo ?? null,
@@ -3398,6 +3403,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
       filtroAlerta === "sin_foto" ? productoSinFoto(p, fotoCatalogoDe) :
       filtroAlerta === "margen_alto" ? esAlertaMargen(auditarMargenProducto(p)) :
+      filtroAlerta === "stock_fantasma" ? esStockSospechoso(p) :
       true;
     return cat && alerta;
   }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe, stockPorIdentidad, mostrarVitrina]);
@@ -3464,6 +3470,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const sinPrecioVenta = catalogoConteo.filter(p => p.activo && productoSinPrecioVenta(p)).length;
   const sinFoto = catalogoConteo.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
   const margenAlto = catalogoConteo.filter(p => p.activo && esAlertaMargen(auditarMargenProducto(p))).length;
+  const stockFantasma = catalogoConteo.filter(p => p.activo && esStockSospechoso(p)).length;
   const inactivos  = catalogoConteo.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
@@ -4209,6 +4216,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
             {label:"Sin foto", val:sinFoto, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="sin_foto"?"todos":"sin_foto"), on: filtroAlerta==="sin_foto"},
             {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
             {label:"Margen raro", val:margenAlto, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="margen_alto"?"todos":"margen_alto"), on: filtroAlerta==="margen_alto"},
+            {label:"Stock fantasma", val:stockFantasma, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="stock_fantasma"?"todos":"stock_fantasma"), on: filtroAlerta==="stock_fantasma"},
             {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
           ] : []),
         ].map(s=>(
@@ -4244,6 +4252,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         {!modoConsulta && (
         <span style={{padding:"4px 10px",borderRadius:8,background:"#eff6ff",color:C.blue}}>
           📊 Referencias de mercado: Inventario → «Referencias de precio»
+        </span>
+        )}
+        {!modoConsulta && filtroAlerta === "stock_fantasma" && (
+        <span style={{padding:"4px 10px",borderRadius:8,background:"#fef2f2",color:C.red,fontWeight:700}}>
+          Stock que no puede ser anaquel (p. ej. 30232 = «30 g» pegado a otro número). Cuenta y corrige a cero si no hay piezas.
         </span>
         )}
         {!modoConsulta && filtroAlerta === "margen_alto" && (
@@ -4295,6 +4308,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           <option value="sin_foto">🖼 Sin foto</option>
           {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
           {!modoConsulta && <option value="margen_alto">Margen raro (PVP vs costo)</option>}
+          {!modoConsulta && <option value="stock_fantasma">👻 Stock fantasma</option>}
         </select>
         <label
           title="Prender o apagar en esta pantalla. No se borran del catálogo ni de «Te lo conseguimos»."

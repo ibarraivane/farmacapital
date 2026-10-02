@@ -6,14 +6,13 @@
 -- Ajusta lotes (no solo productos.stock: el trigger lo vuelve a pisar).
 -- Idempotente si la suma activa ya es v_conteo.
 --
--- ANTES DE CORRER: cuenta los tubos en anaquel y cambia v_conteo abajo.
--- Histórico de catálogo (ago-2026) tenía 1. Default = 1.
+-- Dueño 2-oct-2026: en anaquel hay CERO tubos. Default = 0.
 
 begin;
 
 do $$
 declare
-  v_conteo integer := 1;  -- ← tubos reales en anaquel
+  v_conteo integer := 0;  -- tubos reales en anaquel (dueño: cero)
   v_pid bigint;
   v_lote bigint;
   v_sum integer;
