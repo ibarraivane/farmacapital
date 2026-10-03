@@ -17,6 +17,7 @@ import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { cobroUnidad, modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
+import { puntosGanados } from "../../../utils/puntosCanje";
 import {
   cajasAAbrirParaPiezas,
   cajasAAbrirPorError,
@@ -2176,7 +2177,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return cart.reduce((a, c) => a + (modoVentaDeLinea(c) === "unidad" ? cobroUnidad(c.precio, c.qty) : cobroLinea(c.precio, c.qty)), 0);
   };
   const sub   = calcularTotalConPromos();
-  const ptsG  = Math.floor(sub/10);
+  const ptsG  = puntosGanados(sub);
   const total = sub;
   const saldoCredito = parseFloat(cli?.saldo_credito || 0);
   const creditoTope = Math.min(saldoCredito, total);
@@ -2789,7 +2790,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         total: totalFinal,
         pay: paymentLabel(metodoPagoRaw),
         cli: clienteSel,
-        ptsG: Math.floor(totalFinal / 10),
+        ptsG: puntosGanados(totalFinal),
         origen: "consulta",
         ...(metodoPago === "efectivo" && Number.isFinite(recEf)
           ? { recibido: recEf, cambio: cambioEf, cambioDesglose: desgloseEf }

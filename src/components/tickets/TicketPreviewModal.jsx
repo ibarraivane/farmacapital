@@ -10,6 +10,7 @@ import { usePedidoTicketUrl } from "../../hooks/usePedidoTicketUrl";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar, telefonosMxEquivalentes } from "../../utils";
+import { puntosGanados as calcPuntosGanados } from "../../utils/puntosCanje";
 
 function FacturaInlineForm({ venta, cliente, onClose }) {
   const [rfc,    setRfc]    = React.useState(cliente?.rfc||"");
@@ -169,7 +170,7 @@ function WhatsAppTicketPanel({
     setEnviando(true);
     setWaErr("");
     setEnviadoOk(null);
-    let puntosGanados = Math.floor(Number(venta.total || 0) / 10);
+    let puntosGanados = calcPuntosGanados(Number(venta.total || 0));
     let saldoPuntos = cli.puntos ?? null;
     if (pedidoId && cli.id) {
       const ptsResp = await acumularPuntosVenta(pedidoId, cli.id);

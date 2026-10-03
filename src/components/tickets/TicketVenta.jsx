@@ -2,7 +2,7 @@ import React, { forwardRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { BRAND_LOGO } from "../../brand";
 import { mergeFarmaciaConfig } from "../../constants/farmaciaFiscal";
-import { pesosDePuntos } from "../../utils/puntosCanje";
+import { pesosDePuntos, puntosGanados } from "../../utils/puntosCanje";
 import "../../styles/ticket.css";
 
 /**
@@ -43,7 +43,7 @@ const TicketVenta = forwardRef(({
   const subtotal = venta.neto !== undefined
     ? parseFloat(venta.neto)
     : parseFloat((total - iva).toFixed(2));
-  const ptsG     = Math.floor(total / 10);
+  const ptsG     = puntosGanados(total);
   const fmt      = n => `$${parseFloat(n||0).toFixed(2)}`;
 
   // QR: URL digital del ticket (WhatsApp e impreso) o fallback legado sin pedido en servidor

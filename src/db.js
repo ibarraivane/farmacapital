@@ -363,8 +363,8 @@ export async function canjearPuntos(tel, puntosACanjear) {
 }
 
 function calcularNivel(puntos) {
-  if (puntos >= 500) return "Gold";
-  if (puntos >= 200) return "Silver";
+  if (puntos >= 50) return "Gold";
+  if (puntos >= 20) return "Silver";
   return "Bronze";
 }
 
