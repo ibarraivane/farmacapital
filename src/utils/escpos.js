@@ -4,6 +4,8 @@
 // Descarga: https://qz.io/download/
 // ═══════════════════════════════════════════════════════════
 
+import { puntosGanados } from "./puntosCanje";
+
 // ── Verificar si QZ Tray está disponible ─────────────────
 export function isQZAvailable() {
   return typeof window.qz !== "undefined";
@@ -139,7 +141,7 @@ export function generarESCPOS(ticketData) {
 
   // PAGO Y PUNTOS
   data.push(`Pago  : ${metodoPago}\n`);
-  const pts = Math.floor(total/10);
+  const pts = puntosGanados(total);
   if(pts>0) {
     data.push(CMD.ALIGN_CENTER);
     data.push(CMD.BOLD_ON);

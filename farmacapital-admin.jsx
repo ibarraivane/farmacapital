@@ -376,9 +376,9 @@ function POS({negocio}){
   const rm=sku=>setCart(p=>p.filter(c=>c.sku!==sku));
   const upd=(sku,d)=>setCart(p=>p.map(c=>c.sku===sku?{...c,qty:Math.max(1,c.qty+d)}:c));
   const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
-  const dPts=ptsC*0.5;
+  const dPts=ptsC*1;
   const total=Math.max(0,sub-dPts);
-  const ptsG=Math.floor(sub/10);
+  const ptsG=Math.floor(sub/100);
   const cobrar=()=>{
     if(!cart.length)return;
     setTicket({id:Date.now(),items:[...cart],sub,dPts,total,pay,cli,ptsG,ptsC,negocio});
@@ -475,7 +475,7 @@ function POS({negocio}){
                     <div style={{color:C.purple,fontSize:12,fontWeight:700,marginBottom:6}}>⭐ Canjear puntos FarmaCapital</div>
                     <div style={{display:"flex",gap:6,alignItems:"center"}}>
                       <Inp value={ptsC} onChange={e=>setPtsC(Math.min(Number(e.target.value),cli.puntos))} type="number" style={{width:70,fontSize:12,padding:"6px 10px"}}/>
-                      <span style={{color:C.textMid,fontSize:12}}>= {$(ptsC*0.5)} desc.</span>
+                      <span style={{color:C.textMid,fontSize:12}}>= {$(ptsC*1)} desc.</span>
                     </div>
                     <div style={{color:C.textDim,fontSize:10,marginTop:4}}>⚠ No aplica en productos con descuento previo</div>
                   </div>
@@ -823,7 +823,7 @@ function ClientesPuntos(){
       <H2 sub="Programa de lealtad válido en FarmaCapital, Minisuper y Consultorio" action={<Btn sm col={C.purple}>+ Nuevo cliente</Btn>}>⭐ Clientes & Puntos FarmaCapital</H2>
       <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
         <KPI label="Clientes"       value={CLIENTES_D.length}   icon="👥" col={C.purple}/>
-        <KPI label="Ptos. activos"  value={totPts.toLocaleString()} icon="⭐" col={C.amber} sub={`= ${$(totPts*0.5)} valor`}/>
+        <KPI label="Ptos. activos"  value={totPts.toLocaleString()} icon="⭐" col={C.amber} sub={`= ${$(totPts*1)} valor`}/>
         <KPI label="Gold"           value={CLIENTES_D.filter(c=>c.nivel==="Gold").length} icon="🥇" col={C.amber}/>
         <KPI label="Crónicos"       value={CLIENTES_D.filter(c=>c.cronica).length} icon="💊" col={BRAND.secondary} sub="WhatsApp auto"/>
       </div>
@@ -832,16 +832,16 @@ function ClientesPuntos(){
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div>
             <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Acumulas</div>
-            {[["$10 en FarmaCapital (precio normal)","1 pto"],["$10 en minisuper","1 pto"],["Consulta médica","5 ptos"],["Registro nuevo","10 ptos"],["Compra en línea","1.5× ptos"],["Cumpleaños","2× ese mes"],["❌ Prod. con descuento","0 ptos"]].map(([a,b])=>(
+            {[["$100 en FarmaCapital (precio normal)","1 pto"],["$100 en minisuper","1 pto"],["Consulta en el ticket","suma $"],["Registro nuevo","—"],["Compra en línea","1 pto / $100"],["❌ Prod. con descuento","0 ptos"]].map(([a,b])=>(
               <div key={a} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.textMid,fontSize:11}}>{a}</span><span style={{color:a.startsWith("❌")?C.red:C.amber,fontWeight:700,fontSize:11}}>{b}</span></div>
             ))}
           </div>
           <div>
             <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Canjeas</div>
-            {[["20 ptos","$10 desc. FarmaCapital"],["50 ptos","Envío gratis online"],["100 ptos","$50 descuento"],["160 ptos","Consulta gratis"],["200 ptos","Producto gratis"]].map(([p,b])=>(
+            {[["10 ptos","$10 desc. FarmaCapital"],["25 ptos","Envío gratis online"],["50 ptos","$50 descuento"],["80 ptos","Consulta gratis"],["100 ptos","Producto gratis"]].map(([p,b])=>(
               <div key={p} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><Tag col={C.purple} sm>{p}</Tag><span style={{color:C.textMid,fontSize:11}}>{b}</span></div>
             ))}
-            <div style={{color:C.textDim,fontSize:10,marginTop:6}}>1 pto = $0.50 · Vencen a 12 meses</div>
+            <div style={{color:C.textDim,fontSize:10,marginTop:6}}>1 pto = $1 · Vencen a 12 meses</div>
           </div>
         </div>
       </Box>

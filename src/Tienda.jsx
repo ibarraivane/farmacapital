@@ -80,7 +80,7 @@ import {
 } from "./lib/bajoPedido";
 import { traerProductosActivos } from "./lib/catalogoConsulta";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
-import { CANJES_PUNTOS, canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo, pesosDePuntos } from "./utils/puntosCanje";
+import { CANJES_PUNTOS, canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo, pesosDePuntos, puntosGanados } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
   formatFolioOnline,
@@ -255,7 +255,7 @@ const BANNERS = [
     id:2,
     titulo:"Consulta médica",
     subtitulo:`$${CONSULTA_PRECIO_DEFAULT} por consulta`,
-    descripcion:"O gratis con 800 puntos FarmaCapital. Médico general disponible.",
+    descripcion:"O gratis con 80 puntos FarmaCapital. Médico general disponible.",
     cta:"Agendar cita",
     pagina:"cita",
     bg:"linear-gradient(100deg,#001534 0%,#0A3A2C 55%,#02A158 100%)",
@@ -265,7 +265,7 @@ const BANNERS = [
     id:3,
     titulo:"Puntos FarmaCapital",
     subtitulo:"Acumula y canjea",
-    descripcion:"Gana 1 punto por cada $10 en farmacia, minisuper y consultorio.",
+    descripcion:"Gana 1 punto por cada $100 en farmacia, minisuper y consultorio. 1 punto = $1.",
     cta:"Conocer más",
     pagina:"puntos",
     bg:"linear-gradient(100deg,#001534 0%,#4A1D0C 55%,#C9451F 100%)",
@@ -419,7 +419,7 @@ const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
   { p:"¿Cuánto tarda el envío?", r:"Confirmas tu pedido en línea (aún no se cobra). Cotizamos el transporte según tu zona y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta con Pagar ahora. Preparamos y salimos en cuanto esté pagado." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
-  { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.10 de descuento. 100 puntos son $10. Puedes usarlos en farmacia, minisuper y consultorio." },
+  { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $100 de compra. 1 punto vale $1 de descuento (como el monedero del Ahorro). 10 puntos son $10. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:textosPolitica().faqReceta },
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
@@ -440,7 +440,7 @@ function localISODate(d = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
-const ptsGana = p => Math.floor(p/10);
+const ptsGana = p => puntosGanados(p);
 const labelPts = n => `${n} ${n===1?"punto":"puntos"} FarmaCapital`;
 
 
@@ -3352,7 +3352,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       <div style={{background:BRAND.primary+"12",padding:"48px 24px"}}>
         <div style={{maxWidth:800,margin:"0 auto",textAlign:"center"}}>
           <h2 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:12}}>Consultorio médico FarmaCapital</h2>
-          <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>{$(precioConsulta ?? CONSULTA_PRECIO_DEFAULT)} por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>800 puntos FarmaCapital</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
+          <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>{$(precioConsulta ?? CONSULTA_PRECIO_DEFAULT)} por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>80 puntos FarmaCapital</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
           <Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary}>Agendar cita online</Btn>
         </div>
       </div>
@@ -3367,7 +3367,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             <Btn onClick={()=>setPage("puntos")} style={{background:BRAND.accent,color:C.white,border:"none"}}>Ver programa de puntos</Btn>
           </div>
           <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:12}}>
-            {[["100 puntos","$10 de descuento",BRAND.secondary],["250 puntos","Envío gratis",BRAND.accent],["800 puntos","Consulta gratis","#ffaa00"],["500 puntos","$50 de descuento","#9d6fff"]].map(([a,b,col])=>(
+            {[["10 puntos","$10 de descuento",BRAND.secondary],["25 puntos","Envío gratis",BRAND.accent],["80 puntos","Consulta gratis","#ffaa00"],["50 puntos","$50 de descuento","#9d6fff"]].map(([a,b,col])=>(
               <div key={a} style={{background:"rgba(255,255,255,.08)",borderRadius:12,padding:16,border:"1px solid rgba(255,255,255,.1)"}}>
                 <div style={{color:col,fontWeight:700,fontSize:13,marginBottom:4}}>{b}</div>
                 <div style={{color:"rgba(255,255,255,.6)",fontSize:12}}>{a}</div>
@@ -4082,7 +4082,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
             ) : null}
             <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$peso(totalPedidoConPlataforma(sub, { entrega }) || sub)}</span></div>
             <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>
-              <IconLabel Icon={Star} color="#92400e" size={13}>+{labelPts(Math.floor(sub/10))}</IconLabel>
+              <IconLabel Icon={Star} color="#92400e" size={13}>+{labelPts(puntosGanados(sub))}</IconLabel>
             </div>
           </div>
           {carritoEncargo && (
@@ -4165,7 +4165,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   });
   const [, setCanjeTick] = useState(0);
   const sub=cart.reduce((a,c)=>a+cobroDe(c),0);
-  const ptsG=Math.floor(sub/10);
+  const ptsG=puntosGanados(sub);
   const canjeActivo = leerCanjeActivo();
 
   const catalogoById = useMemo(() => {
@@ -4613,7 +4613,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             sub: tipo_entrega === "envio" ? totalSnap : totalServidor,
             productos: Number(resp.total || subSnap),
             envioFee: envioSnap,
-            ptsG: Math.floor(Number(resp.total || subSnap) / 10),
+            ptsG: puntosGanados(Number(resp.total || subSnap)),
             lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: Number(c.precio) })),
             entregaUi: entrega,
             tipo_entrega,
@@ -4639,7 +4639,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           productos: subSnap,
           envioFee: 0,
           envioPendienteCotizacion: true,
-          ptsG: Math.floor(subSnap / 10),
+          ptsG: puntosGanados(subSnap),
           lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: unitTienda(c) })),
           entregaUi: entrega,
           tipo_entrega,
@@ -4754,7 +4754,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         sub: totalSnap,
         productos: subSnap,
         envioFee: envioSnap,
-        ptsG: Math.floor(subSnap/10),
+        ptsG: puntosGanados(subSnap),
         lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: unitTienda(c) })),
         entregaUi: entrega,
         tipo_entrega,
@@ -5357,7 +5357,7 @@ function AgendarCita({setPage,user}){
       <div style={{textAlign:"center",marginBottom:32}}>
         <TiendaIconWell Icon={Stethoscope} />
         <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Consultorio FarmaCapital</h1>
-        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Médico general · $80 por consulta (pago en farmacia el día de la cita) · O gratis con 800 puntos FarmaCapital</p>
+        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Médico general · $80 por consulta (pago en farmacia el día de la cita) · O gratis con 80 puntos FarmaCapital</p>
       </div>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:24,marginBottom:24}}>
         {/* Info doctora */}
@@ -5671,8 +5671,8 @@ function TerminosPuntos({setPage}){
     <PaginaLegal titulo="Términos del Programa Puntos FarmaCapital" setPage={setPage}>
       {[
         ["¿Qué son los Puntos FarmaCapital?","Los Puntos FarmaCapital son un beneficio exclusivo para clientes registrados en la plataforma de FarmaCapital. No tienen valor monetario en efectivo y solo pueden canjearse bajo los términos aquí descritos."],
-        ["Acumulación de puntos","Se otorga 1 punto por cada $10 de compra en precio normal (no aplica en productos con descuento previo). Las consultas médicas otorgan 5 puntos. Las compras en línea otorgan 1.5× puntos. En el mes de cumpleaños se otorga 2× puntos."],
-        ["Canje de puntos","100 puntos = $10 de descuento en FarmaCapital. 250 puntos = envío gratis en compra en línea. 500 puntos = $50 de descuento. 800 puntos = consulta médica gratis. 1000 puntos = producto gratis (sujeto a catálogo disponible). 1 punto equivale a $0.10 de descuento."],
+        ["Acumulación de puntos","Se otorga 1 punto por cada $100 de compra en precio normal (no aplica en productos con descuento previo). Cada punto equivale a $1 de descuento, al estilo del Monedero del Ahorro. Las compras en línea y el mes de cumpleaños pueden otorgar multiplicadores según promoción vigente."],
+        ["Canje de puntos","10 puntos = $10 de descuento en FarmaCapital. 25 puntos = envío gratis en compra en línea. 50 puntos = $50 de descuento. 80 puntos = consulta médica gratis. 100 puntos = producto gratis (sujeto a catálogo disponible). 1 punto = $1 de descuento."],
         ["Vigencia","Los puntos vencen a los 12 meses de inactividad en la cuenta. FarmaCapital se reserva el derecho de modificar las condiciones del programa con previo aviso de 30 días."],
         ["Restricciones","Los puntos no son transferibles entre cuentas, no se pueden convertir en efectivo, y no aplican en combinación con otras promociones salvo indicación expresa. FarmaCapital se reserva el derecho de cancelar cuentas o puntos obtenidos de forma fraudulenta."],
       ].map(([t,c])=>(
@@ -7434,7 +7434,7 @@ export default function TiendaFarmaCapital(){
       <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:28,marginBottom:20}}>
         <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>¿Cómo ganar puntos?</h2>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,160px),1fr))",gap:14}}>
-          {[{Icon:Store,t:"Compras farmacia",d:"1 punto / $10"},{Icon:ShoppingCart,t:"Compras en línea",d:"1.5 puntos / $10"},{Icon:Stethoscope,t:"Consulta médica",d:"5 puntos"},{Icon:Cake,t:"Mes cumpleaños",d:"2× puntos"}].map(({Icon,t:title,d})=>(
+          {[{Icon:Store,t:"Compras farmacia",d:"1 punto / $100"},{Icon:ShoppingCart,t:"Compras en línea",d:"1 punto / $100"},{Icon:Stethoscope,t:"Consulta médica",d:"suma al ticket"},{Icon:Cake,t:"Mes cumpleaños",d:"promos vigentes"}].map(({Icon,t:title,d})=>(
             <div key={title} style={{background:"#FBFAF8",borderRadius:12,padding:16,textAlign:"center"}}>
               <div style={{width:40,height:40,borderRadius:10,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:10}}>
                 <Icon size={20} strokeWidth={1.75} color={BRAND.primary} aria-hidden />

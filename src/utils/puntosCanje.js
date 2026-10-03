@@ -1,7 +1,20 @@
 const STORAGE_KEY = "farmacapital_canje_activo";
 
-/** 1 punto por cada $10 de compra. El canje vale $0.10 por punto (1%), no $0.50. */
-export const PESOS_POR_PUNTO = 0.1;
+/**
+ * Puntos FarmaCapital — escala estilo Monedero del Ahorro:
+ * - 1 punto = $1 de descuento (dinero electrónico).
+ * - Se gana 1 punto por cada $100 de compra (1% efectivo).
+ * Antes: 1 pt / $10 y canje a $0.10 (mismo 1%, otra escala).
+ */
+export const PESOS_POR_PUNTO = 1;
+export const PESOS_PARA_UN_PUNTO = 100;
+
+/** Puntos que otorga una compra por el monto pagado (floor, sin fracciones). */
+export function puntosGanados(monto) {
+  const n = Number(monto);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.floor(n / PESOS_PARA_UN_PUNTO);
+}
 
 export function pesosDePuntos(pts) {
   const n = Number(pts);
@@ -10,11 +23,11 @@ export function pesosDePuntos(pts) {
 }
 
 export const CANJES_PUNTOS = [
-  { pts: 100, tipo: "descuento", valor: 10, ben: "$10 descuento en FarmaCapital" },
-  { pts: 250, tipo: "envio", valor: 0, ben: "Envío gratis" },
-  { pts: 500, tipo: "descuento", valor: 50, ben: "$50 de descuento" },
-  { pts: 800, tipo: "consulta", valor: 0, ben: "Consulta médica gratis" },
-  { pts: 1000, tipo: "producto", valor: 0, ben: "Producto gratis" },
+  { pts: 10, tipo: "descuento", valor: 10, ben: "$10 descuento en FarmaCapital" },
+  { pts: 25, tipo: "envio", valor: 0, ben: "Envío gratis" },
+  { pts: 50, tipo: "descuento", valor: 50, ben: "$50 de descuento" },
+  { pts: 80, tipo: "consulta", valor: 0, ben: "Consulta médica gratis" },
+  { pts: 100, tipo: "producto", valor: 0, ben: "Producto gratis" },
 ];
 
 export function canjePorPuntos(pts) {
