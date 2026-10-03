@@ -26,6 +26,7 @@ import {
   aplicarReglaPrecioUnidad,
   blistersPorCaja,
   piezasDesdeBlistersPorCaja,
+  piezasPorBlisterDefault,
   margenBrutoPct,
 } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
@@ -1506,10 +1507,25 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
             <input type="checkbox" id="venta_unidad_chk" checked={form.venta_unidad||false}
               onChange={e=>{
                 const on=e.target.checked;
-                set("venta_unidad", on);
-                if (on) {
-                  set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, form.unidades_por_caja || 1, form.categoria, form.tipo));
-                }
+                setForm((f) => {
+                  if (!on) return { ...f, venta_unidad: false };
+                  const upc = parseInt(f.unidades_por_caja, 10) || 1;
+                  const ppb = piezasPorBlisterDefault(upc);
+                  const bpc = blistersPorCaja(upc, ppb);
+                  const next = {
+                    ...f,
+                    venta_unidad: true,
+                    precio_unidad: sugerirPrecioUnidad(f.precio, f.costo, upc, f.categoria, f.tipo),
+                  };
+                  if (bpc >= 2) {
+                    next.piezas_por_blister = ppb;
+                    next.blisters_por_caja = String(bpc);
+                    next.precio_blister = sugerirPrecioBlister(
+                      f.precio, f.costo, upc, ppb, f.categoria, f.tipo,
+                    );
+                  }
+                  return next;
+                });
               }} style={{width:16,height:16,cursor:"pointer"}}/>
             <label htmlFor="venta_unidad_chk" style={{...labelStyle,margin:0,cursor:"pointer",fontSize:13,fontWeight:700}}>
               💊 Permite venta por unidad suelta (caja abierta)
