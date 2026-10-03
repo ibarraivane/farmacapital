@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Tickets 02-oct-2026 (fotos Central de Abastos + Nadro) → cola Recibir.
 
-6 pedidos:
+7 pedidos:
   Nadro 6090680530 (01-oct) · Equilibrio 446721 · Mayorista de Dulces T620721328
-  Bodega F-42 83017 · Farmalive 1028 · Cityfarma S328174
+  Bodega F-42 83017 · Farmalive 1028 · Cityfarma S328174 · Cityfarma S328169
 
 Nombres de mostrador desde ficha (no el código del ticket).
 Sin caducidad inventada (MMAA de la caja). Equilibrio sí trae lote de fábrica.
@@ -424,6 +424,34 @@ PRODUCTOS: dict[str, dict] = {
         ya=False,
         foto_file="autevazen-levetiracetam-1g-c30-7506331301173.jpg",
     ),
+    "7501390912988": p(
+        "7501390912988",
+        nombre="Italviron Kids suplemento alimenticio",
+        tipo="marca",
+        categoria="Vitaminas",
+        subcategoria="Suplemento",
+        forma="Polvo",
+        marca="Italviron",
+        laboratorio="Italmex",
+        presentacion="Caja con 30 sobres",
+        ya=False,
+        foto_file="italviron-kids-30-sobres-7501390912988.jpg",
+    ),
+    "650240017100": p(
+        "650240017100",
+        sku="FC-40017100",
+        nombre="XL-3 VR antigripal",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Antigripal",
+        forma="Tableta",
+        marca="XL-3",
+        laboratorio="Genomma Lab",
+        presentacion="Caja con 24 tabletas",
+        principio="Paracetamol / amantadina / clorfenamina",
+        concentracion="375/50/3 mg",
+        ya=True,
+    ),
 }
 
 
@@ -587,6 +615,31 @@ TICKETS = [
         ),
         "rows": [
             row("7506331301173", "AUTEVAZEN 1G LEVETIR", 2, 100.23),
+        ],
+    },
+    {
+        "key": "cityfarma_s328169",
+        "folio": "S328169",
+        "proveedor": "Cityfarma Iztapalapa",
+        "proveedor_ilike": "cityfarma",
+        "fecha": "2026-10-02",
+        "total": 839.64,
+        "notas": (
+            "Ticket Cityfarma S328169 · 02-oct-2026 · foto térmica · "
+            "Pendiente de pago $839.64 · cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "tmp": "_fc_cf_s328169",
+        "header": (
+            "Cityfarma Iztapalapa · orden S328169 · 2026-10-02 17:01\n"
+            "-- Ticket térmico. Subtotal $763.29 + IVA 16% $76.35 = $839.64 (pendiente).\n"
+            "-- Bepanthen Multiusos EAN 7501008498798 · Italviron Kids 7501390912988 alta.\n"
+            "-- XL-3 VR EAN ticket 650240017100 (canónico catálogo también 6502400171006).\n"
+            "-- Sin lote ni caducidad (MMAA de la caja). No inventar 0000."
+        ),
+        "rows": [
+            row("7501008498798", "BEPANTHEN 30GR MULTI", 3, 64.37),
+            row("7501390912988", "ITALVIRON KIDS C30 S", 1, 553.52),
+            row("650240017100", "XL3 VR C 24 TABL", 1, 93.01),
         ],
     },
 ]
@@ -1025,6 +1078,7 @@ Fotos Central de Abastos + factura Nadro (Palillero). Pegar **cada** SQL en Supa
 | Bodega F-42 83017 | `patch_carga_bodega_f42_83017.sql` | 11 | $309.95 |
 | Farmalive 1028 | `patch_carga_farmalive_1028.sql` | 26 | $883.96 |
 | Cityfarma S328174 | `patch_carga_cityfarma_s328174.sql` | 2 | $200.46 |
+| Cityfarma S328169 | `patch_carga_cityfarma_s328169.sql` | 5 | $839.64 |
 
 ## Altas nuevas (stock 0)
 
@@ -1037,6 +1091,7 @@ Fotos Central de Abastos + factura Nadro (Palillero). Pegar **cada** SQL en Supa
 - Nuvel crema manos suaves / hidratada 65 mL · **TODO foto**
 - Chupa Chups Mini bolsa 240 · Vero Mix Clásico 1.5 kg · **TODO foto**
 - Autevazen levetiracetam 1 g C/30 (`7506331301173`) · Cityfarma
+- Italviron Kids suplemento 30 sobres (`7501390912988`) · Cityfarma
 
 ## Notas
 

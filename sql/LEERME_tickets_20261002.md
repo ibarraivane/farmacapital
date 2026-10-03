@@ -10,6 +10,7 @@ Fotos Central de Abastos + factura Nadro (Palillero). Pegar **cada** SQL en Supa
 | Bodega F-42 83017 | `patch_carga_bodega_f42_83017.sql` | 11 | $309.95 |
 | Farmalive 1028 | `patch_carga_farmalive_1028.sql` | 26 | $883.96 |
 | Cityfarma S328174 | `patch_carga_cityfarma_s328174.sql` | 2 | $200.46 |
+| Cityfarma S328169 | `patch_carga_cityfarma_s328169.sql` | 5 | $839.64 |
 
 ## Altas nuevas (stock 0)
 
@@ -22,6 +23,7 @@ Fotos Central de Abastos + factura Nadro (Palillero). Pegar **cada** SQL en Supa
 - Nuvel crema manos suaves / hidratada 65 mL · **TODO foto**
 - Chupa Chups Mini bolsa 240 · Vero Mix Clásico 1.5 kg · **TODO foto**
 - Autevazen levetiracetam 1 g C/30 (`7506331301173`) · Cityfarma
+- Italviron Kids suplemento 30 sobres (`7501390912988`) · Cityfarma
 
 ## Notas
 
