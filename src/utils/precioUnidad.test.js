@@ -6,6 +6,7 @@ import {
   cobroUnidad,
   margenBrutoPct,
   piezasPorBlisterDefault,
+  piezasDesdeBlistersPorCaja,
   precioBlisterParaVenta,
   precioUnidadManual,
   precioUnidadParaVenta,
@@ -118,6 +119,15 @@ test("caja que ya se vende por pieza parte en tiras de 10, de 7 o a la mitad", (
   expect(piezasPorBlisterDefault(3)).toBe(0);
   expect(piezasPorBlisterDefault(7)).toBe(0);
   expect(piezasPorBlisterDefault(1)).toBe(0);
+});
+
+test("blisters por caja se convierte a piezas por tira solo si parte entero", () => {
+  expect(piezasDesdeBlistersPorCaja(80, 8)).toBe(10);
+  expect(piezasDesdeBlistersPorCaja(30, 3)).toBe(10);
+  expect(piezasDesdeBlistersPorCaja(24, 2)).toBe(12);
+  expect(piezasDesdeBlistersPorCaja(80, 7)).toBe(0);
+  expect(piezasDesdeBlistersPorCaja(10, 1)).toBe(0);
+  expect(piezasDesdeBlistersPorCaja(8, 8)).toBe(0);
 });
 
 test("abrir caja con blister suma tiras; sin blister suma piezas", () => {
