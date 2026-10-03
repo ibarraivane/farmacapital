@@ -253,7 +253,7 @@ Aplica el mismo tratamiento a `public.cobrar_consulta`.
 ```js
 // ANTES
 const sub   = calcularTotalConPromos();
-const ptsG  = Math.floor(sub/10);
+const ptsG  = Math.floor(sub/100); // 1 pt / $100 · 1 pt = $1
 const total = sub;
 
 // DESPUÉS
