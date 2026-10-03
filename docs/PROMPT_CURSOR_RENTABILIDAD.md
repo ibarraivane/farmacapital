@@ -259,7 +259,7 @@ const total = sub;
 // DESPUÉS
 const sub = calcularTotalConPromos();
 const { bruto: subBruto, total, ajuste: ajusteRedondeoVenta } = desgloseCobro(sub);
-const ptsG = Math.floor(total / 10);
+const ptsG = Math.floor(total / 100); // 1 pt / $100 · 1 pt = $1
 ```
 
 A partir de ahí `total` ya es el redondeado, así que el cálculo de cambio (línea 1327), la validación del recibido (líneas 1333 y 1376) y el IVA (línea 1498) quedan correctos sin tocarlos. **Verifícalo leyendo, no lo asumas.** Pasa `subBruto` y `ajusteRedondeoVenta` al RPC.
