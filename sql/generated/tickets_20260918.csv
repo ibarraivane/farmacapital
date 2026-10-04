@@ -1,0 +1,5 @@
+linea,folio,fecha,proveedor,ean,descripcion,cantidad,precio_unitario,subtotal,lote,caducidad_papel,sku
+1,444851,2026-09-18,Equilibrio,7502216803657,Losartán potásico 50 mg C/30 Ultra,10,12.45,124.50,5KM255A,2027-10-01,FC-16803657
+1,131164,2026-09-18,El Surtidor,7501537179045,Soltrim suspensión 40/200 mg/5 ml 120 ml,3,28.80,86.40,,,FC-537179045
+1,305016,2026-09-18,Farma Mayoreo,7506313000513,Aceite Madrid,2,30.90,61.80,2712-017,2029-12-31,FC-313000513
+2,305016,2026-09-18,Farma Mayoreo,7501082780246,Aceite para bebé Nuvel 250 ml,2,33.96,67.92,2712-017,2029-12-31,FC-082780246
