@@ -2,6 +2,8 @@ import {
   mapaUrlsTarjetaPorProducto,
   ordenarGaleriaProducto,
   ordenarUrlsTarjeta,
+  productoTieneFotoInventario,
+  resolverFotoTienda,
   siguienteIndiceFotoTarjeta,
 } from "./useProductoImagenes";
 
@@ -44,6 +46,24 @@ it("la tarjeta prueba la principal y si falla sigue con la galería de la ficha"
   ]);
   expect(siguienteIndiceFotoTarjeta(urls, 0)).toBe(1);
   expect(siguienteIndiceFotoTarjeta(urls, 2)).toBe(-1);
+});
+
+it("sin foto en inventario no revive la galería con marca de agua", () => {
+  const prod = { id: 915, imagen_url: null, imagen_mobile_url: null };
+  const marcaDeAgua = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/rappi/7502226295954/1.webp";
+  expect(productoTieneFotoInventario(prod)).toBe(false);
+  expect(resolverFotoTienda(prod, marcaDeAgua)).toBe("");
+  expect(resolverFotoTienda(prod, marcaDeAgua, { placeholder: "https://cdn/ph.png" })).toBe("https://cdn/ph.png");
+});
+
+it("con foto en inventario la galería sigue mandando", () => {
+  const prod = {
+    imagen_url: "https://cdn/ficha.jpg",
+    imagen_mobile_url: "https://cdn/ficha.jpg",
+  };
+  expect(productoTieneFotoInventario(prod)).toBe(true);
+  expect(resolverFotoTienda(prod, "https://cdn/rappi/1.webp")).toBe("https://cdn/rappi/1.webp");
+  expect(resolverFotoTienda(prod, "")).toBe("https://cdn/ficha.jpg");
 });
 
 it("agrupa las URLs de tarjeta por producto", () => {

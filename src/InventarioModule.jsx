@@ -17,7 +17,7 @@ import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
-import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
+import { useImagenesPrincipales, useProductoImagenes, productoTieneFotoInventario, invalidarImagenesProducto } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import {
@@ -267,10 +267,28 @@ function productoSinPrecioVenta(p) {
   return !productoEsVendible(p);
 }
 
-function productoSinFoto(p, fotoCatalogoDe) {
-  if (String(p?.imagen_url || "").trim()) return false;
-  if (fotoCatalogoDe?.(p?.id)) return false;
-  return true;
+function productoSinFoto(p) {
+  return !productoTieneFotoInventario(p);
+}
+
+/** Borra la galería (producto_imagenes) para que la tienda no conserve la foto quitada. */
+async function quitarFotosCatalogoProducto(productoId) {
+  const t = sessionStorage.getItem("farmacapital_session_token");
+  if (!t || productoId == null) return { ok: false };
+  const { error } = await supabase.rpc("admin_quitar_fotos_producto", {
+    p_session_token: t,
+    p_producto_id: productoId,
+  });
+  if (!error) {
+    invalidarImagenesProducto(productoId);
+    avisarCatalogoCambio({ origen: "inventario", table: "producto_imagenes", productoId });
+    return { ok: true };
+  }
+  const msg = String(error.message || error.code || "");
+  if (/admin_quitar_fotos_producto|PGRST202|Could not find the function|schema cache/i.test(msg)) {
+    return { ok: false, missing: true };
+  }
+  return { ok: false, error };
 }
 
 /** Parte nombre/presentación y mueve dosis suelta de principio → concentración al importar CSV. */
@@ -850,17 +868,38 @@ const exportarCSV = (productos) => {
  * propias). Se pasan con las flechas y cualquiera se puede promover a foto
  * principal sin salir del formulario.
  *
- * No escribe nada por su cuenta: solo propone la URL: se guarda cuando el
- * usuario guarda el producto.
+ * Elegir una foto solo propone la URL: se guarda con el producto.
+ * Si la ficha ya no tiene foto, estas no salen en la tienda; «Borrarlas»
+ * las quita también de la galería.
  */
 function FotosDelCatalogo({ productoId, imagenActual, onElegir, C }) {
-  const { imagenes, cargando } = useProductoImagenes(productoId, "");
+  const [ocultas, setOcultas] = useState(false);
+  const [borrando, setBorrando] = useState(false);
+  const { imagenes, cargando } = useProductoImagenes(ocultas ? null : productoId, "");
   const [verTodas, setVerTodas] = useState(false);
+  useEffect(() => { setOcultas(false); }, [productoId]);
 
   if (!productoId || cargando || imagenes.length === 0) return null;
 
   const actual = String(imagenActual || "").trim();
+  const sinFotoPublicada = !actual;
   const visible = verTodas ? imagenes : imagenes.slice(0, 1);
+
+  const borrarGaleria = async () => {
+    if (!window.confirm("¿Borrar estas fotos? Dejan de salir en la tienda.")) return;
+    setBorrando(true);
+    try {
+      const res = await quitarFotosCatalogoProducto(productoId);
+      if (res.ok) {
+        setOcultas(true);
+        showToast("Fotos quitadas de la tienda", "info");
+        return;
+      }
+      if (res.error) showToast(res.error.message || "No se pudieron borrar", "error");
+    } finally {
+      setBorrando(false);
+    }
+  };
 
   return (
     <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
@@ -868,6 +907,16 @@ function FotosDelCatalogo({ productoId, imagenActual, onElegir, C }) {
         <label style={{ color: C.textMid, fontSize: 11, fontWeight: 700 }}>
           🖼️ OTRAS FOTOS DEL CATÁLOGO ({imagenes.length})
         </label>
+        {sinFotoPublicada ? (
+          <button
+            type="button"
+            onClick={borrarGaleria}
+            disabled={borrando}
+            style={{ background: "none", border: "none", color: C.red, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}
+          >
+            {borrando ? "Borrando…" : "Borrarlas"}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => setVerTodas((v) => !v)}
@@ -876,6 +925,12 @@ function FotosDelCatalogo({ productoId, imagenActual, onElegir, C }) {
           {verTodas ? "Ocultar" : "Ver galería"}
         </button>
       </div>
+
+      {sinFotoPublicada ? (
+        <div style={{ fontSize: 11, color: C.textMid, lineHeight: 1.45, marginBottom: 8 }}>
+          La tienda no muestra estas fotos mientras la de arriba esté vacía.
+        </div>
+      ) : null}
 
       {verTodas && (
         <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
@@ -1159,6 +1214,12 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         showToast("Error al guardar: " + mensajeErrorProveedor(err), "error");
         return;
       }
+      if (form.id && !urlNow) {
+        const galeria = await quitarFotosCatalogoProducto(form.id);
+        if (galeria.error) {
+          showToast("Guardado, pero la foto de la tienda no se pudo quitar: " + (galeria.error.message || ""), "error");
+        }
+      }
       if (form.id) {
         logAudit(sesion, "EDITAR_PRODUCTO", "productos", form.id, {
           nombre: form.nombre, precio: form.precio, costo: form.costo, stock: form.stock
@@ -1244,7 +1305,12 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 const t=sessionStorage.getItem("farmacapital_session_token");
                 if(t){
                   supabase.rpc("admin_editar_producto",{p_session_token:t,p_producto_id:form.id,p_patch:{imagen_url:"",imagen_mobile_url:""}})
-                    .then(({error})=>{ if(error)showToast(error.message,"error"); else showToast("Imagen quitada en servidor","info"); });
+                    .then(async ({error})=>{
+                      if(error){ showToast(error.message,"error"); return; }
+                      const galeria = await quitarFotosCatalogoProducto(form.id);
+                      if (galeria.error) showToast(galeria.error.message, "error");
+                      else showToast("Imagen quitada en la tienda", "info");
+                    });
                 }
               }
             }}
@@ -2454,8 +2520,10 @@ function renderInventarioColumnCell(colId, ctx) {
     onQuitarCad,
   } = inlineCellProps;
 
-  // Respaldo del catálogo cuando el producto no tiene foto propia.
-  const fotoMiniatura = p.imagen_url || fotoCatalogoDe?.(p.id) || "";
+  // La miniatura sigue a la ficha. Sin imagen_url no se usa la galería suelta.
+  const fotoMiniatura = productoTieneFotoInventario(p)
+    ? (String(p.imagen_url || "").trim() || fotoCatalogoDe?.(p.id) || "")
+    : "";
 
   switch (colId) {
     case "foto":
@@ -3526,11 +3594,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
-      filtroAlerta === "sin_foto" ? productoSinFoto(p, fotoCatalogoDe) :
+      filtroAlerta === "sin_foto" ? productoSinFoto(p) :
       filtroAlerta === "margen_alto" ? esAlertaMargen(auditarMargenProducto(p)) :
       true;
     return cat && alerta;
-  }), [productos, filtroCategorias, filtroAlerta, fotoCatalogoDe, stockPorIdentidad, mostrarVitrina]);
+  }), [productos, filtroCategorias, filtroAlerta, stockPorIdentidad, mostrarVitrina]);
 
   const filtradosTodosInv = useMemo(() => {
     const q = busqueda.trim();
@@ -3592,7 +3660,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const porCaducar = catalogoConteo.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = catalogoConteo.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = catalogoConteo.filter(p => p.activo && productoSinPrecioVenta(p)).length;
-  const sinFoto = catalogoConteo.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
+  const sinFoto = catalogoConteo.filter(p => p.activo && productoSinFoto(p)).length;
   const margenAlto = catalogoConteo.filter(p => p.activo && esAlertaMargen(auditarMargenProducto(p))).length;
   const inactivos  = catalogoConteo.filter(p => !p.activo).length;
 

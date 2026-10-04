@@ -49,7 +49,7 @@ import {
 } from "../../../utils/posConocimientoFarmacia";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import GaleriaProducto from "../../../components/GaleriaProducto";
-import { useProductoImagenes } from "../../../hooks/useProductoImagenes";
+import { useProductoImagenes, productoTieneFotoInventario } from "../../../hooks/useProductoImagenes";
 import {
   CONSULTA_PRECIO_DEFAULT,
   CONSULTA_PARTE_DOCTOR,
@@ -401,8 +401,9 @@ function PosProductoFichaPanel({
 }) {
   const [fotoAbierta, setFotoAbierta] = useState(false);
   const fotoBtnRef = useRef(null);
+  const tieneFotoInventario = productoTieneFotoInventario(item);
   const { imagenes: galeria } = useProductoImagenes(
-    item?.id,
+    tieneFotoInventario ? item?.id : null,
     item?.imagen_url || item?.imagen_mobile_url || "",
   );
 

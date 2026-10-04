@@ -2,10 +2,15 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import TarjetaProducto from "./TarjetaProducto";
 
-jest.mock("../../../hooks/useProductoImagenes", () => ({
-  useUrlsImagenesProducto: () => () => [],
-  siguienteIndiceFotoTarjeta: () => -1,
-}));
+const mockUrlsGaleria = jest.fn(() => []);
+
+jest.mock("../../../hooks/useProductoImagenes", () => {
+  const actual = jest.requireActual("../../../hooks/useProductoImagenes");
+  return {
+    ...actual,
+    useUrlsImagenesProducto: () => (id) => mockUrlsGaleria(id),
+  };
+});
 
 const omeprazol = {
   id: 7,
@@ -17,6 +22,34 @@ const omeprazol = {
   bajo_pedido: false,
   activo: true,
 };
+
+beforeEach(() => {
+  mockUrlsGaleria.mockReset();
+  mockUrlsGaleria.mockReturnValue([]);
+});
+
+test("sin foto en inventario no pinta la galería con marca de agua", () => {
+  mockUrlsGaleria.mockReturnValue([
+    "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/rappi/7502226295954/1.webp",
+  ]);
+  const { container } = render(
+    <TarjetaProducto
+      prod={{
+        id: 915,
+        nombre: "Dexketoprofeno 10 Tab 25 Mg",
+        marca: "Alpharma",
+        presentacion: "Caja con 10 tabletas",
+        precio: 120,
+        stock: 2,
+        imagen_url: null,
+        imagen_mobile_url: null,
+      }}
+      onClick={() => {}}
+    />
+  );
+  expect(screen.getByText("Dexketoprofeno 10 Tab 25 Mg")).toBeInTheDocument();
+  expect(container.querySelector("img")).toBeNull();
+});
 
 test("tarjeta de sucursal abre el producto", () => {
   const onClick = jest.fn();

@@ -5,8 +5,13 @@ import { urlImagenPublicaTienda } from "../utils/tiendaCardImage";
 /**
  * Fotos de un producto para la galería.
  *
- * Si hay set de catálogo (Rappi), esa galería manda: más fotos y mejor
- * calidad. `imagen_url` solo se usa cuando no hay galería.
+ * Si la ficha de inventario todavía tiene foto, el set de catálogo (Rappi)
+ * manda: más fotos y mejor calidad. `imagen_url` solo se usa cuando no hay
+ * galería.
+ *
+ * Si en inventario quitaron la foto (`imagen_url` e `imagen_mobile_url`
+ * vacíos), la galería no la revive. Esa copia suelta era la marca de agua
+ * que seguía en la tienda después de borrar la ficha.
  */
 
 const cache = new Map();
@@ -14,6 +19,29 @@ const enVuelo = new Map();
 
 function normalizar(url) {
   return String(url || "").trim();
+}
+
+/** La ficha de inventario tiene foto publicada (la que el mostrador puede quitar). */
+export function productoTieneFotoInventario(prod) {
+  if (!prod) return false;
+  return Boolean(normalizar(prod.imagen_url) || normalizar(prod.imagen_mobile_url));
+}
+
+/**
+ * Foto de tarjeta / ficha / carrito.
+ * La galería solo entra si inventario todavía tiene foto. Si la quitaron,
+ * se devuelve el placeholder (o vacío): la tienda queda igual que la ficha.
+ */
+export function resolverFotoTienda(prod, fotoCatalogo = "", { narrow = false, placeholder = "" } = {}) {
+  const vacio = urlImagenPublicaTienda(placeholder) || "";
+  if (!productoTieneFotoInventario(prod)) return vacio;
+  const catalogo = urlImagenPublicaTienda(fotoCatalogo);
+  if (catalogo) return catalogo;
+  if (narrow) {
+    const mobile = urlImagenPublicaTienda(prod.imagen_mobile_url);
+    if (mobile) return mobile;
+  }
+  return urlImagenPublicaTienda(prod.imagen_url) || vacio;
 }
 
 /** Galería Rappi primero; imagen_url solo si no hay set de catálogo. */

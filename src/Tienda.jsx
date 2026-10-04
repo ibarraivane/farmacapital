@@ -42,8 +42,8 @@ import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
 import { mapaPromosPorProducto, ofertaDeProducto } from "./lib/precioOferta";
 import { hoyISOMexico } from "./lib/fecha";
-import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, siguienteIndiceFotoTarjeta } from "./hooks/useProductoImagenes";
-import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl, urlImagenPublicaTienda } from "./utils/tiendaCardImage";
+import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoInventario, resolverFotoTienda } from "./hooks/useProductoImagenes";
+import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { pageIdToTiendaPath, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
@@ -399,19 +399,13 @@ function usePromosProducto(productoId) {
 }
 
 /**
- * Imagen de producto en catálogo / carrito. La principal de producto_imagenes
- * (Rappi, Levic, etc.) va primero: si no, el packshot de imagen_url, luego el
- * placeholder. En móvil se usa imagen_mobile_url solo si no hay foto de catálogo.
+ * Imagen de producto en catálogo / carrito. Si inventario todavía tiene foto,
+ * la principal de producto_imagenes (Rappi, Levic, etc.) va primero; si no, el
+ * packshot de imagen_url y luego el placeholder. Si quitaron la foto de la
+ * ficha, la galería no se muestra.
  */
 function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = ""){
-  if (!prod) return urlImagenPublicaTienda(placeholderFallback) || "";
-  const catalogo = urlImagenPublicaTienda(fotoCatalogo);
-  if (catalogo) return catalogo;
-  if (narrow) {
-    const mobile = urlImagenPublicaTienda(prod.imagen_mobile_url);
-    if (mobile) return mobile;
-  }
-  return urlImagenPublicaTienda(prod.imagen_url) || urlImagenPublicaTienda(placeholderFallback) || "";
+  return resolverFotoTienda(prod, fotoCatalogo, { narrow, placeholder: placeholderFallback });
 }
 
 // ── FAQ ───────────────────────────────────────────────────────
@@ -1923,7 +1917,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const urlsFotoDe = useUrlsImagenesProducto();
-  const urlsFoto = urlsFotoDe(prod?.id);
+  const urlsFoto = productoTieneFotoInventario(prod) ? urlsFotoDe(prod?.id) : [];
   const fotoCatalogo = urlsFoto[fotoIdx] || urlsFoto[0] || "";
   const imgSrc = productImageUrl(prod, narrow, placeholderUrl, fotoCatalogo);
   useEffect(() => { setFotoIdx(0); setImgRota(false); }, [prod?.id, urlsFoto.length]);
@@ -2078,8 +2072,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     });
   };
   // Antes del early return: los hooks deben correr en el mismo orden siempre.
-  const imgSrc = productImageUrl(prod, stack, placeholderUrl, fotoCatalogoDe(prod?.id));
-  const { imagenes: galeria } = useProductoImagenes(prod?.id, imgSrc);
+  const tieneFotoInventario = productoTieneFotoInventario(prod);
+  const imgSrc = productImageUrl(prod, stack, placeholderUrl, tieneFotoInventario ? fotoCatalogoDe(prod?.id) : "");
+  const { imagenes: galeria } = useProductoImagenes(tieneFotoInventario ? prod?.id : null, tieneFotoInventario ? imgSrc : "");
   const promosProd = usePromosProducto(prod?.id);
   const oferta = ofertaDeProducto(prod, promosProd);
   const [fichaPub, setFichaPub] = useState(null);
@@ -7198,7 +7193,8 @@ export default function TiendaFarmaCapital(){
           descuento_pct: next.descuento_pct ?? c.descuento_pct,
           stock: next.stock ?? c.stock,
           nombre: next.nombre || c.nombre,
-          imagen_url: next.imagen_url || c.imagen_url,
+          imagen_url: next.imagen_url ?? null,
+          imagen_mobile_url: next.imagen_mobile_url ?? null,
         };
       }));
     };
