@@ -36,8 +36,9 @@ test("en celular el menú se desplaza y no esconde una sección", () => {
 
 test("el hover de la tarjeta se nota: marco azul alrededor de toda la tarjeta", () => {
   expect(css).toMatch(/@media\(hover:hover\)/);
+  expect(css).toMatch(/\.fc-product:hover\{[^}]*outline:2px solid var\(--fc-blue\)/);
   expect(css).toMatch(/\.fc-product:hover::before\{[^}]*border-color:var\(--fc-blue\)/);
-  expect(css).toMatch(/\.fc-product:hover \.fc-photo\{background:#E4ECFA\}/);
+  expect(css).toMatch(/\.fc-product:hover \.fc-photo\{background:#D9E4F8\}/);
   expect(css).toMatch(/scale\(calc\(var\(--fc-pack-zoom, 1\) \* 1\.06\)\)/);
   expect(css).not.toMatch(/\.fc-photo:hover\{background:#EFF2F5\}/);
 });
