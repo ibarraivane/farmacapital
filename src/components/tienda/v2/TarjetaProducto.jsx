@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { $peso } from "../../../utils";
 import { tiendaCardImageUrl } from "../../../utils/tiendaCardImage";
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoInventario, fotoGuardadaMandaEnTienda, resolverFotoTienda } from "../../../hooks/useProductoImagenes";
+import { useZoomPackshot } from "../../../hooks/useZoomPackshot";
 import EstadoDisponibilidad from "./EstadoDisponibilidad";
 import { EstrellasDeProducto } from "../ResenasTienda";
 
@@ -15,10 +16,12 @@ function precioPublicado(prod) {
 export default function TarjetaProducto({ prod, onClick }) {
   const [imgRota, setImgRota] = useState(false);
   const [fotoIdx, setFotoIdx] = useState(0);
+  const fotoRef = useRef(null);
   const urlsFotoDe = useUrlsImagenesProducto();
   const urlsFoto = productoTieneFotoInventario(prod) && !fotoGuardadaMandaEnTienda(prod) ? urlsFotoDe(prod?.id) : [];
   const fotoCatalogo = urlsFoto[fotoIdx] || urlsFoto[0] || "";
   const imgSrc = resolverFotoTienda(prod, fotoCatalogo);
+  const zoom = useZoomPackshot(imgSrc && !imgRota ? imgSrc : "", fotoRef);
   const pres = presentacionPublicaTienda(prod);
   const precio = precioPublicado(prod);
   const marca = String(prod?.marca || "").trim();
@@ -39,6 +42,7 @@ export default function TarjetaProducto({ prod, onClick }) {
       <button
         type="button"
         className="fc-photo"
+        ref={fotoRef}
         onClick={abrir}
         aria-label={`Ver ${prod.nombre || "producto"}`}
       >
@@ -49,6 +53,7 @@ export default function TarjetaProducto({ prod, onClick }) {
             loading="lazy"
             decoding="async"
             draggable={false}
+            style={zoom > 1 ? { "--fc-pack-zoom": String(zoom) } : undefined}
             onError={() => {
               const siguiente = siguienteIndiceFotoTarjeta(urlsFoto, fotoIdx);
               if (siguiente >= 0) { setFotoIdx(siguiente); return; }

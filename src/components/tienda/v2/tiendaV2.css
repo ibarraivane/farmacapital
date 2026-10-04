@@ -58,8 +58,8 @@
     .fc-v2 .fc-category:hover{background:#E8EEF8}.fc-v2 .fc-category svg{width:24px;height:24px;color:var(--fc-blue)}.fc-v2 .fc-category small{display:block;font-size:11px;color:var(--fc-muted);font-weight:400;margin-top:3px}
     .fc-v2 .fc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
     .fc-v2 .fc-product{display:flex;flex-direction:column;min-width:0;text-align:left;border-bottom:1px solid var(--fc-line);padding-bottom:13px;gap:7px}
-    .fc-v2 .fc-photo{background:#F5F6F7;border:0;border-radius:6px;display:flex;align-items:center;justify-content:center;height:165px;width:100%;padding:17px;margin-bottom:5px;position:relative}
-    .fc-v2 .fc-photo img{height:100%;width:100%;mix-blend-mode:multiply}.fc-v2 .fc-photo:hover{background:#EFF2F5}
+    .fc-v2 .fc-photo{background:#F5F6F7;border:0;border-radius:6px;display:flex;align-items:center;justify-content:center;height:165px;width:100%;padding:17px;margin-bottom:5px;position:relative;overflow:hidden}
+    .fc-v2 .fc-photo img{height:100%;width:100%;mix-blend-mode:multiply;transform:scale(var(--fc-pack-zoom,1));transform-origin:center center}.fc-v2 .fc-photo:hover{background:#EFF2F5}
     .fc-v2 .fc-state{font-size:11px;letter-spacing:.015em;color:var(--fc-blue);display:inline-flex;align-items:center;gap:5px;font-weight:500}.fc-v2 .fc-state.fc-in-stock{color:var(--fc-green-text)}
     .fc-v2 .fc-state::before{content:'';display:block;width:6px;height:6px;border:1px solid currentColor;border-radius:1px;flex:none}.fc-v2 .fc-in-stock::before{background:currentColor}
     .fc-v2 .fc-product-brand{font-size:10px;letter-spacing:.08em;color:var(--fc-muted);font-weight:600;text-transform:uppercase}
@@ -208,8 +208,8 @@
 .fc-v2 .fc-detail-h2{font-size:18px;letter-spacing:-.2px;margin-bottom:2px}
 
 .fc-v2 .fc-ficha .fc-detail-photo{border:1px solid var(--fc-line);border-radius:12px;background:var(--fc-white);padding:24px;
-  display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;min-height:0;width:100%;max-width:430px}
-.fc-v2 .fc-ficha .fc-detail-photo img{height:auto;width:auto;max-height:100%;mix-blend-mode:normal}
+  display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;min-height:0;width:100%;max-width:430px;overflow:hidden}
+.fc-v2 .fc-ficha .fc-detail-photo img{height:100%;width:100%;max-height:none;object-fit:contain;mix-blend-mode:normal;transform:scale(var(--fc-pack-zoom,1));transform-origin:center center}
 
 .fc-v2 .fc-buybox{grid-area:compra;position:sticky;top:196px;display:flex;flex-direction:column;gap:14px;
   border:1px solid var(--fc-line);border-radius:12px;background:var(--fc-soft);padding:20px}

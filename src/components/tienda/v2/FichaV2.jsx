@@ -5,6 +5,7 @@ import TarjetaProducto from "./TarjetaProducto";
 import { mapearFichaTienda } from "../../../lib/catalogoFichas/mapearFichaTienda";
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { EstrellasDeProducto, ListaResenasPublicas } from "../ResenasTienda";
+import { useZoomPackshot } from "../../../hooks/useZoomPackshot";
 
 /** Renglones de ficha técnica con dato. Vacíos no se muestran. */
 export function fichaTecnicaDe(prod, ficha, monografia) {
@@ -73,6 +74,8 @@ export default function FichaV2({
   setPage,
 }) {
   const cajaRef = useRef(null);
+  const fotoRef = useRef(null);
+  const zoom = useZoomPackshot(imagen || "", fotoRef);
   const [barra, setBarra] = useState(false);
 
   // La barra fija de celular solo aparece cuando la caja de compra ya no se ve,
@@ -120,9 +123,15 @@ export default function FichaV2({
         </header>
 
         <div className="fc-detail-media">
-          <div className="fc-detail-photo">
+          <div className="fc-detail-photo" ref={fotoRef}>
             {imagen
-              ? <img src={imagen} alt={prod.nombre || ""} />
+              ? (
+                <img
+                  src={imagen}
+                  alt={prod.nombre || ""}
+                  style={zoom > 1 ? { "--fc-pack-zoom": String(zoom) } : undefined}
+                />
+              )
               : <span className="fc-small">Foto no disponible</span>}
           </div>
         </div>
