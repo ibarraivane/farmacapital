@@ -65,7 +65,6 @@ begin
       presentacion = 'Roll-on 30 ml',
       forma_farmaceutica = 'Roll-on',
       subcategoria = 'Desodorante',
-      concentracion = '72 h',
       requiere_receta = false
     where id = v_pid;
 
@@ -110,7 +109,6 @@ begin
       presentacion = 'Roll-on 30 ml',
       forma_farmaceutica = 'Roll-on',
       subcategoria = 'Desodorante',
-      concentracion = '72 h',
       requiere_receta = false
     where id = v_pid;
 
