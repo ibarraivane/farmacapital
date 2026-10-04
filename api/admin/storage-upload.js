@@ -8,6 +8,7 @@ const {
   readRawBody,
 } = require('../_lib/supabaseAdmin');
 const { isRhDocumentoRequest, rhDocumentoHandler } = require('../_lib/rhDocumentoHandler');
+const { isProductoImagenesRequest, productoImagenesHandler } = require('../_lib/productoImagenesHandler');
 
 const ALLOWED_BUCKETS = new Set(['banners', 'productos', 'cortes']);
 const MAX_BYTES = 12 * 1024 * 1024;
@@ -47,6 +48,10 @@ async function ensureCortesBucket(supabaseUrl, serviceKey) {
 
 async function handler(req, res) {
   // Hobby: máx. 12 funciones. El expediente RH vive aquí (?type=rh-documento).
+  if (isProductoImagenesRequest(req)) {
+    return productoImagenesHandler(req, res);
+  }
+
   if (isRhDocumentoRequest(req)) {
     return rhDocumentoHandler(req, res);
   }

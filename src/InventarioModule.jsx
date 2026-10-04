@@ -14,10 +14,10 @@ import FiltroCategoriasCheck from "./components/FiltroCategoriasCheck";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
-import ImageUploader from "./components/ImageUploader";
-import GaleriaProducto from "./components/GaleriaProducto";
+import FotosProductoEditor from "./components/FotosProductoEditor";
 import PrecioOferta from "./components/PrecioOferta";
-import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
+import { invalidarImagenesProducto, useImagenesPrincipales } from "./hooks/useProductoImagenes";
+import { gestionarFotoProducto } from "./lib/fotosProducto";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import {
@@ -845,71 +845,6 @@ const exportarCSV = (productos) => {
   a.click(); URL.revokeObjectURL(url);
 };
 
-/**
- * Fotos ya disponibles en el catálogo para este producto (Rappi, distribuidor,
- * propias). Se pasan con las flechas y cualquiera se puede promover a foto
- * principal sin salir del formulario.
- *
- * No escribe nada por su cuenta: solo propone la URL: se guarda cuando el
- * usuario guarda el producto.
- */
-function FotosDelCatalogo({ productoId, imagenActual, onElegir, C }) {
-  const { imagenes, cargando } = useProductoImagenes(productoId, "");
-  const [verTodas, setVerTodas] = useState(false);
-
-  if (!productoId || cargando || imagenes.length === 0) return null;
-
-  const actual = String(imagenActual || "").trim();
-  const visible = verTodas ? imagenes : imagenes.slice(0, 1);
-
-  return (
-    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
-        <label style={{ color: C.textMid, fontSize: 11, fontWeight: 700 }}>
-          🖼️ OTRAS FOTOS DEL CATÁLOGO ({imagenes.length})
-        </label>
-        <button
-          type="button"
-          onClick={() => setVerTodas((v) => !v)}
-          style={{ background: "none", border: "none", color: C.blue, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}
-        >
-          {verTodas ? "Ocultar" : "Ver galería"}
-        </button>
-      </div>
-
-      {verTodas && (
-        <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
-          <GaleriaProducto imagenes={visible} alt="" maxAlto={220} iconoVacio={48} />
-        </div>
-      )}
-
-      {verTodas && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-          {imagenes.map((url) => (
-            <button
-              key={url}
-              type="button"
-              onClick={() => onElegir(url)}
-              title={url === actual ? "Ya es la foto principal" : "Usar como foto principal"}
-              style={{
-                width: 56,
-                height: 56,
-                padding: 2,
-                borderRadius: 8,
-                cursor: "pointer",
-                background: "#fff",
-                border: url === actual ? `2px solid ${C.blue}` : `1px solid ${C.border}`,
-              }}
-            >
-              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibirMercancia, onCaducidadSaved }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
@@ -942,6 +877,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   const [caducidadLote, setCaducidadLote] = useState(() => loteCadRef?.fecha_caducidad || "");
   const [cadSaving, setCadSaving] = useState(false);
   const barcodeRef = useRef(null);
+  const fotosRef = useRef(null);
   useEffect(() => {
     setCaducidadLote(loteCadRef?.fecha_caducidad || "");
   }, [loteCadRef?.id, loteCadRef?.fecha_caducidad]);
@@ -1136,6 +1072,10 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           p_costo_unitario: costoNum || null,
         });
         err = rpcErr;
+        if (!err) {
+          const newId = productoIdDesdeCreateRpc(created);
+          if (newId != null) await fotosRef.current?.adjuntarA(newId);
+        }
         if (!err && proveedorTxt) {
           const newId = productoIdDesdeCreateRpc(created);
           if (newId != null) {
@@ -1158,6 +1098,19 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
       if (err) {
         showToast("Error al guardar: " + mensajeErrorProveedor(err), "error");
         return;
+      }
+      if (form.id) {
+        const prevFoto = String(initial?.imagen_url || "").trim();
+        if (urlNow !== prevFoto) {
+          const fotoRes = urlNow
+            ? await gestionarFotoProducto({ action: "principal", productoId: form.id, url: urlNow, principal: true })
+            : await gestionarFotoProducto({ action: "quitar", productoId: form.id, url: prevFoto });
+          if (!fotoRes.ok) showToast(fotoRes.message || "No se pudo actualizar la foto", "error");
+          else {
+            invalidarImagenesProducto(form.id);
+            avisarCatalogoCambio({ origen: "inventario", table: "producto_imagenes" });
+          }
+        }
       }
       if (form.id) {
         logAudit(sesion, "EDITAR_PRODUCTO", "productos", form.id, {
@@ -1232,36 +1185,13 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           <h2 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{form.id?"✏️ Editar producto":"➕ Nuevo producto"}</h2>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
         </div>
-        <div style={{marginBottom:16,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
-          <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>📷 FOTO DEL PRODUCTO</label>
-          <ImageUploader
-            bucket="productos"
-            currentUrl={form.imagen_url}
-            onUploaded={(url)=>setForm((f)=>({...f,imagen_url:url,imagen_mobile_url:url}))}
-            onRemoved={()=>{
-              setForm((f)=>({...f,imagen_url:"",imagen_mobile_url:""}));
-              if(form.id){
-                const t=sessionStorage.getItem("farmacapital_session_token");
-                if(t){
-                  supabase.rpc("admin_editar_producto",{p_session_token:t,p_producto_id:form.id,p_patch:{imagen_url:"",imagen_mobile_url:""}})
-                    .then(({error})=>{ if(error)showToast(error.message,"error"); else showToast("Imagen quitada en servidor","info"); });
-                }
-              }
-            }}
-            aspectRatio="1:1"
-            filenamePrefix={(form.sku||form.nombre||"prod").toString()}
-            size="medium"
-          />
-          <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.4}}>
-            💡 También podés pegar URL abajo si preferís. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>productos</code> · <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>sql/storage_buckets.sql</code>
-          </div>
-          <FotosDelCatalogo
-            productoId={form.id}
-            imagenActual={form.imagen_url}
-            onElegir={(url)=>setForm((f)=>({...f,imagen_url:url,imagen_mobile_url:url}))}
-            C={C}
-          />
-        </div>
+        <FotosProductoEditor
+          ref={fotosRef}
+          productoId={form.id}
+          imagenUrl={form.imagen_url}
+          filenamePrefix={(form.sku || form.nombre || "prod").toString()}
+          onImagenUrl={(url) => setForm((f) => ({ ...f, imagen_url: url || "", imagen_mobile_url: url || "" }))}
+        />
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>
           <div>
             {field("Nombre","nombre","text",true)}

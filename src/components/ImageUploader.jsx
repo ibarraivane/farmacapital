@@ -1,11 +1,7 @@
 import { useState, useRef } from "react";
-import { supabase } from "../supabase";
 import { showToast } from "../ui";
 import { C_LIGHT, BRAND } from "../constants";
-import {
-  esPlaceholderImagenCompetencia,
-  mensajeRechazoImagenCompetencia,
-} from "../lib/imagenCompetencia";
+import { subirImagenStorage } from "../lib/subirImagenStorage";
 
 /**
  * Subida de imágenes a Supabase Storage (buckets: banners | productos).
@@ -18,6 +14,7 @@ import {
  * @param {string} [filenamePrefix]
  * @param {"1:1"|"16:9"|"16:5"} [aspectRatio]
  * @param {"small"|"medium"|"large"} [size]
+ * @param {boolean} [avisarAlQuitar] Toast propio. En el editor de producto el aviso lo pone la galería.
  */
 export default function ImageUploader({
   bucket,
@@ -28,139 +25,39 @@ export default function ImageUploader({
   filenamePrefix = "",
   aspectRatio = "1:1",
   size = "medium",
+  avisarAlQuitar = true,
 }) {
   const C = C_LIGHT;
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef(null);
 
-  const extToMime = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    webp: "image/webp",
-    gif: "image/gif",
-  };
-
-  const readImageDimensions = (file) =>
-    new Promise((resolve) => {
-      if (!file?.type?.startsWith("image/") || file.type === "image/svg+xml") {
-        resolve(null);
-        return;
-      }
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        resolve(null);
-      };
-      img.src = url;
-    });
-
   const handleFile = async (file) => {
     if (!file) return;
-    const rawExt = (file.name.split(".").pop() || "").toLowerCase();
-    const ext = rawExt === "jfif" ? "jpg" : rawExt;
-    const fallbackMime = extToMime[ext] || "";
-    const fileMime = file.type && file.type.startsWith("image/") ? file.type : fallbackMime;
-    if (!fileMime) {
-      showToast("Por favor selecciona una imagen válida", "error");
+    const result = await subirImagenStorage(file, {
+      bucket,
+      maxSizeMB,
+      filenamePrefix,
+      onProgress: (n) => {
+        setUploading(true);
+        setProgress(n);
+      },
+    });
+    setUploading(false);
+    setProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!result.ok) {
+      showToast(result.message, "error");
       return;
     }
-    const sizeMB = file.size / 1024 / 1024;
-    if (sizeMB > maxSizeMB) {
-      showToast(`La imagen pesa ${sizeMB.toFixed(1)}MB. Máximo permitido: ${maxSizeMB}MB`, "error");
-      return;
-    }
-
-    const dimsPre = await readImageDimensions(file);
-    if (esPlaceholderImagenCompetencia({
-      byteLength: file.size,
-      width: dimsPre?.width,
-      height: dimsPre?.height,
-    })) {
-      showToast(mensajeRechazoImagenCompetencia(), "error");
-      return;
-    }
-
-    setUploading(true);
-    setProgress(10);
-
-    try {
-      const finalExt =
-        fileMime === "image/jpeg" ? "jpg" :
-        fileMime === "image/png" ? "png" :
-        fileMime === "image/webp" ? "webp" :
-        fileMime === "image/gif" ? "gif" :
-        (ext || "jpg");
-      const timestamp = Date.now();
-      const dims = dimsPre;
-      const dimTag = dims?.width && dims?.height ? `${dims.width}x${dims.height}` : "img";
-      const cleanPrefix = filenamePrefix.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-      const fileName = cleanPrefix
-        ? `${cleanPrefix}-${dimTag}-${timestamp}.${finalExt}`
-        : `${bucket}-${dimTag}-${timestamp}.${finalExt}`;
-
-      setProgress(30);
-
-      const sessionToken = (() => {
-        try { return sessionStorage.getItem("farmacapital_session_token") || ""; } catch { return ""; }
-      })();
-      const useServerUpload =
-        sessionToken && (bucket === "banners" || bucket === "productos");
-
-      let publicUrl;
-
-      if (useServerUpload) {
-        const resp = await fetch("/api/admin/storage-upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": fileMime,
-            "X-Session-Token": sessionToken,
-            "X-Bucket": bucket,
-            "X-File-Name": fileName,
-          },
-          body: file,
-        });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok || !data?.ok) {
-          throw new Error(data?.message || data?.error || `Error ${resp.status}`);
-        }
-        publicUrl = data.publicUrl;
-      } else {
-        const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: true,
-          contentType: fileMime,
-        });
-        if (uploadError) throw uploadError;
-        const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
-        publicUrl = `${data.publicUrl}?v=${timestamp}`;
-      }
-
-      setProgress(70);
-
-      setProgress(100);
-      showToast("✅ Imagen subida correctamente", "success");
-      onUploaded(publicUrl);
-    } catch (e) {
-      console.error("[ImageUploader]", e);
-      showToast(`Error al subir: ${e.message || String(e)}`, "error");
-    } finally {
-      setUploading(false);
-      setProgress(0);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    showToast("✅ Imagen subida correctamente", "success");
+    onUploaded(result.publicUrl);
   };
 
   const handleRemove = () => {
     if (!window.confirm("¿Quitar esta imagen?")) return;
     onRemoved?.();
-    showToast("Imagen quitada", "info");
+    if (avisarAlQuitar) showToast("Imagen quitada", "info");
   };
 
   const previewSize = size === "large" ? 200 : size === "small" ? 80 : 140;
