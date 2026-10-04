@@ -44,6 +44,20 @@ export function stockDesdeLotes(lotes) {
 }
 
 /**
+ * Tope duro al editar stock en Inventario. Arriba de esto suele ser
+ * error de captura (Bepanthen Protectora llegó a 30232 tubos fantasma).
+ * Jeringas C/100 son el techo razonable de anaquel hoy.
+ */
+export const STOCK_ABSURDO_MAX = 500;
+
+/** true si el número no puede ser existencia real de mostrador. */
+export function stockAbsurdoInventario(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return false;
+  return Math.trunc(v) > STOCK_ABSURDO_MAX;
+}
+
+/**
  * Número que pinta la columna Stock: suma de lotes activos (stock_peps).
  * productos.stock puede ir adelante (Afrín: la celda dice 2 y el input abría 4).
  */
