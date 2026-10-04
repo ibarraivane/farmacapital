@@ -19,6 +19,7 @@ import {
   uploadCorteTicketPdf,
   abrirOCrearTicketCorte,
   cargarVentasDetalleTurno,
+  ventanaDetalleCorte,
   recargoServiciosPorMetodo,
 } from "./utils/corteTicket";
 
@@ -325,6 +326,10 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
   const fetchVentasDeCorte = async (corte) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
+    const ventana = ventanaDetalleCorte(corte);
+    if (ventana) {
+      return cargarVentasDetalleTurno(supabase, tok, ventana.inicio, ventana.fin);
+    }
     const fecha = corte.fecha ? new Date(corte.fecha) : new Date();
     const { inicio, fin } = rangoTurno(fecha, corte.turno);
     return cargarVentasDetalleTurno(supabase, tok, inicio.toISOString(), fin.toISOString());
@@ -623,11 +628,11 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
               background: C.amberDim, border: `1px solid ${C.amber}50`,
               color: C.text, fontSize: 13, lineHeight: 1.45,
             }}>
-              Ya hay un corte {TURNOS[turno]?.label || turno} de hoy. No se
-              guarda otro.
+              El {TURNOS[turno]?.label || turno} de hoy ya tiene corte.
+              Las ventas de quien abrió caja después no se suman ahí: van en su propia caja.
               {jornada?.cubre_ambos
                 ? " Si hoy cubres ambos, abre el siguiente turno en el POS."
-                : " Mary cierra el matutino y Erika el vespertino."}
+                : ""}
               {esVendedor(usuario)
                 ? ""
                 : <> Ábrelo en <button type="button" onClick={() => setTab("historial")}
