@@ -34,13 +34,15 @@ export function esPackshotLegacyInventario(url) {
 }
 
 /**
- * True cuando la ficha tiene una foto elegida (subida o URL pegada).
- * Esa es la que tiene que verse en la tienda, no la galería anterior.
+ * True cuando la ficha tiene una foto elegida que la tienda sí puede publicar.
+ * Esa tapa la galería. Un enlace de Del Ahorro no cuenta: la tienda lo oculta
+ * y, si no, se pierde la foto propia que ya estaba en la galería
+ * (Allegra suspensión: fahorro.com en la ficha, catalogo-propia en la galería).
  */
 export function fotoGuardadaMandaEnTienda(prod) {
   if (!productoTieneFotoInventario(prod)) return false;
-  const url = normalizar(prod?.imagen_url) || normalizar(prod?.imagen_mobile_url);
-  return !esPackshotLegacyInventario(url);
+  const urls = [prod?.imagen_url, prod?.imagen_mobile_url].map(normalizar).filter(Boolean);
+  return urls.some((url) => !esPackshotLegacyInventario(url) && urlImagenPublicaTienda(url));
 }
 
 /**

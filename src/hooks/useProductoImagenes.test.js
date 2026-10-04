@@ -73,6 +73,16 @@ it("un guardado posterior no se queda con la foto vieja de la galería", () => {
   expect(resolverFotoTienda(prod, vieja)).toBe(guardada);
 });
 
+it("un enlace de Del Ahorro en la ficha no tapa la foto propia", () => {
+  const fahorro = "https://production-media.fahorro.com/media/catalog/product/7/5/7501165006171.jpg";
+  const propia = "https://www.farmacapital.mx/catalogo-propia/allegra-suspension-150ml.jpg";
+  const prod = { id: 1728, imagen_url: fahorro, imagen_mobile_url: fahorro };
+  expect(productoTieneFotoInventario(prod)).toBe(true);
+  expect(fotoGuardadaMandaEnTienda(prod)).toBe(false);
+  expect(resolverFotoTienda(prod, propia)).toBe(propia);
+  expect(resolverFotoTienda(prod, "")).toBe("");
+});
+
 it("el desktop.jpg viejo sigue cediendo a la galería", () => {
   const legacy = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/7/desktop.jpg";
   const rappi = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/rappi/7501349021860/1.jpg";

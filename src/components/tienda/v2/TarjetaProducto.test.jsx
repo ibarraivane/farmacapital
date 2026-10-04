@@ -51,6 +51,29 @@ test("sin foto en inventario no pinta la galería con marca de agua", () => {
   expect(container.querySelector("img")).toBeNull();
 });
 
+test("Allegra con enlace de Del Ahorro muestra la foto propia de la galería", () => {
+  const propia = "https://www.farmacapital.mx/catalogo-propia/allegra-suspension-150ml.jpg";
+  mockUrlsGaleria.mockReturnValue([propia]);
+  const { container } = render(
+    <TarjetaProducto
+      prod={{
+        id: 1728,
+        nombre: "Allegra suspensión 6 mg/mL 150 mL",
+        marca: "Allegra",
+        presentacion: "Frasco 150 mL",
+        precio: 189,
+        stock: 1,
+        imagen_url: "https://production-media.fahorro.com/media/catalog/product/7/5/7501165006171.jpg",
+        imagen_mobile_url: "https://production-media.fahorro.com/media/catalog/product/7/5/7501165006171.jpg",
+      }}
+      onClick={() => {}}
+    />
+  );
+  const src = container.querySelector("img")?.getAttribute("src") || "";
+  expect(src).toBe(propia);
+  expect(src).not.toContain("fahorro.com");
+});
+
 test("la foto guardada en inventario reemplaza la galería vieja", () => {
   const guardada = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/fc-28833707-1200x1200-1791128503974.webp?v=1791128504982";
   mockUrlsGaleria.mockReturnValue([
