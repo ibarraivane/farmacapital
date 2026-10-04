@@ -88,6 +88,25 @@ describe("Estomaquil C/20 vs C/10: ficha no debe robar el EAN", () => {
   });
 });
 
+describe("Optims Extra Suavidad: los dos códigos del ticket son la misma crema", () => {
+  const crema = {
+    id: 19985,
+    activo: true,
+    sku: "FC-46695570",
+    nombre: "Optims Extra Suavidad crema para peinar",
+    codigo_barras: "7509546695570",
+    descripcion: "EAN 7509546695570. Mismo producto el código 7509546695587.",
+  };
+
+  test("cualquiera de los dos EAN abre la misma ficha", () => {
+    expect(codigosBarrasDeProducto(crema)).toEqual(
+      expect.arrayContaining(["7509546695570", "7509546695587"])
+    );
+    expect(findProductExactScan([crema], "7509546695570")?.id).toBe(19985);
+    expect(findProductExactScan([crema], "7509546695587")?.id).toBe(19985);
+  });
+});
+
 describe("Broncolin paleta: bote y pieza", () => {
   const paleta = {
     id: 702,
