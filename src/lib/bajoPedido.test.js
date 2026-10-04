@@ -81,6 +81,81 @@ test("rubros por categoria/subcategoria (con alias canónicos)", () => {
   expect(filtrarVitrina(todos).filter((p) => !rubroDeProducto(p))).toEqual([]);
 });
 
+test("sérum de vitamina C sale de Vitaminas y entra en Dermatología", () => {
+  const serum = {
+    id: 10,
+    nombre: "Darrow Actine Vitamina C Serum 30 g",
+    marca: "Darrow",
+    presentacion: "30 g",
+    activo: true,
+    bajo_pedido: true,
+    categoria: "Vitaminas",
+    subcategoria: "Dermatología",
+  };
+  const vitaminaE = {
+    id: 11,
+    nombre: "Etat Pur Activo Puro Vitamina E 15ml.",
+    marca: "Etat pur",
+    presentacion: "15 ml",
+    activo: true,
+    bajo_pedido: true,
+    categoria: "Vitaminas",
+    subcategoria: "Dermatología",
+  };
+  const geneskin = {
+    id: 12,
+    nombre: "Isispharma Geneskin c premium vitamina c 20% antioxidante 10ml.",
+    marca: "Isispharma",
+    activo: true,
+    bajo_pedido: true,
+    categoria: "Vitaminas",
+    subcategoria: "",
+  };
+  const alphastan = {
+    id: 13,
+    nombre: "Alphastan 10mg",
+    marca: "Omega Lab",
+    presentacion: "90 tabletas",
+    activo: true,
+    bajo_pedido: true,
+    categoria: "Vitaminas",
+  };
+  expect(rubroDeProducto(serum)).toBe("dermatologia");
+  expect(rubroDeProducto(vitaminaE)).toBe("dermatologia");
+  expect(rubroDeProducto(geneskin)).toBe("dermatologia");
+  expect(rubroDeProducto(alphastan)).toBe("vitaminas");
+  expect(rubroDeProducto({
+    nombre: "Vitamina D3 - 120 Cápsulas - 120 Porciones",
+    categoria: "Vitaminas",
+  })).toBe("vitaminas");
+  expect(rubroDeProducto({
+    nombre: "Onedrop Ade Suplemento Alimenticio Vitaminas A, D y E, 3 ml Sabor Aceite de Coco",
+    categoria: "Vitaminas",
+  })).toBe("vitaminas");
+  expect(rubroDeProducto({
+    nombre: "Naturagel Vitamina D3 con K2 60 Caps",
+    categoria: "Vitaminas",
+  })).toBe("vitaminas");
+  expect(rubroDeProducto({
+    nombre: "Emulsión de Scott Vitamina A y D Sabor Cereza 400ML",
+    categoria: "Vitaminas",
+  })).toBe("vitaminas");
+  expect(rubroDeProducto({
+    nombre: "Ficha sin token de piel",
+    categoria: "Vitaminas",
+    subcategoria: "Dermatología",
+  })).toBe("dermatologia");
+  expect(rubroDeProducto({
+    nombre: "Centrum con Vitamina C y Retinol",
+    presentacion: "60 tabletas",
+    categoria: "Vitaminas",
+    subcategoria: "Dermatología",
+  })).toBe("vitaminas");
+  const pool = [serum, vitaminaE, geneskin, alphastan, vitC];
+  expect(filtrarVitrina(pool, "vitaminas").map((p) => p.id)).toEqual([13, 4]);
+  expect(filtrarVitrina(pool, "dermatologia").map((p) => p.id)).toEqual([10, 11, 12]);
+});
+
 test("Encargar usa terracota, no el navy de Ver detalle", () => {
   expect(COLOR_CTA_ENCARGAR).toBe("#C9451F");
   expect(COLOR_CTA_ENCARGADO).toBe("#02A158");

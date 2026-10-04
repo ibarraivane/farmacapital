@@ -64,6 +64,7 @@ const REGLAS = [
 
   [/\b(levonorgestrel|etinilestradiol|levotiroxina|desogestrel|drospirenona|anticonceptivo)\b/, "Hormonales"],
 
+  // Vitaminas = lo que se toma. Un sérum o una crema con «vitamina C» es piel.
   [/\b(vitamina c|vitamina d|vitamina a|vitamina e|complejo b|acido folico|centrum|aderogyl|redoxon|neurobion|multivitamin)\b/, "Vitaminas"],
 
   [/\b(ensure|pediasure|glucerna|omega 3|proteina whey|suplemento nutricional)\b/, "Suplemento"],
@@ -83,15 +84,58 @@ const REGLAS = [
   [/\b(nido\b|nan\b|nestum|leche en polvo|formula lactea)\b/, "Abarrotes"],
 ];
 
+/** Tableta, cápsula, jarabe, gomita, polvo, ampolleta: se toma. */
+const FORMA_TOMADA = /\b(tabletas?|tabs?|capsulas?|caps|comprimidos?|grageas?|gomitas?|efervescentes?|jarabes?|polvos?|sobres?|ampolletas?|softgels?|masticables?|perlas?|porcion(?:es)?|suplementos?)\b/;
+
+/**
+ * Forma de piel. «gel» suelto no agarra Naturagel ni Gelcavit.
+ * «aceite de coco/pescado» es sabor o omega, no un aceite facial.
+ * spf50 (pegado) también cuenta.
+ */
+const FORMA_PIEL = /\b(serums?|cremas?|gel(?:es)?|mascarillas?|limpiador(?:es)?|locion(?:es)?|fluidos?|fluidbase|fps\d*|spf\d*|protector solar|bloqueador|exfoliantes?|tonicos?|balsamos?|pomadas?|unguentos?|desmaquillantes?|agua micelar|peeling|retinol|activo puro|liftactiv|geneskin|pigmentbio|depiderm|actine|facial|contorno)\b/;
+const ACEITE_FACIAL = /\baceite\b/;
+const ACEITE_DIETARIO = /\baceite de (pescado|higado|coco|onagra|primula|krill|lino|oliva|germen)\b/;
+
+/** Higiene que a veces dice «vitamina E» (Dove). No es un suplemento. */
+const HIGIENE_CON_VITAMINA = /\b(shampoo|acondicionador|desodorante|antitranspirante|pantene|sedal|dove|crema dental|pasta dental|enjuague bucal)\b/;
+
+const REGLA_VITAMINAS = /\b(vitamina c|vitamina d|vitamina a|vitamina e|complejo b|acido folico|centrum|aderogyl|redoxon|neurobion|multivitamin)\b/;
+
+export function esProductoTomado(p) {
+  return FORMA_TOMADA.test(textoCategoriaProducto(p));
+}
+
+/**
+ * Dermocosmético de piel (sérum, crema, gel, aceite facial, línea Activo Puro…).
+ * Si también trae forma oral, manda lo que se toma: Centrum con retinol y
+ * «60 tabletas» sigue siendo vitamina.
+ */
+export function esDermocosmeticoTopico(p) {
+  const t = textoCategoriaProducto(p);
+  if (!t || FORMA_TOMADA.test(t) || HIGIENE_CON_VITAMINA.test(t)) return false;
+  if (FORMA_PIEL.test(t)) return true;
+  return ACEITE_FACIAL.test(t) && !ACEITE_DIETARIO.test(t);
+}
+
+function saltaVitaminas(t) {
+  if (FORMA_TOMADA.test(t)) return false;
+  if (HIGIENE_CON_VITAMINA.test(t)) return true;
+  if (FORMA_PIEL.test(t)) return true;
+  return ACEITE_FACIAL.test(t) && !ACEITE_DIETARIO.test(t);
+}
+
 /**
  * @returns {string} categoría canónica o "" si no hay señal.
  */
 export function inferirCategoriaCatalogo(p) {
   const t = textoCategoriaProducto(p);
   if (!t) return "";
+  const mencionaVitamina = REGLA_VITAMINAS.test(t);
   for (const [re, cat] of REGLAS) {
+    if (cat === "Vitaminas" && mencionaVitamina && saltaVitaminas(t)) continue;
     if (re.test(t)) return cat;
   }
+  if (mencionaVitamina && esDermocosmeticoTopico(p)) return "Cuidado personal";
   return "";
 }
 
