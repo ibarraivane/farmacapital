@@ -1,22 +1,39 @@
 /**
- * Imágenes de competencia (Del Ahorro / Fahorro) — nunca en catálogo ni marketing.
+ * Imágenes que FarmaCapital no muestra en tienda ni marketing.
+ *
+ * 1) Competencia (Del Ahorro / Fahorro): logo rosa «A» o hotlink al CDN.
+ * 2) Mayoreo / distribuidor (Nadro, Levic/Visoti): hotlinks o copias en
+ *    Storage bajo `distribuidor/nadro-*`. En vitrina se ve «Imagen
+ *    próximamente» hasta tener packshot propio (`catalogo-propia/` o foto
+ *    de caja subida).
  *
  * Caso real 2026-09-17: Fahorro responde su logo rosa «A» (500×500, 6334 bytes)
  * cuando el EAN no tiene packshot. Eso llegó a /conseguir como foto de Atoderm.
  *
- * Política:
- * - Packshot real del producto: OK (idealmente en catalogo-propia/).
- * - Logo / placeholder de otra farmacia: NUNCA guardar ni mostrar.
- * - Hotlink a fahorro.com / production-media.fahorro.com: NUNCA en tienda.
+ * Caso 2026-10-02: fotos Nadro/Levic en catálogo (marca de agua / branding
+ * del proveedor). Política: no mostrar; solo packshot propio.
  */
 
 export const PLACEHOLDER_FAHORRO_MD5 = "59370f17d7cac03761209f4b0cf46374";
 /** Tamaño exacto del PNG rosa «A» que sirve Fahorro sin foto. */
 export const PLACEHOLDER_FAHORRO_BYTES = 6334;
 
+export const TEXTO_IMAGEN_PROXIMAMENTE = "Imagen próximamente";
+
 const HOSTS_IMAGEN_COMPETENCIA = [
   /(^|\.)fahorro\.com$/i,
 ];
+
+/** CDN / portales de mayoreo cuyas fotos no deben salir en vitrina. */
+const HOSTS_IMAGEN_PROVEEDOR = [
+  /(^|\.)nadro\.vtexassets\.com$/i,
+  /(^|\.)nadro\.mx$/i,
+  /(^|\.)i22\.nadro\.mx$/i,
+  /(^|\.)visoti\.mx$/i,
+];
+
+/** Copias en Storage que vienen del sync Nadro (`distribuidor/nadro-EAN.ext`). */
+const PATH_IMAGEN_PROVEEDOR = /\/distribuidor\/nadro-/i;
 
 /** True si la URL apunta al CDN / sitio de Del Ahorro. */
 export function esUrlImagenCompetencia(rawUrl) {
@@ -32,13 +49,34 @@ export function esUrlImagenCompetencia(rawUrl) {
 }
 
 /**
- * URL segura para tienda / marketing. Vacío si es host de competencia
- * (la UI cae al ícono Package o sin imagen).
+ * True si la URL es foto de mayoreo (Nadro VTEX, Levic/Visoti) o una copia
+ * en Storage del sync distribuidor.
+ */
+export function esUrlImagenProveedor(rawUrl) {
+  const url = String(rawUrl || "").trim();
+  if (!url) return false;
+
+  if (PATH_IMAGEN_PROVEEDOR.test(url)) return true;
+
+  if (!/^https?:\/\//i.test(url)) return false;
+  let host;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return false;
+  }
+  return HOSTS_IMAGEN_PROVEEDOR.some((re) => re.test(host));
+}
+
+/**
+ * URL segura para tienda / marketing. Vacío si es competencia o mayoreo
+ * (la UI cae a «Imagen próximamente»).
  */
 export function urlImagenPublicaTienda(rawUrl) {
   const url = String(rawUrl || "").trim();
   if (!url) return "";
   if (esUrlImagenCompetencia(url)) return "";
+  if (esUrlImagenProveedor(url)) return "";
   return url;
 }
 
@@ -56,7 +94,7 @@ export function esPlaceholderImagenCompetencia(meta = {}) {
   const w = Number(meta.width);
   const h = Number(meta.height);
   if (bytes === PLACEHOLDER_FAHORRO_BYTES) return true;
-  // Mismo asset u otra variante chica del logo: 500×500 y &lt; 10 KB
+  // Mismo asset u otra variante chica del logo: 500×500 y < 10 KB
   if (Number.isFinite(w) && Number.isFinite(h) && w === 500 && h === 500 && Number.isFinite(bytes) && bytes > 0 && bytes < 10_000) {
     return true;
   }

@@ -60,6 +60,7 @@
     .fc-v2 .fc-product{display:flex;flex-direction:column;min-width:0;text-align:left;border-bottom:1px solid var(--fc-line);padding-bottom:13px;gap:7px}
     .fc-v2 .fc-photo{background:#F5F6F7;border:0;border-radius:6px;display:flex;align-items:center;justify-content:center;height:165px;width:100%;padding:17px;margin-bottom:5px;position:relative}
     .fc-v2 .fc-photo img{height:100%;width:100%;mix-blend-mode:multiply}.fc-v2 .fc-photo:hover{background:#EFF2F5}
+    .fc-v2 .fc-photo-soon{color:#94A3B8;font-size:12px;font-weight:600;line-height:1.3;text-align:center;padding:0 8px}
     .fc-v2 .fc-state{font-size:11px;letter-spacing:.015em;color:var(--fc-blue);display:inline-flex;align-items:center;gap:5px;font-weight:500}.fc-v2 .fc-state.fc-in-stock{color:var(--fc-green-text)}
     .fc-v2 .fc-state::before{content:'';display:block;width:6px;height:6px;border:1px solid currentColor;border-radius:1px;flex:none}.fc-v2 .fc-in-stock::before{background:currentColor}
     .fc-v2 .fc-product-brand{font-size:10px;letter-spacing:.08em;color:var(--fc-muted);font-weight:600;text-transform:uppercase}

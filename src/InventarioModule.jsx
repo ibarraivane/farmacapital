@@ -18,6 +18,7 @@ import ImageUploader from "./components/ImageUploader";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
+import { urlImagenPublicaTienda } from "./lib/imagenCompetencia";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import {
@@ -268,7 +269,7 @@ function productoSinPrecioVenta(p) {
 }
 
 function productoSinFoto(p, fotoCatalogoDe) {
-  if (String(p?.imagen_url || "").trim()) return false;
+  if (urlImagenPublicaTienda(p?.imagen_url)) return false;
   if (fotoCatalogoDe?.(p?.id)) return false;
   return true;
 }
@@ -2455,7 +2456,8 @@ function renderInventarioColumnCell(colId, ctx) {
   } = inlineCellProps;
 
   // Respaldo del catálogo cuando el producto no tiene foto propia.
-  const fotoMiniatura = p.imagen_url || fotoCatalogoDe?.(p.id) || "";
+  // Nadro / Levic / competencia no cuentan: se ven como «sin foto».
+  const fotoMiniatura = urlImagenPublicaTienda(p.imagen_url) || fotoCatalogoDe?.(p.id) || "";
 
   switch (colId) {
     case "foto":

@@ -7,7 +7,7 @@
 
 import { urlImagenPublicaTienda } from "../lib/imagenCompetencia";
 
-export { esUrlImagenCompetencia, urlImagenPublicaTienda } from "../lib/imagenCompetencia";
+export { esUrlImagenCompetencia, esUrlImagenProveedor, urlImagenPublicaTienda } from "../lib/imagenCompetencia";
 
 export const TIENDA_CARD_THUMB_PX = 480;
 export const CATALOGO_PAGE_SIZE = 36;
@@ -25,8 +25,8 @@ function clampThumbWidth(width) {
 
 /**
  * Reescribe una URL pública de Supabase Storage a /render/image con width.
- * Deja intactas URLs externas (Nadro, marca), data/blob, GIF y SVG.
- * Bloquea hotlinks a Del Ahorro (ver imagenCompetencia).
+ * Deja intactas URLs propias / marca, data/blob, GIF y SVG.
+ * Bloquea competencia y mayoreo (ver imagenCompetencia).
  */
 export function tiendaCardImageUrl(rawUrl, width = TIENDA_CARD_THUMB_PX) {
   const url = urlImagenPublicaTienda(rawUrl);

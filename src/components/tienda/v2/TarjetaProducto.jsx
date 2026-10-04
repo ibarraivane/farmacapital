@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { $peso } from "../../../utils";
 import { tiendaCardImageUrl, urlImagenPublicaTienda } from "../../../utils/tiendaCardImage";
+import { TEXTO_IMAGEN_PROXIMAMENTE } from "../../../lib/imagenCompetencia";
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta } from "../../../hooks/useProductoImagenes";
@@ -57,7 +58,9 @@ export default function TarjetaProducto({ prod, onClick }) {
               setImgRota(true);
             }}
           />
-        ) : null}
+        ) : (
+          <span className="fc-photo-soon">{TEXTO_IMAGEN_PROXIMAMENTE}</span>
+        )}
       </button>
       <EstadoDisponibilidad producto={prod} />
       {marca ? <div className="fc-product-brand">{marca}</div> : null}
