@@ -66,6 +66,13 @@ it("la foto guardada en inventario manda sobre la galería vieja", () => {
   expect(resolverFotoTienda(prod, rappi)).toBe(guardada);
 });
 
+it("un guardado posterior no se queda con la foto vieja de la galería", () => {
+  const guardada = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/eq-vit073-248x500-1791129354283.webp?v=1791129355511";
+  const vieja = "https://www.farmacapital.mx/catalogo-propia/bocetix-levocetirizina-150ml.jpg";
+  const prod = { id: 1012, imagen_url: guardada, imagen_mobile_url: guardada };
+  expect(resolverFotoTienda(prod, vieja)).toBe(guardada);
+});
+
 it("el desktop.jpg viejo sigue cediendo a la galería", () => {
   const legacy = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/7/desktop.jpg";
   const rappi = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/rappi/7501349021860/1.jpg";
