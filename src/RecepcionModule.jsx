@@ -315,6 +315,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         activosSolo: true,
         order: "nombre",
         incluirVitrina: true,
+        sessionToken: tok,
+        conCosto: true,
       }),
     ]);
     await cargarLista();
@@ -342,6 +344,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       activosSolo: true,
       order: "nombre",
       incluirVitrina: true,
+      sessionToken: tok,
+      conCosto: true,
     });
     if (!prodRes.error) setProductos(prodRes.data || []);
     await cargarLista();
