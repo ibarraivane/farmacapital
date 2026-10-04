@@ -1,6 +1,6 @@
 /** Costo de una línea de venta: caja, blister o pieza suelta. */
 
-import { blistersPorCaja } from "./precioUnidad";
+import { blistersPorCaja, esCajaDosTamanos } from "./precioUnidad";
 
 function num(v, fallback = 0) {
   const n = parseFloat(v);
@@ -22,6 +22,11 @@ export function lineaEsVentaBlister(item) {
   if (modo === "unidad" || modo === "caja") return false;
 
   const prod = item?.productos || {};
+  if (esCajaDosTamanos(prod)) {
+    const cobradoChico = num(item?.precio_unitario);
+    const precioChico = num(prod.precio_blister);
+    return cobradoChico > 0 && precioChico > 0 && Math.abs(cobradoChico - precioChico) <= 1;
+  }
   const blisters = blistersPorCaja(prod.unidades_por_caja, prod.piezas_por_blister);
   if (blisters < 2) return false;
   const cobrado = num(item?.precio_unitario);
@@ -58,6 +63,10 @@ export function lineaEsVentaUnidad(item) {
 export function costoUnitarioLinea(item) {
   const prod = item?.productos || {};
   const costoCaja = num(prod.costo);
+  if (esCajaDosTamanos(prod) && costoCaja > 0 && (lineaEsVentaBlister(item) || lineaEsVentaUnidad(item))) {
+    const piezas = int(prod.unidades_por_caja, 0) + int(prod.piezas_por_blister, 0);
+    if (piezas > 0) return costoCaja / piezas;
+  }
   if (lineaEsVentaBlister(item) && costoCaja > 0) {
     const blisters = blistersPorCaja(prod.unidades_por_caja, prod.piezas_por_blister);
     if (blisters >= 2) return costoCaja / blisters;
