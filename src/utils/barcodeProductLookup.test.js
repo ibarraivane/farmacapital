@@ -58,6 +58,39 @@ describe("Dibar rojo 500 ml: bote vs ticket OCR", () => {
   });
 });
 
+describe("Motrin Infantil 120 ml: EAN caja nueva ↔ ticket viejo", () => {
+  const motrin = {
+    id: 648,
+    activo: true,
+    sku: "FC-07535494",
+    nombre: "Motrin Infantil Suspension 120 ml",
+    codigo_barras: "7501109902866",
+    descripcion:
+      "Motrin Infantil suspensión 120 ml sabor frutas · EAN caja 7501109902866 · EAN ticket/viejo 7501007535494.",
+  };
+
+  test("ambos códigos abren la misma ficha", () => {
+    expect(codigosBarrasDeProducto(motrin)).toEqual(
+      expect.arrayContaining(["7501109902866", "7501007535494"])
+    );
+    expect(findProductExactScan([motrin], "7501109902866")?.id).toBe(648);
+    expect(findProductExactScan([motrin], "7501007535494")?.id).toBe(648);
+  });
+
+  test("no confunde con Motrin Pediátrico 15 ml", () => {
+    const pediatrico = {
+      id: 900,
+      activo: true,
+      sku: "FC-09902637",
+      nombre: "Motrin Pediátrico suspensión 15 ml",
+      codigo_barras: "7501109902637",
+    };
+    expect(findProductExactScan([motrin, pediatrico], "7501109902866")?.id).toBe(648);
+    expect(findProductExactScan([motrin, pediatrico], "7501109902637")?.id).toBe(900);
+    expect(findProductExactScan([motrin, pediatrico], "7501007535494")?.id).toBe(648);
+  });
+});
+
 describe("Estomaquil C/20 vs C/10: ficha no debe robar el EAN", () => {
   const c20 = {
     id: 637,

@@ -126,6 +126,14 @@ if (!/'codigo_barras', pr\.codigo_barras/.test(sqlScan18)) {
 if (!/6502400%/.test(sqlScan18)) {
   fail("fc_match_codigo_barras tiene que cruzar Genomma 12↔13 (6502400).");
 }
+const sqlMotrin = read("sql/patch_motrin_infantil_fusion_ean_20261002.sql");
+const eanPares = read("src/lib/eanParesConocidos.js");
+if (!/7501109902866/.test(sqlMotrin) || !/7501007535494/.test(sqlMotrin) || !/FC-07535494/.test(sqlMotrin)) {
+  fail("SQL Motrin: fusión al EAN caja 7501109902866 dejando FC-07535494.");
+}
+if (!/7501109902866/.test(eanPares) || !/7501007535494/.test(eanPares)) {
+  fail("eanParesConocidos: Motrin Infantil caja ↔ ticket/viejo.");
+}
 if (/itemId && !pendiente\.pendienteAlta/.test(rec)) {
   fail("RecepcionModule: un renglón pendiente de alta con itemId se confirma, no se duplica.");
 }
