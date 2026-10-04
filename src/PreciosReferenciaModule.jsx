@@ -49,8 +49,12 @@ import AccionesPrecioRevision from "./components/AccionesPrecioRevision";
 import { costoComparacionDe, compraVigenteDe } from "./lib/ultimaCompra";
 import {
   agruparLotesPorProducto,
+  aplicarCostosCatalogo,
   enriquecerProductoConLotes,
+  errorEsPermisoDenegado,
+  fetchCostosPorId,
   fetchLotesInventario,
+  filasTraenCosto,
 } from "./lib/inventarioHubData";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
@@ -1037,19 +1041,26 @@ export default function PreciosReferenciaModule() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const prodRes = await supabase
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const selectPrecios = "id,sku,nombre,categoria,tipo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva";
+    const pedirProductos = (select) => supabase
       .from("productos")
-      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
+      .select(select)
       .eq("activo", true)
       .or("bajo_pedido.eq.false,bajo_pedido.is.null")
       .order("nombre");
+    let prodRes = await pedirProductos(`${selectPrecios},costo`);
+    if (errorEsPermisoDenegado(prodRes.error)) prodRes = await pedirProductos(selectPrecios);
 
     if (prodRes.error) {
       showToast("Error cargando productos: " + prodRes.error.message, "error");
       setLoading(false);
       return false;
     }
-    setProductos(prodRes.data || []);
+    const productosConCosto = filasTraenCosto(prodRes.data)
+      ? (prodRes.data || [])
+      : aplicarCostosCatalogo(prodRes.data || [], await fetchCostosPorId(tok));
+    setProductos(productosConCosto);
 
     let refRows = [];
     const viewRes = await supabase.from("producto_precios_referencia_actual").select("*");
@@ -1075,13 +1086,12 @@ export default function PreciosReferenciaModule() {
     setRefsByProduct(buildReferenciasPorProducto(refRows));
     setFechasFuente(fechasActualizacionPorFuente(refRows));
 
-    const tok = sessionStorage.getItem("farmacapital_session_token");
     let lotesByProducto = {};
     if (tok) {
       const { data: lotes } = await fetchLotesInventario(tok);
       lotesByProducto = agruparLotesPorProducto(lotes);
     }
-    setProductos((prodRes.data || []).map((p) => enriquecerProductoConLotes(p, lotesByProducto[p.id])));
+    setProductos(productosConCosto.map((p) => enriquecerProductoConLotes(p, lotesByProducto[p.id])));
     const loaded = await cargarRevisionPrecios(supabase);
     setRevision(loaded.state);
     if (loaded.persistirEpoch) await guardarRevisionPrecios(supabase, loaded.state);

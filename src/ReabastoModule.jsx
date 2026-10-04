@@ -68,7 +68,7 @@ export default function ReabastoModule() {
     if (!silencioso) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const [prodRes, lotesRes, viewRes] = await Promise.all([
-      fetchProductosPaginados({ activosSolo: true, order: "nombre" }),
+      fetchProductosPaginados({ activosSolo: true, order: "nombre", sessionToken: tok, conCosto: true }),
       fetchLotesInventario(tok),
       supabase.from("producto_precios_referencia_actual").select("*"),
     ]);

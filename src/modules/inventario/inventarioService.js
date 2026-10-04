@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../../supabase';
+import { PRODUCTOS_SELECT_PUBLICO } from '../../lib/catalogoConsulta';
 
 // ============================================================
 // FLUJO 1: CREAR NUEVO PRODUCTO
@@ -75,7 +76,7 @@ export async function buscarProducto(codigo_barras) {
   try {
     const { data, error } = await supabase
       .from('productos')
-      .select('*')
+      .select(PRODUCTOS_SELECT_PUBLICO)
       .eq('codigo_barras', codigo_barras)
       .single();
 
@@ -108,7 +109,7 @@ export async function actualizarStock(datos) {
     // Buscar producto
     const { data: producto, error: searchError } = await supabase
       .from('productos')
-      .select('*')
+      .select(PRODUCTOS_SELECT_PUBLICO)
       .eq('codigo_barras', codigo_barras)
       .single();
 
