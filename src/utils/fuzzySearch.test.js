@@ -61,6 +61,37 @@ describe("catalog search dimensions", () => {
     );
   });
 
+  test("chocolates encuentra Turin y KitKat, no Halls", () => {
+    const turin = {
+      id: 801,
+      nombre: "Turin Conejo foco chocolate 600 g",
+      marca: "Turin",
+      categoria: "Chocolates",
+      subcategoria: "Chocolates",
+      sku: "FC-LV-TURIN600",
+    };
+    const kitkat = {
+      id: 802,
+      nombre: "KitKat Extra Milk & Cocoa chocolate",
+      marca: "KitKat",
+      categoria: "Chocolates",
+      subcategoria: "Chocolates",
+      sku: "FC-LV-KITKAT22",
+    };
+    const halls = {
+      id: 803,
+      nombre: "Halls Extra Strong",
+      marca: "Halls",
+      categoria: "Impulso",
+      sku: "FC-LV-HALLSX12",
+    };
+    for (const q of ["chocolate", "chocolates", "Chocolates"]) {
+      expect(tiendaProductMatchesBusqueda(turin, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(kitkat, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(halls, q)).toBe(false);
+    }
+  });
+
   test("Jaloma o agua solas encuentran el agua de rosas", () => {
     const aceite = {
       id: 520,
