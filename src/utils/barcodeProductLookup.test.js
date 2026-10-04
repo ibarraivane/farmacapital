@@ -58,6 +58,26 @@ describe("Dibar rojo 500 ml: bote vs ticket OCR", () => {
   });
 });
 
+describe("Dibar venda colores: paquete C/24 vs pieza", () => {
+  const dibarColores = {
+    id: 901,
+    activo: true,
+    sku: "FC-IFC-83733",
+    nombre: "Dibar venda elástica 7.5 cm colores C/24",
+    codigo_barras: "7501868950207",
+    descripcion:
+      "Dibar · 7.5 cm colores surtido C/24 · EAN paquete 7501868950207 · EAN pieza 7501868902527",
+  };
+
+  test("el EAN del rollo abre el mismo SKU del paquete", () => {
+    expect(codigosBarrasDeProducto(dibarColores)).toEqual(
+      expect.arrayContaining(["7501868950207", "7501868902527"])
+    );
+    expect(findProductExactScan([dibarColores], "7501868902527")?.id).toBe(901);
+    expect(findProductExactScan([dibarColores], "7501868950207")?.id).toBe(901);
+  });
+});
+
 describe("Estomaquil C/20 vs C/10: ficha no debe robar el EAN", () => {
   const c20 = {
     id: 637,
