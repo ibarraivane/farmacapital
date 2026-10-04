@@ -132,3 +132,43 @@ export function chipsDeSeccion(seccion, productos) {
   const presentes = new Set(enSeccion.map((p) => p.vitrina_subseccion).filter(Boolean));
   return ["Todos", ...(SUBSECCIONES[nombre] || []).filter((s) => presentes.has(s))];
 }
+
+function sumar(conteos, clave) {
+  const k = String(clave || "").trim();
+  if (!k) return;
+  conteos[k] = (conteos[k] || 0) + 1;
+}
+
+/**
+ * Cuántos productos caen en cada chip de la sección.
+ * En Dermocosmética y Nutrición deportiva, «Solar» (u otra subsección fija)
+ * y la marca se cuentan por separado: un fotoprotector Isdin suma en los dos.
+ */
+export function conteosDeSeccion(seccion, productos) {
+  const nombre = seccionPorSlug(seccion) || seccion;
+  const def = SECCIONES_VITRINA.find((s) => s.nombre === nombre);
+  if (!def) return {};
+  const enSeccion = (productos || []).filter((p) => seccionDe(p) === nombre);
+  const conteos = {};
+  if (def.filtro === "marca") {
+    for (const p of enSeccion) {
+      for (const sub of SUBSECCIONES[nombre] || []) {
+        if (p.vitrina_subseccion === sub) sumar(conteos, sub);
+      }
+      sumar(conteos, p.marca);
+    }
+    return conteos;
+  }
+  for (const p of enSeccion) sumar(conteos, p.vitrina_subseccion);
+  return conteos;
+}
+
+/** Textos del botón «ver el resto» según si el chip es una marca o una subsección. */
+export function etiquetasFiltroSeccion(seccion) {
+  const nombre = seccionPorSlug(seccion) || seccion;
+  const def = SECCIONES_VITRINA.find((s) => s.nombre === nombre);
+  if (def?.filtro === "marca") {
+    return { etiquetaMas: "Más marcas", etiquetaBuscar: "Buscar marca" };
+  }
+  return { etiquetaMas: "Más categorías", etiquetaBuscar: "Buscar categoría" };
+}

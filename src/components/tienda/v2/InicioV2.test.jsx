@@ -1,10 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import InicioV2, { productosEnSucursal, productosPorEncargo, esGenericoReal, esPatenteReal } from "./InicioV2";
 
 const PRODUCTOS = [
-  { id: 1, nombre: "Omeprazol 20 mg", precio: 89, stock: 12, categoria: "Gastro", imagen_url: "https://x/o.jpg" },
-  { id: 2, nombre: "Amoxicilina 500 mg", precio: 93, stock: 4, categoria: "Antibiótico", requiere_receta: true },
-  { id: 3, nombre: "Sensibio H2O", precio: 329, stock: 0, bajo_pedido: true, marca: "Bioderma", imagen_url: "https://x/b.jpg" },
+  { id: 1, nombre: "Omeprazol 20 mg", precio: 89, stock: 12, categoria: "Gastro", vitrina_seccion: "Medicamentos", imagen_url: "https://x/o.jpg" },
+  { id: 2, nombre: "Amoxicilina 500 mg", precio: 93, stock: 4, categoria: "Antibiótico", vitrina_seccion: "Medicamentos", requiere_receta: true },
+  { id: 3, nombre: "Sensibio H2O", precio: 329, stock: 0, bajo_pedido: true, marca: "Bioderma", vitrina_seccion: "Dermocosmética", imagen_url: "https://x/b.jpg" },
   { id: 4, nombre: "Agotado sin encargo", precio: 50, stock: 0 },
 ];
 
@@ -18,7 +18,7 @@ test("separa lo que hay en sucursal de lo que es por encargo", () => {
 test("el inicio muestra los bloques del diseño de ChatGPT", () => {
   render(<InicioV2 productos={PRODUCTOS} setPage={() => {}} setProdDetalle={() => {}} precioConsulta={80} />);
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tu receta.");
-  expect(screen.getByText("¿Qué estás buscando?")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Comprar por categoría" })).toBeInTheDocument();
   expect(screen.getByText(/Te lo cotizamos/)).toBeInTheDocument();
   expect(screen.getByText("Listos para recoger hoy.")).toBeInTheDocument();
   expect(screen.getByText("Tu cuidado, a tu manera.")).toBeInTheDocument();
@@ -29,7 +29,24 @@ test("sin catálogo no inventa secciones vacías", () => {
   render(<InicioV2 productos={[]} setPage={() => {}} setProdDetalle={() => {}} />);
   expect(screen.queryByText("Listos para recoger hoy.")).not.toBeInTheDocument();
   expect(screen.queryByText("Tu cuidado, a tu manera.")).not.toBeInTheDocument();
-  expect(screen.getByText("¿Qué estás buscando?")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Comprar por categoría" })).toBeInTheDocument();
+});
+
+test("«Comprar por categoría» ofrece las seis secciones mientras no hay catálogo", () => {
+  render(<InicioV2 productos={[]} setPage={() => {}} setProdDetalle={() => {}} />);
+  const mosaico = screen.getByRole("heading", { name: "Comprar por categoría" }).closest("section");
+  expect(within(mosaico).getAllByRole("button")).toHaveLength(6);
+});
+
+test("con catálogo, el mosaico solo muestra secciones con productos y abre esa vitrina", () => {
+  const setPage = jest.fn();
+  render(<InicioV2 productos={PRODUCTOS} setPage={setPage} setProdDetalle={() => {}} />);
+  const mosaico = screen.getByRole("heading", { name: "Comprar por categoría" }).closest("section");
+  const nombres = within(mosaico).getAllByRole("button").map((b) => b.textContent.replace(/\s+/g, " ").trim());
+  expect(nombres).toEqual(["Dermocosmética", "Medicamentos"]);
+  expect(nombres).not.toContain("Nutrición deportiva");
+  fireEvent.click(within(mosaico).getByRole("button", { name: "Medicamentos" }));
+  expect(setPage).toHaveBeenCalledWith("catalogo", expect.objectContaining({ seccion: "Medicamentos" }));
 });
 
 describe("qué foto entra al carrusel de genéricos y de patente", () => {
