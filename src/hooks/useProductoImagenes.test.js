@@ -2,6 +2,8 @@ import {
   mapaUrlsTarjetaPorProducto,
   ordenarGaleriaProducto,
   ordenarUrlsTarjeta,
+  esPackshotLegacyInventario,
+  fotoGuardadaMandaEnTienda,
   productoTieneFotoInventario,
   resolverFotoTienda,
   siguienteIndiceFotoTarjeta,
@@ -56,14 +58,22 @@ it("sin foto en inventario no revive la galería con marca de agua", () => {
   expect(resolverFotoTienda(prod, marcaDeAgua, { placeholder: "https://cdn/ph.png" })).toBe("https://cdn/ph.png");
 });
 
-it("con foto en inventario la galería sigue mandando", () => {
-  const prod = {
-    imagen_url: "https://cdn/ficha.jpg",
-    imagen_mobile_url: "https://cdn/ficha.jpg",
-  };
-  expect(productoTieneFotoInventario(prod)).toBe(true);
-  expect(resolverFotoTienda(prod, "https://cdn/rappi/1.webp")).toBe("https://cdn/rappi/1.webp");
-  expect(resolverFotoTienda(prod, "")).toBe("https://cdn/ficha.jpg");
+it("la foto guardada en inventario manda sobre la galería vieja", () => {
+  const guardada = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/fc-28833707-1200x1200-1791128503974.webp?v=1791128504982";
+  const rappi = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/rappi/7501342802954/1.webp";
+  const prod = { imagen_url: guardada, imagen_mobile_url: guardada };
+  expect(fotoGuardadaMandaEnTienda(prod)).toBe(true);
+  expect(resolverFotoTienda(prod, rappi)).toBe(guardada);
+});
+
+it("el desktop.jpg viejo sigue cediendo a la galería", () => {
+  const legacy = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/7/desktop.jpg";
+  const rappi = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/rappi/7501349021860/1.jpg";
+  const prod = { imagen_url: legacy };
+  expect(esPackshotLegacyInventario(legacy)).toBe(true);
+  expect(fotoGuardadaMandaEnTienda(prod)).toBe(false);
+  expect(resolverFotoTienda(prod, rappi)).toBe(rappi);
+  expect(resolverFotoTienda(prod, "")).toBe(legacy);
 });
 
 it("agrupa las URLs de tarjeta por producto", () => {

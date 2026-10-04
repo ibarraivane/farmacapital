@@ -17,7 +17,7 @@ import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
-import { useImagenesPrincipales, useProductoImagenes, productoTieneFotoInventario, invalidarImagenesProducto } from "./hooks/useProductoImagenes";
+import { useImagenesPrincipales, useProductoImagenes, productoTieneFotoInventario, fotoGuardadaMandaEnTienda, invalidarImagenesProducto } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import {
@@ -286,6 +286,28 @@ async function quitarFotosCatalogoProducto(productoId) {
   }
   const msg = String(error.message || error.code || "");
   if (/admin_quitar_fotos_producto|PGRST202|Could not find the function|schema cache/i.test(msg)) {
+    return { ok: false, missing: true };
+  }
+  return { ok: false, error };
+}
+
+/** La foto recién guardada pasa a ser la principal de la galería que pinta la tienda. */
+async function fijarFotoCatalogoProducto(productoId, url) {
+  const t = sessionStorage.getItem("farmacapital_session_token");
+  const limpia = String(url || "").trim();
+  if (!t || productoId == null || !limpia) return { ok: false };
+  const { error } = await supabase.rpc("admin_fijar_foto_producto", {
+    p_session_token: t,
+    p_producto_id: productoId,
+    p_url: limpia,
+  });
+  if (!error) {
+    invalidarImagenesProducto(productoId);
+    avisarCatalogoCambio({ origen: "inventario", table: "producto_imagenes", productoId });
+    return { ok: true };
+  }
+  const msg = String(error.message || error.code || "");
+  if (/admin_fijar_foto_producto|PGRST202|Could not find the function|schema cache/i.test(msg)) {
     return { ok: false, missing: true };
   }
   return { ok: false, error };
@@ -1218,6 +1240,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         const galeria = await quitarFotosCatalogoProducto(form.id);
         if (galeria.error) {
           showToast("Guardado, pero la foto de la tienda no se pudo quitar: " + (galeria.error.message || ""), "error");
+        }
+      } else if (form.id && urlNow && fotoGuardadaMandaEnTienda({ imagen_url: urlNow, imagen_mobile_url: urlNow })) {
+        const galeria = await fijarFotoCatalogoProducto(form.id, urlNow);
+        if (galeria.error) {
+          showToast("Guardado, pero la tienda sigue con la foto anterior: " + (galeria.error.message || ""), "error");
         }
       }
       if (form.id) {

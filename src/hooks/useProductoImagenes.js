@@ -5,13 +5,14 @@ import { urlImagenPublicaTienda } from "../utils/tiendaCardImage";
 /**
  * Fotos de un producto para la galería.
  *
- * Si la ficha de inventario todavía tiene foto, el set de catálogo (Rappi)
- * manda: más fotos y mejor calidad. `imagen_url` solo se usa cuando no hay
- * galería.
+ * La foto que se guarda en inventario (`imagen_url`) es la de la tienda.
+ * La galería vieja no la tapa: si no, cambiar la foto en la ficha no se ve
+ * en línea.
  *
- * Si en inventario quitaron la foto (`imagen_url` e `imagen_mobile_url`
- * vacíos), la galería no la revive. Esa copia suelta era la marca de agua
- * que seguía en la tienda después de borrar la ficha.
+ * Excepción: el packshot automático `/{id}/desktop.jpg`. Ahí la galería
+ * Rappi sigue mandando, porque esa URL no es una foto elegida a mano.
+ *
+ * Si quitaron la foto, la galería no la revive.
  */
 
 const cache = new Map();
@@ -27,21 +28,37 @@ export function productoTieneFotoInventario(prod) {
   return Boolean(normalizar(prod.imagen_url) || normalizar(prod.imagen_mobile_url));
 }
 
+/** Packshot automático del alta. No es la foto que eligieron en la ficha. */
+export function esPackshotLegacyInventario(url) {
+  return /\/productos\/\d+\/(desktop|mobile)\.(jpe?g|png|webp)(\?|#|$)/i.test(normalizar(url));
+}
+
+/**
+ * True cuando la ficha tiene una foto elegida (subida o URL pegada).
+ * Esa es la que tiene que verse en la tienda, no la galería anterior.
+ */
+export function fotoGuardadaMandaEnTienda(prod) {
+  if (!productoTieneFotoInventario(prod)) return false;
+  const url = normalizar(prod?.imagen_url) || normalizar(prod?.imagen_mobile_url);
+  return !esPackshotLegacyInventario(url);
+}
+
 /**
  * Foto de tarjeta / ficha / carrito.
- * La galería solo entra si inventario todavía tiene foto. Si la quitaron,
- * se devuelve el placeholder (o vacío): la tienda queda igual que la ficha.
+ * La guardada en inventario manda. La galería solo cubre el desktop.jpg viejo.
+ * Sin foto en la ficha, no se revive la galería.
  */
 export function resolverFotoTienda(prod, fotoCatalogo = "", { narrow = false, placeholder = "" } = {}) {
   const vacio = urlImagenPublicaTienda(placeholder) || "";
   if (!productoTieneFotoInventario(prod)) return vacio;
+  const propia = (narrow && urlImagenPublicaTienda(prod.imagen_mobile_url))
+    || urlImagenPublicaTienda(prod.imagen_url)
+    || urlImagenPublicaTienda(prod.imagen_mobile_url)
+    || "";
+  if (fotoGuardadaMandaEnTienda(prod) && propia) return propia;
   const catalogo = urlImagenPublicaTienda(fotoCatalogo);
   if (catalogo) return catalogo;
-  if (narrow) {
-    const mobile = urlImagenPublicaTienda(prod.imagen_mobile_url);
-    if (mobile) return mobile;
-  }
-  return urlImagenPublicaTienda(prod.imagen_url) || vacio;
+  return propia || vacio;
 }
 
 /** Galería Rappi primero; imagen_url solo si no hay set de catálogo. */

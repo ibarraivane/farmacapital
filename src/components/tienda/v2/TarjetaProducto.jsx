@@ -3,7 +3,7 @@ import { $peso } from "../../../utils";
 import { tiendaCardImageUrl } from "../../../utils/tiendaCardImage";
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { esBajoPedido } from "../../../lib/bajoPedido";
-import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoInventario, resolverFotoTienda } from "../../../hooks/useProductoImagenes";
+import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoInventario, fotoGuardadaMandaEnTienda, resolverFotoTienda } from "../../../hooks/useProductoImagenes";
 import EstadoDisponibilidad from "./EstadoDisponibilidad";
 import { EstrellasDeProducto } from "../ResenasTienda";
 
@@ -16,7 +16,7 @@ export default function TarjetaProducto({ prod, onClick }) {
   const [imgRota, setImgRota] = useState(false);
   const [fotoIdx, setFotoIdx] = useState(0);
   const urlsFotoDe = useUrlsImagenesProducto();
-  const urlsFoto = productoTieneFotoInventario(prod) ? urlsFotoDe(prod?.id) : [];
+  const urlsFoto = productoTieneFotoInventario(prod) && !fotoGuardadaMandaEnTienda(prod) ? urlsFotoDe(prod?.id) : [];
   const fotoCatalogo = urlsFoto[fotoIdx] || urlsFoto[0] || "";
   const imgSrc = resolverFotoTienda(prod, fotoCatalogo);
   const pres = presentacionPublicaTienda(prod);

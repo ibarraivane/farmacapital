@@ -3,7 +3,7 @@ import { C_LIGHT } from "../../../constants";
 import { $ } from "../../../utils";
 import { posDestacadoTarjeta, posSubtituloProducto, posTituloProducto } from "../../../utils/posProductDisplay";
 import { etiquetaTipoProducto } from "../../../utils/equivalentesPos";
-import { useImagenesPrincipales, productoTieneFotoInventario } from "../../../hooks/useProductoImagenes";
+import { useImagenesPrincipales, productoTieneFotoInventario, fotoGuardadaMandaEnTienda } from "../../../hooks/useProductoImagenes";
 
 function etiquetaSustanciaVisible(value) {
   return String(value || "")
@@ -14,6 +14,9 @@ function etiquetaSustanciaVisible(value) {
 
 function fotoTarjeta(producto, fotoDe) {
   if (!productoTieneFotoInventario(producto)) return "";
+  if (fotoGuardadaMandaEnTienda(producto)) {
+    return producto?.imagen_url || producto?.imagen_mobile_url || "";
+  }
   return fotoDe?.(producto?.id) || producto?.imagen_url || producto?.imagen_mobile_url || "";
 }
 

@@ -42,7 +42,7 @@ import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
 import { mapaPromosPorProducto, ofertaDeProducto } from "./lib/precioOferta";
 import { hoyISOMexico } from "./lib/fecha";
-import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoInventario, resolverFotoTienda } from "./hooks/useProductoImagenes";
+import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoInventario, fotoGuardadaMandaEnTienda, resolverFotoTienda } from "./hooks/useProductoImagenes";
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
@@ -399,10 +399,9 @@ function usePromosProducto(productoId) {
 }
 
 /**
- * Imagen de producto en catálogo / carrito. Si inventario todavía tiene foto,
- * la principal de producto_imagenes (Rappi, Levic, etc.) va primero; si no, el
- * packshot de imagen_url y luego el placeholder. Si quitaron la foto de la
- * ficha, la galería no se muestra.
+ * Imagen de producto en catálogo / carrito. La foto guardada en inventario
+ * es la de la tienda. La galería solo sustituye el desktop.jpg viejo. Si
+ * quitaron la foto de la ficha, no se muestra la galería.
  */
 function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = ""){
   return resolverFotoTienda(prod, fotoCatalogo, { narrow, placeholder: placeholderFallback });
@@ -1917,7 +1916,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const urlsFotoDe = useUrlsImagenesProducto();
-  const urlsFoto = productoTieneFotoInventario(prod) ? urlsFotoDe(prod?.id) : [];
+  const urlsFoto = productoTieneFotoInventario(prod) && !fotoGuardadaMandaEnTienda(prod) ? urlsFotoDe(prod?.id) : [];
   const fotoCatalogo = urlsFoto[fotoIdx] || urlsFoto[0] || "";
   const imgSrc = productImageUrl(prod, narrow, placeholderUrl, fotoCatalogo);
   useEffect(() => { setFotoIdx(0); setImgRota(false); }, [prod?.id, urlsFoto.length]);
@@ -2073,8 +2072,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   };
   // Antes del early return: los hooks deben correr en el mismo orden siempre.
   const tieneFotoInventario = productoTieneFotoInventario(prod);
-  const imgSrc = productImageUrl(prod, stack, placeholderUrl, tieneFotoInventario ? fotoCatalogoDe(prod?.id) : "");
-  const { imagenes: galeria } = useProductoImagenes(tieneFotoInventario ? prod?.id : null, tieneFotoInventario ? imgSrc : "");
+  const mandaFotoGuardada = fotoGuardadaMandaEnTienda(prod);
+  const imgSrc = productImageUrl(prod, stack, placeholderUrl, tieneFotoInventario && !mandaFotoGuardada ? fotoCatalogoDe(prod?.id) : "");
+  const { imagenes: galeria } = useProductoImagenes(tieneFotoInventario && !mandaFotoGuardada ? prod?.id : null, imgSrc);
   const promosProd = usePromosProducto(prod?.id);
   const oferta = ofertaDeProducto(prod, promosProd);
   const [fichaPub, setFichaPub] = useState(null);

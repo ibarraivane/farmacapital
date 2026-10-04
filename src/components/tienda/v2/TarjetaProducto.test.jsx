@@ -51,6 +51,29 @@ test("sin foto en inventario no pinta la galería con marca de agua", () => {
   expect(container.querySelector("img")).toBeNull();
 });
 
+test("la foto guardada en inventario reemplaza la galería vieja", () => {
+  const guardada = "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/fc-28833707-1200x1200-1791128503974.webp?v=1791128504982";
+  mockUrlsGaleria.mockReturnValue([
+    "https://qyabhoftqfmqwpqcsdrb.supabase.co/storage/v1/object/public/productos/rappi/7501342802954/1.webp",
+  ]);
+  const { container } = render(
+    <TarjetaProducto
+      prod={{
+        id: 1184,
+        nombre: "Beadvance Levofloxacino 500 mg Caja con 7 tabletas",
+        precio: 90,
+        stock: 2,
+        imagen_url: guardada,
+        imagen_mobile_url: guardada,
+      }}
+      onClick={() => {}}
+    />
+  );
+  const src = container.querySelector("img")?.getAttribute("src") || "";
+  expect(src).toContain("fc-28833707-1200x1200-1791128503974.webp");
+  expect(src).not.toContain("rappi/7501342802954");
+});
+
 test("tarjeta de sucursal abre el producto", () => {
   const onClick = jest.fn();
   render(<TarjetaProducto prod={omeprazol} onClick={onClick} />);
