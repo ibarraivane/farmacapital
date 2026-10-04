@@ -30,6 +30,7 @@ import {
   margenBrutoPct,
 } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
+import { mensajeErrorEditarProducto, rpcAdminEditarProducto } from "./lib/editarProductoRpc";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
 import {
@@ -385,7 +386,10 @@ function InventarioEditableCell({
     const controlProps = {
       autoFocus: type !== "select",
       value: inlineEdit.draft,
-      disabled: inlineSaving,
+      readOnly: type !== "select" && inlineSaving,
+      className: type === "select"
+        ? "farmacapital-field-select farmacapital-field-input"
+        : "farmacapital-field-input",
       onChange: (e) => {
         const v = e.target.value;
         onDraft(v);
@@ -412,6 +416,12 @@ function InventarioEditableCell({
         fontSize: 11,
         fontFamily: mono ? "ui-monospace,Menlo,monospace" : undefined,
         boxSizing: "border-box",
+        background: "#ffffff",
+        color: "#0f172a",
+        WebkitTextFillColor: "#0f172a",
+        caretColor: "#0f172a",
+        colorScheme: "light",
+        opacity: inlineSaving ? 0.7 : 1,
       },
     };
     return (
@@ -3624,6 +3634,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
   const [inlineEdit, setInlineEdit] = useState(null);
   const [inlineSaving, setInlineSaving] = useState(false);
+  const inlineCommitLock = useRef(false);
 
   const cancelInlineEdit = useCallback(() => {
     setInlineEdit(null);
@@ -3823,13 +3834,13 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           : String(currentRaw);
     if (currentNorm === patchValue || (patchValue == null && !currentNorm)) return true;
 
-    const { error } = await supabase.rpc("admin_editar_producto", {
+    const { error } = await rpcAdminEditarProducto(supabase, {
       p_session_token: tok,
       p_producto_id: product.id,
       p_patch: { [patchKey]: patchValue },
     });
     if (error) {
-      showToast(error.message, "error");
+      showToast(mensajeErrorEditarProducto(error), "error");
       return false;
     }
     callarCatalogoLocal();
@@ -3840,13 +3851,16 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   }, [modoConsulta, callarCatalogoLocal, pintarProductoLocal]);
 
   const commitInlineEdit = useCallback(async (draftOverride) => {
-    if (!inlineEdit || inlineSaving) return;
+    if (!inlineEdit || inlineSaving || inlineCommitLock.current) return;
     const product = productos.find((x) => x.id === inlineEdit.productId);
     if (!product) {
       cancelInlineEdit();
       return;
     }
     const draft = typeof draftOverride === "string" ? draftOverride : inlineEdit.draft;
+    // Enter y blur pueden disparar el guardado juntos. El segundo se queda
+    // esperando el candado del renglón hasta el statement timeout.
+    inlineCommitLock.current = true;
     setInlineSaving(true);
     try {
       const ok = await guardarCampoInline(product, inlineEdit.field, draft, inlineEdit.meta);
@@ -3858,20 +3872,23 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         setInlineEdit((prev) => (prev ? { ...prev, draft: lote?.fecha_caducidad || "" } : prev));
       }
     } finally {
+      inlineCommitLock.current = false;
       setInlineSaving(false);
     }
   }, [inlineEdit, inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
 
   const quitarCaducidadInline = useCallback(async (productId, meta = null) => {
-    if (inlineSaving) return;
+    if (inlineSaving || inlineCommitLock.current) return;
     const product = productos.find((x) => x.id === productId);
     if (!product) return;
     if (!window.confirm("¿Quitar la fecha de caducidad de este lote?")) return;
+    inlineCommitLock.current = true;
     setInlineSaving(true);
     try {
       const ok = await guardarCampoInline(product, "cad", "", { ...(meta || {}), quitar: true });
       if (ok) cancelInlineEdit();
     } finally {
+      inlineCommitLock.current = false;
       setInlineSaving(false);
     }
   }, [inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
