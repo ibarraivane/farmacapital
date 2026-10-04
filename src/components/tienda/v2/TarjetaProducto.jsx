@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { $peso } from "../../../utils";
-import { tiendaCardImageUrl, urlImagenPublicaTienda } from "../../../utils/tiendaCardImage";
+import { tiendaCardImageUrl } from "../../../utils/tiendaCardImage";
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { esBajoPedido } from "../../../lib/bajoPedido";
-import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta } from "../../../hooks/useProductoImagenes";
+import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoInventario, resolverFotoTienda } from "../../../hooks/useProductoImagenes";
 import EstadoDisponibilidad from "./EstadoDisponibilidad";
 import { EstrellasDeProducto } from "../ResenasTienda";
 
@@ -16,11 +16,9 @@ export default function TarjetaProducto({ prod, onClick }) {
   const [imgRota, setImgRota] = useState(false);
   const [fotoIdx, setFotoIdx] = useState(0);
   const urlsFotoDe = useUrlsImagenesProducto();
-  const urlsFoto = urlsFotoDe(prod?.id);
+  const urlsFoto = productoTieneFotoInventario(prod) ? urlsFotoDe(prod?.id) : [];
   const fotoCatalogo = urlsFoto[fotoIdx] || urlsFoto[0] || "";
-  const imgSrc = urlImagenPublicaTienda(fotoCatalogo)
-    || urlImagenPublicaTienda(prod?.imagen_url)
-    || "";
+  const imgSrc = resolverFotoTienda(prod, fotoCatalogo);
   const pres = presentacionPublicaTienda(prod);
   const precio = precioPublicado(prod);
   const marca = String(prod?.marca || "").trim();
