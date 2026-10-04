@@ -19,7 +19,7 @@ Los archivos `farmacapital-sprint0-politica-medicamentos.patch` y `Farmacapital_
 | **Ewafra / DIS** (lista ago-2026) | Mayoreo de insumos (lista 6 −20%) | 1,218 | **1,197** | Sí | Dispositivos, curación, jeringas |
 | **Promexsa** | Precio **de vitrina**, no de compra | 1,179 | **0** costo mayoreo | No. El sitio pide WhatsApp para mayoreo | Techo de mercado de insumos |
 | **Birdman** | Mayoreo de la marca (escalón chico) | 125 | ~110 (sin playeras) | Sí | Proteína / suplemento |
-| **Mepiel** | Reservada en Referencias | **0** | **0** | Aún no llega la lista | — |
+| **Mepiel** | Lista de precios 2026 (precio cliente c/IVA) | 2,213 | **2,213** | Sí | Dermatología |
 
 Tener más filas no es mejor: Bioinstrumental “gana” en tamaño y pierde en costo usable.
 
@@ -27,9 +27,7 @@ Tener más filas no es mejor: Bioinstrumental “gana” en tamaño y pierde en 
 
 ## 2. Mepiel
 
-En Referencias quedó la fuente `mepiel` **reservada** (“cuando llegue la lista, cruzar por EAN contra Dermaexpress”). No hay CSV, no hay costo, no hay ranking.
-
-Hasta que mandes esa lista, **no se puede decir que Mepiel es la mejor**. Puede serlo en dermo (eso se espera de un mayoreo de consultorio), o puede salir más cara que Dermaexpress en La Roche / Vichy. Se decide con EAN, no con el tamaño del catálogo.
+La lista 2026 ya está en `mepiel_lista_2026.csv`. El costo usable es el **precio cliente c/IVA**. El cruce por EAN contra Dermaexpress se hace al generar el alta: si ambos tienen costo, se guarda el más barato. El precio público de la lista no se publica en la vitrina.
 
 ---
 

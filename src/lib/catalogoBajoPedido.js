@@ -39,6 +39,96 @@ const FUENTE_DERMAEXPRESS = "dermaexpress";
 const FUENTE_BIRDMAN = "birdman";
 const FUENTE_EWAFRA = "ewafra";
 const FUENTE_PROMEXSA = "promexsa";
+const FUENTE_MEPIEL = "mepiel";
+
+/**
+ * Fila Excel (1-indexed) del logo de cada laboratorio en
+ * «ME Piel Lista de precios 2026». El logo vive en el dibujo, no en una celda.
+ */
+const BLOQUES_MARCA_MEPIEL_2026 = [
+  [4, "Advaita"],
+  [44, "Eucerin"],
+  [140, "Bioderma"],
+  [273, "Institut Esthederm"],
+  [319, "Vichy"],
+  [343, "Cantabria Labs"],
+  [439, "Cell Pharma"],
+  [464, "DS Laboratories"],
+  [515, "Euderma"],
+  [556, "Farmapiel"],
+  [627, "Fedele"],
+  [718, "CeraVe"],
+  [778, "La Roche-Posay"],
+  [924, "Isispharma"],
+  [1041, "Galderma"],
+  [1147, "Genové"],
+  [1224, "Glenmark"],
+  [1254, "ISDIN"],
+  [1456, "Italmex"],
+  [1558, "Leo Pharma"],
+  [1581, "Ducray"],
+  [1648, "Avène"],
+  [1811, "Darrow"],
+  [1851, "A-Derma"],
+  [1896, "Remexa"],
+  [1939, "Sesderma"],
+  [2068, "Up Pharma"],
+  [2088, "Etat Pur"],
+  [2106, "Noreva"],
+  [2156, "Uriage"],
+  [2257, "Panalab"],
+  [2343, "Armstrong"],
+  [2374, "Babé"],
+  [2412, "Apivita"],
+  [2495, "SkinCeuticals"],
+  [2595, "SVR"],
+  [2621, "MartiDerm"],
+  [2768, "Mustela"],
+  [2821, "Dermaglós"],
+  [2883, "Senti2"],
+];
+
+/** Bonificación de la hoja OFERTAS FIJAS. No baja el precio unitario de la lista. */
+const OFERTA_MEPIEL_2026 = {
+  Advaita: "10+1",
+  Galderma: "10+1",
+  "Cell Pharma": "10+1",
+  ISDIN: "10+1",
+  Fedele: "10+1",
+  Genové: "10+1",
+  Glenmark: "10+1",
+  Italmex: "10+1 (excepto Hydrysage)",
+  "Leo Pharma": "10+1",
+  "Cantabria Labs": "10+1",
+  Eucerin: "10+1",
+  Farmapiel: "10+1",
+  Avène: "10+1",
+  "DS Laboratories": "10+1",
+  Sesderma: "5+1",
+  Isispharma: "5+1",
+  Armstrong: "Leti AT4 5+1, Pilexil 3+1",
+  Remexa: "Desde 50 piezas 10+1",
+  "La Roche-Posay": "10+1 o 9.09%",
+  Vichy: "10+1 o 9.09%",
+  CeraVe: "10+1 o 9.09%",
+  Bioderma: "Sin oferta (precio financiero)",
+};
+
+const TOKEN_LISTA_MEPIEL = {
+  fps: "FPS",
+  spf: "SPF",
+  uv: "UV",
+  uva: "UVA",
+  uvb: "UVB",
+  ml: "ml",
+  g: "g",
+  gr: "g",
+  mg: "mg",
+  h2o: "H2O",
+  ds: "DS",
+  ar: "AR",
+  kit: "Kit",
+};
 
 const STOP = new Set([
   "de", "del", "la", "el", "los", "las", "y", "con", "para", "en", "un", "una",
@@ -309,6 +399,187 @@ function filaEwafra(row, promexsaMatch) {
   };
 }
 
+function marcaMepielPorFila(excelRow) {
+  const n = Number(excelRow);
+  if (!Number.isFinite(n)) return "";
+  let marca = "";
+  for (const [row, name] of BLOQUES_MARCA_MEPIEL_2026) {
+    if (n >= row) marca = name;
+    else break;
+  }
+  return marca;
+}
+
+function ofertaMepielPorMarca(marca) {
+  return OFERTA_MEPIEL_2026[marca] || "";
+}
+
+function redondearDinero(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return null;
+  return Math.round(x * 100) / 100;
+}
+
+/** El precio que ME Piel cobra es «Precio cliente c/IVA». El público es techo, no costo. */
+function costoClienteMepiel(row) {
+  return redondearDinero(row?.cliente_con ?? row?.precio_cliente_con_iva);
+}
+
+function separarUnidadesLista(s) {
+  return String(s || "")
+    .replace(/(\d)\s*(ml|mg|gr|g)\b/gi, (_, num, unit) => {
+      const u = unit.toLowerCase() === "gr" ? "g" : unit.toLowerCase();
+      return `${num} ${u}`;
+    })
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function nombreDesdeListaMepiel(desc) {
+  const original = String(desc || "").replace(/\s+/g, " ").trim();
+  if (!original) return "";
+  const mixed = original !== original.toUpperCase() && original !== original.toLowerCase();
+  const titled = mixed
+    ? original
+    : original
+      .toLowerCase()
+      .split(/(\s+|-|\/)/)
+      .map((part) => {
+        if (!part || /^\s+$/.test(part) || part === "-" || part === "/") return part;
+        if (/^\d/.test(part)) return part;
+        const key = part.toLowerCase();
+        if (TOKEN_LISTA_MEPIEL[key]) return TOKEN_LISTA_MEPIEL[key];
+        if (["de", "del", "la", "el", "y", "con", "para", "en"].includes(key)) return key;
+        return key.charAt(0).toUpperCase() + key.slice(1);
+      })
+      .join("");
+  return separarUnidadesLista(titled)
+    .replace(/\bspf\s*(\d+\+?)/gi, "SPF$1")
+    .replace(/\bfps\s*(\d+\+?)/gi, "FPS $1");
+}
+
+function mapCategoriaMepiel() {
+  return { categoria: "Cuidado personal", subcategoria: "Dermatología" };
+}
+
+function puntajeDuplicadoMepiel(fila) {
+  const uni = String(fila?.uni || "");
+  let score = Math.min(String(fila?.nombre_lista || fila?.nombre || "").length, 120);
+  if (/^pza\b|^pieza\b/i.test(uni.trim())) score += 200;
+  score += Number(fila?.fila || 0) / 100000;
+  return score;
+}
+
+/**
+ * Una fila de la lista 2026. `precio` queda en 0: el dueño no ha publicado
+ * la vitrina. `costo` es lo que ME Piel cobra (cliente c/IVA).
+ */
+function filaMepiel(row) {
+  const ean = String(row?.ean || "").replace(/\D/g, "");
+  if (ean.length < 8) return null;
+  const costo = costoClienteMepiel(row);
+  if (costo == null || costo <= 0) return null;
+  const techo = redondearDinero(row?.publico_con ?? row?.precio_publico_con_iva);
+  const marca = String(row?.marca || marcaMepielPorFila(row?.fila) || "").trim();
+  const nombreLista = String(row?.descripcion || row?.nombre || "").trim();
+  if (!nombreLista) return null;
+  const cats = mapCategoriaMepiel();
+  return {
+    ean,
+    sku: skuCatalogoBajoPedido(ean, { proveedor: FUENTE_MEPIEL, codigoProveedor: ean }),
+    nombre: nombreLista,
+    nombre_lista: nombreLista,
+    marca,
+    presentacion: "",
+    ...cats,
+    tipo: "marca",
+    costo,
+    precio: 0,
+    techo: techo && techo > 0 ? techo : null,
+    imagen_url: "",
+    fuente: FUENTE_MEPIEL,
+    sku_externo: ean,
+    disponible: true,
+    linea: String(row?.linea || "").trim(),
+    uni: String(row?.uni || "").trim(),
+    fila: Number(row?.fila) || 0,
+    oferta: ofertaMepielPorMarca(marca),
+  };
+}
+
+function filasMepielDesdeRaws(raws) {
+  const groups = new Map();
+  for (const raw of raws || []) {
+    const fila = filaMepiel(raw);
+    if (!fila) continue;
+    const arr = groups.get(fila.ean) || [];
+    arr.push(fila);
+    groups.set(fila.ean, arr);
+  }
+  const out = [];
+  for (const arr of groups.values()) {
+    arr.sort((a, b) => puntajeDuplicadoMepiel(b) - puntajeDuplicadoMepiel(a));
+    out.push(arr[0]);
+  }
+  return out;
+}
+
+/** Si el mismo EAN ya tiene costo de otro mayoreo, se queda el más barato. */
+function costoMayoreoPreferido(actual, nuevo) {
+  const a = Number(actual);
+  const n = Number(nuevo);
+  const aOk = Number.isFinite(a) && a > 0;
+  const nOk = Number.isFinite(n) && n > 0;
+  if (!nOk) return aOk ? a : null;
+  if (!aOk) return n;
+  return Math.min(a, n);
+}
+
+function enriquecerFilaMepiel(fila, fuentes = {}) {
+  const { aplicarFichaMostrador } = require("./nombreMostrador");
+  const derma = fuentes.derma || null;
+  const extra = fuentes.extra || null;
+  let nombre = String(fila.nombre_lista || fila.nombre || "");
+  let marca = String(fila.marca || "");
+  let imagen = "";
+  let imagen_origen = "";
+  if (derma && String(derma.nombre || "").trim()) nombre = String(derma.nombre).trim();
+  else if (extra && String(extra.nombre || "").trim()) nombre = String(extra.nombre).trim();
+  nombre = nombreDesdeListaMepiel(nombre)
+    .replace(/,\s+(?=\d)/g, " ")
+    .replace(/\.\s*$/g, "");
+  if (derma && String(derma.marca || "").trim()) marca = String(derma.marca).trim();
+  if (derma && derma.imagen_url) {
+    imagen = imagenCatalogoSegura(derma.imagen_url);
+    if (imagen) imagen_origen = "dermaexpress";
+  }
+  if (!imagen && extra && extra.imagen_url) {
+    imagen = imagenCatalogoSegura(extra.imagen_url);
+    if (imagen) imagen_origen = extra.origen || "extra";
+  }
+  const ficha = aplicarFichaMostrador({
+    nombre,
+    marca,
+    presentacion: fila.presentacion || "",
+  });
+  let nombreFicha = ficha.nombre || nombre;
+  const letras = nombreFicha.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g, "");
+  if (letras && letras === letras.toUpperCase()) {
+    nombreFicha = nombreDesdeListaMepiel(nombreFicha);
+  }
+  return {
+    ...fila,
+    nombre: nombreFicha,
+    marca: ficha.marca || marca,
+    presentacion: ficha.presentacion || "",
+    concentracion: ficha.concentracion || "",
+    forma_farmaceutica: ficha.forma_farmaceutica || "",
+    imagen_url: imagen,
+    imagen_origen,
+    precio: 0,
+  };
+}
+
 function sqlEscape(s) {
   return String(s ?? "").replace(/'/g, "''");
 }
@@ -329,6 +600,16 @@ module.exports = {
   FUENTE_BIRDMAN,
   FUENTE_EWAFRA,
   FUENTE_PROMEXSA,
+  FUENTE_MEPIEL,
+  BLOQUES_MARCA_MEPIEL_2026,
+  marcaMepielPorFila,
+  ofertaMepielPorMarca,
+  costoClienteMepiel,
+  nombreDesdeListaMepiel,
+  filaMepiel,
+  filasMepielDesdeRaws,
+  costoMayoreoPreferido,
+  enriquecerFilaMepiel,
   hashSku8,
   skuCatalogoBajoPedido,
   precioBajoPedido,
