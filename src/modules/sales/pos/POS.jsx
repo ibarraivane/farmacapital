@@ -16,7 +16,7 @@ import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, look
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
-import { cobroUnidad, modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
+import { cobroUnidad, esCajaDosTamanos, modoVentaDeLinea, precioBlisterParaVenta, precioUnidadParaVenta, productoVendeBlister, productoVendeTamanoChico, sufijoVentaSuelta, unidadesAlAbrirCaja } from "../../../utils/precioUnidad";
 import {
   cajasAAbrirParaPiezas,
   cajasAAbrirPorError,
@@ -453,6 +453,8 @@ function PosProductoFichaPanel({
   const stockVisible = stockMostradorPos(item, stockCajas);
   const precioFicha = precioMostradorPos(item);
   const vendeBlister = productoVendeBlister(item);
+  const dosTamanos = esCajaDosTamanos(item);
+  const vendeChico = productoVendeTamanoChico(item);
   const stockBlisters = Number(item.stock_blisters) || 0;
   const stockPiezas = Number(item.stock_unidades) || 0;
   const agotado = existencia.agotado;
@@ -717,6 +719,11 @@ function PosProductoFichaPanel({
             </div>
           )}
 
+          {dosTamanos && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>
+              {stockCajas} cajas · {stockBlisters} chicos · {stockPiezas} grandes
+            </div>
+          )}
           {vendeBlister && (
             <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>
               {stockCajas} cajas · {stockBlisters} blisters · {stockPiezas} piezas
@@ -743,6 +750,43 @@ function PosProductoFichaPanel({
                 <IconoPieza size={18} />
                 Agregar · {$(precioUnidadParaVenta(item) || precioFicha)}
               </Btn>
+            ) : item.venta_unidad && dosTamanos ? (
+              <>
+                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={filaIconoBtn({ flex: "1 1 140px" })}>
+                  <IconoCaja size={18} />
+                  Caja · {$(item.precio)}
+                </Btn>
+                {vendeChico && (
+                  <Btn
+                    outline
+                    col={C.blue}
+                    disabled={stockCajas <= 0 && stockBlisters === 0}
+                    onClick={() => {
+                      if (stockBlisters > 0) onAddBlister(item);
+                      else if (stockCajas > 0) onAbrirCaja(item);
+                      else showToast("Sin stock disponible.", "warning");
+                    }}
+                    style={filaIconoBtn({ flex: "1 1 140px" })}
+                  >
+                    <IconoPieza size={18} />
+                    Chico · {$(precioBlisterParaVenta(item))}
+                  </Btn>
+                )}
+                <Btn
+                  outline
+                  col={C.green}
+                  disabled={piezasSueltasDisponibles(item, stockCajas) <= 0 && stockCajas <= 0}
+                  onClick={() => {
+                    if (piezasSueltasDisponibles(item, stockCajas) > 0) onAddUnidad(item);
+                    else if (stockCajas > 0) onAbrirCaja(item);
+                    else showToast("Sin grandes sueltos.", "warning");
+                  }}
+                  style={filaIconoBtn({ flex: "1 1 140px" })}
+                >
+                  <IconoPieza size={18} />
+                  Grande · {$(precioUnidadParaVenta(item))}
+                </Btn>
+              </>
             ) : item.venta_unidad ? (
               <>
                 <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={filaIconoBtn({ flex: "1 1 140px" })}>
@@ -1652,7 +1696,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const esUnidad = modo === true || modo === "unidad";
     const esBlister = modo === "blister";
     if (esBlister && precioBlisterParaVenta(item) <= 0) {
-      showToast(`"${item?.nombre || "Producto"}" no tiene precio de blister. Cárgalo en Inventario.`, "warning");
+      const cual = esCajaDosTamanos(item) ? "del chico" : "de blister";
+      showToast(`"${item?.nombre || "Producto"}" no tiene precio ${cual}. Cárgalo en Inventario.`, "warning");
       return false;
     }
     if (!esBlister && !productoEsVendible(item)) {
@@ -1682,7 +1727,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     if (esUnidad) {
       const dispUnidades = piezasSueltasDisponibles(item, getStockFifoDisponible(item));
       if (dispUnidades <= 0) {
-        showToast("Sin unidades disponibles para venta suelta.", "warning");
+        showToast(esCajaDosTamanos(item) ? "Sin grandes sueltos." : "Sin unidades disponibles para venta suelta.", "warning");
         return false;
       }
       const keyU = item.id+"_unit";
@@ -1696,13 +1741,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         }
         return ex
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,esBlister:false,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (unidad)`}];
+          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,esBlister:false,precio:precioUnidadParaVenta(item),nombre:`${tituloPublicoProducto(item)} (${sufijoVentaSuelta(item, "unidad")})`}];
       });
       return added;
     }
     if (esBlister) {
       if ((item.stock_blisters || 0) <= 0) {
-        showToast("Sin blisters disponibles.", "warning");
+        showToast(esCajaDosTamanos(item) ? "Sin chicos sueltos." : "Sin blisters disponibles.", "warning");
         return false;
       }
       const keyB = item.id+"_blister";
@@ -1711,13 +1756,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       setCart(p=>{
         const ex = p.find(c=>c.id===keyB);
         if (ex && ex.qty >= (item.stock_blisters || 0)) {
-          showToast(`Máx blisters sueltos: ${item.stock_blisters || 0}`, "warning");
+          showToast(esCajaDosTamanos(item) ? `Máx chicos sueltos: ${item.stock_blisters || 0}` : `Máx blisters sueltos: ${item.stock_blisters || 0}`, "warning");
           added = false;
           return p;
         }
         return ex
           ? p.map(c=>c.id===keyB?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyB,producto_id:item.id,qty:1,rxI:null,esUnidad:false,esBlister:true,precio:precioB,nombre:`${tituloPublicoProducto(item)} (blister)`}];
+          : [...p,{...item,id:keyB,producto_id:item.id,qty:1,rxI:null,esUnidad:false,esBlister:true,precio:precioB,nombre:`${tituloPublicoProducto(item)} (${sufijoVentaSuelta(item, "blister")})`}];
       });
       return added;
     }
@@ -2047,6 +2092,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const destino = unidadesAlAbrirCaja(item);
     aplicarStockPos(item.id, (p) => {
       const base = restarUnaCajaLocal(p, hoyISOMexico());
+      if (destino.stock === "ambos") {
+        return {
+          ...base,
+          stock_blisters: row?.stock_blisters_nuevo ?? p.stock_blisters,
+          stock_unidades: row?.stock_unidades_nuevo ?? p.stock_unidades,
+        };
+      }
       if (destino.stock === "blisters") {
         return {
           ...base,
@@ -2059,7 +2111,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         stock_unidades: row?.stock_unidades_nuevo ?? ((Number(p.stock_unidades) || 0) + destino.cantidad),
       };
     });
-    if (destino.stock === "blisters") {
+    if (destino.stock === "ambos") {
+      const grandes = row?.stock_unidades_nuevo ?? item.stock_unidades;
+      const chicos = row?.stock_blisters_nuevo ?? item.stock_blisters;
+      showToast(`Caja abierta. Grandes: ${grandes}. Chicos: ${chicos}.`, "success");
+    } else if (destino.stock === "blisters") {
       const n = row?.stock_blisters_nuevo ?? ((Number(item.stock_blisters) || 0) + destino.cantidad);
       showToast(`Caja abierta. Blisters disponibles: ${n}`, "success");
     } else {
@@ -2113,6 +2169,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       actual = {
         ...base,
         stock_unidades: sueltas,
+        stock_blisters: row?.stock_blisters_nuevo != null
+          ? Number(row.stock_blisters_nuevo)
+          : base.stock_blisters,
         stock: row?.stock_nuevo != null ? Number(row.stock_nuevo) : base.stock,
       };
     }
@@ -2247,7 +2306,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           nombre: p.nombre || c.nombre || `Producto ${pid}`,
           requested,
           available,
-          unidad: modoLinea === "unidad" ? "unidad(es)" : modoLinea === "blister" ? "blister(s)" : "caja(s)",
+          unidad: modoLinea === "unidad"
+            ? (esCajaDosTamanos(p) ? "grande(s)" : "unidad(es)")
+            : modoLinea === "blister"
+              ? (esCajaDosTamanos(p) ? "chico(s)" : "blister(s)")
+              : "caja(s)",
         };
       })
       .filter(Boolean);
@@ -2932,7 +2995,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 const maxU = c.esBlister
                   ? (Number(prodLive?.stock_blisters ?? item.stock_blisters) || 0)
                   : piezasSueltasDisponibles(prodLive, getStockFifoDisponible(prodLive));
-                if(c.qty>=maxU){ showToast(c.esBlister ? `Máx blisters: ${maxU}` : `Máx piezas: ${maxU}`,"warning"); return c; }
+                if(c.qty>=maxU){
+                  const dos = esCajaDosTamanos(prodLive || c);
+                  showToast(
+                    c.esBlister
+                      ? (dos ? `Máx chicos: ${maxU}` : `Máx blisters: ${maxU}`)
+                      : (dos ? `Máx grandes: ${maxU}` : `Máx piezas: ${maxU}`),
+                    "warning",
+                  );
+                  return c;
+                }
                 return {...c,qty:c.qty+1};
               }
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));

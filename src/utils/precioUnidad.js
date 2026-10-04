@@ -74,10 +74,34 @@ export function piezasPorBlisterDefault(unidadesPorCaja) {
   return 0;
 }
 
+/**
+ * Caja mixta: trae dos tamaños (parches Alfa Med, 5 grandes y 5 chicos).
+ * El renglón de “blister” guarda el chico; no es una tira de tabletas.
+ */
+export function esCajaDosTamanos(producto) {
+  if (producto?.venta_dos_tamanos === true) return true;
+  const texto = `${producto?.nombre || ""} ${producto?.presentacion || ""}`;
+  return /\b(2|dos)\s*tamañ/i.test(texto);
+}
+
 /** Venta por blister solo dentro de la venta por pieza, y solo si la caja parte bien. */
 export function productoVendeBlister(producto) {
-  if (!producto?.venta_unidad) return false;
+  if (!producto?.venta_unidad || esCajaDosTamanos(producto)) return false;
   return blistersPorCaja(producto.unidades_por_caja, producto.piezas_por_blister) >= 2;
+}
+
+/** El chico se vende suelto. `piezas_por_blister` es cuántos chicos trae la caja. */
+export function productoVendeTamanoChico(producto) {
+  if (!producto?.venta_unidad || !esCajaDosTamanos(producto)) return false;
+  return (parseInt(producto.piezas_por_blister, 10) || 0) >= 1;
+}
+
+/** Sufijo del renglón en el mostrador: grande/chico o unidad/blister. */
+export function sufijoVentaSuelta(producto, modo) {
+  const dos = esCajaDosTamanos(producto);
+  if (modo === "blister") return dos ? "chico" : "blister";
+  if (modo === "unidad" || modo === true) return dos ? "grande" : "unidad";
+  return "caja";
 }
 
 /** Misma regla que la pieza, con divisor = blisters por caja (no piezas). */
@@ -91,10 +115,22 @@ export function sugerirPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBl
   return calcPrecioBlister(precio, costo, unidadesPorCaja, piezasPorBlister, categoria, tipo);
 }
 
-/** Precio efectivo del blister: el guardado. La regla solo sugiere. */
+/** Precio efectivo del blister o del tamaño chico: el guardado. La regla solo sugiere. */
 export function precioBlisterParaVenta(producto) {
+  const guardado = Math.ceil(parseFloat(producto?.precio_blister) || 0);
+  if (productoVendeTamanoChico(producto)) {
+    if (guardado > 0) return guardado;
+    const chicos = parseInt(producto.piezas_por_blister, 10) || 0;
+    if (chicos < 1) return 0;
+    return calcPrecioUnidad(
+      producto.precio,
+      producto.costo,
+      chicos,
+      producto.categoria,
+      producto.tipo,
+    );
+  }
   if (!productoVendeBlister(producto)) return 0;
-  const guardado = Math.ceil(parseFloat(producto.precio_blister) || 0);
   if (guardado > 0) return guardado;
   return calcPrecioBlister(
     producto.precio,
@@ -111,6 +147,13 @@ export function precioBlisterParaVenta(producto) {
  * `unidades_por_caja` vacío cuenta como 1, igual que abrir_caja_lote.
  */
 export function unidadesAlAbrirCaja(producto) {
+  if (esCajaDosTamanos(producto)) {
+    const grandes = parseInt(producto?.unidades_por_caja, 10) || 0;
+    const chicos = parseInt(producto?.piezas_por_blister, 10) || 0;
+    if (grandes >= 1 && chicos >= 1) {
+      return { stock: "ambos", cantidad: grandes, grandes, chicos };
+    }
+  }
   const n = blistersPorCaja(producto?.unidades_por_caja, producto?.piezas_por_blister);
   if (n >= 2) return { stock: "blisters", cantidad: n };
   const upc = parseInt(producto?.unidades_por_caja, 10);
@@ -176,8 +219,22 @@ export function aplicarReglaPrecioUnidad(fields) {
   const manual = precioUnidadManual(fields.precio_unidad);
   const sugerido = calcPrecioUnidad(fields.precio, fields.costo, upc, fields.categoria, fields.tipo);
   const ppb = parseInt(fields.piezas_por_blister, 10) || 0;
-  const blisters = blistersPorCaja(upc, ppb);
   const manualBlister = Math.ceil(parseFloat(fields.precio_blister) || 0);
+  if (esCajaDosTamanos(fields)) {
+    const chicos = ppb >= 1 ? ppb : 0;
+    const sugeridoChico = chicos >= 1
+      ? calcPrecioUnidad(fields.precio, fields.costo, chicos, fields.categoria, fields.tipo)
+      : 0;
+    return {
+      ...fields,
+      unidades_por_caja: upc,
+      precio_unidad: manual > 0 ? manual : sugerido,
+      piezas_por_blister: chicos,
+      precio_blister: chicos >= 1 ? (manualBlister > 0 ? manualBlister : sugeridoChico) : 0,
+      stock_blisters: chicos >= 1 ? (parseInt(fields.stock_blisters, 10) || 0) : 0,
+    };
+  }
+  const blisters = blistersPorCaja(upc, ppb);
   const sugeridoBlister = blisters >= 2
     ? calcPrecioUnidad(fields.precio, fields.costo, blisters, fields.categoria, fields.tipo)
     : 0;

@@ -4,6 +4,7 @@ import {
   calcPrecioBlister,
   calcPrecioUnidad,
   cobroUnidad,
+  esCajaDosTamanos,
   margenBrutoPct,
   piezasPorBlisterDefault,
   piezasDesdeBlistersPorCaja,
@@ -11,6 +12,8 @@ import {
   precioUnidadManual,
   precioUnidadParaVenta,
   productoVendeBlister,
+  productoVendeTamanoChico,
+  sufijoVentaSuelta,
   unidadesAlAbrirCaja,
 } from "./precioUnidad";
 
@@ -136,4 +139,39 @@ test("abrir caja con blister suma tiras; sin blister suma piezas", () => {
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 0 }).precio_blister).toBe(45);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 40 }).precio_blister).toBe(40);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, piezas_por_blister: 0, stock_blisters: 2 }).stock_blisters).toBe(0);
+});
+
+const parches = {
+  venta_unidad: true,
+  nombre: "Parches adhesivos Alfa Med 2 tamaños blanco",
+  unidades_por_caja: 5,
+  piezas_por_blister: 5,
+  precio: 71,
+  costo: 53.15,
+  precio_unidad: 12,
+  precio_blister: 18,
+  stock_blisters: 3,
+  categoria: "Botiquín",
+  tipo: "marca",
+};
+
+test("parches de dos tamaños usan el espacio del blister como el chico", () => {
+  expect(esCajaDosTamanos(parches)).toBe(true);
+  expect(esCajaDosTamanos({ nombre: "Aspirina 500 mg" })).toBe(false);
+  expect(productoVendeBlister(parches)).toBe(false);
+  expect(productoVendeTamanoChico(parches)).toBe(true);
+  expect(sufijoVentaSuelta(parches, "unidad")).toBe("grande");
+  expect(sufijoVentaSuelta(parches, "blister")).toBe("chico");
+  expect(precioBlisterParaVenta(parches)).toBe(18);
+  expect(precioUnidadParaVenta(parches)).toBe(12);
+  expect(unidadesAlAbrirCaja(parches)).toEqual({ stock: "ambos", cantidad: 5, grandes: 5, chicos: 5 });
+});
+
+test("guardar 5 grandes y 5 chicos no borra el precio del chico", () => {
+  const guardado = aplicarReglaPrecioUnidad({ ...parches, precio_blister: 15, precio_unidad: 12 });
+  expect(guardado.piezas_por_blister).toBe(5);
+  expect(guardado.precio_blister).toBe(15);
+  expect(guardado.precio_unidad).toBe(12);
+  expect(guardado.stock_blisters).toBe(3);
+  expect(aplicarReglaPrecioUnidad({ ...parches, precio_blister: 0 }).precio_blister).toBeGreaterThan(0);
 });
