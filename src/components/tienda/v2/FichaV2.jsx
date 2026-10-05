@@ -77,6 +77,8 @@ export default function FichaV2({
   const fotoRef = useRef(null);
   const zoom = useZoomPackshot(imagen || "", fotoRef);
   const [barra, setBarra] = useState(false);
+  const [imgRota, setImgRota] = useState(false);
+  useEffect(() => { setImgRota(false); }, [prod?.id, imagen]);
 
   // La barra fija de celular solo aparece cuando la caja de compra ya no se ve,
   // para no repetir el mismo botón dos veces en pantalla ni en el lector de voz.
@@ -124,15 +126,16 @@ export default function FichaV2({
 
         <div className="fc-detail-media">
           <div className="fc-detail-photo" ref={fotoRef}>
-            {imagen
+            {imagen && !imgRota
               ? (
                 <img
                   src={imagen}
                   alt={prod.nombre || ""}
                   style={zoom > 1 ? { "--fc-pack-zoom": String(zoom) } : undefined}
+                  onError={() => setImgRota(true)}
                 />
               )
-              : <span className="fc-small">Foto no disponible</span>}
+              : <span className="fc-photo-ph">Imagen próximamente</span>}
           </div>
         </div>
 

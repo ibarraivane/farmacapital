@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, MessagesSquare, ArrowRight, MessageCircleQuestion, BadgePercent, ShieldCheck } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
 import HeroCarrusel from "./HeroCarrusel";
@@ -98,18 +98,18 @@ export function productosEnSucursal(productos, limite = MAX_FILA) {
 /** Catálogo extendido: lo que se consigue por encargo. */
 export function productosPorEncargo(productos, limite = MAX_FILA) {
   return (productos || [])
-    .filter((p) => p && p.activo !== false && esBajoPedido(p))
-    .sort((a, b) => (conFoto(b) ? 1 : 0) - (conFoto(a) ? 1 : 0))
+    .filter((p) => p && p.activo !== false && esBajoPedido(p) && conFoto(p))
     .slice(0, limite);
 }
 
 function TarjetaEncargo({ prod, onClick }) {
-  const img = fotoDe(prod);
+  const [rota, setRota] = useState(false);
+  const img = rota ? "" : fotoDe(prod);
   const marca = String(prod?.marca || "").trim();
   const precio = Number(prod?.precio) > 0.01 ? $peso(Number(prod.precio)) : "Consultar";
   return (
     <button type="button" className="fc-encargo" onClick={() => onClick?.(prod)}>
-      {img ? <img src={img} alt="" loading="lazy" decoding="async" /> : <span className="fc-encargo-ph" />}
+      {img ? <img src={img} alt="" loading="lazy" decoding="async" onError={() => setRota(true)} /> : <span className="fc-encargo-ph" />}
       {marca ? <span className="fc-product-brand">{marca}</span> : null}
       <span className="fc-encargo-name">{nombrePublicoTienda(prod) || prod?.nombre}</span>
       <span className="fc-small">{presentacionPublicaTienda(prod) || ""}</span>

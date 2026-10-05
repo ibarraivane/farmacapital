@@ -60,7 +60,9 @@ export default function TarjetaProducto({ prod, onClick }) {
               setImgRota(true);
             }}
           />
-        ) : null}
+        ) : (
+          <span className="fc-photo-ph">Imagen próximamente</span>
+        )}
       </button>
       <EstadoDisponibilidad producto={prod} />
       {marca ? <div className="fc-product-brand">{marca}</div> : null}
