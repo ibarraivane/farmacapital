@@ -36,7 +36,7 @@ import {
 import { productoEsVendible } from "./utils/productoVendible";
 import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
 import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
-import { chipsDeSeccion, productoEnVitrina } from "./constants/vitrinaTienda";
+import { chipsDeSeccion, conteosDeSeccion, etiquetasFiltroSeccion, productoEnVitrina } from "./constants/vitrinaTienda";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -46,7 +46,8 @@ import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, s
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
-import { pageIdToTiendaPath, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import { pageIdToTiendaPath, productIdParaHistorialTienda, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch, tiendaQueryFromSearch } from "./shared/tiendaRoutes";
+import { aplicarDocumentMeta, metaDeRutaTienda } from "./lib/tiendaDocumentMeta";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
@@ -54,11 +55,13 @@ import FichaProductoEnriquecida from "./components/tienda/FichaProductoEnriqueci
 import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
 import IntroAnimacion from "./components/tienda/IntroAnimacion";
 import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
+import EnlaceTienda from "./components/tienda/v2/EnlaceTienda";
 import PieV2 from "./components/tienda/v2/PieV2";
 import InicioV2 from "./components/tienda/v2/InicioV2";
 import CotizarV2 from "./components/tienda/v2/CotizarV2";
 import CatalogoV2 from "./components/tienda/v2/CatalogoV2";
 import FichaV2 from "./components/tienda/v2/FichaV2";
+import NoEncontradaV2 from "./components/tienda/v2/NoEncontradaV2";
 import { ResenasResumenCtx, EstrellasDeProducto, ListaResenasPublicas, BloqueResenaPedido, FormularioResenaToken } from "./components/tienda/ResenasTienda";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
@@ -78,7 +81,8 @@ import {
   prepararListaTienda,
   tipoCarrito,
 } from "./lib/bajoPedido";
-import { traerProductosActivos } from "./lib/catalogoConsulta";
+import { traerProductoPorId, traerProductosActivos } from "./lib/catalogoConsulta";
+import { resolverFichaDeepLink } from "./lib/tiendaDeepLinkProducto";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
 import { CANJES_PUNTOS, canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo, pesosDePuntos } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
@@ -1421,9 +1425,9 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
         {!usuario && (
           <div style={{padding: "16px 24px", borderBottom: `1px solid ${C.border}`}}>
             <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8}}>
-              <button
-                type="button"
-                onClick={() => handleNav("registro")}
+              <EnlaceTienda
+                href={pageIdToTiendaPath("registro")}
+                onNavigate={() => handleNav("registro")}
                 style={{
                   padding: "12px 8px",
                   borderRadius: 10,
@@ -1433,14 +1437,15 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                   fontWeight: 700, fontSize: 14,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  textDecoration: "none",
                 }}
               >
                 <UserPlus size={16}/>
                 Crear cuenta
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav("login")}
+              </EnlaceTienda>
+              <EnlaceTienda
+                href={pageIdToTiendaPath("login")}
+                onNavigate={() => handleNav("login")}
                 style={{
                   padding: "12px 8px",
                   borderRadius: 10,
@@ -1450,11 +1455,12 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                   fontWeight: 700, fontSize: 14,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  textDecoration: "none",
                 }}
               >
                 <LogIn size={16}/>
                 Iniciar sesión
-              </button>
+              </EnlaceTienda>
             </div>
           </div>
         )}
@@ -1468,10 +1474,10 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
             Explora
           </div>
           {navItems.map((item) => (
-            <button
+            <EnlaceTienda
               key={item.page}
-              type="button"
-              onClick={() => handleNav(item.page)}
+              href={pageIdToTiendaPath(item.page)}
+              onNavigate={() => handleNav(item.page)}
               style={{
                 width: "100%",
                 padding: "12px 24px",
@@ -1486,6 +1492,8 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 fontWeight: 600,
                 textAlign: "left",
                 transition: "background .15s",
+                textDecoration: "none",
+                boxSizing: "border-box",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -1493,7 +1501,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
               <item.icon size={20} color={BRAND.primary}/>
               <span style={{flex: 1}}>{item.label}</span>
               <ChevronRight size={16} color={C.textDim}/>
-            </button>
+            </EnlaceTienda>
           ))}
         </div>
 
@@ -1598,10 +1606,10 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
             Ayuda
           </div>
           {ayudaItems.map((item) => (
-            <button
+            <EnlaceTienda
               key={item.page}
-              type="button"
-              onClick={() => handleNav(item.page)}
+              href={pageIdToTiendaPath(item.page)}
+              onNavigate={() => handleNav(item.page)}
               style={{
                 width: "100%",
                 padding: "10px 24px",
@@ -1615,13 +1623,15 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 fontSize: 13,
                 textAlign: "left",
                 transition: "background .15s",
+                textDecoration: "none",
+                boxSizing: "border-box",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               <item.icon size={16} color={C.textDim}/>
               <span>{item.label}</span>
-            </button>
+            </EnlaceTienda>
           ))}
         </div>
 
@@ -2045,7 +2055,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
 }
 
 // ── DETALLE PRODUCTO ──────────────────────────────────────────
-function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHero,setBusqHero}){
+function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHero,setBusqHero,loadingFicha=false}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 700px)");
   const narrowSuggest = useMediaQuery("(max-width: 768px)");
@@ -2094,13 +2104,25 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     });
     return () => { cancelled = true; };
   }, [prod?.id]);
-  if(!prod) return (
+  if(!prod) {
+    if (loadingFicha) {
+      return (
+        <div className="fc-body fc-ficha" style={{maxWidth:720,margin:"40px auto",padding:"0 24px"}} aria-busy="true" aria-live="polite">
+          <div className="fc-skeleton" style={{height:28,width:"40%",marginBottom:16}} />
+          <div className="fc-skeleton" style={{height:220,marginBottom:16}} />
+          <div className="fc-skeleton" style={{height:48,width:"55%"}} />
+          <p style={{color:C.mid,fontSize:14,marginTop:16}}>Cargando producto…</p>
+        </div>
+      );
+    }
+    return (
     <div style={{maxWidth:560,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
-      <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Producto no disponible</h2>
-      <p style={{color:C.mid,fontSize:14,marginBottom:20,lineHeight:1.5}}>Este enlace no tiene un producto cargado. Vuelve al catálogo para elegir otro.</p>
+      <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Este producto ya no está disponible</h2>
+      <p style={{color:C.mid,fontSize:14,marginBottom:20,lineHeight:1.5}}>El enlace no corresponde a un producto activo. Vuelve al catálogo para elegir otro.</p>
       <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary}>Ver catálogo</Btn>
     </div>
-  );
+    );
+  }
   const agotado = productoAgotadoTienda(prod);
   const cta = ctaBajoPedido(prod); // bajo pedido: "ordenar"
   const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
@@ -3480,6 +3502,11 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       : chipsAreaTienda(poolCatalogoTienda(productos), cat)),
     [v2, productos, seccion, cat]
   );
+  const conteosChips = useMemo(
+    () => (v2 ? conteosDeSeccion(seccion, poolCatalogoTienda(productos)) : {}),
+    [v2, productos, seccion]
+  );
+  const etiquetasChips = useMemo(() => etiquetasFiltroSeccion(seccion), [seccion]);
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
     .filter(p => v2
       ? productoEnVitrina(p, { seccion, chip, busqueda: busq })
@@ -3530,6 +3557,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         total={fil.length}
         categorias={cats}
         categoria={chip}
+        conteos={conteosChips}
+        etiquetaMas={etiquetasChips.etiquetaMas}
+        etiquetaBuscar={etiquetasChips.etiquetaBuscar}
         onCategoria={(c) => {
           setChip(c);
           setBusq("");
@@ -3540,7 +3570,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         hayMas={hayMasCatalogo}
         onVerMas={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
         loading={loadingProductos}
-        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle"); }}
+        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle", { productId: prod?.id }); }}
         setPage={setPage}
         avisoRx={filtroRx ? (
           <div className="fc-info-box" style={{ marginBottom: 16 }}>
@@ -5200,7 +5230,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
-          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
+          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:12,marginBottom:8}}><span style={{color:C.mid,fontSize:13,minWidth:0,overflowWrap:"anywhere"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600,whiteSpace:"nowrap",flexShrink:0}}>{$(cobroDe(item))}</span></div>))}
           {entrega!=="pickup"&&(
             <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
               <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
@@ -5545,13 +5575,31 @@ function PromocionesPage({setPage}){
   const stack = useMediaQuery("(max-width: 768px)");
   const [promos, setPromos] = useState([]);
   const [load, setLoad] = useState(true);
-  useEffect(()=>{
+  const [promoError, setPromoError] = useState("");
+  const cargarPromos = ()=>{
     const hoy = new Date().toISOString().split("T")[0];
+    setLoad(true);
+    setPromoError("");
     supabase.from("promociones").select("*")
       .eq("activa",true)
       .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
-      .then(({data})=>{ setPromos(data||[]); setLoad(false); });
-  },[]);
+      .then(({data, error})=>{
+        if (error) {
+          setPromoError(error.message || "No pudimos cargar las promociones.");
+          setPromos([]);
+          setLoad(false);
+          return;
+        }
+        setPromos(data||[]);
+        setLoad(false);
+      })
+      .catch(()=>{
+        setPromoError("No pudimos cargar las promociones.");
+        setPromos([]);
+        setLoad(false);
+      });
+  };
+  useEffect(()=>{ cargarPromos(); },[]);
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
       <button type="button" onClick={()=>setPage("home")} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>← Inicio</button>
@@ -5562,7 +5610,15 @@ function PromocionesPage({setPage}){
         </p>
       </div>
       {load ? (
-        <div style={{color:C.mid,fontSize:14}}>Cargando promociones…</div>
+        <div aria-busy="true" aria-live="polite">
+          <div className="fc-skeleton" style={{height:120,marginBottom:12}} />
+          <div className="fc-skeleton" style={{height:120}} />
+        </div>
+      ) : promoError ? (
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center",color:C.mid}}>
+          <p style={{margin:"0 0 16px"}}>No pudimos cargar las promociones. Reintentar</p>
+          <Btn onClick={cargarPromos} col={BRAND.primary} sm>Reintentar</Btn>
+        </div>
       ) : promos.length===0 ? (
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center",color:C.mid}}>
           No hay promociones activas en este momento. Revisa el catálogo o vuelve pronto.
@@ -6966,16 +7022,30 @@ export default function TiendaFarmaCapital(){
   const pageRef = useRef(page);
   pageRef.current = page;
   const catalogoScrollIntentRef = useRef("top");
-  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "" } = {}) => {
-    const path = pageIdToTiendaPath(target, {
-      rx: target === "catalogo" && rx,
-      reset: target === "reset-password" ? token : undefined,
-      productId: target === "detalle" ? productId : undefined,
-      search: target === "conseguir" ? search : undefined,
-      seccion: target === "catalogo" ? seccion : undefined,
-    });
+  const deepLinkProductIdRef = useRef((() => {
+    try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
+  })());
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "", pathname = "" } = {}) => {
+    const resolvedProductId = productIdParaHistorialTienda(
+      target,
+      productId,
+      typeof window !== "undefined" ? window.location.search : "",
+    );
+    let path;
+    if (target === "notfound") {
+      path = pathname || (typeof window !== "undefined" ? window.location.pathname : "/404");
+      if (!path || path === "/") path = "/404";
+    } else {
+      path = pageIdToTiendaPath(target, {
+        rx: target === "catalogo" && rx,
+        reset: target === "reset-password" ? token : undefined,
+        productId: target === "detalle" ? resolvedProductId : undefined,
+        search: (target === "conseguir" || target === "catalogo") ? search : undefined,
+        seccion: target === "catalogo" ? seccion : undefined,
+      });
+    }
     const fn = replace ? window.history.replaceState : window.history.pushState;
-    fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
+    fn.call(window.history, { page: target, productId: target === "detalle" ? resolvedProductId : undefined }, "", path);
   };
   const setPage = (p, opts = {}) => {
     const resolved = p === "reset-password" ? "reset-password" : resolveTiendaPage(p);
@@ -7011,13 +7081,20 @@ export default function TiendaFarmaCapital(){
     } else if (target !== "detalle") {
       catalogoScrollIntentRef.current = "top";
     }
+    if (target !== "catalogo" && target !== "conseguir" && target !== "detalle" && target !== "cotizar") {
+      try { sessionStorage.removeItem("farmacapital_busq"); } catch (_) { /* noop */ }
+      if (busqHero) setBusqHero("");
+    }
     try {
       writeTiendaHistory(target, {
         rx: nextRx,
         token: resetToken,
         productId: target === "detalle" ? (opts.productId || "") : undefined,
-        search: target === "conseguir" ? (opts.search || busqHero || "") : undefined,
+        search: (target === "conseguir" || target === "catalogo")
+          ? (opts.search != null ? opts.search : (target === "conseguir" ? (busqHero || "") : ""))
+          : undefined,
         seccion: target === "catalogo" ? (opts.seccion || "") : "",
+        pathname: target === "notfound" ? (opts.pathname || "") : "",
       });
     } catch {
       try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
@@ -7027,7 +7104,7 @@ export default function TiendaFarmaCapital(){
   useEffect(()=>{
     const h=(e)=>{
       let p = e.state?.page || tiendaPathnameToPageId(window.location.pathname) || "home";
-      p = resolveTiendaPage(p) || "home";
+      p = resolveTiendaPage(p) || (tiendaPathnameToPageId(window.location.pathname) === "notfound" ? "notfound" : "home");
       if (p === "cita" && !getClienteToken()) {
         setPostLoginPage("cita");
         p = "login";
@@ -7067,6 +7144,7 @@ export default function TiendaFarmaCapital(){
       } else {
         const id = tiendaPathnameToPageId(window.location.pathname) || "home";
         const seccionInicial = seccionVitrinaFromPath(window.location.pathname);
+        const qInicial = tiendaQueryFromSearch(window.location.search);
         if (seccionInicial) {
           try { sessionStorage.setItem("farmacapital_vitrina", seccionInicial); } catch (_) { /* noop */ }
         }
@@ -7086,11 +7164,15 @@ export default function TiendaFarmaCapital(){
               `${window.location.pathname}${window.location.search}${window.location.hash}`
             );
           } catch (_) { /* noop */ }
+        } else if (id === "notfound") {
+          writeTiendaHistory("notfound", { replace: true, pathname: window.location.pathname });
         } else {
           writeTiendaHistory(id, {
             replace: true,
             rx: rx && id === "catalogo",
             seccion: id === "catalogo" ? seccionInicial : "",
+            productId: id === "detalle" ? deepLinkProductIdRef.current : undefined,
+            search: (id === "catalogo" || id === "conseguir") ? qInicial : undefined,
           });
         }
       }
@@ -7157,34 +7239,76 @@ export default function TiendaFarmaCapital(){
     } catch (_) { /* noop */ }
     setProdDRaw(p);
   };
-  const [busqHero,setBusqHero]   = useState("");
+  const [busqHero,setBusqHero]   = useState(() => {
+    try { return tiendaQueryFromSearch(window.location.search); } catch { return ""; }
+  });
+  useEffect(() => {
+    let seccion = "";
+    try {
+      seccion = seccionVitrinaFromPath(window.location.pathname)
+        || sessionStorage.getItem("farmacapital_vitrina")
+        || "";
+    } catch (_) { /* noop */ }
+    aplicarDocumentMeta(metaDeRutaTienda({
+      page,
+      seccion,
+      prod: page === "detalle" ? prodDetalle : null,
+      pathname: typeof window !== "undefined" ? window.location.pathname : "",
+      search: typeof window !== "undefined" ? window.location.search : "",
+    }));
+  }, [page, prodDetalle]);
   const [showPopup,setShowPopup] = useState(false);
   const [popupBanner,setPopupBanner] = useState(null);
   const [entregaCheckout,setEntregaCheckout] = useState("pickup");
   const [precioConsultaCfg,setPrecioConsultaCfg] = useState(CONSULTA_PRECIO_DEFAULT);
   const [placeholderProductoUrl, setPlaceholderProductoUrl] = useState("");
   const [mapaPromos, setMapaPromos] = useState(() => new Map());
+  const [fetchingDeepLink, setFetchingDeepLink] = useState(false);
+  const deepLinkPedidoRef = useRef("");
 
   useEffect(() => {
-    if (page !== "detalle") return;
-    if (prodDetalle?.id) {
-      try { writeTiendaHistory("detalle", { replace: true, productId: prodDetalle.id }); } catch (_) { /* noop */ }
-      return;
-    }
+    if (page !== "detalle") return undefined;
     const id = (() => {
-      try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
+      try {
+        return tiendaProductIdFromSearch(window.location.search) || deepLinkProductIdRef.current || "";
+      } catch {
+        return deepLinkProductIdRef.current || "";
+      }
     })();
-    let found = null;
-    if (id && productos.length) {
-      found = productos.find((x) => String(x?.id) === String(id)) || null;
+    const resolved = resolverFichaDeepLink({
+      productId: id,
+      productos,
+      loading: loadingProductos,
+      fetching: fetchingDeepLink,
+      saved: prodDetalle,
+    });
+    if (resolved.status === "ready" && resolved.prod?.id) {
+      if (!prodDetalle?.id || String(prodDetalle.id) !== String(resolved.prod.id)) {
+        setProdD(resolved.prod);
+      }
+      try { writeTiendaHistory("detalle", { replace: true, productId: resolved.prod.id }); } catch (_) { /* noop */ }
+      return undefined;
     }
-    if (found) {
-      setProdD(found);
-      return;
+    if (resolved.status === "loading") return undefined;
+    if (id && deepLinkPedidoRef.current !== id) {
+      deepLinkPedidoRef.current = id;
+      let cancelled = false;
+      setFetchingDeepLink(true);
+      traerProductoPorId(supabase, id).then(({ data, error }) => {
+        if (cancelled) return;
+        setFetchingDeepLink(false);
+        if (error || !data) return;
+        const lista = prepararListaTienda([data]);
+        const row = lista[0] || data;
+        if (row?.activo === false) return;
+        setProdD(row);
+      }).catch(() => {
+        if (!cancelled) setFetchingDeepLink(false);
+      });
+      return () => { cancelled = true; };
     }
-    if (loadingProductos) return;
-    if (!id) setPage("catalogo");
-  }, [page, prodDetalle, productos, loadingProductos]);
+    return undefined;
+  }, [page, prodDetalle, productos, loadingProductos, fetchingDeepLink]);
 
   useEffect(() => {
     fetchPrecioConsultaConfig(supabase).then(setPrecioConsultaCfg);
@@ -7524,7 +7648,7 @@ export default function TiendaFarmaCapital(){
     home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg} loadingProductos={loadingProductos} recompras={recomprasHome} sugeridos={sugeridosHome}/>,
     catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos} filtroRx={filtroRx} onClearRx={()=>setPage("catalogo",{rx:false})}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
-    detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
+    detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} loadingFicha={loadingProductos || fetchingDeepLink}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout} user={user}/>,
     checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} setUser={setUser} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
@@ -7563,6 +7687,7 @@ export default function TiendaFarmaCapital(){
       </>
     ),
     pagar: <PagarPedidoInvitado />,
+    notfound: <NoEncontradaV2 setPage={setPage} />,
   };
 
   const sinFooter=["home","tarjeta"];
@@ -7654,7 +7779,7 @@ export default function TiendaFarmaCapital(){
 
       <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
         <main style={{background: v2 ? "#FFFFFF" : C.bg}}>
-          {pages[page]||pages.home}
+          {pages[page]||pages.notfound}
         </main>
         {v2
           ? (page !== "tarjeta" && <PieV2 setPage={setPage} />)

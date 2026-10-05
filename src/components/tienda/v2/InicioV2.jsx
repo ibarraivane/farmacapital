@@ -1,16 +1,20 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, MessagesSquare, ArrowRight, MessageCircleQuestion, BadgePercent, ShieldCheck } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
 import HeroCarrusel from "./HeroCarrusel";
+import CategoriasMosaico from "./CategoriasMosaico";
+import { resumirMundos, mundosVisibles } from "./mundosTienda";
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
-import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
+import { seccionDe } from "../../../constants/vitrinaTienda";
 import { urlImagenPublicaTienda, tiendaCardImageUrl } from "../../../utils/tiendaCardImage";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
 import { CONSULTA_PRECIO_DEFAULT } from "../../../utils/consultaConstants";
 import { $peso } from "../../../utils";
 import { nombrePublicoTienda, presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { normalizeCategoriaKey } from "../../../constants/categoriasProducto";
+import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
+import EnlaceTienda from "./EnlaceTienda";
 
 const MAX_FILA = 4;
 
@@ -98,23 +102,24 @@ export function productosEnSucursal(productos, limite = MAX_FILA) {
 /** Catálogo extendido: lo que se consigue por encargo. */
 export function productosPorEncargo(productos, limite = MAX_FILA) {
   return (productos || [])
-    .filter((p) => p && p.activo !== false && esBajoPedido(p))
-    .sort((a, b) => (conFoto(b) ? 1 : 0) - (conFoto(a) ? 1 : 0))
+    .filter((p) => p && p.activo !== false && esBajoPedido(p) && conFoto(p))
     .slice(0, limite);
 }
 
 function TarjetaEncargo({ prod, onClick }) {
-  const img = fotoDe(prod);
+  const [rota, setRota] = useState(false);
+  const img = rota ? "" : fotoDe(prod);
   const marca = String(prod?.marca || "").trim();
   const precio = Number(prod?.precio) > 0.01 ? $peso(Number(prod.precio)) : "Consultar";
+  const href = pageIdToTiendaPath("detalle", { productId: prod?.id });
   return (
-    <button type="button" className="fc-encargo" onClick={() => onClick?.(prod)}>
-      {img ? <img src={img} alt="" loading="lazy" decoding="async" /> : <span className="fc-encargo-ph" />}
+    <EnlaceTienda className="fc-encargo" href={href} onNavigate={() => onClick?.(prod)}>
+      {img ? <img src={img} alt="" loading="lazy" decoding="async" onError={() => setRota(true)} /> : <span className="fc-encargo-ph" />}
       {marca ? <span className="fc-product-brand">{marca}</span> : null}
       <span className="fc-encargo-name">{nombrePublicoTienda(prod) || prod?.nombre}</span>
       <span className="fc-small">{presentacionPublicaTienda(prod) || ""}</span>
       <strong className="fc-price">{precio}</strong>
-    </button>
+    </EnlaceTienda>
   );
 }
 
@@ -149,7 +154,7 @@ export default function InicioV2({
   const abrirProducto = (prod) => {
     if (!prod) return;
     setProdDetalle?.(prod);
-    setPage?.("detalle");
+    setPage?.("detalle", { productId: prod.id });
   };
   const irCategoria = (nombre) => irASeccionVitrina(setPage, nombre);
   const irCotizar = () => setPage?.("cotizar");
@@ -161,21 +166,25 @@ export default function InicioV2({
     vitaminas: <HeartPulse aria-hidden="true" />,
     botiquin: <Bandage aria-hidden="true" />,
   };
-  const descSeccion = {
-    "nutricion-deportiva": "Por marca",
-    dermocosmetica: "Por marca y solar",
-    medicamentos: "Por necesidad",
-    higiene: "Cabello, bucal y el día a día",
-    vitaminas: "Vitaminas, herbolarios y clínica",
-    botiquin: "Curación y aparatos",
-  };
-
-  const categorias = SECCIONES_VITRINA.map((sec) => ({
-    icon: iconoSeccion[sec.id],
-    titulo: sec.nombre,
-    desc: descSeccion[sec.id],
-    go: () => irCategoria(sec.nombre),
-  }));
+  const resumenMundos = useMemo(
+    () => resumirMundos(productos, { seccionDe, tieneFoto: conFoto }),
+    [productos]
+  );
+  const itemsMosaico = mundosVisibles(resumenMundos, {
+    cargando: loadingProductos,
+    hayCatalogo: (productos || []).length > 0,
+  }).map((m) => {
+    const prod = resumenMundos[m.id]?.producto;
+    return {
+      id: m.id,
+      titulo: m.titulo,
+      tono: m.tono,
+      foto: prod ? fotoDe(prod) : "",
+      icono: iconoSeccion[m.id],
+      href: pageIdToTiendaPath("catalogo", { seccion: m.seccion }),
+      onClick: () => irCategoria(m.seccion),
+    };
+  });
 
   const slidesHero = [
     {
@@ -188,6 +197,7 @@ export default function InicioV2({
       icono: <Droplets aria-hidden="true" />,
       nota: "Catálogo por encargo",
       cta: "Descubrir",
+      href: pageIdToTiendaPath("conseguir"),
       onIr: () => setPage?.("conseguir"),
     },
     {
@@ -199,6 +209,7 @@ export default function InicioV2({
       icono: <MessageCircleQuestion aria-hidden="true" />,
       nota: "Precio y disponibilidad por WhatsApp",
       cta: "Cotizar",
+      href: pageIdToTiendaPath("cotizar"),
       onIr: irCotizar,
     },
     // Copy de genéricos y marca original aprobado para producción (2026-09-25).
@@ -214,6 +225,7 @@ export default function InicioV2({
       icono: <BadgePercent aria-hidden="true" />,
       nota: "Pregunta por la alternativa a tu receta",
       cta: "Ver medicamentos",
+      href: pageIdToTiendaPath("catalogo", { seccion: "Medicamentos" }),
       onIr: () => irCategoria("Medicamentos"),
     },
     {
@@ -228,6 +240,7 @@ export default function InicioV2({
       icono: <ShieldCheck aria-hidden="true" />,
       nota: "Laboratorio original, disponibilidad en sucursal",
       cta: "Ver medicamentos",
+      href: pageIdToTiendaPath("catalogo", { seccion: "Medicamentos" }),
       onIr: () => irCategoria("Medicamentos"),
     },
   ];
@@ -244,9 +257,9 @@ export default function InicioV2({
           <p className="fc-description">
             Medicamentos, cuidado de la piel y nutrición, con el respaldo de nuestra sucursal.
           </p>
-          <button type="button" className="fc-primary" onClick={() => irCategoria("Medicamentos")}>
+          <EnlaceTienda className="fc-primary" href={pageIdToTiendaPath("catalogo", { seccion: "Medicamentos" })} onNavigate={() => irCategoria("Medicamentos")}>
             Buscar medicamento <ArrowRight aria-hidden="true" />
-          </button>
+          </EnlaceTienda>
         </div>
         <HeroCarrusel slides={slidesHero} />
       </section>
@@ -266,6 +279,8 @@ export default function InicioV2({
         </div>
       </div>
 
+      <CategoriasMosaico items={itemsMosaico} />
+
       <section className="fc-quote">
         <div>
           <div className="fc-eyebrow">Medicamentos especializados</div>
@@ -277,27 +292,15 @@ export default function InicioV2({
             Mándanos el nombre o la foto de tu receta. Te respondemos con precio, disponibilidad y
             fecha antes de cobrar nada.
           </p>
-          <button type="button" className="fc-secondary" onClick={irCotizar}>
+          <EnlaceTienda className="fc-secondary" href={pageIdToTiendaPath("cotizar")} onNavigate={irCotizar}>
             Cotizar mi medicamento <ArrowRight aria-hidden="true" />
-          </button>
+          </EnlaceTienda>
         </div>
         <ol className="fc-quote-steps">
           <li><strong>Nos dices qué necesitas</strong><span>Nombre, sustancia o receta.</span></li>
           <li><strong>Te cotizamos</strong><span>Precio, disponibilidad y fecha.</span></li>
           <li><strong>Apartas y lo recibes</strong><span>En sucursal o con envío cotizado.</span></li>
         </ol>
-      </section>
-
-      <section className="fc-section">
-        <div className="fc-section-top"><h2>¿Qué estás buscando?</h2></div>
-        <div className="fc-categories">
-          {categorias.map((c) => (
-            <button type="button" key={c.titulo} className="fc-category" onClick={c.go}>
-              {c.icon}
-              <span>{c.titulo}<small>{c.desc}</small></span>
-            </button>
-          ))}
-        </div>
       </section>
 
       {bannersSlot}
@@ -309,9 +312,9 @@ export default function InicioV2({
               <div className="fc-eyebrow" style={{ marginBottom: 7 }}>Medicamentos · En sucursal</div>
               <h2>Listos para recoger hoy.</h2>
             </div>
-            <button type="button" className="fc-textbtn" onClick={() => irCategoria("Medicamentos")}>
-              Ver medicamentos →
-            </button>
+            <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("catalogo", { seccion: "Medicamentos" })} onNavigate={() => irCategoria("Medicamentos")}>
+              Ver todos →
+            </EnlaceTienda>
           </div>
           <div className="fc-grid">
             {enSucursal.map((p) => (
@@ -328,7 +331,7 @@ export default function InicioV2({
               <div className="fc-eyebrow" style={{ marginBottom: 7 }}>Catálogo extendido · Por encargo</div>
               <h2>Tu cuidado, a tu manera.</h2>
             </div>
-            <button type="button" className="fc-textbtn" onClick={() => setPage?.("conseguir")}>Ver catálogo →</button>
+            <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("conseguir")} onNavigate={() => setPage?.("conseguir")}>Ver catálogo →</EnlaceTienda>
           </div>
           <div className="fc-grid">
             {porEncargo.map((p) => (
@@ -357,9 +360,9 @@ export default function InicioV2({
             Abrimos en agosto de 2026. Recoge tus pedidos, consulta a nuestro personal y conoce el
             consultorio.
           </p>
-          <button type="button" className="fc-textbtn" onClick={() => setPage?.("faq")}>
+          <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("faq")} onNavigate={() => setPage?.("faq")}>
             Ver ubicación y horarios →
-          </button>
+          </EnlaceTienda>
         </div>
         <div className="fc-clinic">
           <div className="fc-eyebrow">Consultorio en sucursal</div>
@@ -367,9 +370,9 @@ export default function InicioV2({
           <p className="fc-small">
             Consulta ${consulta} · Todos los días {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}
           </p>
-          <button type="button" className="fc-secondary" style={{ marginTop: 18 }} onClick={() => setPage?.("cita")}>
+          <EnlaceTienda className="fc-secondary" style={{ marginTop: 18 }} href={pageIdToTiendaPath("cita")} onNavigate={() => setPage?.("cita")}>
             Agendar consulta
-          </button>
+          </EnlaceTienda>
         </div>
       </section>
     </div>

@@ -1,5 +1,8 @@
 import { ArrowRight, FlaskConical } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
+import FiltroChips from "./FiltroChips";
+import EnlaceTienda from "./EnlaceTienda";
+import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
 
 const ORDENES = [
   { id: "relevancia", label: "Relevancia" },
@@ -30,6 +33,10 @@ export default function CatalogoV2({
   categorias = [],
   categoria = "Todos",
   onCategoria,
+  conteos = {},
+  maxChips,
+  etiquetaMas = "Ver todas",
+  etiquetaBuscar = "Buscar",
   orden = "relevancia",
   onOrden,
   hayMas = false,
@@ -45,7 +52,7 @@ export default function CatalogoV2({
     <div className="fc-body">
       <div className="fc-page-top">
         <h1>{titulo}</h1>
-        <button type="button" className="fc-textbtn" onClick={() => setPage?.("home")}>Inicio</button>
+        <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("home")} onNavigate={() => setPage?.("home")}>Inicio</EnlaceTienda>
       </div>
       <p className="fc-description">{descripcion}</p>
 
@@ -53,17 +60,15 @@ export default function CatalogoV2({
 
       {categorias.length > 1 ? (
         <div className="fc-filters">
-          {categorias.map((c) => (
-            <button
-              key={c}
-              type="button"
-              className="fc-filter"
-              aria-pressed={categoria === c}
-              onClick={() => onCategoria?.(c)}
-            >
-              {c}
-            </button>
-          ))}
+          <FiltroChips
+            opciones={categorias}
+            valor={categoria}
+            onChange={onCategoria}
+            conteos={conteos}
+            max={maxChips}
+            etiquetaMas={etiquetaMas}
+            etiquetaBuscar={etiquetaBuscar}
+          />
           <select
             className="fc-filter-select"
             aria-label="Ordenar productos"
@@ -99,14 +104,14 @@ export default function CatalogoV2({
         </div>
       )}
 
-      <button type="button" className="fc-quote-link" onClick={() => setPage?.("cotizar")}>
+      <EnlaceTienda className="fc-quote-link" href={pageIdToTiendaPath("cotizar")} onNavigate={() => setPage?.("cotizar")}>
         <FlaskConical aria-hidden="true" />
         <span>
           <strong>¿No está aquí?</strong>
           Te cotizamos medicamentos especializados y difíciles de conseguir, sin costo.
         </span>
         <ArrowRight aria-hidden="true" />
-      </button>
+      </EnlaceTienda>
     </div>
   );
 }

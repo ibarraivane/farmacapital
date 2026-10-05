@@ -194,7 +194,7 @@
       "destination": "/api/health?token=:token"
     },
     {
-      "source": "/((?!api/|static/|icons/|catalogo-propia/|brand/|manifest\\.json|service-worker\\.js|version\\.json|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
+      "source": "/((?!api/|static/|icons/|catalogo-propia/|brand/|manifest\\.json|service-worker\\.js|version\\.json|favicon\\.ico|asset-manifest\\.json|robots\\.txt|sitemap\\.xml).*)",
       "destination": "/index.html"
     }
   ],

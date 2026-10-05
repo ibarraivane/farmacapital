@@ -4,8 +4,10 @@ import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
 import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
-import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
+import { SECCIONES_VITRINA, slugSeccion } from "../../../constants/vitrinaTienda";
+import { pageIdToTiendaPath, seccionVitrinaFromPath } from "../../../shared/tiendaRoutes";
 import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
+import EnlaceTienda from "./EnlaceTienda";
 
 const PLACEHOLDER = "Nombre, principio activo o marca…";
 
@@ -42,9 +44,17 @@ export default function EncabezadoV2({
   const irACatalogoBusqueda = () => {
     const t = q.trim();
     setBusqFocus(false);
-    try { if (t) sessionStorage.setItem("farmacapital_busq", t); } catch (_) { /* noop */ }
-    go("catalogo");
+    try {
+      if (t) sessionStorage.setItem("farmacapital_busq", t);
+      else sessionStorage.removeItem("farmacapital_busq");
+    } catch (_) { /* noop */ }
+    go("catalogo", t ? { search: t } : { rx: false });
   };
+
+  const seccionActiva = (() => {
+    if (page !== "catalogo") return "";
+    try { return seccionVitrinaFromPath(window.location.pathname); } catch { return ""; }
+  })();
 
   const pick = (row) => {
     if (!row) return;
@@ -70,13 +80,13 @@ export default function EncabezadoV2({
         <span>Atención en sucursal · {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}</span>
       </div>
       <header className="fc-hdr">
-        <button type="button" className="fc-brand" onClick={() => go("home")} aria-label="Inicio FarmaCapital">
+        <EnlaceTienda className="fc-brand" href={pageIdToTiendaPath("home")} onNavigate={() => go("home")} aria-label="Inicio FarmaCapital">
           <img
             src={logoFullSrc({ light: true })}
             srcSet={logoFullSrcSet({ light: true })}
             alt="FarmaCapital"
           />
-        </button>
+        </EnlaceTienda>
         <form
           className="fc-search"
           role="search"
@@ -125,14 +135,14 @@ export default function EncabezadoV2({
             </div>
           )}
         </form>
-        <button
-          type="button"
+        <EnlaceTienda
           className="fc-iconbtn"
+          href={pageIdToTiendaPath(user ? "cuenta" : "login")}
           aria-label={user ? "Mi cuenta" : "Iniciar sesión"}
-          onClick={() => go(user ? "cuenta" : "login")}
+          onNavigate={() => go(user ? "cuenta" : "login")}
         >
           <User aria-hidden />
-        </button>
+        </EnlaceTienda>
         <button
           type="button"
           className="fc-iconbtn"
@@ -141,30 +151,39 @@ export default function EncabezadoV2({
         >
           <Menu aria-hidden />
         </button>
-        <button
-          type="button"
+        <EnlaceTienda
           className="fc-iconbtn"
+          href={pageIdToTiendaPath("carrito")}
           aria-label="Ver carrito"
-          onClick={() => go("carrito")}
+          onNavigate={() => go("carrito")}
         >
           <ShoppingBag aria-hidden />
           <span className="fc-cartnum">{n}</span>
-        </button>
+        </EnlaceTienda>
       </header>
       <nav className="fc-nav" aria-label="Áreas de la tienda" style={{ backgroundColor: "#ffffff" }}>
         {SECCIONES_VITRINA.map((sec) => (
-          <button key={sec.id} type="button" onClick={() => irASeccionVitrina(setPage, sec.nombre)}>{sec.nombre}</button>
+          <EnlaceTienda
+            key={sec.id}
+            href={pageIdToTiendaPath("catalogo", { seccion: sec.nombre })}
+            aria-current={seccionActiva && slugSeccion(seccionActiva) === sec.id ? "page" : undefined}
+            onNavigate={() => irASeccionVitrina(setPage, sec.nombre)}
+          >
+            {sec.nombre}
+          </EnlaceTienda>
         ))}
-        <button type="button" className="fc-nav-quote" onClick={() => go("cotizar")}>Cotizar especializado</button>
-        <button type="button" className="fc-location" onClick={irSucursal}>
+        <EnlaceTienda className="fc-nav-quote" href={pageIdToTiendaPath("cotizar")} onNavigate={() => go("cotizar")}>
+          Cotizar especializado
+        </EnlaceTienda>
+        <a className="fc-location" href={FARMACIA_FISCAL.maps_url} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (!FARMACIA_FISCAL.maps_url) { e.preventDefault(); irSucursal(); } }}>
           <MapPin aria-hidden />
           Sucursal CDMX · Ver ubicación
-        </button>
+        </a>
       </nav>
       {avisoCarrito ? (
         <div className="fc-toast" role="status">
           <span>{avisoCarrito}</span>
-          <button type="button" onClick={() => go("carrito")}>Ver carrito</button>
+          <EnlaceTienda href={pageIdToTiendaPath("carrito")} onNavigate={() => go("carrito")}>Ver carrito</EnlaceTienda>
         </div>
       ) : null}
       {aviso}

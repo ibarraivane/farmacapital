@@ -34,9 +34,18 @@ test("en celular el menú se desplaza y no esconde una sección", () => {
   expect(css).toMatch(/\.fc-v2 \.fc-location\{display:none\}/);
 });
 
+test("el hover de la tarjeta se nota: marco azul alrededor de toda la tarjeta", () => {
+  expect(css).toMatch(/@media\(hover:hover\)/);
+  expect(css).toMatch(/\.fc-product:hover\{[^}]*outline:2px solid var\(--fc-blue\)/);
+  expect(css).toMatch(/\.fc-product:hover::before\{[^}]*border-color:var\(--fc-blue\)/);
+  expect(css).toMatch(/\.fc-product:hover \.fc-photo\{background:#D9E4F8\}/);
+  expect(css).toMatch(/scale\(calc\(var\(--fc-pack-zoom, 1\) \* 1\.06\)\)/);
+  expect(css).not.toMatch(/\.fc-photo:hover\{background:#EFF2F5\}/);
+});
+
 test("la cintilla del menú no deja ver el título a través del encabezado fijo", () => {
   expect(css).toMatch(/\.fc-sticky\{position:sticky;top:0;z-index:80;background:#ffffff !important;isolation:isolate;overscroll-behavior:none;touch-action:pan-y\}/);
   expect(css).toMatch(/\.fc-sticky::before\{content:"";position:absolute;inset:0;background:#ffffff;z-index:-1\}/);
-  expect(css).toMatch(/\.fc-nav,\.fc-v2 \.fc-nav button\{background:#ffffff !important\}/);
+  expect(css).toMatch(/\.fc-nav,\.fc-v2 \.fc-nav button,\.fc-v2 \.fc-nav a\{background:#ffffff !important\}/);
   expect(css).not.toMatch(/fc-sticky\{position:static\}/);
 });

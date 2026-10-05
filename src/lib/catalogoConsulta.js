@@ -43,3 +43,19 @@ export async function traerProductosActivos(client, {
   }
   return { data: limite > 0 ? filas.slice(0, limite) : filas, error: null };
 }
+
+/**
+ * Un producto por id (enlace directo). El catálogo de inicio es una muestra;
+ * el deep-link no puede depender de `productos.find` sobre esa lista corta.
+ */
+export async function traerProductoPorId(client, id, { select = "*" } = {}) {
+  const key = String(id || "").trim();
+  if (!key) return { data: null, error: null };
+  const numeric = /^\d+$/.test(key);
+  const { data, error } = await client
+    .from("productos")
+    .select(select)
+    .eq("id", numeric ? Number(key) : key)
+    .maybeSingle();
+  return { data: data || null, error: error || null };
+}

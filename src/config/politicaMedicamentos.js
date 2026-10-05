@@ -124,6 +124,15 @@ export function politicaProducto(prod, opts = {}) {
   };
 }
 
+/** Texto de «Tipo de venta» en la ficha. Sale de la política, no de `requiere_receta` suelto. */
+export function tipoVentaPublico(prod, opts = {}) {
+  const pol = politicaProducto(prod, opts);
+  if (pol.tipo === TIPO.CONTROLADO) return "Controlado · solo en farmacia";
+  if (pol.tipo === TIPO.ANTIBIOTICO) return "Antibiótico · receta y solo en farmacia";
+  if (pol.tipo === TIPO.RECETA) return "Con receta médica";
+  return "Venta libre";
+}
+
 /**
  * Valida un carrito contra la política para una entrega dada.
  * @returns {{ ok: boolean, bloqueados: Array<{prod, motivo}> , requiereReceta: boolean }}

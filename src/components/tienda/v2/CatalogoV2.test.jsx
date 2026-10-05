@@ -37,6 +37,26 @@ test("sin resultados no deja la pantalla vacía", () => {
   expect(screen.getByText("No encontramos esa combinación.")).toBeInTheDocument();
 });
 
+test("dermocosmética no pinta un botón por cada marca", () => {
+  const marcas = ["Todos", "Solar", ...Array.from({ length: 40 }, (_, i) => `Marca ${String(i).padStart(2, "0")}`)];
+  const conteos = { Solar: 355, "Marca 00": 2 };
+  render(
+    <CatalogoV2
+      productos={PRODUCTOS}
+      total={3}
+      categorias={marcas}
+      categoria="Todos"
+      conteos={conteos}
+      etiquetaMas="Más marcas"
+      etiquetaBuscar="Buscar marca"
+      setPage={() => {}}
+    />
+  );
+  expect(screen.getByRole("button", { name: "Solar" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Marca 39" })).toBeNull();
+  expect(screen.getByRole("button", { name: /Más marcas/ })).toBeInTheDocument();
+});
+
 test("el filtro de categoría avisa al contenedor", () => {
   const onCategoria = jest.fn();
   render(
