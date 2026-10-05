@@ -4250,16 +4250,16 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
 
   useEffect(() => {
     const splitUser = splitCalleYNumero(user?.calle || "");
-    const fallback = {
-      nombre: user?.nombre || "",
-      tel: user?.telefono || "",
-      email: user?.email || "",
+    const profile = {
+      nombre: String(user?.nombre || "").trim(),
+      tel: String(user?.telefono || "").trim(),
+      email: String(user?.email || "").trim(),
       calle: splitUser.calle || "",
       numero: splitUser.numero || "",
       colonia: user?.colonia || "",
       cp: user?.cp || "",
     };
-    let merged = { ...fallback };
+    let draft = {};
     try {
       const raw = localStorage.getItem(checkoutAddressDraftKey(user));
       if (raw) {
@@ -4268,20 +4268,34 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         const savedNumero = String(saved?.numero || "").trim();
         const splitSaved = savedNumero
           ? { calle: savedCalle, numero: savedNumero }
-          : splitCalleYNumero(savedCalle || fallback.calle);
-        merged = {
-          ...merged,
-          calle: String(splitSaved.calle || merged.calle || ""),
-          numero: String(splitSaved.numero || merged.numero || ""),
-          colonia: cleanCheckoutColonia(saved?.colonia || merged.colonia || ""),
-          cp: String(saved?.cp || merged.cp || ""),
-          referencia: String(saved?.referencia || merged.referencia || ""),
+          : splitCalleYNumero(savedCalle || profile.calle);
+        draft = {
+          calle: String(splitSaved.calle || ""),
+          numero: String(splitSaved.numero || ""),
+          colonia: cleanCheckoutColonia(saved?.colonia || ""),
+          cp: String(saved?.cp || ""),
+          referencia: String(saved?.referencia || ""),
           lat: Number.isFinite(Number(saved?.lat)) ? Number(saved.lat) : null,
           lng: Number.isFinite(Number(saved?.lng)) ? Number(saved.lng) : null,
         };
       }
     } catch (_) { /* noop */ }
-    setDatos((prev) => ({ ...prev, ...merged }));
+    // No pisar lo que el cliente ya escribió con cadenas vacías del perfil.
+    setDatos((prev) => ({
+      ...prev,
+      nombre: profile.nombre || prev.nombre || "",
+      tel: profile.tel || prev.tel || "",
+      email: profile.email || prev.email || "",
+      calle: draft.calle || profile.calle || prev.calle || "",
+      numero: draft.numero || profile.numero || prev.numero || "",
+      colonia: draft.colonia || cleanCheckoutColonia(profile.colonia || prev.colonia || ""),
+      cp: draft.cp || profile.cp || prev.cp || "",
+      referencia: draft.referencia != null && draft.referencia !== ""
+        ? draft.referencia
+        : (prev.referencia || ""),
+      lat: draft.lat != null ? draft.lat : (prev.lat ?? null),
+      lng: draft.lng != null ? draft.lng : (prev.lng ?? null),
+    }));
   }, [user?.id, user?.telefono, user?.nombre, user?.email, user?.calle, user?.colonia, user?.cp]);
 
   useEffect(() => {
@@ -4577,7 +4591,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           pedidoId: resp.pedido_id,
           sessionToken: tokCli || null,
           guest: esInvitado,
-          guestPhone: esInvitado ? soloDigitosTel(datos.tel) : undefined,
+          guestPhone: esInvitado ? soloDigitosTel(datos.tel).slice(-10) : undefined,
+          guestNombre: esInvitado ? String(datos.nombre || "").trim() || undefined : undefined,
+          guestEmail: esInvitado ? String(datos.email || "").trim() || undefined : undefined,
           calle: calleEnvio,
           colonia: datos.colonia,
           cp: datos.cp,
@@ -4587,8 +4603,34 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           displayedFeeMxn: envioFee,
         });
         if (!attached.ok) {
-          notifyCheckout("No se pudo registrar la dirección. Revisa los datos o elige pick-up.", "error");
+          // El pedido ya existe (con dirección en pedidos.direccion). No dejes al
+          // cliente reintentar y duplicar: confirma con aviso y limpia el carrito.
+          console.warn("[Checkout] attach envío:", attached.error || attached.detail || attached);
+          setLastOrder({
+            sub: subSnap,
+            productos: subSnap,
+            envioFee: 0,
+            envioPendienteCotizacion: true,
+            envioAttachError: true,
+            ptsG: Math.floor(subSnap / 10),
+            lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: unitTienda(c) })),
+            entregaUi: entrega,
+            tipo_entrega,
+            order_channel,
+            fulfillment_type,
+            ui_entrega: ui_entrega || null,
+            datosTel: datos.tel,
+            pedidoId: resp.pedido_id,
+            metodoPago: "mercadopago",
+            whatsappRecibo: enviarReciboWhatsApp,
+          });
+          notifyCheckout(
+            "Pedido creado. No pudimos guardar la dirección para cotizar el envío; te contactamos por WhatsApp o correo. Si prefieres, elige pick-up la próxima vez.",
+            "warning"
+          );
           setG(false);
+          setConf(true);
+          setCart([]);
           return;
         }
         totalSnap = Number(attached.total || subSnap);
@@ -4796,6 +4838,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     };
     const instruccionEntrega = esPickup
       ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
+      : lastOrder.envioAttachError
+        ? "Pedido registrado. Cotizamos el envío con la dirección que nos diste y te avisamos por WhatsApp o correo para pagar productos + transporte."
       : lastOrder.envioPendienteCotizacion
         ? "Aún no pagas. Cotizamos el envío y te llega un correo o WhatsApp para pagar productos + transporte juntos en Mi cuenta."
         : lastOrder.envioFee
@@ -4918,9 +4962,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           {step===1&&(()=>{
             const necesitaDireccion = entrega !== "pickup";
             const camposContacto = [
-              ["Nombre completo","nombre","Ej. tu nombre"],
-              ["Teléfono","tel","Ej. 55 1234 5678"],
-              ["Correo electrónico (obligatorio)","email","Ej. tu@correo.com"],
+              ["Nombre completo","nombre","Ej. tu nombre","text","name","name"],
+              ["Teléfono","tel","Ej. 55 1234 5678","tel","tel","tel"],
+              ["Correo electrónico (obligatorio)","email","Ej. tu@correo.com","email","email","email"],
             ];
             const esInvitadoUI = !getClienteToken();
             return(
@@ -4934,10 +4978,18 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   <IconLabel Icon={ClipboardList} color={BRAND.primary} size={18}>Datos de contacto</IconLabel>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
-                  {camposContacto.map(([l,k,ph])=>(
+                  {camposContacto.map(([l,k,ph,type,name,autoComplete])=>(
                     <div key={k} style={{gridColumn:!stack&&k==="email"?"1/-1":undefined}}>
                       <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l} <span style={{color:C.red}}>*</span></div>
-                      <Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/>
+                      <Inp
+                        name={name}
+                        autoComplete={autoComplete}
+                        type={type}
+                        value={datos[k]}
+                        onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))}
+                        placeholder={ph}
+                        style={{width:"100%",boxSizing:"border-box",fontSize:16}}
+                      />
                     </div>
                   ))}
                 </div>
