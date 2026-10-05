@@ -7,7 +7,7 @@ test("pie con datos fiscales reales y sin placeholders", () => {
   expect(screen.getByText(/LUIS ANGEL PALILLERO VENTURA/i)).toBeInTheDocument();
   expect(screen.getByText(/PAVL911030NC8/)).toBeInTheDocument();
   expect(screen.getByText(/Radiodifusora 100/)).toBeInTheDocument();
-  expect(screen.getByText(/55 6253 0631/)).toBeInTheDocument();
+  expect(screen.getAllByText(/55 6253 0631/).length).toBeGreaterThan(0);
   expect(screen.queryByText(/\[nombre/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/Responsable sanitario/)).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: /Ver ubicación de la sucursal/ })).toBeInTheDocument();
@@ -45,4 +45,5 @@ test("el pie lleva los enlaces legales y los accesos de la tienda", () => {
   fireEvent.click(screen.getByRole("link", { name: "Aviso de privacidad" }));
   expect(setPage).toHaveBeenCalledWith("privacidad");
   expect(screen.getByRole("link", { name: "Aviso de privacidad" })).toHaveAttribute("href", "/privacidad");
+  expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", expect.stringContaining("wa.me"));
 });

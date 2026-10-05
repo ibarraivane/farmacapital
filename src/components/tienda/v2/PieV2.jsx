@@ -73,6 +73,15 @@ export default function PieV2({ setPage, farmacia = FARMACIA_FISCAL }) {
         {ENLACES_PIE.map((l) => (
           <EnlaceTienda key={l.id} href={pageIdToTiendaPath(l.id)} onNavigate={() => setPage?.(l.id)}>{l.label}</EnlaceTienda>
         ))}
+        {farmacia.telefono ? (
+          <a href={`https://wa.me/52${farmacia.telefono}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        ) : null}
+        {farmacia.telefono ? (
+          <a href={`tel:+52${farmacia.telefono}`}>Llamar {farmacia.telefono_display}</a>
+        ) : null}
+        {farmacia.email ? (
+          <a href={`mailto:${farmacia.email}`}>{farmacia.email}</a>
+        ) : null}
       </nav>
 
       {legal ? <span className="fc-legal">{legal}</span> : null}

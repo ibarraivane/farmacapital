@@ -74,6 +74,7 @@ export default function FichaV2({
   infoSlot = null,       // FichaProductoEnriquecida
   similares = [],
   onProducto,
+  onAgregarSimilar,
   setPage,
 }) {
   const cajaRef = useRef(null);
@@ -193,7 +194,7 @@ export default function FichaV2({
         <section className="fc-section">
           <div className="fc-section-top"><h2>Productos similares</h2></div>
           <div className="fc-grid">
-            {similares.map((p) => <TarjetaProducto key={p.id} prod={p} onClick={onProducto} />)}
+            {similares.map((p) => <TarjetaProducto key={p.id} prod={p} onClick={onProducto} onAgregar={onAgregarSimilar} />)}
           </div>
         </section>
       ) : null}

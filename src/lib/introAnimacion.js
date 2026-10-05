@@ -10,7 +10,7 @@ export function prefersReducedMotion(win = typeof window !== "undefined" ? windo
 
 export function leerIntroYaVista(storage) {
   try {
-    const s = storage || (typeof sessionStorage !== "undefined" ? sessionStorage : null);
+    const s = storage || (typeof localStorage !== "undefined" ? localStorage : null);
     return s?.getItem(INTRO_STORAGE_KEY) === "1";
   } catch {
     return false;
@@ -19,7 +19,7 @@ export function leerIntroYaVista(storage) {
 
 export function marcarIntroVista(storage) {
   try {
-    const s = storage || (typeof sessionStorage !== "undefined" ? sessionStorage : null);
+    const s = storage || (typeof localStorage !== "undefined" ? localStorage : null);
     s?.setItem(INTRO_STORAGE_KEY, "1");
     return true;
   } catch {
@@ -31,7 +31,7 @@ export function marcarIntroVista(storage) {
 export function debeMostrarIntro({ storage, win } = {}) {
   if (prefersReducedMotion(win)) return false;
   try {
-    const s = storage || (typeof sessionStorage !== "undefined" ? sessionStorage : null);
+    const s = storage || (typeof localStorage !== "undefined" ? localStorage : null);
     if (!s) return false;
     return s.getItem(INTRO_STORAGE_KEY) !== "1";
   } catch {

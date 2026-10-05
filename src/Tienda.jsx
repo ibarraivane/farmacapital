@@ -36,7 +36,7 @@ import {
 import { productoEsVendible } from "./utils/productoVendible";
 import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
 import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
-import { chipsDeSeccion, conteosDeSeccion, etiquetasFiltroSeccion, productoEnVitrina } from "./constants/vitrinaTienda";
+import { chipsDeSeccion, conteosDeSeccion, etiquetasFiltroSeccion, productoEnVitrina, SECCIONES_VITRINA } from "./constants/vitrinaTienda";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -128,7 +128,7 @@ import {
   mergeCartLines,
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
-import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, VITRINA_CHIP_KEY, VITRINA_SECCION_KEY, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
+import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, VITRINA_CHIP_KEY, VITRINA_SECCION_KEY, irACatalogoCategoria, irASeccionVitrina, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
 import {
   aplicarPosicionCatalogo,
   guardarVisiblesCatalogo,
@@ -415,14 +415,14 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
   { p:"¿Cuánto tarda el envío?", r:"Confirmas tu pedido en línea (aún no se cobra). Cotizamos el transporte según tu zona y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta con Pagar ahora. Preparamos y salimos en cuanto esté pagado." },
-  { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
+  { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. Recoger en sucursal es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.10 de descuento. 100 puntos son $10. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:textosPolitica().faqReceta },
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
-  { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos» o entra a /conseguir. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
-    { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos, proteína y dispositivos médicos). Toca «Ordenar»: todavía no publicamos el precio, te lo cotizamos por WhatsApp o correo." },
+  { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos». Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
+  { p:"¿Qué es un producto «Por encargo»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos, proteína y dispositivos médicos). Toca «Consultar»: todavía no publicamos el precio, te lo cotizamos por WhatsApp o correo." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -1321,6 +1321,12 @@ function HomeBannersTiles({setPage, items, stack}){
 // ── MENU LATERAL TIENDA ───────────────────────────────────────
 function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
   const C = useTheme();
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [abierto, onClose]);
 
   if (!abierto) return null;
 
@@ -1348,6 +1354,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
 
   const ayudaItems = [
     { icon: HelpCircle, label: "Preguntas frecuentes", page: "faq" },
+    { icon: FileText, label: "Política de envíos", page: "envios" },
     { icon: FileText, label: "Política de privacidad", page: "privacidad" },
     { icon: FileText, label: "Términos y condiciones", page: "terminos" },
   ];
@@ -1370,7 +1377,12 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
       }}
     >
       <div
+        id="fc-menu-tienda"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú de la tienda"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
         style={{
           background: C.card,
           width: "min(420px, 100vw)",
@@ -1501,6 +1513,30 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
               <item.icon size={20} color={BRAND.primary}/>
               <span style={{flex: 1}}>{item.label}</span>
               <ChevronRight size={16} color={C.textDim}/>
+            </EnlaceTienda>
+          ))}
+          {SECCIONES_VITRINA.map((sec) => (
+            <EnlaceTienda
+              key={sec.id}
+              href={pageIdToTiendaPath("catalogo", { seccion: sec.nombre })}
+              onNavigate={() => { irASeccionVitrina(setPage, sec.nombre); onClose(); }}
+              style={{
+                width: "100%",
+                padding: "10px 24px 10px 58px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                color: C.textMid,
+                fontSize: 14,
+                fontWeight: 600,
+                textAlign: "left",
+                textDecoration: "none",
+                boxSizing: "border-box",
+              }}
+            >
+              {sec.nombre}
             </EnlaceTienda>
           ))}
         </div>
@@ -2180,6 +2216,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
         infoSlot={infoFicha}
         similares={similares}
         onProducto={(p) => { setProdDetalle(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+        onAgregarSimilar={addToCart}
         setPage={setPage}
       />
     );
@@ -2436,7 +2473,7 @@ function ContenidoPickup({ C, color }){
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
-        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Pick-up en farmacia&quot;</li>
+        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Recoger en sucursal&quot;</li>
         <li style={sListItem}>Realiza el pago (efectivo al recoger, tarjeta o Mercado Pago)</li>
         <li style={sListItem}>Recibe confirmación cuando tu pedido esté listo (15–30 minutos)</li>
         <li style={sListItem}>Pasa por él en nuestro horario de atención</li>
@@ -2645,7 +2682,7 @@ function HomeServices({setPage}){
   const [modalAbierto,setModalAbierto]=useState(null);
   const servicios = [
     { key:"catalogo", titulo:"Ver catálogo", desc:"Medicamentos y más", color:BRAND.primary, tipo:"page", destino:"catalogo", icon:Pill },
-    { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
+    { key:"pickup", titulo:"Recoger en sucursal", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
     { key:"cdmx", titulo:"Entrega a domicilio", desc:"Zona cercana · cotizamos el envío", color:BRAND.secondary, tipo:"modal", icon:Bike },
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
@@ -3253,6 +3290,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         loadingProductos={loadingProductos}
         setPage={setPage}
         setProdDetalle={setProdDetalle}
+        onAgregar={addToCart}
         precioConsulta={precioConsulta}
         bannersSlot={(
           <BannersEstaSemana
@@ -3571,6 +3609,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         onVerMas={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
         loading={loadingProductos}
         onProducto={(prod) => { setProdDetalle(prod); setPage("detalle", { productId: prod?.id }); }}
+        onAgregar={addToCart}
         setPage={setPage}
         avisoRx={filtroRx ? (
           <div className="fc-info-box" style={{ marginBottom: 16 }}>
@@ -3984,16 +4023,19 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
             <ShoppingCart size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
           </div>
           <h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:8}}>Carrito vacío</h2>
-          {!getClienteToken() && (
-            <p style={{color:C.mid,fontSize:14,lineHeight:1.5,margin:"0 0 16px"}}>
-              Si ya pediste a domicilio, entra con el teléfono del pedido. Aquí ves el precio final.
-            </p>
-          )}
+          <p style={{color:C.mid,fontSize:14,lineHeight:1.5,margin:"0 0 16px"}}>
+            Elige un producto del catálogo para empezar.
+          </p>
+          <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
           {!getClienteToken() ? (
-            <Btn onClick={()=>{ setPostLoginPage("carrito"); setPage("login"); }} col={BRAND.primary}>Entrar a mi cuenta</Btn>
-          ) : (
-            <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
-          )}
+            <p style={{color:C.mid,fontSize:13,lineHeight:1.5,margin:"16px 0 0"}}>
+              Si ya pediste a domicilio,{" "}
+              <button type="button" onClick={()=>{ setPostLoginPage("carrito"); setPage("login"); }} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline",padding:0,fontSize:13}}>
+                entra con el teléfono del pedido
+              </button>
+              .
+            </p>
+          ) : null}
         </>
       )}
     </div>
@@ -4018,7 +4060,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
                   <Pill size={24} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
                 )}
               </div>
-              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
+              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre}</div><div style={{color:C.mid,fontSize:12,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
               <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <button type="button" aria-label="Disminuir cantidad" onClick={()=>upd(item.id,-1)} style={qtyBtnStyle}>-</button>
@@ -4040,7 +4082,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · cotizamos el envío",Icon:Bike}].map(({id,label,sub,Icon})=>(
+          {[{id:"pickup",label:"Recoger en sucursal",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · cotizamos el envío",Icon:Bike}].map(({id,label,sub,Icon})=>(
             <button
               key={id}
               type="button"
@@ -4898,7 +4940,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             </div>
             <div>
               <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4}}>
-                {esPickup?"Pick-up en FarmaCapital":"Entrega a domicilio"}
+                {esPickup?"Recoger en sucursal":"Entrega a domicilio"}
               </div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.5}}>{instruccionEntrega}</div>
               {esPickup && (
@@ -5086,13 +5128,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 )}
                 {!necesitaDireccion&&(
                   <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}30`,borderRadius:8,padding:"9px 12px",fontSize:12,color:BRAND.primary,lineHeight:1.45}}>
-                    Pick-up en farmacia · Te damos un folio al pagar.{" "}
+                    Recoger en sucursal · Te damos un folio al pagar.{" "}
                     <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{color:BRAND.primary,fontWeight:700}}>Ver mapa</a>
                   </div>
                 )}
                 <div style={{marginTop:14,fontSize:12,color:C.mid}}>
                   {entrega==="pickup"
-                    ? "Pick-up: confirmas el pedido ahora y pagas al recoger con tarjeta (terminal BBVA)."
+                    ? "Recoger en sucursal: confirmas el pedido ahora y pagas al recoger con tarjeta (terminal BBVA)."
                     : "Domicilio: confirmas ahora. Cotizamos el envío y te avisamos; pagas en Mi cuenta."}
                 </div>
                 <label
@@ -5114,12 +5156,12 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     type="checkbox"
                     checked={enviarReciboWhatsApp}
                     onChange={(e) => setEnviarReciboWhatsApp(e.target.checked)}
-                    style={{ accentColor: "#25D366", width: 16, height: 16, flexShrink: 0 }}
+                    style={{ accentColor: "#25D366", width: 20, height: 20, flexShrink: 0 }}
                   />
                   <span>Recibo por WhatsApp{datos.tel ? ` · ${datos.tel}` : ""}</span>
                 </label>
                 {!datosCheckoutCompletos && faltantesCheckout.length > 0 && (
-                  <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
+                  <div role="alert" aria-live="polite" style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
                     Para continuar completa: <strong>{faltantesCheckout.join(", ")}</strong>
                   </div>
                 )}
@@ -5149,7 +5191,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div style={{color:C.mid}}>{datos.tel} · {datos.email}</div>
                 <div style={{marginTop:6}}>
                   {entrega==="pickup"
-                    ? "Pick-up en FarmaCapital"
+                    ? "Recoger en sucursal"
                     : `Envío a ${[calleEnvio, datos.colonia, datos.cp].filter(Boolean).join(", ")}`}
                 </div>
                 {entrega!=="pickup" && (
@@ -5811,7 +5853,7 @@ function Registro({setUser,setPage}){
   const registrar = async () => {
     if(!nombre||!pwd) return;
     if(!contactoOk) {
-      setError("Indicá un teléfono válido (10 dígitos) o un correo electrónico válido (podés poner ambos).");
+      setError("Indica un teléfono válido (10 dígitos) o un correo electrónico válido (puedes poner ambos).");
       return;
     }
     if(pwd.length < PASSWORD_MIN_LENGTH) { setError(`La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`); return; }
@@ -6056,7 +6098,7 @@ function AuthCallback({ setUser, setPage }) {
 
   const guardarTelefono = async () => {
     if (!telefonoMxValido(tel)) {
-      setErr("Ingresá un celular de 10 dígitos (WhatsApp).");
+      setErr("Ingresa un celular de 10 dígitos (WhatsApp).");
       return;
     }
     setSavingTel(true);
@@ -6081,7 +6123,7 @@ function AuthCallback({ setUser, setPage }) {
       setNeedPhone(false);
       finish({ telefono: telNorm });
     } catch (_) {
-      setErr("Error de conexión. Intentá de nuevo.");
+      setErr("Error de conexión. Intenta de nuevo.");
     }
     setSavingTel(false);
   };
@@ -6186,7 +6228,7 @@ function Login({setUser,setPage}){
     const raw = recIdent.trim();
     const identNorm = correoTiendaValido(raw) ? raw.toLowerCase() : (telefonoMxValido(raw) ? soloDigitosTel(raw) : "");
     if (!identNorm) {
-      setRecMsg({ ok: false, txt: "Escribí un correo válido o un teléfono con al menos 10 dígitos." });
+      setRecMsg({ ok: false, txt: "Escribe un correo válido o un teléfono con al menos 10 dígitos." });
       return;
     }
     setRecBusy(true);
@@ -6205,7 +6247,7 @@ function Login({setUser,setPage}){
           "Si tu correo o teléfono está registrado, recibirás un enlace por WhatsApp en unos minutos para crear tu nueva contraseña.",
       });
     } catch (_) {
-      setRecMsg({ ok: false, txt: "No se pudo enviar la solicitud. Intentá de nuevo o escribinos a contacto@farmacapital.mx." });
+      setRecMsg({ ok: false, txt: "No se pudo enviar la solicitud. Intenta de nuevo o escríbenos a contacto@farmacapital.mx." });
     }
     setRecBusy(false);
   };
@@ -6217,7 +6259,7 @@ function Login({setUser,setPage}){
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Iniciar sesión</h1>
         {getPostLoginPage() === "cita" ? (
           <p style={{color:C.textMid,fontSize:14,marginBottom:28,textAlign:"center",lineHeight:1.5}}>
-            Ingresá con tu correo o teléfono para <strong style={{color:BRAND.primary}}>agendar tu cita</strong>.
+            Ingresa con tu correo o teléfono para <strong style={{color:BRAND.primary}}>agendar tu cita</strong>.
           </p>
         ) : (
           <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Accede a tus puntos, pedidos e historial</p>
@@ -6234,7 +6276,7 @@ function Login({setUser,setPage}){
         {recMode ? (
           <>
             <p style={{color:C.textMid,fontSize:13,marginBottom:16,lineHeight:1.5}}>
-              Indicá el <strong>mismo correo o teléfono</strong> de tu cuenta FarmaCapital (incluido el celular que diste en mostrador).
+              Indica el <strong>mismo correo o teléfono</strong> de tu cuenta FarmaCapital (incluido el celular que diste en mostrador).
               Si está registrado, te enviaremos un <strong>enlace por WhatsApp</strong> para crear tu nueva contraseña.
             </p>
             <div style={{marginBottom:12}}>
@@ -6291,7 +6333,7 @@ function Login({setUser,setPage}){
         )}
         <Btn type="submit" col={BRAND.primary} full disabled={!ident.trim()||!pwd||buscando}>{buscando?"Buscando...":"Entrar →"}</Btn>
         <div style={{textAlign:"center",marginTop:14}}>
-          <button type="button" onClick={abrirRecuperar} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>¿Olvidaste tu contraseña o no tenés clave para la tienda?</button>
+          <button type="button" onClick={abrirRecuperar} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>¿Olvidaste tu contraseña o no tienes clave para la tienda?</button>
         </div>
         <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿No tienes cuenta? </span><button type="button" onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Regístrate aquí</button></div>
           </form>
@@ -7730,12 +7772,14 @@ export default function TiendaFarmaCapital(){
 
       {v2 ? (
         <>
+        <a className="fc-skip" href="#fc-contenido">Saltar al contenido</a>
         <EncabezadoV2
           page={page}
           setPage={setPage}
           cart={cart}
           user={user}
-          onMenu={() => setMenuTiendaAbierto(true)}
+          menuAbierto={menuTiendaAbierto}
+          onMenu={() => setMenuTiendaAbierto((v) => !v)}
           busqHero={busqHero}
           setBusqHero={setBusqHero}
           productos={productosVistaTiendaFarmacia}
@@ -7778,7 +7822,7 @@ export default function TiendaFarmaCapital(){
       )}
 
       <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
-        <main style={{background: v2 ? "#FFFFFF" : C.bg}}>
+        <main id="fc-contenido" style={{background: v2 ? "#FFFFFF" : C.bg}}>
           {pages[page]||pages.notfound}
         </main>
         {v2

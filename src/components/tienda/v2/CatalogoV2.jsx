@@ -43,6 +43,7 @@ export default function CatalogoV2({
   onVerMas,
   loading = false,
   onProducto,
+  onAgregar,
   setPage,
   avisoRx = null,
 }) {
@@ -89,7 +90,7 @@ export default function CatalogoV2({
       {lista.length ? (
         <>
           <div className="fc-grid">
-            {lista.map((p) => <TarjetaProducto key={p.id} prod={p} onClick={onProducto} />)}
+            {lista.map((p) => <TarjetaProducto key={p.id} prod={p} onClick={onProducto} onAgregar={onAgregar} />)}
           </div>
           {hayMas ? (
             <button type="button" className="fc-secondary" style={{ marginTop: 20 }} onClick={onVerMas}>

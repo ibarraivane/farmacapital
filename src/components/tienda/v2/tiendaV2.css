@@ -346,6 +346,13 @@
 .fc-v2 .fc-studio-dots button::after{content:"";position:absolute;inset:19px;border-radius:50%;background:currentColor;opacity:.35}
 .fc-v2 .fc-studio-dots button[aria-current="true"]::after{opacity:1;border-radius:3px;inset:19px 13px}
 .fc-v2 .fc-studio-cta{min-height:44px}
+.fc-v2 .fc-studio-pause{position:absolute;left:18px;top:18px;min-height:44px;padding:0 12px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;font-size:12px;font-weight:600;opacity:.75}
+.fc-v2 .fc-studio-pause:hover{opacity:1}
+.fc-v2 .fc-skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--fc-ink);color:#fff;padding:10px 16px;min-height:44px;text-decoration:none;font-weight:600}
+.fc-v2 .fc-skip:focus{left:12px;top:12px}
+.fc-v2 .fc-sticky--compact .fc-top,.fc-v2 .fc-sticky--compact .fc-nav{display:none}
+.fc-v2 .fc-sticky--checkout .fc-search,.fc-v2 .fc-sticky--checkout .fc-nav{display:none}
+.fc-v2 .fc-add--cart{color:var(--fc-white);background:var(--fc-ink);border-radius:7px;padding:8px 12px;text-decoration:none}
 .fc-v2 .fc-section-top .fc-textbtn{white-space:nowrap;max-width:none}
 @media(max-width:900px){
   .fc-v2 .fc-ficha .fc-detail{grid-template-areas:"head" "compra" "media" "info"}

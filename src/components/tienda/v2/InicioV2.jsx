@@ -132,6 +132,7 @@ export default function InicioV2({
   loadingProductos = false,
   setPage,
   setProdDetalle,
+  onAgregar,
   precioConsulta,
   bannersSlot = null,
 }) {
@@ -250,7 +251,7 @@ export default function InicioV2({
       <section className="fc-hero">
         <div className="fc-hero-copy">
           <div className="fc-eyebrow">Tu farmacia, también en línea</div>
-          <h1>
+          <h1 aria-label="Tu receta. Tu rutina. Tu farmacia.">
             Tu receta.<br />Tu rutina.<br />
             <span className="fc-serif">Tu farmacia.</span>
           </h1>
@@ -318,7 +319,7 @@ export default function InicioV2({
           </div>
           <div className="fc-grid">
             {enSucursal.map((p) => (
-              <TarjetaProducto key={p.id} prod={p} onClick={abrirProducto} />
+              <TarjetaProducto key={p.id} prod={p} onClick={abrirProducto} onAgregar={onAgregar} />
             ))}
           </div>
         </section>
@@ -357,7 +358,7 @@ export default function InicioV2({
           <div className="fc-eyebrow">Farmacia física · Nueva en la Ciudad de México</div>
           <h2>También estamos<br />al otro lado del mostrador.</h2>
           <p className="fc-description" style={{ fontSize: 14 }}>
-            Abrimos en agosto de 2026. Recoge tus pedidos, consulta a nuestro personal y conoce el
+            Ya estamos abiertos. Recoge tus pedidos, consulta a nuestro personal y conoce el
             consultorio.
           </p>
           <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("faq")} onNavigate={() => setPage?.("faq")}>

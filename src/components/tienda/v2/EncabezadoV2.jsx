@@ -9,7 +9,24 @@ import { pageIdToTiendaPath, seccionVitrinaFromPath } from "../../../shared/tien
 import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 import EnlaceTienda from "./EnlaceTienda";
 
-const PLACEHOLDER = "Nombre, principio activo o marca…";
+const PLACEHOLDER = "Buscar medicamento o marca";
+
+function useHeadroom() {
+  const [compacto, setCompacto] = useState(false);
+  useEffect(() => {
+    let last = typeof window !== "undefined" ? window.scrollY : 0;
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+      if (y < 48) setCompacto(false);
+      else if (y > last + 10) setCompacto(true);
+      else if (y < last - 10) setCompacto(false);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return compacto;
+}
 
 export default function EncabezadoV2({
   page,
@@ -23,8 +40,11 @@ export default function EncabezadoV2({
   avisoCarrito,
   user,
   onMenu,
+  menuAbierto = false,
 }) {
   const [busqFocus, setBusqFocus] = useState(false);
+  const headroom = useHeadroom();
+  const checkout = page === "checkout" || page === "carrito";
   const n = (cart || []).reduce((a, c) => a + (Number(c.qty) || 0), 0);
   const q = String(busqHero || "");
   const suggestions = useMemo(
@@ -74,7 +94,7 @@ export default function EncabezadoV2({
   };
 
   return (
-    <div className="fc-sticky" style={{ backgroundColor: "#ffffff", position: "sticky", top: 0, zIndex: 80 }}>
+    <div className={`fc-sticky${headroom ? " fc-sticky--compact" : ""}${checkout ? " fc-sticky--checkout" : ""}`} style={{ backgroundColor: "#ffffff", position: "sticky", top: 0, zIndex: 80 }}>
       <div className="fc-top">
         <span>Farmacia y consultorio · Ciudad de México</span>
         <span>Atención en sucursal · {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}</span>
@@ -147,10 +167,21 @@ export default function EncabezadoV2({
           type="button"
           className="fc-iconbtn"
           aria-label="Abrir menú"
+          aria-expanded={Boolean(menuAbierto)}
+          aria-controls="fc-menu-tienda"
           onClick={() => onMenu?.()}
         >
           <Menu aria-hidden />
         </button>
+        {checkout ? (
+          <EnlaceTienda
+            className="fc-textbtn"
+            href={page === "checkout" ? pageIdToTiendaPath("carrito") : pageIdToTiendaPath("catalogo")}
+            onNavigate={() => go(page === "checkout" ? "carrito" : "catalogo")}
+          >
+            {page === "checkout" ? "Volver al carrito" : "Seguir comprando"}
+          </EnlaceTienda>
+        ) : null}
         <EnlaceTienda
           className="fc-iconbtn"
           href={pageIdToTiendaPath("carrito")}

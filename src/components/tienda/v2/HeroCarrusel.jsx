@@ -116,7 +116,19 @@ export default function HeroCarrusel({ slides = [] }) {
         </div>
       ) : null}
 
-      <div className="fc-studio-note">
+      {total > 1 ? (
+        <button
+          type="button"
+          className="fc-studio-pause"
+          aria-pressed={pausado}
+          aria-label={pausado ? "Reproducir carrusel" : "Pausar carrusel"}
+          onClick={() => setPausado((v) => !v)}
+        >
+          {pausado ? "Reproducir" : "Pausar"}
+        </button>
+      ) : null}
+
+      <div className="fc-studio-note" aria-live={pausado ? "polite" : "off"}>
         <span>{slide.nota}</span>
         {slide.href ? (
           <EnlaceTienda className="fc-studio-cta" href={slide.href} onNavigate={slide.onIr}>
