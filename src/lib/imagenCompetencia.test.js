@@ -18,8 +18,11 @@ describe("imagenCompetencia", () => {
 
   test("no pide fotos de Firebase Storage ajeno (CORS en consola)", () => {
     const firebase = "https://firebasestorage.googleapis.com/v0/b/suplementos-mayoreo.appspot.com/o/products%2Fimg.jpg?alt=media";
+    const nivea = "https://img.nivea.com/-/media/misc/pictures/products/packshot.png";
     expect(esUrlImagenCorsAjena(firebase)).toBe(true);
+    expect(esUrlImagenCorsAjena(nivea)).toBe(true);
     expect(urlImagenPublicaTienda(firebase)).toBe("");
+    expect(urlImagenPublicaTienda(nivea)).toBe("");
   });
 
   test("deja pasar catalogo propio y Nadro", () => {

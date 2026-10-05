@@ -358,6 +358,11 @@
 .fc-v2 .fc-sticky--checkout .fc-search,.fc-v2 .fc-sticky--checkout .fc-nav{display:none}
 .fc-v2 .fc-add--cart{color:var(--fc-white);background:var(--fc-ink);border-radius:7px;padding:8px 12px;text-decoration:none}
 .fc-v2 .fc-section-top .fc-textbtn{white-space:nowrap;max-width:none}
+.fc-v2 .fc-benefit span,.fc-v2 .fc-studio-note{font-size:12px}
+.fc-v2 .fc-brand{min-height:44px;align-items:center}
+.fc-v2 .fc-product-name{min-height:44px}
+.fc-v2 .fc-sticky--compact .fc-hdr{padding:8px 18px}
+.fc-v2 .fc-sticky--compact .fc-search{height:44px}
 @media(max-width:900px){
   .fc-v2 .fc-ficha .fc-detail{grid-template-areas:"head" "compra" "media" "info"}
 }

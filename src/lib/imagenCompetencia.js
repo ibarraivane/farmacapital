@@ -18,9 +18,10 @@ const HOSTS_IMAGEN_COMPETENCIA = [
   /(^|\.)fahorro\.com$/i,
 ];
 
-/** Buckets ajenos que en producción fallan por CORS (p. ej. suplementos-mayoreo). */
+/** Hosts que en producción fallan por CORS o bloquean el hotlink. */
 const HOSTS_IMAGEN_CORS_AJENA = [
   /(^|\.)firebasestorage\.googleapis\.com$/i,
+  /(^|\.)nivea\.com$/i,
 ];
 
 export function esUrlImagenCorsAjena(rawUrl) {

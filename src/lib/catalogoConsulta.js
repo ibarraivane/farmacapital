@@ -6,7 +6,54 @@
  * medicamento, y la vitrina aparte cuando hace falta.
  */
 
-export const PAGE_CATALOGO = 1000;
+export const PAGE_CATALOGO = 400;
+
+/**
+ * Columnas que pinta la tienda. `select *` detoasta descripciones y ficha
+ * y en producción cancela con 57014 (statement timeout).
+ */
+export const COLUMNAS_TIENDA = [
+  "id",
+  "nombre",
+  "sku",
+  "codigo_barras",
+  "marca",
+  "presentacion",
+  "concentracion",
+  "principio_activo",
+  "denominacion_distintiva",
+  "denominacion_generica",
+  "forma_farmaceutica",
+  "categoria",
+  "subcategoria",
+  "vitrina_seccion",
+  "vitrina_subseccion",
+  "precio",
+  "precio_marca",
+  "descuento_pct",
+  "stock",
+  "activo",
+  "bajo_pedido",
+  "imagen_url",
+  "imagen_mobile_url",
+  "requiere_receta",
+  "controlado",
+  "grupo_controlado",
+  "visible_tienda",
+  "venta_unidad",
+  "tipo",
+].join(",");
+
+/** 57014 y el timeout del gateway: se puede reintentar. */
+export function esErrorTimeoutCatalogo(error) {
+  const code = String(error?.code || "");
+  const msg = String(error?.message || error || "").toLowerCase();
+  return code === "57014"
+    || msg.includes("statement timeout")
+    || msg.includes("canceling statement")
+    || msg.includes("upstream request timeout")
+    || msg === "timeout";
+}
 
 /** PostgREST: null y false son anaquel. true es la vitrina. */
 export const FILTRO_ANAQUEL = "bajo_pedido.eq.false,bajo_pedido.is.null";
@@ -24,7 +71,7 @@ export function aplicarModoCatalogo(q, modo = "anaquel") {
  */
 export async function traerProductosActivos(client, {
   modo = "anaquel",
-  select = "*",
+  select = COLUMNAS_TIENDA,
   limite = 0,
   pageSize = PAGE_CATALOGO,
   order = "id",

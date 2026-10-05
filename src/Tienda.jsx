@@ -81,7 +81,7 @@ import {
   prepararListaTienda,
   tipoCarrito,
 } from "./lib/bajoPedido";
-import { traerProductoPorId, traerProductosActivos } from "./lib/catalogoConsulta";
+import { esErrorTimeoutCatalogo, traerProductoPorId, traerProductosActivos } from "./lib/catalogoConsulta";
 import { resolverFichaDeepLink } from "./lib/tiendaDeepLinkProducto";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
 import { CANJES_PUNTOS, canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo, pesosDePuntos } from "./utils/puntosCanje";
@@ -413,7 +413,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
-  { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
+  { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (recoger en sucursal o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
   { p:"¿Cuánto tarda el envío?", r:"Confirmas tu pedido en línea (aún no se cobra). Cotizamos el transporte según tu zona y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta con Pagar ahora. Preparamos y salimos en cuanto esté pagado." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. Recoger en sucursal es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.10 de descuento. 100 puntos son $10. Puedes usarlos en farmacia, minisuper y consultorio." },
@@ -2546,7 +2546,7 @@ function ContenidoPago({ C, color }){
         <li style={sListItem}>OXXO Pay (paga en cualquier OXXO)</li>
         <li style={sListItem}>Mercado Crédito (a meses sin intereses según tu cuenta)</li>
       </ul>
-      <h4 style={sH4(color)}>En la farmacia (al recoger pick-up)</h4>
+      <h4 style={sH4(color)}>En la farmacia (al recoger en sucursal)</h4>
       <ul style={sList}>
         <li style={sListItem}>Efectivo</li>
         <li style={sListItem}>Tarjetas de crédito y débito</li>
@@ -4073,7 +4073,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
                     <div style={{color:BRAND.primary,fontWeight:800,fontSize:13,marginTop:4}}>{$(cobroDe(item))}</div>
                   )}
                 </div>
-                <button type="button" aria-label="Quitar del carrito" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",padding:4,display:"inline-flex"}}><Trash2 size={18} strokeWidth={1.75} aria-hidden /></button>
+                <button type="button" aria-label="Quitar del carrito" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",padding:8,minWidth:44,minHeight:44,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Trash2 size={18} strokeWidth={1.75} aria-hidden /></button>
               </div>
             </div>
           );})}
@@ -4132,7 +4132,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
                 Canje activo: <strong>{canje.ben}</strong>
                 {canje.codigo ? ` · código ${canje.codigo}` : ""}. Se confirma en sucursal al recoger o coordinar el envío.
                 {" "}
-                <button type="button" onClick={()=>{ limpiarCanjeActivo(); setCanjeTick((n)=>n+1); }} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline",padding:0}}>Quitar</button>
+                <button type="button" onClick={()=>{ limpiarCanjeActivo(); setCanjeTick((n)=>n+1); }} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline",padding:"8px 10px",minHeight:44}}>Quitar</button>
               </div>
             );
           })()}
@@ -4697,7 +4697,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             whatsappRecibo: enviarReciboWhatsApp,
           });
           notifyCheckout(
-            "Pedido creado. No pudimos guardar la dirección para cotizar el envío; te contactamos por WhatsApp o correo. Si prefieres, elige pick-up la próxima vez.",
+            "Pedido creado. No pudimos guardar la dirección para cotizar el envío; te contactamos por WhatsApp o correo. Si prefieres, elige recoger en sucursal la próxima vez.",
             "warning"
           );
           setG(false);
@@ -4909,7 +4909,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }));
     };
     const instruccionEntrega = esPickup
-      ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
+      ? `Pagas al recoger en farmacia con tarjeta. Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioAttachError
         ? "Pedido registrado. Cotizamos el envío con la dirección que nos diste y te avisamos por WhatsApp o correo para pagar productos + transporte."
       : lastOrder.envioPendienteCotizacion
@@ -5134,7 +5134,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 )}
                 <div style={{marginTop:14,fontSize:12,color:C.mid}}>
                   {entrega==="pickup"
-                    ? "Recoger en sucursal: confirmas el pedido ahora y pagas al recoger con tarjeta (terminal BBVA)."
+                    ? "Recoger en sucursal: confirmas el pedido ahora y pagas al recoger con tarjeta."
                     : "Domicilio: confirmas ahora. Cotizamos el envío y te avisamos; pagas en Mi cuenta."}
                 </div>
                 <label
@@ -5205,7 +5205,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   {esEncargo
                     ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
                     : entrega==="pickup"
-                      ? "Pagas al recoger con tarjeta (terminal BBVA)"
+                      ? "Pagas al recoger con tarjeta"
                       : "Confirmas ahora. Cuando el envío esté cotizado, entras a Mi cuenta y pagas productos + envío."}
                 </div>
                 {enviarReciboWhatsApp && (
@@ -5795,7 +5795,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles",`• Pick-up en FarmaCapital: Gratis. Confirmas ahora y pagas al recoger con tarjeta (terminal BBVA).\n• Entrega a domicilio: confirmas la orden sin pagar, cotizamos el transporte en zona cercana y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta.\n• Horario de entrega: todos los días ${HORARIO_FARMACIA.apertura}–${HORARIO_FARMACIA.cierre}.`],
+        ["Tipos de entrega disponibles",`• Recoger en sucursal: Gratis. Confirmas ahora y pagas al recoger con tarjeta.\n• Entrega a domicilio: confirmas la orden sin pagar, cotizamos el transporte en zona cercana y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta.\n• Horario de entrega: todos los días ${HORARIO_FARMACIA.apertura}–${HORARIO_FARMACIA.cierre}.`],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
@@ -7264,6 +7264,7 @@ export default function TiendaFarmaCapital(){
   const [resenasResumen,setResenasResumen] = useState({});
   const [cargando,setCargando]   = useState(false);
   const [loadingProductos,setLoadingProductos] = useState(true);
+  const [errorCatalogo,setErrorCatalogo] = useState("");
   const [prodDetalle,setProdDRaw] = useState(() => {
     try {
       const id = tiendaProductIdFromSearch(window.location.search);
@@ -7381,6 +7382,7 @@ export default function TiendaFarmaCapital(){
   // Refresh silencioso (catálogo vivo): actualiza lista/detalle/carrito, no cambia de página.
   // La vitrina completa solo baja en /conseguir. En el resto, una muestra corta para el home.
   const recargarProductosRef = useRef(async () => {});
+  const loadProductosRef = useRef(async () => {});
   const vitrinaCompletaRef = useRef(page === "conseguir");
   const vitrinaCacheRef = useRef([]);
   useEffect(()=>{
@@ -7436,15 +7438,19 @@ export default function TiendaFarmaCapital(){
         }
         if (cancelled) return;
         if (error) {
-          const isTimeout = (error.message||"").toLowerCase().includes("upstream request timeout");
-          if (isTimeout && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
+          if (esErrorTimeoutCatalogo(error) && intento < MAX_INTENTOS) {
+            await new Promise(r=>setTimeout(r,1500));
+            return loadProductos(intento+1, { silencioso });
+          }
           if (!silencioso) {
             console.error("[Tienda] productos:", error);
+            setErrorCatalogo("No pudimos cargar el catálogo.");
             setLoadingProductos(false);
           }
           return;
         }
         ultimaCargaCatalogo = Date.now();
+        setErrorCatalogo("");
         const lista = [...(data || []), ...vitrinaCacheRef.current];
         if (lista.length) {
           aplicarLista(lista);
@@ -7454,10 +7460,15 @@ export default function TiendaFarmaCapital(){
         if (!silencioso) setLoadingProductos(false);
       } catch(e) {
         if (cancelled) return;
-        if (e?.message === "timeout" && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
-        if (!silencioso) setLoadingProductos(false);
+        if (esErrorTimeoutCatalogo(e) && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
+        if (!silencioso) {
+          console.error("[Tienda] productos:", e);
+          setErrorCatalogo("No pudimos cargar el catálogo.");
+          setLoadingProductos(false);
+        }
       }
     };
+    loadProductosRef.current = loadProductos;
     recargarProductosRef.current = () => loadProductos(1, { silencioso: true });
     loadProductos();
     // Volver a la pestaña no vuelve a bajar el catálogo. Eso era egress en cada cambio de app.
@@ -7823,6 +7834,15 @@ export default function TiendaFarmaCapital(){
 
       <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
         <main id="fc-contenido" style={{background: v2 ? "#FFFFFF" : C.bg}}>
+          {errorCatalogo && productos.length === 0 && !loadingProductos ? (
+            <div role="alert" className="fc-body" style={{maxWidth:560,margin:"28px auto 0",padding:"0 24px",textAlign:"center"}}>
+              <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:8}}>{errorCatalogo}</h2>
+              <p style={{color:C.mid,fontSize:14,lineHeight:1.5,margin:"0 0 16px"}}>
+                La consulta tardó demasiado. Puedes volver a intentarlo.
+              </p>
+              <Btn onClick={() => { setErrorCatalogo(""); setLoadingProductos(true); loadProductosRef.current(1, { silencioso: false }); }} col={BRAND.primary}>Reintentar</Btn>
+            </div>
+          ) : null}
           {pages[page]||pages.notfound}
         </main>
         {v2
