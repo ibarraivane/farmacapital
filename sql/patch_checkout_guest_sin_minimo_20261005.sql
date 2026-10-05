@@ -241,4 +241,5 @@ grant execute on function public.cliente_crear_pedido_online(
 ) to anon, authenticated;
 
 comment on function public.cliente_crear_pedido_online(uuid, jsonb, text, text, text, text, text, text, text, boolean) is
-  'Checkout online: compromete stock FEFO al crear;
+  'Checkout online: compromete stock FEFO al crear; pickup sin recargo; envio +8%; sin minimo $150; guarda guest_* para attach/pago.';
+
