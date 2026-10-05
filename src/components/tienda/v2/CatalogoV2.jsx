@@ -1,5 +1,6 @@
 import { ArrowRight, FlaskConical } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
+import FiltroChips from "./FiltroChips";
 
 const ORDENES = [
   { id: "relevancia", label: "Relevancia" },
@@ -30,6 +31,10 @@ export default function CatalogoV2({
   categorias = [],
   categoria = "Todos",
   onCategoria,
+  conteos = {},
+  maxChips,
+  etiquetaMas = "Ver todas",
+  etiquetaBuscar = "Buscar",
   orden = "relevancia",
   onOrden,
   hayMas = false,
@@ -53,17 +58,15 @@ export default function CatalogoV2({
 
       {categorias.length > 1 ? (
         <div className="fc-filters">
-          {categorias.map((c) => (
-            <button
-              key={c}
-              type="button"
-              className="fc-filter"
-              aria-pressed={categoria === c}
-              onClick={() => onCategoria?.(c)}
-            >
-              {c}
-            </button>
-          ))}
+          <FiltroChips
+            opciones={categorias}
+            valor={categoria}
+            onChange={onCategoria}
+            conteos={conteos}
+            max={maxChips}
+            etiquetaMas={etiquetaMas}
+            etiquetaBuscar={etiquetaBuscar}
+          />
           <select
             className="fc-filter-select"
             aria-label="Ordenar productos"

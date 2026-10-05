@@ -36,7 +36,7 @@ import {
 import { productoEsVendible } from "./utils/productoVendible";
 import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
 import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
-import { chipsDeSeccion, productoEnVitrina } from "./constants/vitrinaTienda";
+import { chipsDeSeccion, conteosDeSeccion, etiquetasFiltroSeccion, productoEnVitrina } from "./constants/vitrinaTienda";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -3493,6 +3493,11 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       : chipsAreaTienda(poolCatalogoTienda(productos), cat)),
     [v2, productos, seccion, cat]
   );
+  const conteosChips = useMemo(
+    () => (v2 ? conteosDeSeccion(seccion, poolCatalogoTienda(productos)) : {}),
+    [v2, productos, seccion]
+  );
+  const etiquetasChips = useMemo(() => etiquetasFiltroSeccion(seccion), [seccion]);
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
     .filter(p => v2
       ? productoEnVitrina(p, { seccion, chip, busqueda: busq })
@@ -3543,6 +3548,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         total={fil.length}
         categorias={cats}
         categoria={chip}
+        conteos={conteosChips}
+        etiquetaMas={etiquetasChips.etiquetaMas}
+        etiquetaBuscar={etiquetasChips.etiquetaBuscar}
         onCategoria={(c) => {
           setChip(c);
           setBusq("");
