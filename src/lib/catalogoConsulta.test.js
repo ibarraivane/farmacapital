@@ -1,4 +1,4 @@
-import { FILTRO_ANAQUEL, aplicarModoCatalogo, traerProductosActivos } from "./catalogoConsulta";
+import { FILTRO_ANAQUEL, aplicarModoCatalogo, traerProductoPorId, traerProductosActivos } from "./catalogoConsulta";
 
 function cliente(filas) {
   const llamadas = [];
@@ -45,6 +45,21 @@ test("la vitrina se pide sola y con tope", async () => {
   expect(data.map((p) => p.id)).toEqual([1, 2]);
   expect(db.llamadas).toContainEqual(["eq", "bajo_pedido", true]);
   expect(db.llamadas.some((c) => c[0] === "or")).toBe(false);
+});
+
+test("trae un producto por id para el deep-link", async () => {
+  const llamadas = [];
+  const q = {
+    select: (s) => { llamadas.push(["select", s]); return q; },
+    eq: (col, val) => { llamadas.push(["eq", col, val]); return q; },
+    maybeSingle: () => Promise.resolve({ data: { id: 2, nombre: "Omeprazol" }, error: null }),
+  };
+  const client = { from: (table) => { llamadas.push(["from", table]); return q; } };
+  const { data, error } = await traerProductoPorId(client, "2");
+  expect(error).toBeNull();
+  expect(data).toEqual({ id: 2, nombre: "Omeprazol" });
+  expect(llamadas).toContainEqual(["from", "productos"]);
+  expect(llamadas).toContainEqual(["eq", "id", 2]);
 });
 
 test("aplica el modo sobre el query", () => {

@@ -78,7 +78,8 @@ import {
   prepararListaTienda,
   tipoCarrito,
 } from "./lib/bajoPedido";
-import { traerProductosActivos } from "./lib/catalogoConsulta";
+import { traerProductoPorId, traerProductosActivos } from "./lib/catalogoConsulta";
+import { resolverFichaDeepLink } from "./lib/tiendaDeepLinkProducto";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
 import { CANJES_PUNTOS, canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo, pesosDePuntos } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
@@ -2045,7 +2046,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
 }
 
 // ── DETALLE PRODUCTO ──────────────────────────────────────────
-function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHero,setBusqHero}){
+function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHero,setBusqHero,loadingFicha=false}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 700px)");
   const narrowSuggest = useMediaQuery("(max-width: 768px)");
@@ -2094,13 +2095,25 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     });
     return () => { cancelled = true; };
   }, [prod?.id]);
-  if(!prod) return (
+  if(!prod) {
+    if (loadingFicha) {
+      return (
+        <div className="fc-body fc-ficha" style={{maxWidth:720,margin:"40px auto",padding:"0 24px"}} aria-busy="true" aria-live="polite">
+          <div className="fc-skeleton" style={{height:28,width:"40%",marginBottom:16}} />
+          <div className="fc-skeleton" style={{height:220,marginBottom:16}} />
+          <div className="fc-skeleton" style={{height:48,width:"55%"}} />
+          <p style={{color:C.mid,fontSize:14,marginTop:16}}>Cargando producto…</p>
+        </div>
+      );
+    }
+    return (
     <div style={{maxWidth:560,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
-      <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Producto no disponible</h2>
-      <p style={{color:C.mid,fontSize:14,marginBottom:20,lineHeight:1.5}}>Este enlace no tiene un producto cargado. Vuelve al catálogo para elegir otro.</p>
+      <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Este producto ya no está disponible</h2>
+      <p style={{color:C.mid,fontSize:14,marginBottom:20,lineHeight:1.5}}>El enlace no corresponde a un producto activo. Vuelve al catálogo para elegir otro.</p>
       <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary}>Ver catálogo</Btn>
     </div>
-  );
+    );
+  }
   const agotado = productoAgotadoTienda(prod);
   const cta = ctaBajoPedido(prod); // bajo pedido: "ordenar"
   const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
@@ -5200,7 +5213,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
-          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
+          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:12,marginBottom:8}}><span style={{color:C.mid,fontSize:13,minWidth:0,overflowWrap:"anywhere"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600,whiteSpace:"nowrap",flexShrink:0}}>{$(cobroDe(item))}</span></div>))}
           {entrega!=="pickup"&&(
             <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
               <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
@@ -5545,13 +5558,31 @@ function PromocionesPage({setPage}){
   const stack = useMediaQuery("(max-width: 768px)");
   const [promos, setPromos] = useState([]);
   const [load, setLoad] = useState(true);
-  useEffect(()=>{
+  const [promoError, setPromoError] = useState("");
+  const cargarPromos = ()=>{
     const hoy = new Date().toISOString().split("T")[0];
+    setLoad(true);
+    setPromoError("");
     supabase.from("promociones").select("*")
       .eq("activa",true)
       .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
-      .then(({data})=>{ setPromos(data||[]); setLoad(false); });
-  },[]);
+      .then(({data, error})=>{
+        if (error) {
+          setPromoError(error.message || "No pudimos cargar las promociones.");
+          setPromos([]);
+          setLoad(false);
+          return;
+        }
+        setPromos(data||[]);
+        setLoad(false);
+      })
+      .catch(()=>{
+        setPromoError("No pudimos cargar las promociones.");
+        setPromos([]);
+        setLoad(false);
+      });
+  };
+  useEffect(()=>{ cargarPromos(); },[]);
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
       <button type="button" onClick={()=>setPage("home")} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>← Inicio</button>
@@ -5562,7 +5593,15 @@ function PromocionesPage({setPage}){
         </p>
       </div>
       {load ? (
-        <div style={{color:C.mid,fontSize:14}}>Cargando promociones…</div>
+        <div aria-busy="true" aria-live="polite">
+          <div className="fc-skeleton" style={{height:120,marginBottom:12}} />
+          <div className="fc-skeleton" style={{height:120}} />
+        </div>
+      ) : promoError ? (
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center",color:C.mid}}>
+          <p style={{margin:"0 0 16px"}}>No pudimos cargar las promociones. Reintentar</p>
+          <Btn onClick={cargarPromos} col={BRAND.primary} sm>Reintentar</Btn>
+        </div>
       ) : promos.length===0 ? (
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center",color:C.mid}}>
           No hay promociones activas en este momento. Revisa el catálogo o vuelve pronto.
@@ -7173,13 +7212,11 @@ export default function TiendaFarmaCapital(){
   const [precioConsultaCfg,setPrecioConsultaCfg] = useState(CONSULTA_PRECIO_DEFAULT);
   const [placeholderProductoUrl, setPlaceholderProductoUrl] = useState("");
   const [mapaPromos, setMapaPromos] = useState(() => new Map());
+  const [fetchingDeepLink, setFetchingDeepLink] = useState(false);
+  const deepLinkPedidoRef = useRef("");
 
   useEffect(() => {
-    if (page !== "detalle") return;
-    if (prodDetalle?.id) {
-      try { writeTiendaHistory("detalle", { replace: true, productId: prodDetalle.id }); } catch (_) { /* noop */ }
-      return;
-    }
+    if (page !== "detalle") return undefined;
     const id = (() => {
       try {
         return tiendaProductIdFromSearch(window.location.search) || deepLinkProductIdRef.current || "";
@@ -7187,17 +7224,40 @@ export default function TiendaFarmaCapital(){
         return deepLinkProductIdRef.current || "";
       }
     })();
-    let found = null;
-    if (id && productos.length) {
-      found = productos.find((x) => String(x?.id) === String(id)) || null;
+    const resolved = resolverFichaDeepLink({
+      productId: id,
+      productos,
+      loading: loadingProductos,
+      fetching: fetchingDeepLink,
+      saved: prodDetalle,
+    });
+    if (resolved.status === "ready" && resolved.prod?.id) {
+      if (!prodDetalle?.id || String(prodDetalle.id) !== String(resolved.prod.id)) {
+        setProdD(resolved.prod);
+      }
+      try { writeTiendaHistory("detalle", { replace: true, productId: resolved.prod.id }); } catch (_) { /* noop */ }
+      return undefined;
     }
-    if (found) {
-      setProdD(found);
-      return;
+    if (resolved.status === "loading") return undefined;
+    if (id && deepLinkPedidoRef.current !== id) {
+      deepLinkPedidoRef.current = id;
+      let cancelled = false;
+      setFetchingDeepLink(true);
+      traerProductoPorId(supabase, id).then(({ data, error }) => {
+        if (cancelled) return;
+        setFetchingDeepLink(false);
+        if (error || !data) return;
+        const lista = prepararListaTienda([data]);
+        const row = lista[0] || data;
+        if (row?.activo === false) return;
+        setProdD(row);
+      }).catch(() => {
+        if (!cancelled) setFetchingDeepLink(false);
+      });
+      return () => { cancelled = true; };
     }
-    if (loadingProductos) return;
-    if (!id) setPage("catalogo");
-  }, [page, prodDetalle, productos, loadingProductos]);
+    return undefined;
+  }, [page, prodDetalle, productos, loadingProductos, fetchingDeepLink]);
 
   useEffect(() => {
     fetchPrecioConsultaConfig(supabase).then(setPrecioConsultaCfg);
@@ -7537,7 +7597,7 @@ export default function TiendaFarmaCapital(){
     home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg} loadingProductos={loadingProductos} recompras={recomprasHome} sugeridos={sugeridosHome}/>,
     catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos} filtroRx={filtroRx} onClearRx={()=>setPage("catalogo",{rx:false})}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
-    detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
+    detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} loadingFicha={loadingProductos || fetchingDeepLink}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout} user={user}/>,
     checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} setUser={setUser} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
