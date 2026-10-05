@@ -80,6 +80,21 @@ test("con ficha y monografía publicadas arma acordeones", () => {
   expect(ui.mostrarSoloTecnica).toBe(false);
 });
 
+test("antibiótico no se etiqueta Sin receta aunque requiera_receta sea false", () => {
+  const ui = mapearFichaTienda({
+    producto: {
+      ...producto,
+      nombre: "Levofloxacino 500 mg",
+      descripcion: "Levofloxacino",
+      principio_activo: "Levofloxacino",
+      categoria: "Antibiótico",
+      requiere_receta: false,
+    },
+  });
+  expect(ui.fichaTecnica.find((r) => r.k === "Tipo de venta").v).toBe("Antibiótico · receta y solo en farmacia");
+  expect(ui.resumen).toBe("");
+});
+
 test("dermo usa fabricante y no clínica", () => {
   const ui = mapearFichaTienda({
     producto: { ...producto, principio_activo: "" },

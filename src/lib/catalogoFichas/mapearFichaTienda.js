@@ -1,4 +1,5 @@
 import { descripcionPublicaTienda, presentacionPublicaTienda } from "../../utils/tiendaFarmaciaCatalogo";
+import { tipoVentaPublico } from "../../config/politicaMedicamentos";
 
 function texto(v) {
   return v == null ? "" : String(v).trim();
@@ -17,6 +18,19 @@ function textoFichaCliente(v) {
 function lista(v) {
   if (!Array.isArray(v)) return [];
   return v.map((x) => texto(x)).filter(Boolean);
+}
+
+function foldCmp(s) {
+  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+/** No repetir la sustancia o el nombre como párrafo suelto bajo la tabla. */
+function resumenNoRepiteTabla(resumen, prod, filas) {
+  const r = foldCmp(resumen);
+  if (!r) return "";
+  if (r === foldCmp(prod?.principio_activo) || r === foldCmp(prod?.nombre)) return "";
+  if ((filas || []).some((row) => foldCmp(row.v) === r)) return "";
+  return String(resumen || "").trim();
 }
 
 function publicado(row) {
@@ -64,13 +78,15 @@ export function mapearFichaTienda({ producto, ficha, monografia } = {}) {
     { k: "Presentación", v: presentacionPublicaTienda(prod) },
     { k: "Laboratorio", v: texto(prod.marca) },
     { k: "Registro sanitario", v: texto(fichaOk?.registro_sanitario) },
-    { k: "Tipo de venta", v: prod.requiere_receta ? "Con receta médica" : (prod.requiere_receta === false ? "Sin receta" : "") },
+    { k: "Tipo de venta", v: tipoVentaPublico(prod) },
   ].filter((row) => row.v);
+
+  const resumenLimpio = resumenNoRepiteTabla(resumen, prod, fichaTecnica);
 
   return {
     publicada: Boolean(fichaOk || monoOk),
     tipo,
-    resumen,
+    resumen: resumenLimpio,
     chips,
     clinica: tieneClinica ? {
       para_que_sirve: texto(contenidoMono.para_que_sirve),
