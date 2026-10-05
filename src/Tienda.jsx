@@ -46,7 +46,8 @@ import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, s
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
-import { pageIdToTiendaPath, productIdParaHistorialTienda, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import { pageIdToTiendaPath, productIdParaHistorialTienda, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch, tiendaQueryFromSearch } from "./shared/tiendaRoutes";
+import { aplicarDocumentMeta, metaDeRutaTienda } from "./lib/tiendaDocumentMeta";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
@@ -60,6 +61,7 @@ import InicioV2 from "./components/tienda/v2/InicioV2";
 import CotizarV2 from "./components/tienda/v2/CotizarV2";
 import CatalogoV2 from "./components/tienda/v2/CatalogoV2";
 import FichaV2 from "./components/tienda/v2/FichaV2";
+import NoEncontradaV2 from "./components/tienda/v2/NoEncontradaV2";
 import { ResenasResumenCtx, EstrellasDeProducto, ListaResenasPublicas, BloqueResenaPedido, FormularioResenaToken } from "./components/tienda/ResenasTienda";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
@@ -7023,19 +7025,25 @@ export default function TiendaFarmaCapital(){
   const deepLinkProductIdRef = useRef((() => {
     try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
   })());
-  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "" } = {}) => {
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "", pathname = "" } = {}) => {
     const resolvedProductId = productIdParaHistorialTienda(
       target,
       productId,
       typeof window !== "undefined" ? window.location.search : "",
     );
-    const path = pageIdToTiendaPath(target, {
-      rx: target === "catalogo" && rx,
-      reset: target === "reset-password" ? token : undefined,
-      productId: target === "detalle" ? resolvedProductId : undefined,
-      search: target === "conseguir" ? search : undefined,
-      seccion: target === "catalogo" ? seccion : undefined,
-    });
+    let path;
+    if (target === "notfound") {
+      path = pathname || (typeof window !== "undefined" ? window.location.pathname : "/404");
+      if (!path || path === "/") path = "/404";
+    } else {
+      path = pageIdToTiendaPath(target, {
+        rx: target === "catalogo" && rx,
+        reset: target === "reset-password" ? token : undefined,
+        productId: target === "detalle" ? resolvedProductId : undefined,
+        search: (target === "conseguir" || target === "catalogo") ? search : undefined,
+        seccion: target === "catalogo" ? seccion : undefined,
+      });
+    }
     const fn = replace ? window.history.replaceState : window.history.pushState;
     fn.call(window.history, { page: target, productId: target === "detalle" ? resolvedProductId : undefined }, "", path);
   };
@@ -7073,13 +7081,20 @@ export default function TiendaFarmaCapital(){
     } else if (target !== "detalle") {
       catalogoScrollIntentRef.current = "top";
     }
+    if (target !== "catalogo" && target !== "conseguir" && target !== "detalle" && target !== "cotizar") {
+      try { sessionStorage.removeItem("farmacapital_busq"); } catch (_) { /* noop */ }
+      if (busqHero) setBusqHero("");
+    }
     try {
       writeTiendaHistory(target, {
         rx: nextRx,
         token: resetToken,
         productId: target === "detalle" ? (opts.productId || "") : undefined,
-        search: target === "conseguir" ? (opts.search || busqHero || "") : undefined,
+        search: (target === "conseguir" || target === "catalogo")
+          ? (opts.search != null ? opts.search : (target === "conseguir" ? (busqHero || "") : ""))
+          : undefined,
         seccion: target === "catalogo" ? (opts.seccion || "") : "",
+        pathname: target === "notfound" ? (opts.pathname || "") : "",
       });
     } catch {
       try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
@@ -7089,7 +7104,7 @@ export default function TiendaFarmaCapital(){
   useEffect(()=>{
     const h=(e)=>{
       let p = e.state?.page || tiendaPathnameToPageId(window.location.pathname) || "home";
-      p = resolveTiendaPage(p) || "home";
+      p = resolveTiendaPage(p) || (tiendaPathnameToPageId(window.location.pathname) === "notfound" ? "notfound" : "home");
       if (p === "cita" && !getClienteToken()) {
         setPostLoginPage("cita");
         p = "login";
@@ -7129,6 +7144,7 @@ export default function TiendaFarmaCapital(){
       } else {
         const id = tiendaPathnameToPageId(window.location.pathname) || "home";
         const seccionInicial = seccionVitrinaFromPath(window.location.pathname);
+        const qInicial = tiendaQueryFromSearch(window.location.search);
         if (seccionInicial) {
           try { sessionStorage.setItem("farmacapital_vitrina", seccionInicial); } catch (_) { /* noop */ }
         }
@@ -7148,12 +7164,15 @@ export default function TiendaFarmaCapital(){
               `${window.location.pathname}${window.location.search}${window.location.hash}`
             );
           } catch (_) { /* noop */ }
+        } else if (id === "notfound") {
+          writeTiendaHistory("notfound", { replace: true, pathname: window.location.pathname });
         } else {
           writeTiendaHistory(id, {
             replace: true,
             rx: rx && id === "catalogo",
             seccion: id === "catalogo" ? seccionInicial : "",
             productId: id === "detalle" ? deepLinkProductIdRef.current : undefined,
+            search: (id === "catalogo" || id === "conseguir") ? qInicial : undefined,
           });
         }
       }
@@ -7220,7 +7239,24 @@ export default function TiendaFarmaCapital(){
     } catch (_) { /* noop */ }
     setProdDRaw(p);
   };
-  const [busqHero,setBusqHero]   = useState("");
+  const [busqHero,setBusqHero]   = useState(() => {
+    try { return tiendaQueryFromSearch(window.location.search); } catch { return ""; }
+  });
+  useEffect(() => {
+    let seccion = "";
+    try {
+      seccion = seccionVitrinaFromPath(window.location.pathname)
+        || sessionStorage.getItem("farmacapital_vitrina")
+        || "";
+    } catch (_) { /* noop */ }
+    aplicarDocumentMeta(metaDeRutaTienda({
+      page,
+      seccion,
+      prod: page === "detalle" ? prodDetalle : null,
+      pathname: typeof window !== "undefined" ? window.location.pathname : "",
+      search: typeof window !== "undefined" ? window.location.search : "",
+    }));
+  }, [page, prodDetalle]);
   const [showPopup,setShowPopup] = useState(false);
   const [popupBanner,setPopupBanner] = useState(null);
   const [entregaCheckout,setEntregaCheckout] = useState("pickup");
@@ -7651,6 +7687,7 @@ export default function TiendaFarmaCapital(){
       </>
     ),
     pagar: <PagarPedidoInvitado />,
+    notfound: <NoEncontradaV2 setPage={setPage} />,
   };
 
   const sinFooter=["home","tarjeta"];
@@ -7742,7 +7779,7 @@ export default function TiendaFarmaCapital(){
 
       <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
         <main style={{background: v2 ? "#FFFFFF" : C.bg}}>
-          {pages[page]||pages.home}
+          {pages[page]||pages.notfound}
         </main>
         {v2
           ? (page !== "tarjeta" && <PieV2 setPage={setPage} />)

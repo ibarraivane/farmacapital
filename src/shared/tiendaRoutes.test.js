@@ -4,6 +4,7 @@ import {
   resolveTiendaPage,
   seccionVitrinaFromPath,
   tiendaPathnameToPageId,
+  tiendaQueryFromSearch,
   TIENDA_PAGE_IDS,
 } from "./tiendaRoutes";
 
@@ -31,6 +32,8 @@ describe("tiendaRoutes", () => {
     expect(tiendaPathnameToPageId("/auth/callback")).toBe("auth-callback");
     expect(tiendaPathnameToPageId("/auth/callback/")).toBe("auth-callback");
     expect(tiendaPathnameToPageId("/admin/ventas")).toBeNull();
+    expect(tiendaPathnameToPageId("/esta-ruta-no-existe")).toBe("notfound");
+    expect(pageIdToTiendaPath("notfound")).toBe("/404");
   });
 
   test("path canónico no choca con admin", () => {
@@ -43,6 +46,8 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("auth-callback")).toBe("/auth/callback");
     expect(pageIdToTiendaPath("tarjeta")).toBe("/tarjeta");
     expect(pageIdToTiendaPath("conseguir", { search: "losartan" })).toBe("/conseguir?q=losartan");
+    expect(pageIdToTiendaPath("catalogo", { search: "paracetamo" })).toBe("/catalogo?q=paracetamo");
+    expect(tiendaQueryFromSearch("?q=omeprazol")).toBe("omeprazol");
   });
 
   test("slugs de vitrina y los viejos abren el catálogo en la sección nueva", () => {

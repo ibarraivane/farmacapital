@@ -42,6 +42,19 @@ test("el contador del carrito y el logo abren las pantallas", () => {
   expect(setPage).toHaveBeenCalledWith("carrito");
 });
 
+test("buscar escribe ?q= en el catálogo", () => {
+  const setPage = jest.fn();
+  render(
+    <EncabezadoV2
+      setPage={setPage}
+      setBusqHero={() => {}}
+      busqHero="paracetamo"
+    />
+  );
+  fireEvent.submit(screen.getByRole("search"));
+  expect(setPage).toHaveBeenCalledWith("catalogo", { search: "paracetamo" });
+});
+
 test("el buscador reusa las sugerencias del catálogo", () => {
   window.scrollTo = jest.fn();
   const setPage = jest.fn();
