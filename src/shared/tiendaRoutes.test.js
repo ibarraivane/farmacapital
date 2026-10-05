@@ -1,5 +1,6 @@
 import {
   pageIdToTiendaPath,
+  productIdParaHistorialTienda,
   resolveTiendaPage,
   seccionVitrinaFromPath,
   tiendaPathnameToPageId,
@@ -52,6 +53,19 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("catalogo", { seccion: seccionVitrinaFromPath("/dermocosmeticos") })).toBe("/dermocosmetica");
     expect(seccionVitrinaFromPath("/farmacia")).toBe("");
     expect(tiendaPathnameToPageId("/catalogo")).toBe("catalogo");
+  });
+
+  test("reescribir historial de detalle conserva ?id= si no se pasa productId", () => {
+    expect(productIdParaHistorialTienda("detalle", "", "?id=12345")).toBe("12345");
+    expect(productIdParaHistorialTienda("detalle", "99", "?id=12345")).toBe("99");
+    expect(productIdParaHistorialTienda("detalle", "", "")).toBe("");
+    expect(productIdParaHistorialTienda("catalogo", "", "?id=12345")).toBe("");
+    expect(pageIdToTiendaPath("detalle", {
+      productId: productIdParaHistorialTienda("detalle", "", "?id=abc-1"),
+    })).toBe("/producto?id=abc-1");
+    expect(pageIdToTiendaPath("detalle", {
+      productId: productIdParaHistorialTienda("detalle", "", ""),
+    })).toBe("/producto");
   });
 
   test("aliases de flyer y te lo conseguimos", () => {

@@ -46,7 +46,7 @@ import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, s
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
-import { pageIdToTiendaPath, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import { pageIdToTiendaPath, productIdParaHistorialTienda, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
@@ -3540,7 +3540,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         hayMas={hayMasCatalogo}
         onVerMas={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
         loading={loadingProductos}
-        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle"); }}
+        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle", { productId: prod?.id }); }}
         setPage={setPage}
         avisoRx={filtroRx ? (
           <div className="fc-info-box" style={{ marginBottom: 16 }}>
@@ -6966,16 +6966,24 @@ export default function TiendaFarmaCapital(){
   const pageRef = useRef(page);
   pageRef.current = page;
   const catalogoScrollIntentRef = useRef("top");
+  const deepLinkProductIdRef = useRef((() => {
+    try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
+  })());
   const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "" } = {}) => {
+    const resolvedProductId = productIdParaHistorialTienda(
+      target,
+      productId,
+      typeof window !== "undefined" ? window.location.search : "",
+    );
     const path = pageIdToTiendaPath(target, {
       rx: target === "catalogo" && rx,
       reset: target === "reset-password" ? token : undefined,
-      productId: target === "detalle" ? productId : undefined,
+      productId: target === "detalle" ? resolvedProductId : undefined,
       search: target === "conseguir" ? search : undefined,
       seccion: target === "catalogo" ? seccion : undefined,
     });
     const fn = replace ? window.history.replaceState : window.history.pushState;
-    fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
+    fn.call(window.history, { page: target, productId: target === "detalle" ? resolvedProductId : undefined }, "", path);
   };
   const setPage = (p, opts = {}) => {
     const resolved = p === "reset-password" ? "reset-password" : resolveTiendaPage(p);
@@ -7091,6 +7099,7 @@ export default function TiendaFarmaCapital(){
             replace: true,
             rx: rx && id === "catalogo",
             seccion: id === "catalogo" ? seccionInicial : "",
+            productId: id === "detalle" ? deepLinkProductIdRef.current : undefined,
           });
         }
       }
@@ -7172,7 +7181,11 @@ export default function TiendaFarmaCapital(){
       return;
     }
     const id = (() => {
-      try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
+      try {
+        return tiendaProductIdFromSearch(window.location.search) || deepLinkProductIdRef.current || "";
+      } catch {
+        return deepLinkProductIdRef.current || "";
+      }
     })();
     let found = null;
     if (id && productos.length) {

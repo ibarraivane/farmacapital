@@ -188,6 +188,18 @@ export function tiendaProductIdFromSearch(search) {
   }
 }
 
+/**
+ * Id a guardar en history al ir a `/producto`.
+ * Si no llega `productId` (p. ej. replaceState al montar), se toma `?id=` de la URL actual.
+ * Sin esto, un enlace directo `/producto?id=123` se reescribe a `/producto` y cae al catálogo.
+ */
+export function productIdParaHistorialTienda(target, productId, search) {
+  if (String(target) !== "detalle") return "";
+  const fromOpt = String(productId ?? "").trim();
+  if (fromOpt) return fromOpt;
+  return tiendaProductIdFromSearch(search);
+}
+
 export function tiendaPathSuggestsReceta(pathname, search) {
   try {
     const q = new URLSearchParams(search || "");
