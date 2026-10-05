@@ -2,9 +2,11 @@ import { useMemo } from "react";
 import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, MessagesSquare, ArrowRight, MessageCircleQuestion, BadgePercent, ShieldCheck } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
 import HeroCarrusel from "./HeroCarrusel";
+import CategoriasMosaico from "./CategoriasMosaico";
+import { resumirMundos, mundosVisibles } from "./mundosTienda";
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
-import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
+import { seccionDe } from "../../../constants/vitrinaTienda";
 import { urlImagenPublicaTienda, tiendaCardImageUrl } from "../../../utils/tiendaCardImage";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
 import { CONSULTA_PRECIO_DEFAULT } from "../../../utils/consultaConstants";
@@ -161,21 +163,24 @@ export default function InicioV2({
     vitaminas: <HeartPulse aria-hidden="true" />,
     botiquin: <Bandage aria-hidden="true" />,
   };
-  const descSeccion = {
-    "nutricion-deportiva": "Por marca",
-    dermocosmetica: "Por marca y solar",
-    medicamentos: "Por necesidad",
-    higiene: "Cabello, bucal y el día a día",
-    vitaminas: "Vitaminas, herbolarios y clínica",
-    botiquin: "Curación y aparatos",
-  };
-
-  const categorias = SECCIONES_VITRINA.map((sec) => ({
-    icon: iconoSeccion[sec.id],
-    titulo: sec.nombre,
-    desc: descSeccion[sec.id],
-    go: () => irCategoria(sec.nombre),
-  }));
+  const resumenMundos = useMemo(
+    () => resumirMundos(productos, { seccionDe, tieneFoto: conFoto }),
+    [productos]
+  );
+  const itemsMosaico = mundosVisibles(resumenMundos, {
+    cargando: loadingProductos,
+    hayCatalogo: (productos || []).length > 0,
+  }).map((m) => {
+    const prod = resumenMundos[m.id]?.producto;
+    return {
+      id: m.id,
+      titulo: m.titulo,
+      tono: m.tono,
+      foto: prod ? fotoDe(prod) : "",
+      icono: iconoSeccion[m.id],
+      onClick: () => irCategoria(m.seccion),
+    };
+  });
 
   const slidesHero = [
     {
@@ -288,17 +293,7 @@ export default function InicioV2({
         </ol>
       </section>
 
-      <section className="fc-section">
-        <div className="fc-section-top"><h2>¿Qué estás buscando?</h2></div>
-        <div className="fc-categories">
-          {categorias.map((c) => (
-            <button type="button" key={c.titulo} className="fc-category" onClick={c.go}>
-              {c.icon}
-              <span>{c.titulo}<small>{c.desc}</small></span>
-            </button>
-          ))}
-        </div>
-      </section>
+      <CategoriasMosaico items={itemsMosaico} />
 
       {bannersSlot}
 

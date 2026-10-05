@@ -1,5 +1,6 @@
 import { ArrowRight, FlaskConical } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
+import FiltroChips from "./FiltroChips";
 
 const ORDENES = [
   { id: "relevancia", label: "Relevancia" },
@@ -21,6 +22,9 @@ export function ordenarCatalogoV2(lista, orden) {
  * Catálogo con el diseño de ChatGPT (Fase D).
  * No filtra ni busca por su cuenta: recibe la lista ya filtrada por la tienda
  * y solo cambia la presentación, los chips de categoría y el orden.
+ *
+ * `categorias` puede ser corta (subsecciones) o larga (decenas de marcas): los
+ * chips muestran las de más producto según `conteos` y el resto va en «Ver todas».
  */
 export default function CatalogoV2({
   titulo = "Catálogo",
@@ -30,6 +34,10 @@ export default function CatalogoV2({
   categorias = [],
   categoria = "Todos",
   onCategoria,
+  conteos = {},
+  maxChips,
+  etiquetaMas = "Ver todas",
+  etiquetaBuscar = "Buscar",
   orden = "relevancia",
   onOrden,
   hayMas = false,
@@ -53,17 +61,15 @@ export default function CatalogoV2({
 
       {categorias.length > 1 ? (
         <div className="fc-filters">
-          {categorias.map((c) => (
-            <button
-              key={c}
-              type="button"
-              className="fc-filter"
-              aria-pressed={categoria === c}
-              onClick={() => onCategoria?.(c)}
-            >
-              {c}
-            </button>
-          ))}
+          <FiltroChips
+            opciones={categorias}
+            valor={categoria}
+            onChange={onCategoria}
+            conteos={conteos}
+            max={maxChips}
+            etiquetaMas={etiquetaMas}
+            etiquetaBuscar={etiquetaBuscar}
+          />
           <select
             className="fc-filter-select"
             aria-label="Ordenar productos"

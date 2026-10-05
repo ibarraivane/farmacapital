@@ -1,6 +1,8 @@
 import {
   SECCIONES_VITRINA,
   chipsDeSeccion,
+  conteosDeSeccion,
+  etiquetasFiltroSeccion,
   productoEnVitrina,
   productoVisibleEnSeccion,
   seccionDe,
@@ -54,6 +56,20 @@ describe("vitrina de la tienda", () => {
     expect(productoEnVitrina(solar, { seccion: "Dermocosmética", chip: "Solar" })).toBe(true);
     expect(productoEnVitrina(bioderma, { seccion: "Dermocosmética", chip: "Solar" })).toBe(false);
     expect(productoEnVitrina(solar, { seccion: "Dermocosmética", chip: "Isdin" })).toBe(true);
+    expect(conteosDeSeccion("Dermocosmética", [bioderma, solar])).toEqual({
+      Solar: 1,
+      Bioderma: 1,
+      Isdin: 1,
+    });
+    expect(etiquetasFiltroSeccion("Dermocosmética")).toEqual({
+      etiquetaMas: "Más marcas",
+      etiquetaBuscar: "Buscar marca",
+    });
+    expect(etiquetasFiltroSeccion("nutricion-deportiva").etiquetaMas).toBe("Más marcas");
+    expect(etiquetasFiltroSeccion("Medicamentos")).toEqual({
+      etiquetaMas: "Más categorías",
+      etiquetaBuscar: "Buscar categoría",
+    });
   });
 
   test("slugs viejos redirigen a la sección nueva", () => {
