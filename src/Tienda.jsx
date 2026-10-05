@@ -54,6 +54,7 @@ import FichaProductoEnriquecida from "./components/tienda/FichaProductoEnriqueci
 import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
 import IntroAnimacion from "./components/tienda/IntroAnimacion";
 import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
+import EnlaceTienda from "./components/tienda/v2/EnlaceTienda";
 import PieV2 from "./components/tienda/v2/PieV2";
 import InicioV2 from "./components/tienda/v2/InicioV2";
 import CotizarV2 from "./components/tienda/v2/CotizarV2";
@@ -1422,9 +1423,9 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
         {!usuario && (
           <div style={{padding: "16px 24px", borderBottom: `1px solid ${C.border}`}}>
             <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8}}>
-              <button
-                type="button"
-                onClick={() => handleNav("registro")}
+              <EnlaceTienda
+                href={pageIdToTiendaPath("registro")}
+                onNavigate={() => handleNav("registro")}
                 style={{
                   padding: "12px 8px",
                   borderRadius: 10,
@@ -1434,14 +1435,15 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                   fontWeight: 700, fontSize: 14,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  textDecoration: "none",
                 }}
               >
                 <UserPlus size={16}/>
                 Crear cuenta
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav("login")}
+              </EnlaceTienda>
+              <EnlaceTienda
+                href={pageIdToTiendaPath("login")}
+                onNavigate={() => handleNav("login")}
                 style={{
                   padding: "12px 8px",
                   borderRadius: 10,
@@ -1451,11 +1453,12 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                   fontWeight: 700, fontSize: 14,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  textDecoration: "none",
                 }}
               >
                 <LogIn size={16}/>
                 Iniciar sesión
-              </button>
+              </EnlaceTienda>
             </div>
           </div>
         )}
@@ -1469,10 +1472,10 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
             Explora
           </div>
           {navItems.map((item) => (
-            <button
+            <EnlaceTienda
               key={item.page}
-              type="button"
-              onClick={() => handleNav(item.page)}
+              href={pageIdToTiendaPath(item.page)}
+              onNavigate={() => handleNav(item.page)}
               style={{
                 width: "100%",
                 padding: "12px 24px",
@@ -1487,6 +1490,8 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 fontWeight: 600,
                 textAlign: "left",
                 transition: "background .15s",
+                textDecoration: "none",
+                boxSizing: "border-box",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -1494,7 +1499,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
               <item.icon size={20} color={BRAND.primary}/>
               <span style={{flex: 1}}>{item.label}</span>
               <ChevronRight size={16} color={C.textDim}/>
-            </button>
+            </EnlaceTienda>
           ))}
         </div>
 
@@ -1599,10 +1604,10 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
             Ayuda
           </div>
           {ayudaItems.map((item) => (
-            <button
+            <EnlaceTienda
               key={item.page}
-              type="button"
-              onClick={() => handleNav(item.page)}
+              href={pageIdToTiendaPath(item.page)}
+              onNavigate={() => handleNav(item.page)}
               style={{
                 width: "100%",
                 padding: "10px 24px",
@@ -1616,13 +1621,15 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 fontSize: 13,
                 textAlign: "left",
                 transition: "background .15s",
+                textDecoration: "none",
+                boxSizing: "border-box",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               <item.icon size={16} color={C.textDim}/>
               <span>{item.label}</span>
-            </button>
+            </EnlaceTienda>
           ))}
         </div>
 

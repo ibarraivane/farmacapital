@@ -7,6 +7,8 @@ import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoI
 import { useZoomPackshot } from "../../../hooks/useZoomPackshot";
 import EstadoDisponibilidad from "./EstadoDisponibilidad";
 import { EstrellasDeProducto } from "../ResenasTienda";
+import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
+import EnlaceTienda from "./EnlaceTienda";
 
 function precioPublicado(prod) {
   const n = Number(prod?.precio);
@@ -33,17 +35,18 @@ export default function TarjetaProducto({ prod, onClick }) {
   if (!prod) return null;
 
   const abrir = () => { onClick?.(prod); };
+  const href = pageIdToTiendaPath("detalle", { productId: prod.id });
   const presLinea = [pres, prod.requiere_receta ? "Requiere receta" : ""]
     .filter(Boolean)
     .join(" · ");
 
   return (
     <article className="fc-product">
-      <button
-        type="button"
+      <EnlaceTienda
         className="fc-photo"
+        href={href}
         ref={fotoRef}
-        onClick={abrir}
+        onNavigate={abrir}
         aria-label={`Ver ${prod.nombre || "producto"}`}
       >
         {imgSrc && !imgRota ? (
@@ -63,19 +66,19 @@ export default function TarjetaProducto({ prod, onClick }) {
         ) : (
           <span className="fc-photo-ph">Imagen próximamente</span>
         )}
-      </button>
+      </EnlaceTienda>
       <EstadoDisponibilidad producto={prod} />
       {marca ? <div className="fc-product-brand">{marca}</div> : null}
-      <button type="button" className="fc-product-name" onClick={abrir}>
+      <EnlaceTienda className="fc-product-name" href={href} onNavigate={abrir}>
         {prod.nombre}
-      </button>
+      </EnlaceTienda>
       <EstrellasDeProducto prod={prod} />
       {presLinea ? <div className="fc-small">{presLinea}</div> : null}
       <div className="fc-price-row">
         <strong className="fc-price">{precio != null ? $peso(precio) : "Consultar"}</strong>
-        <button type="button" className="fc-add" onClick={abrir}>
+        <EnlaceTienda className="fc-add" href={href} onNavigate={abrir}>
           {encargo ? "Ver encargo →" : "Ver producto →"}
-        </button>
+        </EnlaceTienda>
       </div>
     </article>
   );

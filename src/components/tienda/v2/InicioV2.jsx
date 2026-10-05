@@ -13,6 +13,8 @@ import { CONSULTA_PRECIO_DEFAULT } from "../../../utils/consultaConstants";
 import { $peso } from "../../../utils";
 import { nombrePublicoTienda, presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { normalizeCategoriaKey } from "../../../constants/categoriasProducto";
+import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
+import EnlaceTienda from "./EnlaceTienda";
 
 const MAX_FILA = 4;
 
@@ -109,14 +111,15 @@ function TarjetaEncargo({ prod, onClick }) {
   const img = rota ? "" : fotoDe(prod);
   const marca = String(prod?.marca || "").trim();
   const precio = Number(prod?.precio) > 0.01 ? $peso(Number(prod.precio)) : "Consultar";
+  const href = pageIdToTiendaPath("detalle", { productId: prod?.id });
   return (
-    <button type="button" className="fc-encargo" onClick={() => onClick?.(prod)}>
+    <EnlaceTienda className="fc-encargo" href={href} onNavigate={() => onClick?.(prod)}>
       {img ? <img src={img} alt="" loading="lazy" decoding="async" onError={() => setRota(true)} /> : <span className="fc-encargo-ph" />}
       {marca ? <span className="fc-product-brand">{marca}</span> : null}
       <span className="fc-encargo-name">{nombrePublicoTienda(prod) || prod?.nombre}</span>
       <span className="fc-small">{presentacionPublicaTienda(prod) || ""}</span>
       <strong className="fc-price">{precio}</strong>
-    </button>
+    </EnlaceTienda>
   );
 }
 
@@ -178,6 +181,7 @@ export default function InicioV2({
       tono: m.tono,
       foto: prod ? fotoDe(prod) : "",
       icono: iconoSeccion[m.id],
+      href: pageIdToTiendaPath("catalogo", { seccion: m.seccion }),
       onClick: () => irCategoria(m.seccion),
     };
   });
@@ -193,6 +197,7 @@ export default function InicioV2({
       icono: <Droplets aria-hidden="true" />,
       nota: "Catálogo por encargo",
       cta: "Descubrir",
+      href: pageIdToTiendaPath("conseguir"),
       onIr: () => setPage?.("conseguir"),
     },
     {
@@ -204,6 +209,7 @@ export default function InicioV2({
       icono: <MessageCircleQuestion aria-hidden="true" />,
       nota: "Precio y disponibilidad por WhatsApp",
       cta: "Cotizar",
+      href: pageIdToTiendaPath("cotizar"),
       onIr: irCotizar,
     },
     // Copy de genéricos y marca original aprobado para producción (2026-09-25).
@@ -219,6 +225,7 @@ export default function InicioV2({
       icono: <BadgePercent aria-hidden="true" />,
       nota: "Pregunta por la alternativa a tu receta",
       cta: "Ver medicamentos",
+      href: pageIdToTiendaPath("catalogo", { seccion: "Medicamentos" }),
       onIr: () => irCategoria("Medicamentos"),
     },
     {
@@ -233,6 +240,7 @@ export default function InicioV2({
       icono: <ShieldCheck aria-hidden="true" />,
       nota: "Laboratorio original, disponibilidad en sucursal",
       cta: "Ver medicamentos",
+      href: pageIdToTiendaPath("catalogo", { seccion: "Medicamentos" }),
       onIr: () => irCategoria("Medicamentos"),
     },
   ];
@@ -249,9 +257,9 @@ export default function InicioV2({
           <p className="fc-description">
             Medicamentos, cuidado de la piel y nutrición, con el respaldo de nuestra sucursal.
           </p>
-          <button type="button" className="fc-primary" onClick={() => irCategoria("Medicamentos")}>
+          <EnlaceTienda className="fc-primary" href={pageIdToTiendaPath("catalogo", { seccion: "Medicamentos" })} onNavigate={() => irCategoria("Medicamentos")}>
             Buscar medicamento <ArrowRight aria-hidden="true" />
-          </button>
+          </EnlaceTienda>
         </div>
         <HeroCarrusel slides={slidesHero} />
       </section>
@@ -284,9 +292,9 @@ export default function InicioV2({
             Mándanos el nombre o la foto de tu receta. Te respondemos con precio, disponibilidad y
             fecha antes de cobrar nada.
           </p>
-          <button type="button" className="fc-secondary" onClick={irCotizar}>
+          <EnlaceTienda className="fc-secondary" href={pageIdToTiendaPath("cotizar")} onNavigate={irCotizar}>
             Cotizar mi medicamento <ArrowRight aria-hidden="true" />
-          </button>
+          </EnlaceTienda>
         </div>
         <ol className="fc-quote-steps">
           <li><strong>Nos dices qué necesitas</strong><span>Nombre, sustancia o receta.</span></li>
@@ -304,9 +312,9 @@ export default function InicioV2({
               <div className="fc-eyebrow" style={{ marginBottom: 7 }}>Medicamentos · En sucursal</div>
               <h2>Listos para recoger hoy.</h2>
             </div>
-            <button type="button" className="fc-textbtn" onClick={() => irCategoria("Medicamentos")}>
+            <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("catalogo", { seccion: "Medicamentos" })} onNavigate={() => irCategoria("Medicamentos")}>
               Ver todos →
-            </button>
+            </EnlaceTienda>
           </div>
           <div className="fc-grid">
             {enSucursal.map((p) => (
@@ -323,7 +331,7 @@ export default function InicioV2({
               <div className="fc-eyebrow" style={{ marginBottom: 7 }}>Catálogo extendido · Por encargo</div>
               <h2>Tu cuidado, a tu manera.</h2>
             </div>
-            <button type="button" className="fc-textbtn" onClick={() => setPage?.("conseguir")}>Ver catálogo →</button>
+            <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("conseguir")} onNavigate={() => setPage?.("conseguir")}>Ver catálogo →</EnlaceTienda>
           </div>
           <div className="fc-grid">
             {porEncargo.map((p) => (
@@ -352,9 +360,9 @@ export default function InicioV2({
             Abrimos en agosto de 2026. Recoge tus pedidos, consulta a nuestro personal y conoce el
             consultorio.
           </p>
-          <button type="button" className="fc-textbtn" onClick={() => setPage?.("faq")}>
+          <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("faq")} onNavigate={() => setPage?.("faq")}>
             Ver ubicación y horarios →
-          </button>
+          </EnlaceTienda>
         </div>
         <div className="fc-clinic">
           <div className="fc-eyebrow">Consultorio en sucursal</div>
@@ -362,9 +370,9 @@ export default function InicioV2({
           <p className="fc-small">
             Consulta ${consulta} · Todos los días {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}
           </p>
-          <button type="button" className="fc-secondary" style={{ marginTop: 18 }} onClick={() => setPage?.("cita")}>
+          <EnlaceTienda className="fc-secondary" style={{ marginTop: 18 }} href={pageIdToTiendaPath("cita")} onNavigate={() => setPage?.("cita")}>
             Agendar consulta
-          </button>
+          </EnlaceTienda>
         </div>
       </section>
     </div>

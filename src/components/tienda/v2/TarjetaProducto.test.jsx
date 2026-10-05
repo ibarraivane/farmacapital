@@ -107,6 +107,7 @@ test("tarjeta de sucursal abre el producto", () => {
   expect(screen.getByText("Ver producto →")).toBeInTheDocument();
   fireEvent.click(screen.getByText("Omeprazol 20 mg"));
   expect(onClick).toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "Omeprazol 20 mg" })).toHaveAttribute("href", "/producto?id=7");
 });
 
 test("bajo pedido no inventa precio y dice Ver encargo", () => {

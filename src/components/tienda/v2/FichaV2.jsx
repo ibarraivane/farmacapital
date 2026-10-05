@@ -6,6 +6,9 @@ import { mapearFichaTienda } from "../../../lib/catalogoFichas/mapearFichaTienda
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { EstrellasDeProducto, ListaResenasPublicas } from "../ResenasTienda";
 import { useZoomPackshot } from "../../../hooks/useZoomPackshot";
+import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
+import { slugSeccion } from "../../../constants/vitrinaTienda";
+import EnlaceTienda from "./EnlaceTienda";
 
 /** Renglones de ficha técnica con dato. Vacíos no se muestran. */
 export function fichaTecnicaDe(prod, ficha, monografia) {
@@ -111,9 +114,14 @@ export default function FichaV2({
   return (
     <div className="fc-body fc-ficha">
       <nav className="fc-crumbs" aria-label="Dónde estás">
-        <button type="button" onClick={() => setPage?.("home")}>Inicio</button>
+        <EnlaceTienda href={pageIdToTiendaPath("home")} onNavigate={() => setPage?.("home")}>Inicio</EnlaceTienda>
         <span aria-hidden="true">/</span>
-        <button type="button" onClick={() => setPage?.("catalogo")}>{categoriaLabel || "Catálogo"}</button>
+        <EnlaceTienda
+          href={pageIdToTiendaPath("catalogo", { seccion: slugSeccion(categoriaLabel) ? categoriaLabel : "" })}
+          onNavigate={() => setPage?.("catalogo", slugSeccion(categoriaLabel) ? { seccion: categoriaLabel } : undefined)}
+        >
+          {categoriaLabel || "Catálogo"}
+        </EnlaceTienda>
       </nav>
 
       <section className="fc-detail">
@@ -190,14 +198,14 @@ export default function FichaV2({
         </section>
       ) : null}
 
-      <button type="button" className="fc-quote-link" onClick={() => setPage?.("cotizar")}>
+      <EnlaceTienda className="fc-quote-link" href={pageIdToTiendaPath("cotizar")} onNavigate={() => setPage?.("cotizar")}>
         <FlaskConical aria-hidden="true" />
         <span>
           <strong>¿Necesitas otra presentación o marca?</strong>
           Te la cotizamos sin costo, incluso si es de alta especialidad.
         </span>
         <ArrowRight aria-hidden="true" />
-      </button>
+      </EnlaceTienda>
 
       {/* En celular la compra siempre queda a la mano, sin buscar el botón. */}
       {barra ? (
