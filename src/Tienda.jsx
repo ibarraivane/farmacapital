@@ -7148,6 +7148,7 @@ export default function TiendaFarmaCapital(){
   const [resenasResumen,setResenasResumen] = useState({});
   const [cargando,setCargando]   = useState(false);
   const [loadingProductos,setLoadingProductos] = useState(true);
+  const [errorCatalogo,setErrorCatalogo] = useState(false);
   const [prodDetalle,setProdDRaw] = useState(() => {
     try {
       const id = tiendaProductIdFromSearch(window.location.search);
@@ -7223,13 +7224,14 @@ export default function TiendaFarmaCapital(){
   // Refresh silencioso (catálogo vivo): actualiza lista/detalle/carrito, no cambia de página.
   // La vitrina completa solo baja en /conseguir. En el resto, una muestra corta para el home.
   const recargarProductosRef = useRef(async () => {});
+  const reintentarCatalogoRef = useRef(async () => {});
   const vitrinaCompletaRef = useRef(page === "conseguir");
   const vitrinaCacheRef = useRef([]);
   useEffect(()=>{
     clearStaleProductosCache();
     let cancelled = false;
     let ultimaCargaCatalogo = 0;
-    const MAX_INTENTOS = 4;
+    const MAX_INTENTOS = 2;
     const aplicarLista = (raw) => {
       // Bajo pedido: precio = ancla con MP (precio_ancla guarda el de inventario). Una sola vez aquí.
       const data = prepararListaTienda(raw);
@@ -7265,7 +7267,7 @@ export default function TiendaFarmaCapital(){
           traerProductosActivos(supabase, { modo: "anaquel" }),
           traerProductosActivos(supabase, { modo: "vitrina", limite: conVitrina ? 0 : 24 }),
         ]);
-        const timeoutPromise = new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),20000));
+        const timeoutPromise = new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),60000));
         const [anaquelRes, vitrinaRes] = await Promise.race([queryPromise, timeoutPromise]);
         const data = anaquelRes?.data;
         const error = anaquelRes?.error;
@@ -7278,15 +7280,16 @@ export default function TiendaFarmaCapital(){
         }
         if (cancelled) return;
         if (error) {
-          const isTimeout = (error.message||"").toLowerCase().includes("upstream request timeout");
-          if (isTimeout && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
+          // Cada página ya reintentó el timeout de Postgres. No vuelvas a bajar todo.
           if (!silencioso) {
             console.error("[Tienda] productos:", error);
+            setErrorCatalogo(true);
             setLoadingProductos(false);
           }
           return;
         }
         ultimaCargaCatalogo = Date.now();
+        setErrorCatalogo(false);
         const lista = [...(data || []), ...vitrinaCacheRef.current];
         if (lista.length) {
           aplicarLista(lista);
@@ -7297,10 +7300,18 @@ export default function TiendaFarmaCapital(){
       } catch(e) {
         if (cancelled) return;
         if (e?.message === "timeout" && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
-        if (!silencioso) setLoadingProductos(false);
+        if (!silencioso) {
+          setErrorCatalogo(true);
+          setLoadingProductos(false);
+        }
       }
     };
     recargarProductosRef.current = () => loadProductos(1, { silencioso: true });
+    reintentarCatalogoRef.current = () => {
+      setErrorCatalogo(false);
+      setLoadingProductos(true);
+      return loadProductos(1);
+    };
     loadProductos();
     // Volver a la pestaña no vuelve a bajar el catálogo. Eso era egress en cada cambio de app.
     // El catálogo vivo sí refresca cuando de verdad cambia un producto.
@@ -7642,6 +7653,38 @@ export default function TiendaFarmaCapital(){
         </>
       ) : (
         <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser} busqHero={busqHero} setBusqHero={setBusqHero} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>
+      )}
+
+      {errorCatalogo && productos.length === 0 && (
+        <div style={{
+          background: "#fef3c7",
+          borderBottom: "1px solid #f59e0b",
+          color: "#92400e",
+          padding: "12px 16px",
+          fontSize: 14,
+          lineHeight: 1.45,
+          textAlign: "center",
+        }}>
+          No se pudo descargar el inventario. La consulta tardó demasiado.
+          <button
+            type="button"
+            onClick={() => reintentarCatalogoRef.current()}
+            style={{
+              marginLeft: 10,
+              background: "#ffffff",
+              color: "#0f172a",
+              colorScheme: "light",
+              WebkitTextFillColor: "#0f172a",
+              border: "1px solid #f59e0b",
+              borderRadius: 8,
+              padding: "6px 12px",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
       )}
 
       {(isSupabaseProductionMisconfigured || isSupabaseLocalMisconfigured) && (
