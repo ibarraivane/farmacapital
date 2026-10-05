@@ -1,5 +1,6 @@
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import InicioV2, { productosEnSucursal, productosPorEncargo, esGenericoReal, esPatenteReal } from "./InicioV2";
+import { TiendaPlaceholderCtx } from "../tiendaPlaceholder";
 
 const PRODUCTOS = [
   { id: 1, nombre: "Omeprazol 20 mg", precio: 89, stock: 12, categoria: "Gastro", vitrina_seccion: "Medicamentos", imagen_url: "https://x/o.jpg" },
@@ -23,6 +24,22 @@ test("el inicio muestra los bloques del diseño de ChatGPT", () => {
   expect(screen.getByText("Listos para recoger hoy.")).toBeInTheDocument();
   expect(screen.getByText("Tu cuidado, a tu manera.")).toBeInTheDocument();
   expect(screen.getByText(/Consulta \$80/)).toBeInTheDocument();
+});
+
+test("el encargo sin foto usa el placeholder de la ficha", () => {
+  const ph = "https://cdn.example/placeholders/imagen-proximamente-v1.png";
+  const { container } = render(
+    <TiendaPlaceholderCtx.Provider value={ph}>
+      <InicioV2
+        productos={[{ id: 9, nombre: "Whey", marca: "EAS", presentacion: "5 lb", precio: 0, stock: 0, bajo_pedido: true, activo: true, imagen_url: "" }]}
+        setPage={() => {}}
+        setProdDetalle={() => {}}
+      />
+    </TiendaPlaceholderCtx.Provider>
+  );
+  const src = container.querySelector(".fc-encargo img")?.getAttribute("src") || "";
+  expect(src).toContain("imagen-proximamente-v1.png");
+  expect(container.querySelector(".fc-encargo img")).toHaveAttribute("alt", "Imagen próximamente");
 });
 
 test("sin catálogo no inventa secciones vacías", () => {
