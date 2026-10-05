@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import EnlaceTienda from "./EnlaceTienda";
 
 const AUTO_MS = 6500;
 
@@ -115,11 +116,29 @@ export default function HeroCarrusel({ slides = [] }) {
         </div>
       ) : null}
 
-      <div className="fc-studio-note">
-        <span>{slide.nota}</span>
-        <button type="button" className="fc-studio-cta" onClick={slide.onIr}>
-          {slide.cta || "Descubrir"} <ArrowRight aria-hidden="true" />
+      {total > 1 ? (
+        <button
+          type="button"
+          className="fc-studio-pause"
+          aria-pressed={pausado}
+          aria-label={pausado ? "Reproducir carrusel" : "Pausar carrusel"}
+          onClick={() => setPausado((v) => !v)}
+        >
+          {pausado ? "Reproducir" : "Pausar"}
         </button>
+      ) : null}
+
+      <div className="fc-studio-note" aria-live={pausado ? "polite" : "off"}>
+        <span>{slide.nota}</span>
+        {slide.href ? (
+          <EnlaceTienda className="fc-studio-cta" href={slide.href} onNavigate={slide.onIr}>
+            {slide.cta || "Descubrir"} <ArrowRight aria-hidden="true" />
+          </EnlaceTienda>
+        ) : (
+          <button type="button" className="fc-studio-cta" onClick={slide.onIr}>
+            {slide.cta || "Descubrir"} <ArrowRight aria-hidden="true" />
+          </button>
+        )}
       </div>
     </div>
   );

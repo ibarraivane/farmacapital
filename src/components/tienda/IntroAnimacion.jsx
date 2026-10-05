@@ -34,7 +34,12 @@ export default function IntroAnimacion() {
     setVisible(true);
     marcarIntroVista();
     const t = setTimeout(() => setOut(true), DURACION_MS);
-    return () => clearTimeout(t);
+    const onKey = (e) => { if (e.key === "Escape") setOut(true); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import App from "./App";
 test("renders FARMACAPITAL loader", () => {
   window.history.pushState({}, "", "/");
   render(<App />);
-  const title = screen.getByRole("button", { name: "Inicio FarmaCapital" });
+  const title = screen.getByRole("link", { name: "Inicio FarmaCapital" });
   expect(title).toBeInTheDocument();
 });
 

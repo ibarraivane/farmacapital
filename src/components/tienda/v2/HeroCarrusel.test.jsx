@@ -36,6 +36,12 @@ test("las flechas avanzan y regresan", () => {
   expect(screen.getByText("Slide c")).toBeInTheDocument();
 });
 
+test("el carrusel se puede pausar a mano", () => {
+  render(<HeroCarrusel slides={[slide("a"), slide("b")]} />);
+  fireEvent.click(screen.getByLabelText("Pausar carrusel"));
+  expect(screen.getByLabelText("Reproducir carrusel")).toBeInTheDocument();
+});
+
 test("los puntos llevan directo a una slide y marcan la activa", () => {
   render(<HeroCarrusel slides={[slide("a"), slide("b"), slide("c")]} />);
   fireEvent.click(screen.getByLabelText("Ver: Slide c"));

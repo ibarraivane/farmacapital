@@ -1,5 +1,7 @@
 import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
+import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
+import EnlaceTienda from "./EnlaceTienda";
 
 function datoReal(...vals) {
   return vals.map((v) => String(v || "").trim()).filter(Boolean).join(" · ");
@@ -48,15 +50,38 @@ export default function PieV2({ setPage, farmacia = FARMACIA_FISCAL }) {
           srcSet={logoFullSrcSet({ light: true })}
           alt="FarmaCapital"
         />
-        <button type="button" className="fc-textbtn" onClick={irSucursal}>
+        <a
+          className="fc-textbtn"
+          href={farmacia.maps_url || FARMACIA_FISCAL.maps_url || pageIdToTiendaPath("faq")}
+          target={farmacia.maps_url || FARMACIA_FISCAL.maps_url ? "_blank" : undefined}
+          rel={farmacia.maps_url || FARMACIA_FISCAL.maps_url ? "noopener noreferrer" : undefined}
+          onClick={(e) => {
+            if (farmacia.maps_url || FARMACIA_FISCAL.maps_url) {
+              e.preventDefault();
+              irSucursal();
+              return;
+            }
+            e.preventDefault();
+            setPage?.("faq");
+          }}
+        >
           Ver ubicación de la sucursal
-        </button>
+        </a>
       </div>
 
       <nav className="fc-footer-links" aria-label="Enlaces de la tienda">
         {ENLACES_PIE.map((l) => (
-          <button key={l.id} type="button" onClick={() => setPage?.(l.id)}>{l.label}</button>
+          <EnlaceTienda key={l.id} href={pageIdToTiendaPath(l.id)} onNavigate={() => setPage?.(l.id)}>{l.label}</EnlaceTienda>
         ))}
+        {farmacia.telefono ? (
+          <a href={`https://wa.me/52${farmacia.telefono}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        ) : null}
+        {farmacia.telefono ? (
+          <a href={`tel:+52${farmacia.telefono}`}>Llamar {farmacia.telefono_display}</a>
+        ) : null}
+        {farmacia.email ? (
+          <a href={`mailto:${farmacia.email}`}>{farmacia.email}</a>
+        ) : null}
       </nav>
 
       {legal ? <span className="fc-legal">{legal}</span> : null}

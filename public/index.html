@@ -618,6 +618,12 @@
         var appReady = false;
         var sequenceDone = false;
         var hiding = false;
+        try {
+          if (window.localStorage && window.localStorage.getItem('farmacapital_intro_vista') === '1') {
+            if (splash && splash.parentNode) splash.remove();
+            return;
+          }
+        } catch (e) { /* noop */ }
 
         function soltarCapas() {
           if (!splash) return;
@@ -630,6 +636,7 @@
           if (!sequenceDone) return;
           if (!appReady) return;
           hiding = true;
+          try { window.localStorage.setItem('farmacapital_intro_vista', '1'); } catch (e) { /* noop */ }
           splash.setAttribute('aria-busy', 'false');
           splash.classList.add('hide');
           setTimeout(function () {
@@ -690,6 +697,18 @@
           }
         }
 
+        function saltarIntro() {
+          sequenceDone = true;
+          appReady = true;
+          ocultar();
+        }
+        if (splash) {
+          splash.style.cursor = 'pointer';
+          splash.addEventListener('click', saltarIntro);
+        }
+        window.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') saltarIntro();
+        });
         window.addEventListener('load', function () {
           window.__fcOcultarSplash();
         });

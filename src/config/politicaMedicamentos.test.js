@@ -1,4 +1,4 @@
-import { politicaProducto, validarCarritoPolitica, textosPolitica, TIPO } from "./politicaMedicamentos";
+import { politicaProducto, tipoVentaPublico, validarCarritoPolitica, textosPolitica, TIPO } from "./politicaMedicamentos";
 
 describe("politicaMedicamentos", () => {
 
@@ -48,6 +48,15 @@ describe("politicaMedicamentos", () => {
 
   it("Rx general y libre no cambian respecto a hoy", () => {
     expect(validarCarritoPolitica([rx, libre], "envio", { canal: "habilitado" }).ok).toBe(true);
+  });
+
+  it("antibiótico nunca se etiqueta Sin receta en la ficha", () => {
+    expect(tipoVentaPublico(amoxi)).toBe("Antibiótico · receta y solo en farmacia");
+    expect(tipoVentaPublico({ ...amoxi, requiere_receta: false })).toBe("Antibiótico · receta y solo en farmacia");
+    expect(tipoVentaPublico(amoxi)).not.toMatch(/sin receta/i);
+    expect(tipoVentaPublico(tramadol)).toBe("Controlado · solo en farmacia");
+    expect(tipoVentaPublico(rx)).toBe("Con receta médica");
+    expect(tipoVentaPublico(libre)).toBe("Venta libre");
   });
 
   it("los textos nunca dicen que la receta de antibióticos es opcional", () => {

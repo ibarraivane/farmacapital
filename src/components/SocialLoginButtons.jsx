@@ -89,7 +89,7 @@ export default function SocialLoginButtons({ colors, onError, disabled = false }
           textAlign: "center",
         }}
       >
-        Al continuar aceptás el Aviso de Privacidad de FarmaCapital.
+        Al continuar aceptas el Aviso de Privacidad de FarmaCapital.
       </p>
       <div
         style={{
