@@ -255,12 +255,17 @@ async function assertClienteOwnsPedido(req, supabaseUrl, serviceKey, pedido, bod
     if (Number(pedido.cliente_id) !== clienteId) return { ok: false, status: 403, error: 'pedido_not_owned' };
     return { ok: true, clienteId };
   }
+  // Domicilio: 72 h (cotización + pago en Mi cuenta). Pickup: 2 h.
   const created = new Date(pedido.created_at).getTime();
-  if (!Number.isFinite(created) || Date.now() - created > 2 * 60 * 60 * 1000) {
+  const windowMs = String(pedido.tipo_entrega || '').toLowerCase() === 'envio'
+    ? 72 * 60 * 60 * 1000
+    : 2 * 60 * 60 * 1000;
+  if (!Number.isFinite(created) || Date.now() - created > windowMs) {
     return { ok: false, status: 403, error: 'guest_checkout_expired' };
   }
-  const telPedido = String(pedido.guest_telefono || '').replace(/\D/g, '');
-  if (guestPhone.length < 10 || telPedido.slice(-10) !== guestPhone.slice(-10)) {
+  // Pedidos viejos sin guest_telefono: caer al teléfono del cliente (igual que create-preference).
+  const telPedido = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
+  if (guestPhone.length < 10 || !telPedido || telPedido !== guestPhone.slice(-10)) {
     return { ok: false, status: 403, error: 'guest_phone_mismatch' };
   }
   return { ok: true, clienteId: Number(pedido.cliente_id) };
@@ -325,6 +330,27 @@ async function handleAttach(req, body) {
 
   const own = await assertClienteOwnsPedido(req, supabaseUrl, serviceKey, pedido, body);
   if (!own.ok) return { status: own.status, json: { ok: false, error: own.error } };
+
+  // Pedidos creados sin guest_telefono (regresión stock 23-sep): rellenar para pago posterior.
+  const guestPhoneDigits = String(body?.guestPhone || body?.guest_telefono || '').replace(/\D/g, '');
+  if (
+    body?.guest === true
+    && guestPhoneDigits.length >= 10
+    && String(pedido.guest_telefono || '').replace(/\D/g, '').length < 10
+  ) {
+    const local10 = guestPhoneDigits.slice(-10);
+    const backfill = {
+      guest_telefono: local10.length === 10 ? `52${local10}` : guestPhoneDigits,
+    };
+    if (!String(pedido.guest_nombre || '').trim() && String(body?.guestNombre || body?.guest_nombre || '').trim()) {
+      backfill.guest_nombre = String(body.guestNombre || body.guest_nombre).trim();
+    }
+    if (!String(pedido.guest_email || '').trim() && String(body?.guestEmail || body?.guest_email || '').trim()) {
+      backfill.guest_email = String(body.guestEmail || body.guest_email).trim();
+    }
+    await patchPedido(supabaseUrl, serviceKey, pedidoId, backfill);
+    Object.assign(pedido, backfill);
+  }
 
   const coords = coordsFromBody(body);
   const prevFee = Number(pedido.costo_envio);
