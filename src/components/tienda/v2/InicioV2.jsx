@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, MessagesSquare, ArrowRight, MessageCircleQuestion, BadgePercent, ShieldCheck } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
 import HeroCarrusel from "./HeroCarrusel";
@@ -6,6 +6,8 @@ import { esBajoPedido } from "../../../lib/bajoPedido";
 import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
 import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
 import { urlImagenPublicaTienda, tiendaCardImageUrl } from "../../../utils/tiendaCardImage";
+import { usePlaceholderProducto } from "../tiendaPlaceholder";
+import { useZoomPackshot } from "../../../hooks/useZoomPackshot";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
 import { CONSULTA_PRECIO_DEFAULT } from "../../../utils/consultaConstants";
 import { $peso } from "../../../utils";
@@ -104,12 +106,29 @@ export function productosPorEncargo(productos, limite = MAX_FILA) {
 }
 
 function TarjetaEncargo({ prod, onClick }) {
-  const img = fotoDe(prod);
+  const fotoRef = useRef(null);
+  const propia = fotoDe(prod);
+  const placeholder = urlImagenPublicaTienda(usePlaceholderProducto());
+  const img = propia || placeholder;
+  const zoom = useZoomPackshot(img, fotoRef);
   const marca = String(prod?.marca || "").trim();
   const precio = Number(prod?.precio) > 0.01 ? $peso(Number(prod.precio)) : "Consultar";
   return (
     <button type="button" className="fc-encargo" onClick={() => onClick?.(prod)}>
-      {img ? <img src={img} alt="" loading="lazy" decoding="async" /> : <span className="fc-encargo-ph" />}
+      <div className="fc-encargo-foto" ref={fotoRef}>
+        {img
+          ? (
+            <img
+              className={propia ? undefined : "fc-photo-ph"}
+              src={img}
+              alt={propia ? "" : "Imagen próximamente"}
+              loading="lazy"
+              decoding="async"
+              style={zoom > 1 ? { "--fc-pack-zoom": String(zoom) } : undefined}
+            />
+          )
+          : <span className="fc-encargo-ph" />}
+      </div>
       {marca ? <span className="fc-product-brand">{marca}</span> : null}
       <span className="fc-encargo-name">{nombrePublicoTienda(prod) || prod?.nombre}</span>
       <span className="fc-small">{presentacionPublicaTienda(prod) || ""}</span>

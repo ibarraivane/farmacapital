@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, createContext, useContext, useRef } from "react";
+import { TiendaPlaceholderCtx } from "./components/tienda/tiendaPlaceholder";
 import { supabase, isSupabaseProductionMisconfigured, isSupabaseLocalMisconfigured } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery, useNarrowForBannerImage } from "./hooks/useMediaQuery";
@@ -390,7 +391,6 @@ function BannerLoopVideo({ src, poster, style, "aria-label": ariaLabel }){
   );
 }
 
-const TiendaPlaceholderCtx = createContext("");
 const TiendaPromosCtx = createContext(new Map());
 
 function usePromosProducto(productoId) {

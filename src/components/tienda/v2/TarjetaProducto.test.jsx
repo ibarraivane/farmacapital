@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import TarjetaProducto from "./TarjetaProducto";
+import { TiendaPlaceholderCtx } from "../tiendaPlaceholder";
 
 const mockUrlsGaleria = jest.fn(() => []);
 
@@ -132,6 +133,75 @@ test("bajo pedido no inventa precio y dice Ver encargo", () => {
   expect(screen.queryByText("$0")).not.toBeInTheDocument();
   fireEvent.click(screen.getByText("Ver encargo →"));
   expect(onClick).toHaveBeenCalled();
+});
+
+test("sin foto de ficha muestra el mismo placeholder que al abrir el producto", () => {
+  const ph = "https://cdn.example/placeholders/imagen-proximamente-v1.png";
+  const { container } = render(
+    <TiendaPlaceholderCtx.Provider value={ph}>
+      <TarjetaProducto
+        prod={{
+          id: 18767,
+          nombre: "100% Platinum Whey Chocolate Ice Cream",
+          marca: "EAS",
+          presentacion: "5 lb",
+          precio: 0,
+          stock: 0,
+          bajo_pedido: true,
+          imagen_url: null,
+          imagen_mobile_url: null,
+        }}
+        onClick={() => {}}
+      />
+    </TiendaPlaceholderCtx.Provider>
+  );
+  const img = container.querySelector("img");
+  expect(img?.getAttribute("src") || "").toContain("imagen-proximamente-v1.png");
+  expect(img).toHaveAttribute("alt", "Imagen próximamente");
+  expect(img).toHaveClass("fc-photo-ph");
+});
+
+test("una foto real no se cambia por el placeholder", () => {
+  const propia = "https://www.farmacapital.mx/catalogo-propia/whey.jpg";
+  const { container } = render(
+    <TiendaPlaceholderCtx.Provider value="https://cdn.example/placeholders/imagen-proximamente-v1.png">
+      <TarjetaProducto
+        prod={{
+          id: 8,
+          nombre: "Con foto",
+          precio: 40,
+          stock: 2,
+          imagen_url: propia,
+          imagen_mobile_url: propia,
+        }}
+        onClick={() => {}}
+      />
+    </TiendaPlaceholderCtx.Provider>
+  );
+  const src = container.querySelector("img")?.getAttribute("src") || "";
+  expect(src).toContain("catalogo-propia/whey.jpg");
+  expect(src).not.toContain("imagen-proximamente");
+});
+
+test("si la foto real no carga, la tarjeta cae al placeholder", () => {
+  const propia = "https://www.farmacapital.mx/catalogo-propia/rota.jpg";
+  const { container } = render(
+    <TiendaPlaceholderCtx.Provider value="https://cdn.example/placeholders/imagen-proximamente-v1.png">
+      <TarjetaProducto
+        prod={{
+          id: 9,
+          nombre: "Foto rota",
+          precio: 40,
+          stock: 2,
+          imagen_url: propia,
+        }}
+        onClick={() => {}}
+      />
+    </TiendaPlaceholderCtx.Provider>
+  );
+  fireEvent.error(container.querySelector("img"));
+  const src = container.querySelector("img")?.getAttribute("src") || "";
+  expect(src).toContain("imagen-proximamente-v1.png");
 });
 
 test("antibiótico con receta marca Solo recoger", () => {
