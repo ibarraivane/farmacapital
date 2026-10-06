@@ -1,4 +1,4 @@
-import { MUNDOS, resumirMundos, mundosVisibles } from "./mundosTienda";
+import { MUNDOS, FOTO_MUNDO_URL, resumirMundos, mundosVisibles, urlFotoMundo } from "./mundosTienda";
 
 const deps = {
   seccionDe: (p) => p.vitrina_seccion || "",
@@ -108,4 +108,13 @@ test("si no hay kit, botiquín usa Tegaderm y no el tiraleche", () => {
     { id: 2, sku: "FC-89592876", nombre: "Tegaderm 3M 10 x 12 cm", marca: "Tegaderm", vitrina_seccion: "Botiquín y equipo médico", stock: 1, precio: 696, imagen_url: "/tega.jpg" },
   ], deps);
   expect(r.botiquin.producto.id).toBe(2);
+});
+
+test("si el catálogo no trajo el SKU bueno, el disco usa el packshot fijo", () => {
+  expect(urlFotoMundo(null, "nutricion-deportiva", (p) => p?.imagen_url)).toBe(FOTO_MUNDO_URL["nutricion-deportiva"]);
+  expect(urlFotoMundo(
+    { nombre: "Hierro dextrán", imagen_url: "/hierro.jpg" },
+    "nutricion-deportiva",
+    (p) => p.imagen_url,
+  )).toBe(FOTO_MUNDO_URL["nutricion-deportiva"]);
 });

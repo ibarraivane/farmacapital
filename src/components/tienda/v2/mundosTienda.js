@@ -33,6 +33,30 @@ export const FOTO_MUNDO = Object.freeze({
   botiquin: Object.freeze(["FC-89592876", "FC-86708021", "FC-19332016"]),
 });
 
+/**
+ * Foto fija si el catálogo del home aún no trajo el SKU (la vitrina llega
+ * recortada a 24) o si solo hay un mal ejemplo (hierro, OBAO, tiraleche).
+ */
+export const FOTO_MUNDO_URL = Object.freeze({
+  "nutricion-deportiva": "https://www.farmacapital.mx/catalogo-propia/on-gold-standard-whey-vainilla-907g.jpg",
+  dermocosmetica: "https://www.farmacapital.mx/catalogo-propia/cerave-3337875904292.jpg",
+  medicamentos: "https://www.farmacapital.mx/catalogo-propia/aspirina-protect-100mg-c28.jpg",
+  higiene: "https://www.farmacapital.mx/catalogo-propia/dove-tono-uniforme-calendula-150ml.jpg",
+  vitaminas: "https://www.farmacapital.mx/catalogo-propia/naturex-colageno-700mg-c60-7502009741524.jpg",
+  botiquin: "https://www.farmacapital.mx/catalogo-propia/termometro-infrarrojo-sin-contacto-neutek-nt1-fu-7503019332016.jpg",
+});
+
+/** Puntaje mínimo para usar la foto del producto y no el packshot fijo. */
+export const PUNTAJE_FOTO_OK = 100;
+
+export function urlFotoMundo(prod, mundoId, resolverFoto) {
+  if (prod && puntajeFotoMundo(prod, mundoId) >= PUNTAJE_FOTO_OK) {
+    const viva = resolverFoto?.(prod);
+    if (viva) return viva;
+  }
+  return FOTO_MUNDO_URL[mundoId] || (prod ? resolverFoto?.(prod) : "") || "";
+}
+
 const PREFERIR = Object.freeze({
   "nutricion-deportiva": [
     /proteina/,
