@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MapPin, Menu, Search, ShoppingBag, User } from "lucide-react";
 import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
-import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
 import { SECCIONES_VITRINA, slugSeccion } from "../../../constants/vitrinaTienda";
 import { pageIdToTiendaPath, seccionVitrinaFromPath } from "../../../shared/tiendaRoutes";
@@ -11,53 +10,33 @@ import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 import EnlaceTienda from "./EnlaceTienda";
 
 const PLACEHOLDER = "Buscar medicamento o marca";
-const HEADROOM_LOCK_MS = 400;
+const MOVIL = "(max-width: 760px)";
 
-/**
- * En celular el sticky no cambia de alto: al esconder franja y menú el
- * anclaje del scroll empuja hacia arriba y el efecto se abre otra vez.
- * Eso se ve como el buscador bajando y subiendo en cada gesto.
- */
-export function decidirCompacto(compacto, y, last, { estrecho = false } = {}) {
-  if (estrecho) return false;
-  if (y < 48) return false;
-  if (y > last + 10) return true;
-  if (y < last - 10) return false;
-  return compacto;
+/** El encabezado no se compacta al bajar: ese cambio de alto lo hacía parpadear. */
+export function decidirCompacto() {
+  return false;
 }
 
-function useHeadroom() {
-  const estrecho = useMediaQuery("(max-width: 760px), (hover: none) and (pointer: coarse)");
-  const [compacto, setCompacto] = useState(false);
-  useEffect(() => {
-    if (estrecho) {
-      setCompacto(false);
-      return undefined;
-    }
-    let last = typeof window !== "undefined" ? window.scrollY || 0 : 0;
-    let actual = false;
-    let lockedUntil = 0;
-    const onScroll = () => {
-      const y = window.scrollY || 0;
-      const ahora = typeof performance !== "undefined" ? performance.now() : Date.now();
-      if (ahora < lockedUntil) {
-        last = y;
-        return;
-      }
-      const next = decidirCompacto(actual, y, last);
-      last = y;
-      if (next === actual) return;
-      actual = next;
-      setCompacto(next);
-      lockedUntil = ahora + HEADROOM_LOCK_MS;
-      requestAnimationFrame(() => {
-        last = window.scrollY || 0;
-      });
+function useEspacioEncabezado(ref) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window.matchMedia !== "function") return undefined;
+    const root = el.closest(".fc-v2");
+    const mq = window.matchMedia(MOVIL);
+    const apply = () => {
+      if (!root) return;
+      root.style.paddingTop = mq.matches ? `${el.offsetHeight}px` : "";
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [estrecho]);
-  return estrecho ? false : compacto;
+    apply();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    mq.addEventListener?.("change", apply);
+    return () => {
+      ro?.disconnect();
+      mq.removeEventListener?.("change", apply);
+      if (root) root.style.paddingTop = "";
+    };
+  }, [ref]);
 }
 
 export default function EncabezadoV2({
@@ -75,7 +54,8 @@ export default function EncabezadoV2({
   menuAbierto = false,
 }) {
   const [busqFocus, setBusqFocus] = useState(false);
-  const headroom = useHeadroom();
+  const stickyRef = useRef(null);
+  useEspacioEncabezado(stickyRef);
   const checkout = page === "checkout" || page === "carrito";
   const n = (cart || []).reduce((a, c) => a + (Number(c.qty) || 0), 0);
   const q = String(busqHero || "");
@@ -126,7 +106,7 @@ export default function EncabezadoV2({
   };
 
   return (
-    <div className={`fc-sticky${headroom ? " fc-sticky--compact" : ""}${checkout ? " fc-sticky--checkout" : ""}`} style={{ backgroundColor: "#ffffff", position: "sticky", top: 0, zIndex: 80 }}>
+    <div ref={stickyRef} className={`fc-sticky${checkout ? " fc-sticky--checkout" : ""}`} style={{ backgroundColor: "#ffffff", top: 0, zIndex: 80 }}>
       <div className="fc-top">
         <span>Farmacia y consultorio · Ciudad de México</span>
         <span>Atención en sucursal · {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}</span>

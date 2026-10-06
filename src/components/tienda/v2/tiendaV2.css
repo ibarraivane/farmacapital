@@ -382,4 +382,6 @@ html:has(.fc-v2),.fc-v2 .fc-sticky{overflow-anchor:none}
 @media(max-width:760px){
   .fc-v2 .fc-hdr .fc-search{order:3;flex-basis:100%;min-width:0}
   .fc-v2 .fc-search .fc-textbtn{flex:none}
+  /* Fijo: un sticky que cambia de alto (o que el dedo arrastra) parpadea al bajar. */
+  .fc-v2 .fc-sticky{position:fixed;left:0;right:0;width:100%}
 }

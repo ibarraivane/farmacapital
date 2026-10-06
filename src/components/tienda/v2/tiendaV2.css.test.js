@@ -34,6 +34,7 @@ test("en celular el encabezado compacto no cambia de alto", () => {
   expect(hide).toBeGreaterThan(-1);
   expect(guard).toBeGreaterThan(hide);
   expect(css).toMatch(/@media\(max-width:760px\)\{[\s\S]*\.fc-sticky--compact \.fc-search\{height:48px\}/);
+  expect(css).toMatch(/@media\(max-width:760px\)\{[\s\S]*?\.fc-v2 \.fc-sticky\{position:fixed;left:0;right:0;width:100%\}/);
 });
 
 test("en celular el buscador va en su renglón y Pausar no tapa el título", () => {

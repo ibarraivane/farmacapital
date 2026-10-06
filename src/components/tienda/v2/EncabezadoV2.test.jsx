@@ -110,8 +110,8 @@ test("Cotizar especializado abre la pantalla de cotización", () => {
 });
 
 test("en celular el encabezado no se compacta al bajar", () => {
+  expect(decidirCompacto()).toBe(false);
   expect(decidirCompacto(false, 400, 0, { estrecho: true })).toBe(false);
-  expect(decidirCompacto(true, 400, 0, { estrecho: true })).toBe(false);
   const original = window.matchMedia;
   window.matchMedia = (query) => ({
     matches: String(query).includes("max-width: 760px"),
@@ -133,15 +133,14 @@ test("en celular el encabezado no se compacta al bajar", () => {
   }
 });
 
-test("un rebote del scroll no vuelve a abrir el encabezado de escritorio", () => {
-  expect(decidirCompacto(false, 200, 0)).toBe(true);
-  expect(decidirCompacto(true, 40, 200)).toBe(false);
+test("bajar la página no compacta el encabezado", () => {
+  expect(decidirCompacto(false, 200, 0)).toBe(false);
   const { container } = render(<EncabezadoV2 setPage={() => {}} cart={[]} />);
   Object.defineProperty(window, "scrollY", { configurable: true, value: 220 });
   fireEvent.scroll(window);
-  expect(container.querySelector(".fc-sticky")).toHaveClass("fc-sticky--compact");
+  expect(container.querySelector(".fc-sticky")).not.toHaveClass("fc-sticky--compact");
   Object.defineProperty(window, "scrollY", { configurable: true, value: 80 });
   fireEvent.scroll(window);
-  expect(container.querySelector(".fc-sticky")).toHaveClass("fc-sticky--compact");
+  expect(container.querySelector(".fc-sticky")).not.toHaveClass("fc-sticky--compact");
   Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
 });
