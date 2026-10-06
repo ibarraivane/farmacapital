@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.farmacapital.mx/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.farmacapital.mx/catalogo</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.farmacapital.mx/medicamentos</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.farmacapital.mx/dermocosmetica</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.farmacapital.mx/nutricion-deportiva</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.farmacapital.mx/higiene</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.farmacapital.mx/vitaminas</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.farmacapital.mx/botiquin</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.farmacapital.mx/conseguir</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.farmacapital.mx/cotizar</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.farmacapital.mx/promociones</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.farmacapital.mx/preguntas</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://www.farmacapital.mx/envios</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://www.farmacapital.mx/privacidad</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.farmacapital.mx/terminos</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.farmacapital.mx/puntos</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+</urlset>

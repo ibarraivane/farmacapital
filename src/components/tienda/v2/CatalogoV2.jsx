@@ -1,6 +1,8 @@
 import { ArrowRight, FlaskConical } from "lucide-react";
 import TarjetaProducto from "./TarjetaProducto";
 import FiltroChips from "./FiltroChips";
+import EnlaceTienda from "./EnlaceTienda";
+import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
 
 const ORDENES = [
   { id: "relevancia", label: "Relevancia" },
@@ -44,6 +46,7 @@ export default function CatalogoV2({
   onVerMas,
   loading = false,
   onProducto,
+  onAgregar,
   setPage,
   avisoRx = null,
 }) {
@@ -53,7 +56,7 @@ export default function CatalogoV2({
     <div className="fc-body">
       <div className="fc-page-top">
         <h1>{titulo}</h1>
-        <button type="button" className="fc-textbtn" onClick={() => setPage?.("home")}>Inicio</button>
+        <EnlaceTienda className="fc-textbtn" href={pageIdToTiendaPath("home")} onNavigate={() => setPage?.("home")}>Inicio</EnlaceTienda>
       </div>
       <p className="fc-description">{descripcion}</p>
 
@@ -90,7 +93,7 @@ export default function CatalogoV2({
       {lista.length ? (
         <>
           <div className="fc-grid">
-            {lista.map((p) => <TarjetaProducto key={p.id} prod={p} onClick={onProducto} />)}
+            {lista.map((p) => <TarjetaProducto key={p.id} prod={p} onClick={onProducto} onAgregar={onAgregar} />)}
           </div>
           {hayMas ? (
             <button type="button" className="fc-secondary" style={{ marginTop: 20 }} onClick={onVerMas}>
@@ -105,14 +108,14 @@ export default function CatalogoV2({
         </div>
       )}
 
-      <button type="button" className="fc-quote-link" onClick={() => setPage?.("cotizar")}>
+      <EnlaceTienda className="fc-quote-link" href={pageIdToTiendaPath("cotizar")} onNavigate={() => setPage?.("cotizar")}>
         <FlaskConical aria-hidden="true" />
         <span>
           <strong>¿No está aquí?</strong>
           Te cotizamos medicamentos especializados y difíciles de conseguir, sin costo.
         </span>
         <ArrowRight aria-hidden="true" />
-      </button>
+      </EnlaceTienda>
     </div>
   );
 }

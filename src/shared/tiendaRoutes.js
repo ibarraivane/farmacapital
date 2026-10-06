@@ -28,6 +28,7 @@ export const TIENDA_PAGE_IDS = [
   "conseguir",
   "cotizar",
   "pagar",
+  "notfound",
 ];
 
 /** Destinos válidos para banners (CTA). detalle/checkout/reset no se eligen a mano. */
@@ -74,6 +75,7 @@ const PAGE_TO_SLUG = {
   conseguir: "conseguir",
   cotizar: "cotizar",
   pagar: "pagar",
+  notfound: "404",
 };
 
 const SLUG_TO_PAGE = {
@@ -115,6 +117,7 @@ const SLUG_TO_PAGE = {
   cotizar: "cotizar",
   "cotizar-especializado": "cotizar",
   pagar: "pagar",
+  404: "notfound",
 };
 
 /**
@@ -156,7 +159,7 @@ export function tiendaPathnameToPageId(pathname) {
   }
   const seg = parts[0] || "";
   if (seccionPorSlug(seg)) return "catalogo";
-  return resolveTiendaPage(seg) || "home";
+  return resolveTiendaPage(seg) || "notfound";
 }
 
 /**
@@ -180,12 +183,33 @@ export function pageIdToTiendaPath(pageId, opts = {}) {
 }
 
 /** Id de producto en `/producto?id=…` (sobrevive recarga). */
+/** Texto de búsqueda en `?q=` (catálogo y /conseguir). */
+export function tiendaQueryFromSearch(search) {
+  try {
+    return String(new URLSearchParams(search || "").get("q") || "").trim();
+  } catch {
+    return "";
+  }
+}
+
 export function tiendaProductIdFromSearch(search) {
   try {
     return String(new URLSearchParams(search || "").get("id") || "").trim();
   } catch {
     return "";
   }
+}
+
+/**
+ * Id a guardar en history al ir a `/producto`.
+ * Si no llega `productId` (p. ej. replaceState al montar), se toma `?id=` de la URL actual.
+ * Sin esto, un enlace directo `/producto?id=123` se reescribe a `/producto` y cae al catálogo.
+ */
+export function productIdParaHistorialTienda(target, productId, search) {
+  if (String(target) !== "detalle") return "";
+  const fromOpt = String(productId ?? "").trim();
+  if (fromOpt) return fromOpt;
+  return tiendaProductIdFromSearch(search);
 }
 
 export function tiendaPathSuggestsReceta(pathname, search) {

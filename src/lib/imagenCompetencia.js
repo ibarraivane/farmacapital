@@ -18,6 +18,24 @@ const HOSTS_IMAGEN_COMPETENCIA = [
   /(^|\.)fahorro\.com$/i,
 ];
 
+/** Hosts que en producción fallan por CORS o bloquean el hotlink. */
+const HOSTS_IMAGEN_CORS_AJENA = [
+  /(^|\.)firebasestorage\.googleapis\.com$/i,
+  /(^|\.)nivea\.com$/i,
+];
+
+export function esUrlImagenCorsAjena(rawUrl) {
+  const url = String(rawUrl || "").trim();
+  if (!url || !/^https?:\/\//i.test(url)) return false;
+  let host;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return false;
+  }
+  return HOSTS_IMAGEN_CORS_AJENA.some((re) => re.test(host));
+}
+
 /** True si la URL apunta al CDN / sitio de Del Ahorro. */
 export function esUrlImagenCompetencia(rawUrl) {
   const url = String(rawUrl || "").trim();
@@ -39,6 +57,7 @@ export function urlImagenPublicaTienda(rawUrl) {
   const url = String(rawUrl || "").trim();
   if (!url) return "";
   if (esUrlImagenCompetencia(url)) return "";
+  if (esUrlImagenCorsAjena(url)) return "";
   return url;
 }
 

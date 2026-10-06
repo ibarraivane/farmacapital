@@ -6,6 +6,9 @@ import { mapearFichaTienda } from "../../../lib/catalogoFichas/mapearFichaTienda
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { EstrellasDeProducto, ListaResenasPublicas } from "../ResenasTienda";
 import { useZoomPackshot } from "../../../hooks/useZoomPackshot";
+import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
+import { slugSeccion } from "../../../constants/vitrinaTienda";
+import EnlaceTienda from "./EnlaceTienda";
 
 /** Renglones de ficha técnica con dato. Vacíos no se muestran. */
 export function fichaTecnicaDe(prod, ficha, monografia) {
@@ -71,12 +74,15 @@ export default function FichaV2({
   infoSlot = null,       // FichaProductoEnriquecida
   similares = [],
   onProducto,
+  onAgregarSimilar,
   setPage,
 }) {
   const cajaRef = useRef(null);
   const fotoRef = useRef(null);
   const zoom = useZoomPackshot(imagen || "", fotoRef);
   const [barra, setBarra] = useState(false);
+  const [imgRota, setImgRota] = useState(false);
+  useEffect(() => { setImgRota(false); }, [prod?.id, imagen]);
 
   // La barra fija de celular solo aparece cuando la caja de compra ya no se ve,
   // para no repetir el mismo botón dos veces en pantalla ni en el lector de voz.
@@ -109,9 +115,14 @@ export default function FichaV2({
   return (
     <div className="fc-body fc-ficha">
       <nav className="fc-crumbs" aria-label="Dónde estás">
-        <button type="button" onClick={() => setPage?.("home")}>Inicio</button>
+        <EnlaceTienda href={pageIdToTiendaPath("home")} onNavigate={() => setPage?.("home")}>Inicio</EnlaceTienda>
         <span aria-hidden="true">/</span>
-        <button type="button" onClick={() => setPage?.("catalogo")}>{categoriaLabel || "Catálogo"}</button>
+        <EnlaceTienda
+          href={pageIdToTiendaPath("catalogo", { seccion: slugSeccion(categoriaLabel) ? categoriaLabel : "" })}
+          onNavigate={() => setPage?.("catalogo", slugSeccion(categoriaLabel) ? { seccion: categoriaLabel } : undefined)}
+        >
+          {categoriaLabel || "Catálogo"}
+        </EnlaceTienda>
       </nav>
 
       <section className="fc-detail">
@@ -124,15 +135,16 @@ export default function FichaV2({
 
         <div className="fc-detail-media">
           <div className="fc-detail-photo" ref={fotoRef}>
-            {imagen
+            {imagen && !imgRota
               ? (
                 <img
                   src={imagen}
                   alt={prod.nombre || ""}
                   style={zoom > 1 ? { "--fc-pack-zoom": String(zoom) } : undefined}
+                  onError={() => setImgRota(true)}
                 />
               )
-              : <span className="fc-small">Foto no disponible</span>}
+              : <span className="fc-photo-ph">Imagen próximamente</span>}
           </div>
         </div>
 
@@ -182,19 +194,19 @@ export default function FichaV2({
         <section className="fc-section">
           <div className="fc-section-top"><h2>Productos similares</h2></div>
           <div className="fc-grid">
-            {similares.map((p) => <TarjetaProducto key={p.id} prod={p} onClick={onProducto} />)}
+            {similares.map((p) => <TarjetaProducto key={p.id} prod={p} onClick={onProducto} onAgregar={onAgregarSimilar} />)}
           </div>
         </section>
       ) : null}
 
-      <button type="button" className="fc-quote-link" onClick={() => setPage?.("cotizar")}>
+      <EnlaceTienda className="fc-quote-link" href={pageIdToTiendaPath("cotizar")} onNavigate={() => setPage?.("cotizar")}>
         <FlaskConical aria-hidden="true" />
         <span>
           <strong>¿Necesitas otra presentación o marca?</strong>
           Te la cotizamos sin costo, incluso si es de alta especialidad.
         </span>
         <ArrowRight aria-hidden="true" />
-      </button>
+      </EnlaceTienda>
 
       {/* En celular la compra siempre queda a la mano, sin buscar el botón. */}
       {barra ? (

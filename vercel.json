@@ -194,7 +194,7 @@
       "destination": "/api/health?token=:token"
     },
     {
-      "source": "/((?!api/|static/|icons/|catalogo-propia/|brand/|manifest\\.json|service-worker\\.js|version\\.json|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
+      "source": "/((?:admin|catalogo|catalog|shop|medicamentos|dermocosmetica|nutricion-deportiva|higiene|vitaminas|botiquin|nutricion|suplemento|suplementos|dermocosmeticos|cuidado-personal|dispositivos-medicos|dispositivo-medico|dispositivos|farmacia|producto|detalle|promociones|promo|ofertas|carrito|checkout|pago|pagar|cita|citas|consulta|consulta-medica|login|entrar|registro|recuperar|cuenta|puntos|preguntas|faq|privacidad|terminos|envios|terminos-puntos|tarjeta|flyer|hola|conseguir|te-lo-conseguimos|cotizar|cotizar-especializado|404|auth|consultorio|cons|punto-de-venta|pos|ventas|dash|expedientes|exp_dr|mi-consultorio|cons_dr|agenda-consultas|agenda|transacciones|trans|pedidos-online|ped_online|lo-que-buscan|ped_mostrador|cotizaciones|cotiz|inventario|ingreso-inventario|recibir|recibir-mercancia|manual|ayuda|cobrar-consulta|cons_cobro|inv|caja|resenas)(?:/.*)?)",
       "destination": "/index.html"
     }
   ],

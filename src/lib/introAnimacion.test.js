@@ -13,7 +13,7 @@ function fakeStorage() {
   };
 }
 
-test("sale una vez por sesión", () => {
+test("sale una vez por dispositivo (localStorage)", () => {
   const storage = fakeStorage();
   expect(debeMostrarIntro({ storage, win: { matchMedia: () => ({ matches: false }) } })).toBe(true);
   marcarIntroVista(storage);

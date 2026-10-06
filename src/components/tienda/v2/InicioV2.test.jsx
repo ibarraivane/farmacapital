@@ -35,18 +35,19 @@ test("sin catálogo no inventa secciones vacías", () => {
 test("«Comprar por categoría» ofrece las seis secciones mientras no hay catálogo", () => {
   render(<InicioV2 productos={[]} setPage={() => {}} setProdDetalle={() => {}} />);
   const mosaico = screen.getByRole("heading", { name: "Comprar por categoría" }).closest("section");
-  expect(within(mosaico).getAllByRole("button")).toHaveLength(6);
+  expect(within(mosaico).getAllByRole("link")).toHaveLength(6);
 });
 
 test("con catálogo, el mosaico solo muestra secciones con productos y abre esa vitrina", () => {
   const setPage = jest.fn();
   render(<InicioV2 productos={PRODUCTOS} setPage={setPage} setProdDetalle={() => {}} />);
   const mosaico = screen.getByRole("heading", { name: "Comprar por categoría" }).closest("section");
-  const nombres = within(mosaico).getAllByRole("button").map((b) => b.textContent.replace(/\s+/g, " ").trim());
+  const nombres = within(mosaico).getAllByRole("link").map((b) => b.textContent.replace(/\s+/g, " ").trim());
   expect(nombres).toEqual(["Dermocosmética", "Medicamentos"]);
   expect(nombres).not.toContain("Nutrición deportiva");
-  fireEvent.click(within(mosaico).getByRole("button", { name: "Medicamentos" }));
+  fireEvent.click(within(mosaico).getByRole("link", { name: "Medicamentos" }));
   expect(setPage).toHaveBeenCalledWith("catalogo", expect.objectContaining({ seccion: "Medicamentos" }));
+  expect(within(mosaico).getByRole("link", { name: "Medicamentos" })).toHaveAttribute("href", "/medicamentos");
 });
 
 describe("qué foto entra al carrusel de genéricos y de patente", () => {

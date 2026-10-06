@@ -1,4 +1,4 @@
-import { FILTRO_ANAQUEL, aplicarModoCatalogo, traerProductosActivos } from "./catalogoConsulta";
+import { COLUMNAS_TIENDA, FILTRO_ANAQUEL, aplicarModoCatalogo, esErrorTimeoutCatalogo, traerProductoPorId, traerProductosActivos } from "./catalogoConsulta";
 
 function cliente(filas) {
   const llamadas = [];
@@ -45,6 +45,35 @@ test("la vitrina se pide sola y con tope", async () => {
   expect(data.map((p) => p.id)).toEqual([1, 2]);
   expect(db.llamadas).toContainEqual(["eq", "bajo_pedido", true]);
   expect(db.llamadas.some((c) => c[0] === "or")).toBe(false);
+});
+
+test("trae un producto por id para el deep-link", async () => {
+  const llamadas = [];
+  const q = {
+    select: (s) => { llamadas.push(["select", s]); return q; },
+    eq: (col, val) => { llamadas.push(["eq", col, val]); return q; },
+    maybeSingle: () => Promise.resolve({ data: { id: 2, nombre: "Omeprazol" }, error: null }),
+  };
+  const client = { from: (table) => { llamadas.push(["from", table]); return q; } };
+  const { data, error } = await traerProductoPorId(client, "2");
+  expect(error).toBeNull();
+  expect(data).toEqual({ id: 2, nombre: "Omeprazol" });
+  expect(llamadas).toContainEqual(["from", "productos"]);
+  expect(llamadas).toContainEqual(["eq", "id", 2]);
+});
+
+test("la lista de la tienda no pide select *", async () => {
+  const db = cliente([{ id: 1 }]);
+  await traerProductosActivos(db, { modo: "anaquel", pageSize: 10 });
+  expect(db.llamadas).toContainEqual(["select", COLUMNAS_TIENDA]);
+  expect(COLUMNAS_TIENDA.split(",")).toEqual(expect.arrayContaining(["id", "nombre", "imagen_url", "precio", "stock"]));
+  expect(COLUMNAS_TIENDA).not.toMatch(/\*/);
+});
+
+test("57014 es un timeout que se puede reintentar", () => {
+  expect(esErrorTimeoutCatalogo({ code: "57014", message: "canceling statement due to statement timeout" })).toBe(true);
+  expect(esErrorTimeoutCatalogo({ message: "upstream request timeout" })).toBe(true);
+  expect(esErrorTimeoutCatalogo({ message: "permission denied" })).toBe(false);
 });
 
 test("aplica el modo sobre el query", () => {

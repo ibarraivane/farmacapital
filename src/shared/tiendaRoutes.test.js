@@ -1,8 +1,10 @@
 import {
   pageIdToTiendaPath,
+  productIdParaHistorialTienda,
   resolveTiendaPage,
   seccionVitrinaFromPath,
   tiendaPathnameToPageId,
+  tiendaQueryFromSearch,
   TIENDA_PAGE_IDS,
 } from "./tiendaRoutes";
 
@@ -30,6 +32,8 @@ describe("tiendaRoutes", () => {
     expect(tiendaPathnameToPageId("/auth/callback")).toBe("auth-callback");
     expect(tiendaPathnameToPageId("/auth/callback/")).toBe("auth-callback");
     expect(tiendaPathnameToPageId("/admin/ventas")).toBeNull();
+    expect(tiendaPathnameToPageId("/esta-ruta-no-existe")).toBe("notfound");
+    expect(pageIdToTiendaPath("notfound")).toBe("/404");
   });
 
   test("path canónico no choca con admin", () => {
@@ -42,6 +46,8 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("auth-callback")).toBe("/auth/callback");
     expect(pageIdToTiendaPath("tarjeta")).toBe("/tarjeta");
     expect(pageIdToTiendaPath("conseguir", { search: "losartan" })).toBe("/conseguir?q=losartan");
+    expect(pageIdToTiendaPath("catalogo", { search: "paracetamo" })).toBe("/catalogo?q=paracetamo");
+    expect(tiendaQueryFromSearch("?q=omeprazol")).toBe("omeprazol");
   });
 
   test("slugs de vitrina y los viejos abren el catálogo en la sección nueva", () => {
@@ -52,6 +58,19 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("catalogo", { seccion: seccionVitrinaFromPath("/dermocosmeticos") })).toBe("/dermocosmetica");
     expect(seccionVitrinaFromPath("/farmacia")).toBe("");
     expect(tiendaPathnameToPageId("/catalogo")).toBe("catalogo");
+  });
+
+  test("reescribir historial de detalle conserva ?id= si no se pasa productId", () => {
+    expect(productIdParaHistorialTienda("detalle", "", "?id=12345")).toBe("12345");
+    expect(productIdParaHistorialTienda("detalle", "99", "?id=12345")).toBe("99");
+    expect(productIdParaHistorialTienda("detalle", "", "")).toBe("");
+    expect(productIdParaHistorialTienda("catalogo", "", "?id=12345")).toBe("");
+    expect(pageIdToTiendaPath("detalle", {
+      productId: productIdParaHistorialTienda("detalle", "", "?id=abc-1"),
+    })).toBe("/producto?id=abc-1");
+    expect(pageIdToTiendaPath("detalle", {
+      productId: productIdParaHistorialTienda("detalle", "", ""),
+    })).toBe("/producto");
   });
 
   test("aliases de flyer y te lo conseguimos", () => {

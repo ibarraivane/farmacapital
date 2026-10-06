@@ -107,6 +107,7 @@ test("tarjeta de sucursal abre el producto", () => {
   expect(screen.getByText("Ver producto →")).toBeInTheDocument();
   fireEvent.click(screen.getByText("Omeprazol 20 mg"));
   expect(onClick).toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "Omeprazol 20 mg" })).toHaveAttribute("href", "/producto?id=7");
 });
 
 test("bajo pedido no inventa precio y dice Ver encargo", () => {
@@ -130,8 +131,16 @@ test("bajo pedido no inventa precio y dice Ver encargo", () => {
   expect(screen.getByText("Por encargo")).toBeInTheDocument();
   expect(screen.getByText("Consultar")).toBeInTheDocument();
   expect(screen.queryByText("$0")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByText("Ver encargo →"));
+  fireEvent.click(screen.getByText("Consultar →"));
   expect(onClick).toHaveBeenCalled();
+});
+
+test("producto listo para vender tiene + Agregar", () => {
+  const onAgregar = jest.fn(() => true);
+  render(<TarjetaProducto prod={omeprazol} onClick={() => {}} onAgregar={onAgregar} />);
+  fireEvent.click(screen.getByRole("button", { name: "+ Agregar" }));
+  expect(onAgregar).toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "✓ Agregado" })).toBeInTheDocument();
 });
 
 test("antibiótico con receta marca Solo recoger", () => {

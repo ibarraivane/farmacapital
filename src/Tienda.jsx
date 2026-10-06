@@ -36,7 +36,7 @@ import {
 import { productoEsVendible } from "./utils/productoVendible";
 import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
 import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
-import { chipsDeSeccion, conteosDeSeccion, etiquetasFiltroSeccion, productoEnVitrina } from "./constants/vitrinaTienda";
+import { chipsDeSeccion, conteosDeSeccion, etiquetasFiltroSeccion, productoEnVitrina, SECCIONES_VITRINA } from "./constants/vitrinaTienda";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import PrecioOferta from "./components/PrecioOferta";
@@ -46,7 +46,8 @@ import { useImagenesPrincipales, useProductoImagenes, useUrlsImagenesProducto, s
 import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
-import { pageIdToTiendaPath, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import { pageIdToTiendaPath, productIdParaHistorialTienda, resolveTiendaPage, seccionVitrinaFromPath, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch, tiendaQueryFromSearch } from "./shared/tiendaRoutes";
+import { aplicarDocumentMeta, metaDeRutaTienda } from "./lib/tiendaDocumentMeta";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir, CONSEGUIR_FORM_FLAG } from "./components/SolicitudCatalogoForm";
 import VitrinaConseguir from "./components/tienda/VitrinaConseguir";
@@ -54,11 +55,13 @@ import FichaProductoEnriquecida from "./components/tienda/FichaProductoEnriqueci
 import BannersEstaSemana from "./components/tienda/BannersEstaSemana";
 import IntroAnimacion from "./components/tienda/IntroAnimacion";
 import EncabezadoV2 from "./components/tienda/v2/EncabezadoV2";
+import EnlaceTienda from "./components/tienda/v2/EnlaceTienda";
 import PieV2 from "./components/tienda/v2/PieV2";
 import InicioV2 from "./components/tienda/v2/InicioV2";
 import CotizarV2 from "./components/tienda/v2/CotizarV2";
 import CatalogoV2 from "./components/tienda/v2/CatalogoV2";
 import FichaV2 from "./components/tienda/v2/FichaV2";
+import NoEncontradaV2 from "./components/tienda/v2/NoEncontradaV2";
 import { ResenasResumenCtx, EstrellasDeProducto, ListaResenasPublicas, BloqueResenaPedido, FormularioResenaToken } from "./components/tienda/ResenasTienda";
 import TarjetaProducto from "./components/tienda/v2/TarjetaProducto";
 import TiendaV2Shell from "./components/tienda/v2/TiendaV2Shell";
@@ -78,7 +81,8 @@ import {
   prepararListaTienda,
   tipoCarrito,
 } from "./lib/bajoPedido";
-import { traerProductosActivos } from "./lib/catalogoConsulta";
+import { esErrorTimeoutCatalogo, traerProductoPorId, traerProductosActivos } from "./lib/catalogoConsulta";
+import { resolverFichaDeepLink } from "./lib/tiendaDeepLinkProducto";
 import { precioOnlineMp, cargoPlataformaOnline, totalPedidoConPlataforma, CONCEPTO_CARGO_PLATAFORMA } from "./lib/precioOnlineMp";
 import { CANJES_PUNTOS, canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo, pesosDePuntos } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
@@ -124,7 +128,7 @@ import {
   mergeCartLines,
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
-import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, VITRINA_CHIP_KEY, VITRINA_SECCION_KEY, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
+import { bandasCatalogoPorCategoria, CATALOGO_CATEGORIA_EVENT, VITRINA_CHIP_KEY, VITRINA_SECCION_KEY, irACatalogoCategoria, irASeccionVitrina, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
 import {
   aplicarPosicionCatalogo,
   guardarVisiblesCatalogo,
@@ -409,16 +413,16 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
-  { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
+  { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (recoger en sucursal o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
   { p:"¿Cuánto tarda el envío?", r:"Confirmas tu pedido en línea (aún no se cobra). Cotizamos el transporte según tu zona y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta con Pagar ahora. Preparamos y salimos en cuanto esté pagado." },
-  { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
+  { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. Recoger en sucursal es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.10 de descuento. 100 puntos son $10. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:textosPolitica().faqReceta },
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
-  { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos» o entra a /conseguir. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
-    { p:"¿Qué es un producto «Bajo pedido»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos, proteína y dispositivos médicos). Toca «Ordenar»: todavía no publicamos el precio, te lo cotizamos por WhatsApp o correo." },
+  { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos». Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
+  { p:"¿Qué es un producto «Por encargo»?", r:"Son productos que pedimos por ti y llegan en 24-48 hrs (dermatología, vitaminas, suplementos, proteína y dispositivos médicos). Toca «Consultar»: todavía no publicamos el precio, te lo cotizamos por WhatsApp o correo." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -1317,6 +1321,12 @@ function HomeBannersTiles({setPage, items, stack}){
 // ── MENU LATERAL TIENDA ───────────────────────────────────────
 function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
   const C = useTheme();
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [abierto, onClose]);
 
   if (!abierto) return null;
 
@@ -1344,6 +1354,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
 
   const ayudaItems = [
     { icon: HelpCircle, label: "Preguntas frecuentes", page: "faq" },
+    { icon: FileText, label: "Política de envíos", page: "envios" },
     { icon: FileText, label: "Política de privacidad", page: "privacidad" },
     { icon: FileText, label: "Términos y condiciones", page: "terminos" },
   ];
@@ -1366,7 +1377,12 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
       }}
     >
       <div
+        id="fc-menu-tienda"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú de la tienda"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
         style={{
           background: C.card,
           width: "min(420px, 100vw)",
@@ -1421,9 +1437,9 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
         {!usuario && (
           <div style={{padding: "16px 24px", borderBottom: `1px solid ${C.border}`}}>
             <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8}}>
-              <button
-                type="button"
-                onClick={() => handleNav("registro")}
+              <EnlaceTienda
+                href={pageIdToTiendaPath("registro")}
+                onNavigate={() => handleNav("registro")}
                 style={{
                   padding: "12px 8px",
                   borderRadius: 10,
@@ -1433,14 +1449,15 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                   fontWeight: 700, fontSize: 14,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  textDecoration: "none",
                 }}
               >
                 <UserPlus size={16}/>
                 Crear cuenta
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNav("login")}
+              </EnlaceTienda>
+              <EnlaceTienda
+                href={pageIdToTiendaPath("login")}
+                onNavigate={() => handleNav("login")}
                 style={{
                   padding: "12px 8px",
                   borderRadius: 10,
@@ -1450,11 +1467,12 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                   fontWeight: 700, fontSize: 14,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  textDecoration: "none",
                 }}
               >
                 <LogIn size={16}/>
                 Iniciar sesión
-              </button>
+              </EnlaceTienda>
             </div>
           </div>
         )}
@@ -1468,10 +1486,10 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
             Explora
           </div>
           {navItems.map((item) => (
-            <button
+            <EnlaceTienda
               key={item.page}
-              type="button"
-              onClick={() => handleNav(item.page)}
+              href={pageIdToTiendaPath(item.page)}
+              onNavigate={() => handleNav(item.page)}
               style={{
                 width: "100%",
                 padding: "12px 24px",
@@ -1486,6 +1504,8 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 fontWeight: 600,
                 textAlign: "left",
                 transition: "background .15s",
+                textDecoration: "none",
+                boxSizing: "border-box",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -1493,7 +1513,31 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
               <item.icon size={20} color={BRAND.primary}/>
               <span style={{flex: 1}}>{item.label}</span>
               <ChevronRight size={16} color={C.textDim}/>
-            </button>
+            </EnlaceTienda>
+          ))}
+          {SECCIONES_VITRINA.map((sec) => (
+            <EnlaceTienda
+              key={sec.id}
+              href={pageIdToTiendaPath("catalogo", { seccion: sec.nombre })}
+              onNavigate={() => { irASeccionVitrina(setPage, sec.nombre); onClose(); }}
+              style={{
+                width: "100%",
+                padding: "10px 24px 10px 58px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                color: C.textMid,
+                fontSize: 14,
+                fontWeight: 600,
+                textAlign: "left",
+                textDecoration: "none",
+                boxSizing: "border-box",
+              }}
+            >
+              {sec.nombre}
+            </EnlaceTienda>
           ))}
         </div>
 
@@ -1598,10 +1642,10 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
             Ayuda
           </div>
           {ayudaItems.map((item) => (
-            <button
+            <EnlaceTienda
               key={item.page}
-              type="button"
-              onClick={() => handleNav(item.page)}
+              href={pageIdToTiendaPath(item.page)}
+              onNavigate={() => handleNav(item.page)}
               style={{
                 width: "100%",
                 padding: "10px 24px",
@@ -1615,13 +1659,15 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 fontSize: 13,
                 textAlign: "left",
                 transition: "background .15s",
+                textDecoration: "none",
+                boxSizing: "border-box",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               <item.icon size={16} color={C.textDim}/>
               <span>{item.label}</span>
-            </button>
+            </EnlaceTienda>
           ))}
         </div>
 
@@ -2045,7 +2091,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
 }
 
 // ── DETALLE PRODUCTO ──────────────────────────────────────────
-function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHero,setBusqHero}){
+function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHero,setBusqHero,loadingFicha=false}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 700px)");
   const narrowSuggest = useMediaQuery("(max-width: 768px)");
@@ -2094,13 +2140,25 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     });
     return () => { cancelled = true; };
   }, [prod?.id]);
-  if(!prod) return (
+  if(!prod) {
+    if (loadingFicha) {
+      return (
+        <div className="fc-body fc-ficha" style={{maxWidth:720,margin:"40px auto",padding:"0 24px"}} aria-busy="true" aria-live="polite">
+          <div className="fc-skeleton" style={{height:28,width:"40%",marginBottom:16}} />
+          <div className="fc-skeleton" style={{height:220,marginBottom:16}} />
+          <div className="fc-skeleton" style={{height:48,width:"55%"}} />
+          <p style={{color:C.mid,fontSize:14,marginTop:16}}>Cargando producto…</p>
+        </div>
+      );
+    }
+    return (
     <div style={{maxWidth:560,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
-      <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Producto no disponible</h2>
-      <p style={{color:C.mid,fontSize:14,marginBottom:20,lineHeight:1.5}}>Este enlace no tiene un producto cargado. Vuelve al catálogo para elegir otro.</p>
+      <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Este producto ya no está disponible</h2>
+      <p style={{color:C.mid,fontSize:14,marginBottom:20,lineHeight:1.5}}>El enlace no corresponde a un producto activo. Vuelve al catálogo para elegir otro.</p>
       <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary}>Ver catálogo</Btn>
     </div>
-  );
+    );
+  }
   const agotado = productoAgotadoTienda(prod);
   const cta = ctaBajoPedido(prod); // bajo pedido: "ordenar"
   const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
@@ -2158,6 +2216,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
         infoSlot={infoFicha}
         similares={similares}
         onProducto={(p) => { setProdDetalle(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+        onAgregarSimilar={addToCart}
         setPage={setPage}
       />
     );
@@ -2414,7 +2473,7 @@ function ContenidoPickup({ C, color }){
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
-        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Pick-up en farmacia&quot;</li>
+        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Recoger en sucursal&quot;</li>
         <li style={sListItem}>Realiza el pago (efectivo al recoger, tarjeta o Mercado Pago)</li>
         <li style={sListItem}>Recibe confirmación cuando tu pedido esté listo (15–30 minutos)</li>
         <li style={sListItem}>Pasa por él en nuestro horario de atención</li>
@@ -2487,7 +2546,7 @@ function ContenidoPago({ C, color }){
         <li style={sListItem}>OXXO Pay (paga en cualquier OXXO)</li>
         <li style={sListItem}>Mercado Crédito (a meses sin intereses según tu cuenta)</li>
       </ul>
-      <h4 style={sH4(color)}>En la farmacia (al recoger pick-up)</h4>
+      <h4 style={sH4(color)}>En la farmacia (al recoger en sucursal)</h4>
       <ul style={sList}>
         <li style={sListItem}>Efectivo</li>
         <li style={sListItem}>Tarjetas de crédito y débito</li>
@@ -2623,7 +2682,7 @@ function HomeServices({setPage}){
   const [modalAbierto,setModalAbierto]=useState(null);
   const servicios = [
     { key:"catalogo", titulo:"Ver catálogo", desc:"Medicamentos y más", color:BRAND.primary, tipo:"page", destino:"catalogo", icon:Pill },
-    { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
+    { key:"pickup", titulo:"Recoger en sucursal", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
     { key:"cdmx", titulo:"Entrega a domicilio", desc:"Zona cercana · cotizamos el envío", color:BRAND.secondary, tipo:"modal", icon:Bike },
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
@@ -3231,6 +3290,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         loadingProductos={loadingProductos}
         setPage={setPage}
         setProdDetalle={setProdDetalle}
+        onAgregar={addToCart}
         precioConsulta={precioConsulta}
         bannersSlot={(
           <BannersEstaSemana
@@ -3548,7 +3608,8 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         hayMas={hayMasCatalogo}
         onVerMas={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
         loading={loadingProductos}
-        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle"); }}
+        onProducto={(prod) => { setProdDetalle(prod); setPage("detalle", { productId: prod?.id }); }}
+        onAgregar={addToCart}
         setPage={setPage}
         avisoRx={filtroRx ? (
           <div className="fc-info-box" style={{ marginBottom: 16 }}>
@@ -3962,16 +4023,19 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
             <ShoppingCart size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
           </div>
           <h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:8}}>Carrito vacío</h2>
-          {!getClienteToken() && (
-            <p style={{color:C.mid,fontSize:14,lineHeight:1.5,margin:"0 0 16px"}}>
-              Si ya pediste a domicilio, entra con el teléfono del pedido. Aquí ves el precio final.
-            </p>
-          )}
+          <p style={{color:C.mid,fontSize:14,lineHeight:1.5,margin:"0 0 16px"}}>
+            Elige un producto del catálogo para empezar.
+          </p>
+          <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
           {!getClienteToken() ? (
-            <Btn onClick={()=>{ setPostLoginPage("carrito"); setPage("login"); }} col={BRAND.primary}>Entrar a mi cuenta</Btn>
-          ) : (
-            <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
-          )}
+            <p style={{color:C.mid,fontSize:13,lineHeight:1.5,margin:"16px 0 0"}}>
+              Si ya pediste a domicilio,{" "}
+              <button type="button" onClick={()=>{ setPostLoginPage("carrito"); setPage("login"); }} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline",padding:0,fontSize:13}}>
+                entra con el teléfono del pedido
+              </button>
+              .
+            </p>
+          ) : null}
         </>
       )}
     </div>
@@ -3996,7 +4060,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
                   <Pill size={24} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
                 )}
               </div>
-              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
+              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre}</div><div style={{color:C.mid,fontSize:12,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
               <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <button type="button" aria-label="Disminuir cantidad" onClick={()=>upd(item.id,-1)} style={qtyBtnStyle}>-</button>
@@ -4009,7 +4073,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
                     <div style={{color:BRAND.primary,fontWeight:800,fontSize:13,marginTop:4}}>{$(cobroDe(item))}</div>
                   )}
                 </div>
-                <button type="button" aria-label="Quitar del carrito" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",padding:4,display:"inline-flex"}}><Trash2 size={18} strokeWidth={1.75} aria-hidden /></button>
+                <button type="button" aria-label="Quitar del carrito" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",padding:8,minWidth:44,minHeight:44,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Trash2 size={18} strokeWidth={1.75} aria-hidden /></button>
               </div>
             </div>
           );})}
@@ -4018,7 +4082,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · cotizamos el envío",Icon:Bike}].map(({id,label,sub,Icon})=>(
+          {[{id:"pickup",label:"Recoger en sucursal",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · cotizamos el envío",Icon:Bike}].map(({id,label,sub,Icon})=>(
             <button
               key={id}
               type="button"
@@ -4068,7 +4132,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal,user}){
                 Canje activo: <strong>{canje.ben}</strong>
                 {canje.codigo ? ` · código ${canje.codigo}` : ""}. Se confirma en sucursal al recoger o coordinar el envío.
                 {" "}
-                <button type="button" onClick={()=>{ limpiarCanjeActivo(); setCanjeTick((n)=>n+1); }} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline",padding:0}}>Quitar</button>
+                <button type="button" onClick={()=>{ limpiarCanjeActivo(); setCanjeTick((n)=>n+1); }} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline",padding:"8px 10px",minHeight:44}}>Quitar</button>
               </div>
             );
           })()}
@@ -4633,7 +4697,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             whatsappRecibo: enviarReciboWhatsApp,
           });
           notifyCheckout(
-            "Pedido creado. No pudimos guardar la dirección para cotizar el envío; te contactamos por WhatsApp o correo. Si prefieres, elige pick-up la próxima vez.",
+            "Pedido creado. No pudimos guardar la dirección para cotizar el envío; te contactamos por WhatsApp o correo. Si prefieres, elige recoger en sucursal la próxima vez.",
             "warning"
           );
           setG(false);
@@ -4845,7 +4909,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }));
     };
     const instruccionEntrega = esPickup
-      ? `Pagas al recoger en farmacia con tarjeta (terminal BBVA). Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
+      ? `Pagas al recoger en farmacia con tarjeta. Te avisamos por WhatsApp cuando esté listo. Muestra este folio o menciona tu teléfono.`
       : lastOrder.envioAttachError
         ? "Pedido registrado. Cotizamos el envío con la dirección que nos diste y te avisamos por WhatsApp o correo para pagar productos + transporte."
       : lastOrder.envioPendienteCotizacion
@@ -4876,7 +4940,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             </div>
             <div>
               <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4}}>
-                {esPickup?"Pick-up en FarmaCapital":"Entrega a domicilio"}
+                {esPickup?"Recoger en sucursal":"Entrega a domicilio"}
               </div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.5}}>{instruccionEntrega}</div>
               {esPickup && (
@@ -5064,13 +5128,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 )}
                 {!necesitaDireccion&&(
                   <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}30`,borderRadius:8,padding:"9px 12px",fontSize:12,color:BRAND.primary,lineHeight:1.45}}>
-                    Pick-up en farmacia · Te damos un folio al pagar.{" "}
+                    Recoger en sucursal · Te damos un folio al pagar.{" "}
                     <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{color:BRAND.primary,fontWeight:700}}>Ver mapa</a>
                   </div>
                 )}
                 <div style={{marginTop:14,fontSize:12,color:C.mid}}>
                   {entrega==="pickup"
-                    ? "Pick-up: confirmas el pedido ahora y pagas al recoger con tarjeta (terminal BBVA)."
+                    ? "Recoger en sucursal: confirmas el pedido ahora y pagas al recoger con tarjeta."
                     : "Domicilio: confirmas ahora. Cotizamos el envío y te avisamos; pagas en Mi cuenta."}
                 </div>
                 <label
@@ -5092,12 +5156,12 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     type="checkbox"
                     checked={enviarReciboWhatsApp}
                     onChange={(e) => setEnviarReciboWhatsApp(e.target.checked)}
-                    style={{ accentColor: "#25D366", width: 16, height: 16, flexShrink: 0 }}
+                    style={{ accentColor: "#25D366", width: 20, height: 20, flexShrink: 0 }}
                   />
                   <span>Recibo por WhatsApp{datos.tel ? ` · ${datos.tel}` : ""}</span>
                 </label>
                 {!datosCheckoutCompletos && faltantesCheckout.length > 0 && (
-                  <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
+                  <div role="alert" aria-live="polite" style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
                     Para continuar completa: <strong>{faltantesCheckout.join(", ")}</strong>
                   </div>
                 )}
@@ -5127,7 +5191,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div style={{color:C.mid}}>{datos.tel} · {datos.email}</div>
                 <div style={{marginTop:6}}>
                   {entrega==="pickup"
-                    ? "Pick-up en FarmaCapital"
+                    ? "Recoger en sucursal"
                     : `Envío a ${[calleEnvio, datos.colonia, datos.cp].filter(Boolean).join(", ")}`}
                 </div>
                 {entrega!=="pickup" && (
@@ -5141,7 +5205,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   {esEncargo
                     ? "Encargo: reserva en tarjeta de crédito (se cobra al conseguirlo)"
                     : entrega==="pickup"
-                      ? "Pagas al recoger con tarjeta (terminal BBVA)"
+                      ? "Pagas al recoger con tarjeta"
                       : "Confirmas ahora. Cuando el envío esté cotizado, entras a Mi cuenta y pagas productos + envío."}
                 </div>
                 {enviarReciboWhatsApp && (
@@ -5208,7 +5272,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
-          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
+          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:12,marginBottom:8}}><span style={{color:C.mid,fontSize:13,minWidth:0,overflowWrap:"anywhere"}}>{nombrePublicoTienda({ nombre: tituloPublicoProducto(item) }) || item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600,whiteSpace:"nowrap",flexShrink:0}}>{$(cobroDe(item))}</span></div>))}
           {entrega!=="pickup"&&(
             <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
               <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
@@ -5553,13 +5617,31 @@ function PromocionesPage({setPage}){
   const stack = useMediaQuery("(max-width: 768px)");
   const [promos, setPromos] = useState([]);
   const [load, setLoad] = useState(true);
-  useEffect(()=>{
+  const [promoError, setPromoError] = useState("");
+  const cargarPromos = ()=>{
     const hoy = new Date().toISOString().split("T")[0];
+    setLoad(true);
+    setPromoError("");
     supabase.from("promociones").select("*")
       .eq("activa",true)
       .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
-      .then(({data})=>{ setPromos(data||[]); setLoad(false); });
-  },[]);
+      .then(({data, error})=>{
+        if (error) {
+          setPromoError(error.message || "No pudimos cargar las promociones.");
+          setPromos([]);
+          setLoad(false);
+          return;
+        }
+        setPromos(data||[]);
+        setLoad(false);
+      })
+      .catch(()=>{
+        setPromoError("No pudimos cargar las promociones.");
+        setPromos([]);
+        setLoad(false);
+      });
+  };
+  useEffect(()=>{ cargarPromos(); },[]);
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
       <button type="button" onClick={()=>setPage("home")} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>← Inicio</button>
@@ -5570,7 +5652,15 @@ function PromocionesPage({setPage}){
         </p>
       </div>
       {load ? (
-        <div style={{color:C.mid,fontSize:14}}>Cargando promociones…</div>
+        <div aria-busy="true" aria-live="polite">
+          <div className="fc-skeleton" style={{height:120,marginBottom:12}} />
+          <div className="fc-skeleton" style={{height:120}} />
+        </div>
+      ) : promoError ? (
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center",color:C.mid}}>
+          <p style={{margin:"0 0 16px"}}>No pudimos cargar las promociones. Reintentar</p>
+          <Btn onClick={cargarPromos} col={BRAND.primary} sm>Reintentar</Btn>
+        </div>
       ) : promos.length===0 ? (
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center",color:C.mid}}>
           No hay promociones activas en este momento. Revisa el catálogo o vuelve pronto.
@@ -5705,7 +5795,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles",`• Pick-up en FarmaCapital: Gratis. Confirmas ahora y pagas al recoger con tarjeta (terminal BBVA).\n• Entrega a domicilio: confirmas la orden sin pagar, cotizamos el transporte en zona cercana y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta.\n• Horario de entrega: todos los días ${HORARIO_FARMACIA.apertura}–${HORARIO_FARMACIA.cierre}.`],
+        ["Tipos de entrega disponibles",`• Recoger en sucursal: Gratis. Confirmas ahora y pagas al recoger con tarjeta.\n• Entrega a domicilio: confirmas la orden sin pagar, cotizamos el transporte en zona cercana y te avisamos por WhatsApp o correo. Pagas productos + envío juntos en Mi cuenta.\n• Horario de entrega: todos los días ${HORARIO_FARMACIA.apertura}–${HORARIO_FARMACIA.cierre}.`],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
@@ -5763,7 +5853,7 @@ function Registro({setUser,setPage}){
   const registrar = async () => {
     if(!nombre||!pwd) return;
     if(!contactoOk) {
-      setError("Indicá un teléfono válido (10 dígitos) o un correo electrónico válido (podés poner ambos).");
+      setError("Indica un teléfono válido (10 dígitos) o un correo electrónico válido (puedes poner ambos).");
       return;
     }
     if(pwd.length < PASSWORD_MIN_LENGTH) { setError(`La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`); return; }
@@ -6008,7 +6098,7 @@ function AuthCallback({ setUser, setPage }) {
 
   const guardarTelefono = async () => {
     if (!telefonoMxValido(tel)) {
-      setErr("Ingresá un celular de 10 dígitos (WhatsApp).");
+      setErr("Ingresa un celular de 10 dígitos (WhatsApp).");
       return;
     }
     setSavingTel(true);
@@ -6033,7 +6123,7 @@ function AuthCallback({ setUser, setPage }) {
       setNeedPhone(false);
       finish({ telefono: telNorm });
     } catch (_) {
-      setErr("Error de conexión. Intentá de nuevo.");
+      setErr("Error de conexión. Intenta de nuevo.");
     }
     setSavingTel(false);
   };
@@ -6138,7 +6228,7 @@ function Login({setUser,setPage}){
     const raw = recIdent.trim();
     const identNorm = correoTiendaValido(raw) ? raw.toLowerCase() : (telefonoMxValido(raw) ? soloDigitosTel(raw) : "");
     if (!identNorm) {
-      setRecMsg({ ok: false, txt: "Escribí un correo válido o un teléfono con al menos 10 dígitos." });
+      setRecMsg({ ok: false, txt: "Escribe un correo válido o un teléfono con al menos 10 dígitos." });
       return;
     }
     setRecBusy(true);
@@ -6157,7 +6247,7 @@ function Login({setUser,setPage}){
           "Si tu correo o teléfono está registrado, recibirás un enlace por WhatsApp en unos minutos para crear tu nueva contraseña.",
       });
     } catch (_) {
-      setRecMsg({ ok: false, txt: "No se pudo enviar la solicitud. Intentá de nuevo o escribinos a contacto@farmacapital.mx." });
+      setRecMsg({ ok: false, txt: "No se pudo enviar la solicitud. Intenta de nuevo o escríbenos a contacto@farmacapital.mx." });
     }
     setRecBusy(false);
   };
@@ -6169,7 +6259,7 @@ function Login({setUser,setPage}){
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Iniciar sesión</h1>
         {getPostLoginPage() === "cita" ? (
           <p style={{color:C.textMid,fontSize:14,marginBottom:28,textAlign:"center",lineHeight:1.5}}>
-            Ingresá con tu correo o teléfono para <strong style={{color:BRAND.primary}}>agendar tu cita</strong>.
+            Ingresa con tu correo o teléfono para <strong style={{color:BRAND.primary}}>agendar tu cita</strong>.
           </p>
         ) : (
           <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Accede a tus puntos, pedidos e historial</p>
@@ -6186,7 +6276,7 @@ function Login({setUser,setPage}){
         {recMode ? (
           <>
             <p style={{color:C.textMid,fontSize:13,marginBottom:16,lineHeight:1.5}}>
-              Indicá el <strong>mismo correo o teléfono</strong> de tu cuenta FarmaCapital (incluido el celular que diste en mostrador).
+              Indica el <strong>mismo correo o teléfono</strong> de tu cuenta FarmaCapital (incluido el celular que diste en mostrador).
               Si está registrado, te enviaremos un <strong>enlace por WhatsApp</strong> para crear tu nueva contraseña.
             </p>
             <div style={{marginBottom:12}}>
@@ -6243,7 +6333,7 @@ function Login({setUser,setPage}){
         )}
         <Btn type="submit" col={BRAND.primary} full disabled={!ident.trim()||!pwd||buscando}>{buscando?"Buscando...":"Entrar →"}</Btn>
         <div style={{textAlign:"center",marginTop:14}}>
-          <button type="button" onClick={abrirRecuperar} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>¿Olvidaste tu contraseña o no tenés clave para la tienda?</button>
+          <button type="button" onClick={abrirRecuperar} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>¿Olvidaste tu contraseña o no tienes clave para la tienda?</button>
         </div>
         <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿No tienes cuenta? </span><button type="button" onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Regístrate aquí</button></div>
           </form>
@@ -6974,16 +7064,30 @@ export default function TiendaFarmaCapital(){
   const pageRef = useRef(page);
   pageRef.current = page;
   const catalogoScrollIntentRef = useRef("top");
-  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "" } = {}) => {
-    const path = pageIdToTiendaPath(target, {
-      rx: target === "catalogo" && rx,
-      reset: target === "reset-password" ? token : undefined,
-      productId: target === "detalle" ? productId : undefined,
-      search: target === "conseguir" ? search : undefined,
-      seccion: target === "catalogo" ? seccion : undefined,
-    });
+  const deepLinkProductIdRef = useRef((() => {
+    try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
+  })());
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "", seccion = "", pathname = "" } = {}) => {
+    const resolvedProductId = productIdParaHistorialTienda(
+      target,
+      productId,
+      typeof window !== "undefined" ? window.location.search : "",
+    );
+    let path;
+    if (target === "notfound") {
+      path = pathname || (typeof window !== "undefined" ? window.location.pathname : "/404");
+      if (!path || path === "/") path = "/404";
+    } else {
+      path = pageIdToTiendaPath(target, {
+        rx: target === "catalogo" && rx,
+        reset: target === "reset-password" ? token : undefined,
+        productId: target === "detalle" ? resolvedProductId : undefined,
+        search: (target === "conseguir" || target === "catalogo") ? search : undefined,
+        seccion: target === "catalogo" ? seccion : undefined,
+      });
+    }
     const fn = replace ? window.history.replaceState : window.history.pushState;
-    fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
+    fn.call(window.history, { page: target, productId: target === "detalle" ? resolvedProductId : undefined }, "", path);
   };
   const setPage = (p, opts = {}) => {
     const resolved = p === "reset-password" ? "reset-password" : resolveTiendaPage(p);
@@ -7019,13 +7123,20 @@ export default function TiendaFarmaCapital(){
     } else if (target !== "detalle") {
       catalogoScrollIntentRef.current = "top";
     }
+    if (target !== "catalogo" && target !== "conseguir" && target !== "detalle" && target !== "cotizar") {
+      try { sessionStorage.removeItem("farmacapital_busq"); } catch (_) { /* noop */ }
+      if (busqHero) setBusqHero("");
+    }
     try {
       writeTiendaHistory(target, {
         rx: nextRx,
         token: resetToken,
         productId: target === "detalle" ? (opts.productId || "") : undefined,
-        search: target === "conseguir" ? (opts.search || busqHero || "") : undefined,
+        search: (target === "conseguir" || target === "catalogo")
+          ? (opts.search != null ? opts.search : (target === "conseguir" ? (busqHero || "") : ""))
+          : undefined,
         seccion: target === "catalogo" ? (opts.seccion || "") : "",
+        pathname: target === "notfound" ? (opts.pathname || "") : "",
       });
     } catch {
       try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
@@ -7035,7 +7146,7 @@ export default function TiendaFarmaCapital(){
   useEffect(()=>{
     const h=(e)=>{
       let p = e.state?.page || tiendaPathnameToPageId(window.location.pathname) || "home";
-      p = resolveTiendaPage(p) || "home";
+      p = resolveTiendaPage(p) || (tiendaPathnameToPageId(window.location.pathname) === "notfound" ? "notfound" : "home");
       if (p === "cita" && !getClienteToken()) {
         setPostLoginPage("cita");
         p = "login";
@@ -7075,6 +7186,7 @@ export default function TiendaFarmaCapital(){
       } else {
         const id = tiendaPathnameToPageId(window.location.pathname) || "home";
         const seccionInicial = seccionVitrinaFromPath(window.location.pathname);
+        const qInicial = tiendaQueryFromSearch(window.location.search);
         if (seccionInicial) {
           try { sessionStorage.setItem("farmacapital_vitrina", seccionInicial); } catch (_) { /* noop */ }
         }
@@ -7094,11 +7206,15 @@ export default function TiendaFarmaCapital(){
               `${window.location.pathname}${window.location.search}${window.location.hash}`
             );
           } catch (_) { /* noop */ }
+        } else if (id === "notfound") {
+          writeTiendaHistory("notfound", { replace: true, pathname: window.location.pathname });
         } else {
           writeTiendaHistory(id, {
             replace: true,
             rx: rx && id === "catalogo",
             seccion: id === "catalogo" ? seccionInicial : "",
+            productId: id === "detalle" ? deepLinkProductIdRef.current : undefined,
+            search: (id === "catalogo" || id === "conseguir") ? qInicial : undefined,
           });
         }
       }
@@ -7148,6 +7264,7 @@ export default function TiendaFarmaCapital(){
   const [resenasResumen,setResenasResumen] = useState({});
   const [cargando,setCargando]   = useState(false);
   const [loadingProductos,setLoadingProductos] = useState(true);
+  const [errorCatalogo,setErrorCatalogo] = useState("");
   const [prodDetalle,setProdDRaw] = useState(() => {
     try {
       const id = tiendaProductIdFromSearch(window.location.search);
@@ -7165,34 +7282,76 @@ export default function TiendaFarmaCapital(){
     } catch (_) { /* noop */ }
     setProdDRaw(p);
   };
-  const [busqHero,setBusqHero]   = useState("");
+  const [busqHero,setBusqHero]   = useState(() => {
+    try { return tiendaQueryFromSearch(window.location.search); } catch { return ""; }
+  });
+  useEffect(() => {
+    let seccion = "";
+    try {
+      seccion = seccionVitrinaFromPath(window.location.pathname)
+        || sessionStorage.getItem("farmacapital_vitrina")
+        || "";
+    } catch (_) { /* noop */ }
+    aplicarDocumentMeta(metaDeRutaTienda({
+      page,
+      seccion,
+      prod: page === "detalle" ? prodDetalle : null,
+      pathname: typeof window !== "undefined" ? window.location.pathname : "",
+      search: typeof window !== "undefined" ? window.location.search : "",
+    }));
+  }, [page, prodDetalle]);
   const [showPopup,setShowPopup] = useState(false);
   const [popupBanner,setPopupBanner] = useState(null);
   const [entregaCheckout,setEntregaCheckout] = useState("pickup");
   const [precioConsultaCfg,setPrecioConsultaCfg] = useState(CONSULTA_PRECIO_DEFAULT);
   const [placeholderProductoUrl, setPlaceholderProductoUrl] = useState("");
   const [mapaPromos, setMapaPromos] = useState(() => new Map());
+  const [fetchingDeepLink, setFetchingDeepLink] = useState(false);
+  const deepLinkPedidoRef = useRef("");
 
   useEffect(() => {
-    if (page !== "detalle") return;
-    if (prodDetalle?.id) {
-      try { writeTiendaHistory("detalle", { replace: true, productId: prodDetalle.id }); } catch (_) { /* noop */ }
-      return;
-    }
+    if (page !== "detalle") return undefined;
     const id = (() => {
-      try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
+      try {
+        return tiendaProductIdFromSearch(window.location.search) || deepLinkProductIdRef.current || "";
+      } catch {
+        return deepLinkProductIdRef.current || "";
+      }
     })();
-    let found = null;
-    if (id && productos.length) {
-      found = productos.find((x) => String(x?.id) === String(id)) || null;
+    const resolved = resolverFichaDeepLink({
+      productId: id,
+      productos,
+      loading: loadingProductos,
+      fetching: fetchingDeepLink,
+      saved: prodDetalle,
+    });
+    if (resolved.status === "ready" && resolved.prod?.id) {
+      if (!prodDetalle?.id || String(prodDetalle.id) !== String(resolved.prod.id)) {
+        setProdD(resolved.prod);
+      }
+      try { writeTiendaHistory("detalle", { replace: true, productId: resolved.prod.id }); } catch (_) { /* noop */ }
+      return undefined;
     }
-    if (found) {
-      setProdD(found);
-      return;
+    if (resolved.status === "loading") return undefined;
+    if (id && deepLinkPedidoRef.current !== id) {
+      deepLinkPedidoRef.current = id;
+      let cancelled = false;
+      setFetchingDeepLink(true);
+      traerProductoPorId(supabase, id).then(({ data, error }) => {
+        if (cancelled) return;
+        setFetchingDeepLink(false);
+        if (error || !data) return;
+        const lista = prepararListaTienda([data]);
+        const row = lista[0] || data;
+        if (row?.activo === false) return;
+        setProdD(row);
+      }).catch(() => {
+        if (!cancelled) setFetchingDeepLink(false);
+      });
+      return () => { cancelled = true; };
     }
-    if (loadingProductos) return;
-    if (!id) setPage("catalogo");
-  }, [page, prodDetalle, productos, loadingProductos]);
+    return undefined;
+  }, [page, prodDetalle, productos, loadingProductos, fetchingDeepLink]);
 
   useEffect(() => {
     fetchPrecioConsultaConfig(supabase).then(setPrecioConsultaCfg);
@@ -7223,6 +7382,7 @@ export default function TiendaFarmaCapital(){
   // Refresh silencioso (catálogo vivo): actualiza lista/detalle/carrito, no cambia de página.
   // La vitrina completa solo baja en /conseguir. En el resto, una muestra corta para el home.
   const recargarProductosRef = useRef(async () => {});
+  const loadProductosRef = useRef(async () => {});
   const vitrinaCompletaRef = useRef(page === "conseguir");
   const vitrinaCacheRef = useRef([]);
   useEffect(()=>{
@@ -7278,15 +7438,19 @@ export default function TiendaFarmaCapital(){
         }
         if (cancelled) return;
         if (error) {
-          const isTimeout = (error.message||"").toLowerCase().includes("upstream request timeout");
-          if (isTimeout && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
+          if (esErrorTimeoutCatalogo(error) && intento < MAX_INTENTOS) {
+            await new Promise(r=>setTimeout(r,1500));
+            return loadProductos(intento+1, { silencioso });
+          }
           if (!silencioso) {
             console.error("[Tienda] productos:", error);
+            setErrorCatalogo("No pudimos cargar el catálogo.");
             setLoadingProductos(false);
           }
           return;
         }
         ultimaCargaCatalogo = Date.now();
+        setErrorCatalogo("");
         const lista = [...(data || []), ...vitrinaCacheRef.current];
         if (lista.length) {
           aplicarLista(lista);
@@ -7296,10 +7460,15 @@ export default function TiendaFarmaCapital(){
         if (!silencioso) setLoadingProductos(false);
       } catch(e) {
         if (cancelled) return;
-        if (e?.message === "timeout" && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
-        if (!silencioso) setLoadingProductos(false);
+        if (esErrorTimeoutCatalogo(e) && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
+        if (!silencioso) {
+          console.error("[Tienda] productos:", e);
+          setErrorCatalogo("No pudimos cargar el catálogo.");
+          setLoadingProductos(false);
+        }
       }
     };
+    loadProductosRef.current = loadProductos;
     recargarProductosRef.current = () => loadProductos(1, { silencioso: true });
     loadProductos();
     // Volver a la pestaña no vuelve a bajar el catálogo. Eso era egress en cada cambio de app.
@@ -7532,7 +7701,7 @@ export default function TiendaFarmaCapital(){
     home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg} loadingProductos={loadingProductos} recompras={recomprasHome} sugeridos={sugeridosHome}/>,
     catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos} filtroRx={filtroRx} onClearRx={()=>setPage("catalogo",{rx:false})}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
-    detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
+    detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} loadingFicha={loadingProductos || fetchingDeepLink}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout} user={user}/>,
     checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} setUser={setUser} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
@@ -7571,6 +7740,7 @@ export default function TiendaFarmaCapital(){
       </>
     ),
     pagar: <PagarPedidoInvitado />,
+    notfound: <NoEncontradaV2 setPage={setPage} />,
   };
 
   const sinFooter=["home","tarjeta"];
@@ -7613,12 +7783,14 @@ export default function TiendaFarmaCapital(){
 
       {v2 ? (
         <>
+        <a className="fc-skip" href="#fc-contenido">Saltar al contenido</a>
         <EncabezadoV2
           page={page}
           setPage={setPage}
           cart={cart}
           user={user}
-          onMenu={() => setMenuTiendaAbierto(true)}
+          menuAbierto={menuTiendaAbierto}
+          onMenu={() => setMenuTiendaAbierto((v) => !v)}
           busqHero={busqHero}
           setBusqHero={setBusqHero}
           productos={productosVistaTiendaFarmacia}
@@ -7661,8 +7833,17 @@ export default function TiendaFarmaCapital(){
       )}
 
       <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
-        <main style={{background: v2 ? "#FFFFFF" : C.bg}}>
-          {pages[page]||pages.home}
+        <main id="fc-contenido" style={{background: v2 ? "#FFFFFF" : C.bg}}>
+          {errorCatalogo && productos.length === 0 && !loadingProductos ? (
+            <div role="alert" className="fc-body" style={{maxWidth:560,margin:"28px auto 0",padding:"0 24px",textAlign:"center"}}>
+              <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:8}}>{errorCatalogo}</h2>
+              <p style={{color:C.mid,fontSize:14,lineHeight:1.5,margin:"0 0 16px"}}>
+                La consulta tardó demasiado. Puedes volver a intentarlo.
+              </p>
+              <Btn onClick={() => { setErrorCatalogo(""); setLoadingProductos(true); loadProductosRef.current(1, { silencioso: false }); }} col={BRAND.primary}>Reintentar</Btn>
+            </div>
+          ) : null}
+          {pages[page]||pages.notfound}
         </main>
         {v2
           ? (page !== "tarjeta" && <PieV2 setPage={setPage} />)

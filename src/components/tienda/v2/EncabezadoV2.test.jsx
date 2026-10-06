@@ -3,6 +3,13 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import EncabezadoV2 from "./EncabezadoV2";
 import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
 
+test("las secciones del menú son enlaces reales", () => {
+  render(<EncabezadoV2 setPage={() => {}} cart={[]} />);
+  expect(screen.getByRole("link", { name: "Medicamentos" })).toHaveAttribute("href", "/medicamentos");
+  expect(screen.getByRole("link", { name: "Ver carrito" })).toHaveAttribute("href", "/carrito");
+  expect(screen.getByLabelText("Inicio FarmaCapital")).toHaveAttribute("href", "/");
+});
+
 test("franja, menú y buscador del prototipo ChatGPT", () => {
   render(<EncabezadoV2 setPage={() => {}} cart={[]} />);
   expect(screen.getByText("Farmacia y consultorio · Ciudad de México")).toBeInTheDocument();
@@ -13,14 +20,14 @@ test("franja, menú y buscador del prototipo ChatGPT", () => {
   expect(screen.getByRole("button", { name: "Buscar" })).toBeInTheDocument();
   expect(screen.getByLabelText("Ver carrito")).toBeInTheDocument();
   SECCIONES_VITRINA.forEach((sec) => {
-    expect(screen.getByRole("button", { name: sec.nombre })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: sec.nombre })).toBeInTheDocument();
   });
-  expect(screen.queryByRole("button", { name: "Farmacia" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Otro" })).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Farmacia" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Otro" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Iniciar sesión" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Abrir menú" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Cotizar especializado" })).toHaveClass("fc-nav-quote");
-  expect(screen.getByRole("button", { name: /Sucursal CDMX · Ver ubicación/ })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Cotizar especializado" })).toHaveClass("fc-nav-quote");
+  expect(screen.getByRole("link", { name: /Sucursal CDMX · Ver ubicación/ })).toBeInTheDocument();
 });
 
 test("el contador del carrito y el logo abren las pantallas", () => {
@@ -33,6 +40,19 @@ test("el contador del carrito y el logo abren las pantallas", () => {
   expect(setPage).toHaveBeenCalledWith("home");
   fireEvent.click(screen.getByLabelText("Ver carrito"));
   expect(setPage).toHaveBeenCalledWith("carrito");
+});
+
+test("buscar escribe ?q= en el catálogo", () => {
+  const setPage = jest.fn();
+  render(
+    <EncabezadoV2
+      setPage={setPage}
+      setBusqHero={() => {}}
+      busqHero="paracetamo"
+    />
+  );
+  fireEvent.submit(screen.getByRole("search"));
+  expect(setPage).toHaveBeenCalledWith("catalogo", { search: "paracetamo" });
 });
 
 test("el buscador reusa las sugerencias del catálogo", () => {
@@ -58,9 +78,9 @@ test("el buscador reusa las sugerencias del catálogo", () => {
 test("el menú abre la sección de vitrina, no el catálogo completo", () => {
   const setPage = jest.fn();
   render(<EncabezadoV2 setPage={setPage} cart={[]} />);
-  fireEvent.click(screen.getByRole("button", { name: "Medicamentos" }));
+  fireEvent.click(screen.getByRole("link", { name: "Medicamentos" }));
   expect(sessionStorage.getItem("farmacapital_vitrina")).toBe("Medicamentos");
-  fireEvent.click(screen.getByRole("button", { name: "Nutrición deportiva" }));
+  fireEvent.click(screen.getByRole("link", { name: "Nutrición deportiva" }));
   expect(sessionStorage.getItem("farmacapital_vitrina")).toBe("Nutrición deportiva");
   expect(setPage).toHaveBeenCalledWith("catalogo", {
     rx: false,
@@ -73,18 +93,18 @@ test("la cuenta y el menú están en la barra", () => {
   const setPage = jest.fn();
   const onMenu = jest.fn();
   const { rerender } = render(<EncabezadoV2 setPage={setPage} cart={[]} onMenu={onMenu} />);
-  fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+  fireEvent.click(screen.getByRole("link", { name: "Iniciar sesión" }));
   expect(setPage).toHaveBeenCalledWith("login");
   fireEvent.click(screen.getByRole("button", { name: "Abrir menú" }));
   expect(onMenu).toHaveBeenCalled();
   rerender(<EncabezadoV2 setPage={setPage} cart={[]} user={{ nombre: "Ivan" }} />);
-  fireEvent.click(screen.getByRole("button", { name: "Mi cuenta" }));
+  fireEvent.click(screen.getByRole("link", { name: "Mi cuenta" }));
   expect(setPage).toHaveBeenCalledWith("cuenta");
 });
 
 test("Cotizar especializado abre la pantalla de cotización", () => {
   const setPage = jest.fn();
   render(<EncabezadoV2 setPage={setPage} cart={[]} />);
-  fireEvent.click(screen.getByRole("button", { name: "Cotizar especializado" }));
+  fireEvent.click(screen.getByRole("link", { name: "Cotizar especializado" }));
   expect(setPage).toHaveBeenCalledWith("cotizar");
 });
