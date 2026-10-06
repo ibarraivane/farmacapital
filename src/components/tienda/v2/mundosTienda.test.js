@@ -69,3 +69,43 @@ test("los discos son las seis secciones publicadas, en el mismo orden del menú"
     "Botiquín y equipo médico",
   ]);
 });
+
+test("nutrición muestra proteína, no un inyectable que salió primero", () => {
+  const r = resumirMundos([
+    { id: 1, sku: "FC-2E79C2D8", nombre: "Hierro dextrán 100 mg/2 mL", vitrina_seccion: "Nutrición deportiva", stock: 8, precio: 90, imagen_url: "/hierro.jpg" },
+    { id: 2, sku: "FC-37273377", nombre: "Birdman Fitmingo proteína vegetal", marca: "Birdman", vitrina_seccion: "Nutrición deportiva", stock: 0, precio: 604, imagen_url: "/prot.jpg" },
+  ], deps);
+  expect(r["nutricion-deportiva"].producto.id).toBe(2);
+});
+
+test("higiene no usa la marca más barata si hay Dove o Sensodyne", () => {
+  const r = resumirMundos([
+    { id: 1, nombre: "OBAO Fresquíssima roll-on", marca: "OBAO", vitrina_seccion: "Higiene y cuidado personal", stock: 12, precio: 18, imagen_url: "/obao.jpg" },
+    { id: 2, sku: "FC-06248052", nombre: "Dove tono uniforme", marca: "Dove", vitrina_seccion: "Higiene y cuidado personal", stock: 3, precio: 65, imagen_url: "/dove.jpg" },
+  ], deps);
+  expect(r.higiene.producto.id).toBe(2);
+});
+
+test("vitaminas prefiere colágeno a una caja genérica", () => {
+  const r = resumirMundos([
+    { id: 1, nombre: "Complejo B genérico", vitrina_seccion: "Vitaminas y bienestar", stock: 10, precio: 25, imagen_url: "/b.jpg" },
+    { id: 2, sku: "FC-9741524", nombre: "Naturex colágeno hidrolizado 700 mg", marca: "Naturex", vitrina_seccion: "Vitaminas y bienestar", stock: 2, precio: 48, imagen_url: "/col.jpg" },
+  ], deps);
+  expect(r.vitaminas.producto.id).toBe(2);
+});
+
+test("botiquín usa el kit del catálogo, no el tiraleche", () => {
+  const r = resumirMundos([
+    { id: 1, sku: "FC-41500096", nombre: "Tiraleche de cristal", vitrina_seccion: "Botiquín y equipo médico", stock: 4, precio: 48, imagen_url: "/leche.jpg" },
+    { id: 2, sku: "FC-JALOMA1", nombre: "Botiquín Jaloma", marca: "Jaloma", vitrina_seccion: "Botiquín y equipo médico", stock: 1, precio: 89, imagen_url: "/kit.jpg" },
+  ], deps);
+  expect(r.botiquin.producto.id).toBe(2);
+});
+
+test("si no hay kit, botiquín usa Tegaderm y no el tiraleche", () => {
+  const r = resumirMundos([
+    { id: 1, sku: "FC-41500096", nombre: "Tiraleche de cristal", vitrina_seccion: "Botiquín y equipo médico", stock: 4, precio: 48, imagen_url: "/leche.jpg" },
+    { id: 2, sku: "FC-89592876", nombre: "Tegaderm 3M 10 x 12 cm", marca: "Tegaderm", vitrina_seccion: "Botiquín y equipo médico", stock: 1, precio: 696, imagen_url: "/tega.jpg" },
+  ], deps);
+  expect(r.botiquin.producto.id).toBe(2);
+});
