@@ -3,6 +3,7 @@ import { MapPin, Menu, Search, ShoppingBag, User } from "lucide-react";
 import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../../../constants/turnos";
+import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
 import { SECCIONES_VITRINA, slugSeccion } from "../../../constants/vitrinaTienda";
 import { pageIdToTiendaPath, seccionVitrinaFromPath } from "../../../shared/tiendaRoutes";
@@ -10,22 +11,53 @@ import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 import EnlaceTienda from "./EnlaceTienda";
 
 const PLACEHOLDER = "Buscar medicamento o marca";
+const HEADROOM_LOCK_MS = 400;
+
+/**
+ * En celular el sticky no cambia de alto: al esconder franja y menú el
+ * anclaje del scroll empuja hacia arriba y el efecto se abre otra vez.
+ * Eso se ve como el buscador bajando y subiendo en cada gesto.
+ */
+export function decidirCompacto(compacto, y, last, { estrecho = false } = {}) {
+  if (estrecho) return false;
+  if (y < 48) return false;
+  if (y > last + 10) return true;
+  if (y < last - 10) return false;
+  return compacto;
+}
 
 function useHeadroom() {
+  const estrecho = useMediaQuery("(max-width: 760px)");
   const [compacto, setCompacto] = useState(false);
   useEffect(() => {
-    let last = typeof window !== "undefined" ? window.scrollY : 0;
+    if (estrecho) {
+      setCompacto(false);
+      return undefined;
+    }
+    let last = typeof window !== "undefined" ? window.scrollY || 0 : 0;
+    let actual = false;
+    let lockedUntil = 0;
     const onScroll = () => {
       const y = window.scrollY || 0;
-      if (y < 48) setCompacto(false);
-      else if (y > last + 10) setCompacto(true);
-      else if (y < last - 10) setCompacto(false);
+      const ahora = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (ahora < lockedUntil) {
+        last = y;
+        return;
+      }
+      const next = decidirCompacto(actual, y, last);
       last = y;
+      if (next === actual) return;
+      actual = next;
+      setCompacto(next);
+      lockedUntil = ahora + HEADROOM_LOCK_MS;
+      requestAnimationFrame(() => {
+        last = window.scrollY || 0;
+      });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  return compacto;
+  }, [estrecho]);
+  return estrecho ? false : compacto;
 }
 
 export default function EncabezadoV2({

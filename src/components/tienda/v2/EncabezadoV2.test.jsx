@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import EncabezadoV2 from "./EncabezadoV2";
+import EncabezadoV2, { decidirCompacto } from "./EncabezadoV2";
 import { SECCIONES_VITRINA } from "../../../constants/vitrinaTienda";
 
 test("las secciones del menú son enlaces reales", () => {
@@ -107,4 +107,41 @@ test("Cotizar especializado abre la pantalla de cotización", () => {
   render(<EncabezadoV2 setPage={setPage} cart={[]} />);
   fireEvent.click(screen.getByRole("link", { name: "Cotizar especializado" }));
   expect(setPage).toHaveBeenCalledWith("cotizar");
+});
+
+test("en celular el encabezado no se compacta al bajar", () => {
+  expect(decidirCompacto(false, 400, 0, { estrecho: true })).toBe(false);
+  expect(decidirCompacto(true, 400, 0, { estrecho: true })).toBe(false);
+  const original = window.matchMedia;
+  window.matchMedia = (query) => ({
+    matches: String(query).includes("max-width: 760px"),
+    media: query,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+    dispatchEvent() { return false; },
+  });
+  try {
+    const { container } = render(<EncabezadoV2 setPage={() => {}} cart={[]} />);
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 480 });
+    fireEvent.scroll(window);
+    expect(container.querySelector(".fc-sticky")).not.toHaveClass("fc-sticky--compact");
+  } finally {
+    window.matchMedia = original;
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+  }
+});
+
+test("un rebote del scroll no vuelve a abrir el encabezado de escritorio", () => {
+  expect(decidirCompacto(false, 200, 0)).toBe(true);
+  expect(decidirCompacto(true, 40, 200)).toBe(false);
+  const { container } = render(<EncabezadoV2 setPage={() => {}} cart={[]} />);
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 220 });
+  fireEvent.scroll(window);
+  expect(container.querySelector(".fc-sticky")).toHaveClass("fc-sticky--compact");
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 80 });
+  fireEvent.scroll(window);
+  expect(container.querySelector(".fc-sticky")).toHaveClass("fc-sticky--compact");
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
 });

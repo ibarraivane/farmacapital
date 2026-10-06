@@ -175,6 +175,8 @@
    si solo está en background-color: hace falta una lámina propia.
    Vale en celular, iPad y escritorio. */
 .fc-v2 .fc-sticky{position:sticky;top:0;z-index:80;background:#ffffff !important;isolation:isolate;overscroll-behavior:none;touch-action:pan-y}
+/* El alto del encabezado no debe arrastrar el scroll (si no, compactar lo vuelve a abrir). */
+html:has(.fc-v2),.fc-v2 .fc-sticky{overflow-anchor:none}
 .fc-v2 .fc-sticky::before{content:"";position:absolute;inset:0;background:#ffffff;z-index:-1}
 .fc-v2 .fc-nav,.fc-v2 .fc-nav button,.fc-v2 .fc-nav a{background:#ffffff !important}
 /* Pie: marca, accesos y línea legal. */
