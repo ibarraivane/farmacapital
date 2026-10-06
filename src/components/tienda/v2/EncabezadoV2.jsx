@@ -27,7 +27,7 @@ export function decidirCompacto(compacto, y, last, { estrecho = false } = {}) {
 }
 
 function useHeadroom() {
-  const estrecho = useMediaQuery("(max-width: 760px)");
+  const estrecho = useMediaQuery("(max-width: 760px), (hover: none) and (pointer: coarse)");
   const [compacto, setCompacto] = useState(false);
   useEffect(() => {
     if (estrecho) {

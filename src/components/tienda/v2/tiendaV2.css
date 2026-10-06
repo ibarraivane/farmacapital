@@ -364,6 +364,18 @@ html:has(.fc-v2),.fc-v2 .fc-sticky{overflow-anchor:none}
 .fc-v2 .fc-product-name{min-height:44px}
 .fc-v2 .fc-sticky--compact .fc-hdr{padding:8px 18px}
 .fc-v2 .fc-sticky--compact .fc-search{height:44px}
+/* Táctil: el compacto no puede esconder franja ni menú. Si el alto cambia,
+   el anclaje del scroll lo abre y lo cierra en el mismo gesto y el buscador brinca. */
+@media(hover:none) and (pointer:coarse){
+  .fc-v2 .fc-sticky--compact .fc-top,.fc-v2 .fc-sticky--compact .fc-nav{display:flex}
+  .fc-v2 .fc-sticky--compact .fc-hdr{padding:15px 30px 21px}
+  .fc-v2 .fc-sticky--compact .fc-search{height:48px}
+}
+@media(max-width:760px){
+  .fc-v2 .fc-sticky--compact .fc-top,.fc-v2 .fc-sticky--compact .fc-nav{display:flex}
+  .fc-v2 .fc-sticky--compact .fc-hdr{padding:12px 18px 17px}
+  .fc-v2 .fc-sticky--compact .fc-search{height:48px}
+}
 @media(max-width:900px){
   .fc-v2 .fc-ficha .fc-detail{grid-template-areas:"head" "compra" "media" "info"}
 }

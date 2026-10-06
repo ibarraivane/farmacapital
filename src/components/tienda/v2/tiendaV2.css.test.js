@@ -28,6 +28,14 @@ test("copia los valores exactos del prototipo ChatGPT", () => {
   expect(css).not.toMatch(/(^|\n)\s*body\s*\{/);
 });
 
+test("en celular el encabezado compacto no cambia de alto", () => {
+  const hide = css.indexOf(".fc-sticky--compact .fc-top,.fc-v2 .fc-sticky--compact .fc-nav{display:none}");
+  const guard = css.indexOf(".fc-sticky--compact .fc-top,.fc-v2 .fc-sticky--compact .fc-nav{display:flex}");
+  expect(hide).toBeGreaterThan(-1);
+  expect(guard).toBeGreaterThan(hide);
+  expect(css).toMatch(/@media\(max-width:760px\)\{[\s\S]*\.fc-sticky--compact \.fc-search\{height:48px\}/);
+});
+
 test("en celular el buscador va en su renglón y Pausar no tapa el título", () => {
   expect(css).toMatch(/\.fc-hdr \.fc-search\{order:3;flex-basis:100%\}/);
   expect(css).not.toMatch(/\.fc-hdr\{flex-wrap:nowrap\}/);
