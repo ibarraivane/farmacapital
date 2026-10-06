@@ -110,11 +110,24 @@ test("si no hay kit, botiquín usa Tegaderm y no el tiraleche", () => {
   expect(r.botiquin.producto.id).toBe(2);
 });
 
-test("si el catálogo no trajo el SKU bueno, el disco usa el packshot fijo", () => {
+test("el disco usa el packshot fijo, no Lactiv ni OBAO aunque tengan foto", () => {
   expect(urlFotoMundo(null, "nutricion-deportiva", (p) => p?.imagen_url)).toBe(FOTO_MUNDO_URL["nutricion-deportiva"]);
   expect(urlFotoMundo(
-    { nombre: "Hierro dextrán", imagen_url: "/hierro.jpg" },
+    { nombre: "Lactiv DS", imagen_url: "/lactiv.jpg" },
     "nutricion-deportiva",
     (p) => p.imagen_url,
   )).toBe(FOTO_MUNDO_URL["nutricion-deportiva"]);
+  expect(urlFotoMundo(
+    { nombre: "OBAO roll-on", marca: "OBAO", imagen_url: "/obao.jpg" },
+    "higiene",
+    (p) => p.imagen_url,
+  )).toBe(FOTO_MUNDO_URL.higiene);
+});
+
+test("si el catálogo trae el kit, botiquín usa esa foto", () => {
+  expect(urlFotoMundo(
+    { nombre: "Botiquín Jaloma", imagen_url: "/kit.jpg" },
+    "botiquin",
+    (p) => p.imagen_url,
+  )).toBe("/kit.jpg");
 });

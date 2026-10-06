@@ -50,11 +50,13 @@ export const FOTO_MUNDO_URL = Object.freeze({
 export const PUNTAJE_FOTO_OK = 100;
 
 export function urlFotoMundo(prod, mundoId, resolverFoto) {
-  if (prod && puntajeFotoMundo(prod, mundoId) >= PUNTAJE_FOTO_OK) {
+  // Solo el kit de botiquín pisa el packshot. Cualquier otro “mejor del
+  // catálogo” (Lactiv, Eucerin, OBAO) vuelve a enseñar el mal ejemplo.
+  if (mundoId === "botiquin" && prod && puntajeFotoMundo(prod, mundoId) >= 1500) {
     const viva = resolverFoto?.(prod);
     if (viva) return viva;
   }
-  return FOTO_MUNDO_URL[mundoId] || (prod ? resolverFoto?.(prod) : "") || "";
+  return FOTO_MUNDO_URL[mundoId] || "";
 }
 
 const PREFERIR = Object.freeze({
@@ -89,7 +91,7 @@ const EVITAR = Object.freeze({
   medicamentos: [/inyect/, /ampollet/],
   higiene: [/obao/, /savile/, /encendedor/],
   vitaminas: [],
-  botiquin: [/tiraleche/, /gotero/, /encendedor/, /perilla/, /fc producto/],
+  botiquin: [/tiraleche/, /de cristal/, /gotero/, /encendedor/, /perilla/, /fc producto/],
 });
 
 export const MUNDOS = Object.freeze(
