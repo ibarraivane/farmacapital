@@ -350,8 +350,7 @@
 .fc-v2 .fc-studio-dots button::after{content:"";position:absolute;inset:19px;border-radius:50%;background:currentColor;opacity:.35}
 .fc-v2 .fc-studio-dots button[aria-current="true"]::after{opacity:1;border-radius:3px;inset:19px 13px}
 .fc-v2 .fc-studio-cta{min-height:44px}
-.fc-v2 .fc-studio-pause{position:absolute;left:18px;top:18px;min-height:44px;padding:0 12px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;font-size:12px;font-weight:600;opacity:.75}
-.fc-v2 .fc-studio-pause:hover{opacity:1}
+.fc-v2 .fc-studio-pause{position:static;align-self:center;margin:4px auto 0;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;font-size:12px;font-weight:600}
 .fc-v2 .fc-skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--fc-ink);color:#fff;padding:10px 16px;min-height:44px;text-decoration:none;font-weight:600}
 .fc-v2 .fc-skip:focus{left:12px;top:12px}
 .fc-v2 .fc-sticky--compact .fc-top,.fc-v2 .fc-sticky--compact .fc-nav{display:none}
@@ -366,8 +365,7 @@
 @media(max-width:900px){
   .fc-v2 .fc-ficha .fc-detail{grid-template-areas:"head" "compra" "media" "info"}
 }
-@media(max-width:520px){
-  .fc-v2 .fc-hdr{flex-wrap:nowrap}
-  .fc-v2 .fc-hdr .fc-search{order:0;flex-basis:auto}
-  .fc-v2 .fc-demo{font-size:12px}
+@media(max-width:760px){
+  .fc-v2 .fc-hdr .fc-search{order:3;flex-basis:100%;min-width:0}
+  .fc-v2 .fc-search .fc-textbtn{flex:none}
 }
