@@ -6,9 +6,9 @@
  * bienestar, Botiquín y equipo médico). El disco lleva la foto de un producto
  * real de esa sección.
  *
- * Si una foto sale fea o queda mal recortada, fija el producto en `FOTO_MUNDO`
- * con su id. Si no hay id, se elige sola: la primera con imagen y, si se puede,
- * con existencia y precio.
+ * No uses el primero del catálogo: por `id` salen inyectables, OBAO, genéricos
+ * baratos y el tiraleche. Fija SKUs en `FOTO_MUNDO`. Si no están, gana una
+ * marca/producto reconocible (proteína, colágeno, Dove, botiquín).
  *
  * Es lógica pura: no importa React ni la tienda, para poder probarla.
  */
@@ -23,8 +23,74 @@ const TONO = Object.freeze({
   botiquin: "tinta",
 });
 
-/** id de producto → foto fija de ese disco. Vacío = elección automática. */
-export const FOTO_MUNDO = Object.freeze({});
+/** SKUs preferidos, en orden. El primero que tenga foto gana ese disco. */
+export const FOTO_MUNDO = Object.freeze({
+  "nutricion-deportiva": Object.freeze(["FC-27054804", "FC-37273377", "FC-27051254"]),
+  dermocosmetica: Object.freeze(["FC-75904292", "FC-75782357", "FC-75797641"]),
+  medicamentos: Object.freeze(["FC-54521161", "FC-08491074", "FC-08895196"]),
+  higiene: Object.freeze(["FC-06248052", "FC-38891190", "FC-09419324", "FC-40171550"]),
+  vitaminas: Object.freeze(["FC-22112250", "FC-9741524", "FC-66031116", "FC-31003741"]),
+  botiquin: Object.freeze(["FC-89592876", "FC-86708021", "FC-19332016"]),
+});
+
+/**
+ * Foto fija si el catálogo del home aún no trajo el SKU (la vitrina llega
+ * recortada a 24) o si solo hay un mal ejemplo (hierro, OBAO, tiraleche).
+ */
+export const FOTO_MUNDO_URL = Object.freeze({
+  "nutricion-deportiva": "https://www.farmacapital.mx/catalogo-propia/on-gold-standard-whey-vainilla-907g.jpg",
+  dermocosmetica: "https://www.farmacapital.mx/catalogo-propia/cerave-3337875904292.jpg",
+  medicamentos: "https://www.farmacapital.mx/catalogo-propia/aspirina-protect-100mg-c28.jpg",
+  higiene: "https://www.farmacapital.mx/catalogo-propia/dove-tono-uniforme-calendula-150ml.jpg",
+  vitaminas: "https://www.farmacapital.mx/catalogo-propia/naturex-colageno-700mg-c60-7502009741524.jpg",
+  botiquin: "https://www.farmacapital.mx/catalogo-propia/termometro-infrarrojo-sin-contacto-neutek-nt1-fu-7503019332016.jpg",
+});
+
+/** Puntaje mínimo para usar la foto del producto y no el packshot fijo. */
+export const PUNTAJE_FOTO_OK = 100;
+
+export function urlFotoMundo(prod, mundoId, resolverFoto) {
+  if (prod && puntajeFotoMundo(prod, mundoId) >= PUNTAJE_FOTO_OK) {
+    const viva = resolverFoto?.(prod);
+    if (viva) return viva;
+  }
+  return FOTO_MUNDO_URL[mundoId] || (prod ? resolverFoto?.(prod) : "") || "";
+}
+
+const PREFERIR = Object.freeze({
+  "nutricion-deportiva": [
+    /proteina/,
+    /whey/,
+    /birdman/,
+    /optimum/,
+    /creatina/,
+    /isolate/,
+    /pre.?entreno/,
+  ],
+  dermocosmetica: [
+    /cerave/,
+    /la roche/,
+    /anthelios/,
+    /eucerin/,
+    /bioderma/,
+    /isdin/,
+    /avene/,
+    /cetaphil/,
+  ],
+  medicamentos: [/tempra/, /aspirina/, /advil/, /tylenol/, /flanax/, /motrin/],
+  higiene: [/dove/, /sensodyne/, /colgate/, /rexona/, /head.?shoulders/, /oral.?b/],
+  vitaminas: [/colagen/, /collagen/, /centrum/, /pharmaton/],
+  botiquin: [/\bbotiquin\b/, /tegaderm/, /termometr/, /baumanometr/, /tensolastic/],
+});
+
+const EVITAR = Object.freeze({
+  "nutricion-deportiva": [/inyect/, /ampollet/, /hierro dextr/, /pancreatina/],
+  dermocosmetica: [],
+  medicamentos: [/inyect/, /ampollet/],
+  higiene: [/obao/, /savile/, /encendedor/],
+  vitaminas: [],
+  botiquin: [/tiraleche/, /gotero/, /encendedor/, /perilla/, /fc producto/],
+});
 
 export const MUNDOS = Object.freeze(
   SECCIONES_VITRINA.map((s) => Object.freeze({
@@ -33,7 +99,7 @@ export const MUNDOS = Object.freeze(
     tono: TONO[s.id] || "azul",
     seccion: s.nombre,
     destino: Object.freeze({ seccion: s.nombre }),
-    fotoId: FOTO_MUNDO[s.id] || null,
+    fotoSkus: FOTO_MUNDO[s.id] || Object.freeze([]),
   }))
 );
 
@@ -41,12 +107,46 @@ function buena(p) {
   return Number(p?.stock) > 0 && Number(p?.precio) > 0.01;
 }
 
-function mejor(actual, candidato, tieneFoto, fotoId) {
+function blobProducto(p) {
+  return `${p?.nombre || ""} ${p?.marca || ""} ${p?.sku || ""}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function skuNorm(p) {
+  return String(p?.sku || "").trim().toUpperCase();
+}
+
+/**
+ * Qué tan bien representa el producto a su mundo. Negativo = no usar (OBAO,
+ * tiraleche, inyectable). SKU fijado gana; si no, proteína / colágeno / Dove.
+ */
+export function puntajeFotoMundo(p, mundoId) {
+  const blob = blobProducto(p);
+  const evitar = EVITAR[mundoId] || [];
+  if (evitar.some((re) => re.test(blob))) return -1000;
+
+  let n = 0;
+  const skus = FOTO_MUNDO[mundoId] || [];
+  const idx = skus.indexOf(skuNorm(p));
+  if (idx >= 0) n += 1000 - idx;
+
+  const preferir = PREFERIR[mundoId] || [];
+  if (preferir.some((re) => re.test(blob))) n += 100;
+  // El kit (nombre «botiquín») gana a Tegaderm / termómetro, aunque esos SKU estén fijos.
+  if (mundoId === "botiquin" && /\bbotiquin\b/.test(blob) && !/fc producto/.test(blob)) n += 1500;
+  if (buena(p)) n += 10;
+  return n;
+}
+
+function mejor(actual, candidato, tieneFoto, mundoId) {
   if (!tieneFoto(candidato)) return actual;
-  if (fotoId != null && String(candidato?.id) === String(fotoId)) return candidato;
-  if (actual && fotoId != null && String(actual.id) === String(fotoId)) return actual;
+  const sc = puntajeFotoMundo(candidato, mundoId);
+  if (sc < 0) return actual;
   if (!actual) return candidato;
-  // Con foto y con existencia gana a una con foto pero agotada; entre iguales, la primera (estable).
+  const sa = puntajeFotoMundo(actual, mundoId);
+  if (sc !== sa) return sc > sa ? candidato : actual;
   return buena(candidato) && !buena(actual) ? candidato : actual;
 }
 
@@ -68,7 +168,7 @@ export function resumirMundos(productos, { seccionDe, tieneFoto }) {
     if (!mundo) continue;
     const r = resumen[mundo.id];
     r.n += 1;
-    r.producto = mejor(r.producto, p, tieneFoto, mundo.fotoId);
+    r.producto = mejor(r.producto, p, tieneFoto, mundo.id);
   }
   return resumen;
 }

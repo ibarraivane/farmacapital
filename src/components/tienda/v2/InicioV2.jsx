@@ -3,7 +3,7 @@ import { Pill, Droplets, Leaf, HeartPulse, Bandage, Package, Store, Truck, Messa
 import TarjetaProducto from "./TarjetaProducto";
 import HeroCarrusel from "./HeroCarrusel";
 import CategoriasMosaico from "./CategoriasMosaico";
-import { resumirMundos, mundosVisibles } from "./mundosTienda";
+import { resumirMundos, mundosVisibles, urlFotoMundo } from "./mundosTienda";
 import { esBajoPedido } from "../../../lib/bajoPedido";
 import { irASeccionVitrina } from "../../../lib/tiendaCatalogoCategorias";
 import { seccionDe } from "../../../constants/vitrinaTienda";
@@ -180,7 +180,7 @@ export default function InicioV2({
       id: m.id,
       titulo: m.titulo,
       tono: m.tono,
-      foto: prod ? fotoDe(prod) : "",
+      foto: urlFotoMundo(prod, m.id, fotoDe),
       icono: iconoSeccion[m.id],
       href: pageIdToTiendaPath("catalogo", { seccion: m.seccion }),
       onClick: () => irCategoria(m.seccion),
