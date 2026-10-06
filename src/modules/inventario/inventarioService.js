@@ -144,8 +144,9 @@ export async function actualizarStock(datos) {
 
     if (movError) throw movError;
 
-    // El trigger automático actualizará el stock en tabla productos
-    const nuevo_stock = producto.stock + parseInt(cantidad_adicional);
+    // El trigger automático actualizará el stock en tabla productos.
+    // Number(): si stock viene string, "30"+232 → "30232" (concatenación).
+    const nuevo_stock = (Number(producto.stock) || 0) + (parseInt(cantidad_adicional, 10) || 0);
 
     return {
       success: true,

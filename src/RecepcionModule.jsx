@@ -12,7 +12,7 @@ import {
   normalizeBarcodeRaw,
 } from "./utils/barcodeProductLookup";
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
-import { fetchProductosPaginados } from "./lib/inventarioHubData";
+import { fetchProductosPaginados, STOCK_ABSURDO_MAX, stockAbsurdoInventario } from "./lib/inventarioHubData";
 import {
   desgloseAltaRecepcion,
   payloadAltaRecepcion,
@@ -650,6 +650,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     });
     setScan(codigo);
     setQty(String(it.cantidad || 1));
+    if (stockAbsurdoInventario(it.cantidad)) {
+      setErrorLinea(
+        `Este renglón trae cantidad ${it.cantidad} (absurda). Corrígelo antes de confirmar — no es el gramaje ni un código.`
+      );
+    }
     setCosto(costoAuto != null ? String(costoAuto) : "");
     // Ticket PDF/CSV ya trae descripción en nombre_snapshot: precargar el alta.
     // Antes el input quedaba vacío y parecía que "no llenamos el nombre".
@@ -810,6 +815,13 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (!doc?.id || !pendiente) return;
     const n = parseInt(qty, 10);
     if (!n || n <= 0) { setErrorLinea("Pon la cantidad"); qtyRef.current?.focus(); return; }
+    if (stockAbsurdoInventario(n)) {
+      setErrorLinea(
+        `Cantidad absurda (>${STOCK_ABSURDO_MAX}). Caso Bepanthen: 30229 entró por Recibir. Revisa el ticket.`
+      );
+      qtyRef.current?.focus();
+      return;
+    }
     const iso = parseCaducidadMMAA(cad);
     if (!iso) { setErrorLinea("Caducidad MMAA — ej. 0629"); cadRef.current?.focus(); return; }
     const costoN = costo.trim() === "" ? null : Number(costo);

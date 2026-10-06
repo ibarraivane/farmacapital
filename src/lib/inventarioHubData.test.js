@@ -5,6 +5,8 @@ import {
   patchProductoSinColumnaProveedor,
   productoIdDeLote,
   proveedorDesdeLotes,
+  STOCK_ABSURDO_MAX,
+  stockAbsurdoInventario,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
 } from "./inventarioHubData";
@@ -49,6 +51,16 @@ test("la celda de stock y el clic usan los lotes, no la columna desfasada", () =
   expect(stockObjetivoAjusteInline({ stock: 4, stock_peps: 4 }, 3)).toBe(3);
   expect(stockVisibleInventario({ stock: 4 })).toBe(4);
   expect(stockVisibleInventario({ stock: 4, stock_peps: 0 })).toBe(0);
+});
+
+test("stock absurdo: bloquea capturas tipo Bepanthen 30232, deja pasar C/100", () => {
+  expect(STOCK_ABSURDO_MAX).toBe(500);
+  expect(stockAbsurdoInventario(100)).toBe(false);
+  expect(stockAbsurdoInventario(500)).toBe(false);
+  expect(stockAbsurdoInventario(501)).toBe(true);
+  expect(stockAbsurdoInventario(30232)).toBe(true);
+  expect(stockAbsurdoInventario("30232")).toBe(true);
+  expect(stockAbsurdoInventario(null)).toBe(false);
 });
 
 test("el patch de ficha no manda productos.proveedor", () => {
