@@ -28,6 +28,15 @@ test("copia los valores exactos del prototipo ChatGPT", () => {
   expect(css).not.toMatch(/(^|\n)\s*body\s*\{/);
 });
 
+test("en celular el encabezado compacto no cambia de alto", () => {
+  const hide = css.indexOf(".fc-sticky--compact .fc-top,.fc-v2 .fc-sticky--compact .fc-nav{display:none}");
+  const guard = css.indexOf(".fc-sticky--compact .fc-top,.fc-v2 .fc-sticky--compact .fc-nav{display:flex}");
+  expect(hide).toBeGreaterThan(-1);
+  expect(guard).toBeGreaterThan(hide);
+  expect(css).toMatch(/@media\(max-width:760px\)\{[\s\S]*\.fc-sticky--compact \.fc-search\{height:48px\}/);
+  expect(css).toMatch(/@media\(max-width:760px\)\{[\s\S]*?\.fc-v2 \.fc-sticky\{position:fixed;left:0;right:0;width:100%\}/);
+});
+
 test("en celular el buscador va en su renglón y Pausar no tapa el título", () => {
   expect(css).toMatch(/\.fc-hdr \.fc-search\{order:3;flex-basis:100%\}/);
   expect(css).not.toMatch(/\.fc-hdr\{flex-wrap:nowrap\}/);
@@ -52,6 +61,7 @@ test("el hover de la tarjeta se nota: marco azul alrededor de toda la tarjeta", 
 
 test("la cintilla del menú no deja ver el título a través del encabezado fijo", () => {
   expect(css).toMatch(/\.fc-sticky\{position:sticky;top:0;z-index:80;background:#ffffff !important;isolation:isolate;overscroll-behavior:none;touch-action:pan-y\}/);
+  expect(css).toMatch(/html:has\(\.fc-v2\),\.fc-v2 \.fc-sticky\{overflow-anchor:none\}/);
   expect(css).toMatch(/\.fc-sticky::before\{content:"";position:absolute;inset:0;background:#ffffff;z-index:-1\}/);
   expect(css).toMatch(/\.fc-nav,\.fc-v2 \.fc-nav button,\.fc-v2 \.fc-nav a\{background:#ffffff !important\}/);
   expect(css).not.toMatch(/fc-sticky\{position:static\}/);

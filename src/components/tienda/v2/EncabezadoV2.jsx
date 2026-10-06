@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MapPin, Menu, Search, ShoppingBag, User } from "lucide-react";
 import { logoFullSrc, logoFullSrcSet } from "../../../brand";
 import { FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
@@ -10,22 +10,33 @@ import { tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 import EnlaceTienda from "./EnlaceTienda";
 
 const PLACEHOLDER = "Buscar medicamento o marca";
+const MOVIL = "(max-width: 760px)";
 
-function useHeadroom() {
-  const [compacto, setCompacto] = useState(false);
-  useEffect(() => {
-    let last = typeof window !== "undefined" ? window.scrollY : 0;
-    const onScroll = () => {
-      const y = window.scrollY || 0;
-      if (y < 48) setCompacto(false);
-      else if (y > last + 10) setCompacto(true);
-      else if (y < last - 10) setCompacto(false);
-      last = y;
+/** El encabezado no se compacta al bajar: ese cambio de alto lo hacía parpadear. */
+export function decidirCompacto() {
+  return false;
+}
+
+function useEspacioEncabezado(ref) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window.matchMedia !== "function") return undefined;
+    const root = el.closest(".fc-v2");
+    const mq = window.matchMedia(MOVIL);
+    const apply = () => {
+      if (!root) return;
+      root.style.paddingTop = mq.matches ? `${el.offsetHeight}px` : "";
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  return compacto;
+    apply();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    mq.addEventListener?.("change", apply);
+    return () => {
+      ro?.disconnect();
+      mq.removeEventListener?.("change", apply);
+      if (root) root.style.paddingTop = "";
+    };
+  }, [ref]);
 }
 
 export default function EncabezadoV2({
@@ -43,7 +54,8 @@ export default function EncabezadoV2({
   menuAbierto = false,
 }) {
   const [busqFocus, setBusqFocus] = useState(false);
-  const headroom = useHeadroom();
+  const stickyRef = useRef(null);
+  useEspacioEncabezado(stickyRef);
   const checkout = page === "checkout" || page === "carrito";
   const n = (cart || []).reduce((a, c) => a + (Number(c.qty) || 0), 0);
   const q = String(busqHero || "");
@@ -94,7 +106,7 @@ export default function EncabezadoV2({
   };
 
   return (
-    <div className={`fc-sticky${headroom ? " fc-sticky--compact" : ""}${checkout ? " fc-sticky--checkout" : ""}`} style={{ backgroundColor: "#ffffff", position: "sticky", top: 0, zIndex: 80 }}>
+    <div ref={stickyRef} className={`fc-sticky${checkout ? " fc-sticky--checkout" : ""}`} style={{ backgroundColor: "#ffffff", top: 0, zIndex: 80 }}>
       <div className="fc-top">
         <span>Farmacia y consultorio · Ciudad de México</span>
         <span>Atención en sucursal · {HORARIO_FARMACIA.apertura}–{HORARIO_FARMACIA.cierre}</span>
