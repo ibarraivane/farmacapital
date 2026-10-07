@@ -1,0 +1,28 @@
+╔══════════════════════════════════════════╗
+║     FARMACAPITAL — TICKET SPEI           ║
+╚══════════════════════════════════════════╝
+
+Tipo     : Salida · transferencia SPEI
+Fecha    : 07/10/2026  03:52 h
+Monto    : $1,000.00 MXN
+
+────────────────────────────────────────────
+ORIGEN
+  Cuenta  : Mifel Digital Evoluciona ****8716
+
+DESTINO
+  Alias   : Nana
+  Nombre  : Angel Gerardo Rodriguez Valero
+  CLABE   : ****2156
+  Banco   : SCOTIABANK INVERLAT, S. A.
+
+────────────────────────────────────────────
+COMPROBANTE
+  Referencia     : 071026
+  Folio          : 53975588
+  Clave rastreo  : 20261007400420000MIFB000236078
+
+Flujo de caja : otros
+CEP Banxico   : www.banxico.org.mx/cep
+
+FarmaCapital · Chinampac de Juárez · CDMX

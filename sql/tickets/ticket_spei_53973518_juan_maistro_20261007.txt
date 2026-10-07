@@ -1,0 +1,28 @@
+╔══════════════════════════════════════════╗
+║     FARMACAPITAL — TICKET SPEI           ║
+╚══════════════════════════════════════════╝
+
+Tipo     : Salida · transferencia SPEI
+Fecha    : 07/10/2026  03:03 h
+Monto    : $200.00 MXN
+
+────────────────────────────────────────────
+ORIGEN
+  Cuenta  : Mifel Digital Evoluciona ****8716
+
+DESTINO
+  Alias   : Juan Maistro
+  Nombre  : Misael Isac Ramirez Valdes
+  CLABE   : ****8547
+  Banco   : BANCO MERCANTIL DEL NORTE, S. A. (Banorte)
+
+────────────────────────────────────────────
+COMPROBANTE
+  Referencia     : 071026
+  Folio          : 53973518
+  Clave rastreo  : 20261007400420000MIFB000233404
+
+Flujo de caja : mantenimiento
+CEP Banxico   : www.banxico.org.mx/cep
+
+FarmaCapital · Chinampac de Juárez · CDMX
