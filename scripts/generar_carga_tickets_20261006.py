@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Tickets 06-oct-2026 (fotos) → cola Recibir.
 
-3 pedidos:
+5 pedidos:
   IFC F8 127425 · Grupo Zorro T01696085 · Equilibrio 447156
+  Farmalive 13999 · Cityfarma S329263
 
 Nombres de mostrador desde ficha (no el código del ticket).
 Sin caducidad inventada (MMAA de la caja). Equilibrio sí trae lote de fábrica.
+Farmalive: costo = P.U. neto después del descuento del renglón (2% o 5%).
 """
 from __future__ import annotations
 
@@ -385,6 +387,208 @@ PRODUCTOS: dict[str, dict] = {
         concentracion="100 mg",
         ya=False,
     ),
+    # ── Farmalive ──
+    "7501008409534": p(
+        "7501008409534",
+        sku="FC-08409534",
+        nombre="Saridon EXH",
+        tipo="marca",
+        forma="Tableta",
+        marca="Saridon",
+        laboratorio="Bayer OTC",
+        presentacion="Caja con 100 tabletas",
+        principio="Paracetamol / propyfenazona / cafeína",
+        ya=False,
+    ),
+    "7502214980350": p(
+        "7502214980350",
+        sku="FC-14980350",
+        nombre="Prudence Lub lubricante íntimo mora azul",
+        tipo="marca",
+        categoria="Cuidado personal",
+        subcategoria="Íntimo",
+        forma="Gel",
+        marca="Prudence",
+        laboratorio="DKT México",
+        presentacion="Tubo 75 mL",
+        ya=True,
+    ),
+    "6502400746914": p(
+        "6502400746914",
+        sku="FC-40074691",
+        nombre="Asepxia jabón suavizante",
+        tipo="marca",
+        categoria="Cuidado personal",
+        subcategoria="Piel",
+        forma="Jabón",
+        marca="Asepxia",
+        laboratorio="Genomma Lab",
+        presentacion="Paquete con 4 barras de 100 g",
+        ya=False,
+    ),
+    "6502400046434": p(
+        "6502400046434",
+        sku="FC-40004643",
+        nombre="Asepxia jabón exfoliante",
+        tipo="marca",
+        categoria="Cuidado personal",
+        subcategoria="Piel",
+        forma="Jabón",
+        marca="Asepxia",
+        laboratorio="Genomma Lab",
+        presentacion="Barra 100 g",
+        ya=True,
+    ),
+    "7501008409541": p(
+        "7501008409541",
+        sku="FC-84095411",
+        nombre="Saridon",
+        tipo="marca",
+        forma="Tableta",
+        marca="Saridon",
+        laboratorio="Bayer OTC",
+        presentacion="Caja con 20 tabletas",
+        principio="Paracetamol / propyfenazona / cafeína",
+        ya=True,
+        foto_file="saridon-c20.jpg",
+    ),
+    "6502400322644": p(
+        "6502400322644",
+        sku="FC-40032264",
+        nombre="Suerox 8 iones fresa kiwi",
+        tipo="marca",
+        categoria="Bebidas",
+        subcategoria="Electrolitos",
+        forma="Bebida",
+        marca="Suerox",
+        laboratorio="Genomma Lab",
+        presentacion="Botella 630 mL",
+        ya=True,
+    ),
+    "7503003406167": p(
+        "7503003406167",
+        sku="FC-03406167",
+        nombre="Cinta micropore Quirmex piel",
+        tipo="marca",
+        categoria="Botiquín",
+        subcategoria="Material de curación",
+        forma="Cinta",
+        marca="Quirmex",
+        laboratorio="Quirmex",
+        presentacion="Rollo 2.5 cm × 10 m",
+        ya=False,
+    ),
+    "7501868910034": p(
+        "7501868910034",
+        sku="FC-68910034",
+        nombre="Dibar algodón",
+        tipo="marca",
+        categoria="Botiquín",
+        subcategoria="Material de curación",
+        forma="Algodón",
+        marca="Dibar",
+        laboratorio="Dibar",
+        presentacion="Bolsa 50 g",
+        ya=True,
+    ),
+    # ── Cityfarma ──
+    "7501318645080": p(
+        "7501318645080",
+        sku="FC-8645080",
+        nombre="Canesten V crema",
+        tipo="marca",
+        categoria="Dermocosmético",
+        forma="Crema",
+        marca="Canesten",
+        laboratorio="Bayer OTC",
+        presentacion="Tubo 20 g con aplicadores",
+        principio="Clotrimazol",
+        concentracion="1%",
+        ya=True,
+    ),
+    "7501563380026": p(
+        "7501563380026",
+        sku="FC-63380026",
+        nombre="Doxiciclina 100 mg",
+        tipo="generico",
+        forma="Cápsula",
+        marca="Randall",
+        laboratorio="Randall",
+        presentacion="Caja con 10 cápsulas",
+        principio="Doxiciclina",
+        concentracion="100 mg",
+        receta=True,
+        ya=False,
+    ),
+    "7501165000315": p(
+        "7501165000315",
+        sku="FC-50003151",
+        nombre="Neo-Melubrina jarabe infantil",
+        tipo="marca",
+        forma="Jarabe",
+        marca="Neo-Melubrina",
+        laboratorio="Opella",
+        presentacion="Frasco 100 mL",
+        principio="Metamizol sódico",
+        concentracion="250 mg/5 mL",
+        ya=True,
+        foto_file="neo-melubrina-jarabe-100ml.jpg",
+    ),
+    "7501384543983": p(
+        "7501384543983",
+        sku="FC-84543983",
+        nombre="Risperidona 2 mg",
+        tipo="generico",
+        forma="Tableta",
+        marca="Alpharma",
+        laboratorio="Alpharma",
+        presentacion="Caja con 40 tabletas",
+        principio="Risperidona",
+        concentracion="2 mg",
+        receta=True,
+        ya=False,
+    ),
+    "7501825300786": p(
+        "7501825300786",
+        sku="FC-25300786",
+        nombre="Sediclon dicicloverina 10 mg",
+        tipo="generico",
+        forma="Tableta",
+        marca="Sediclon",
+        laboratorio="Degort's",
+        presentacion="Caja con 30 tabletas",
+        principio="Dicicloverina",
+        concentracion="10 mg",
+        receta=True,
+        ya=False,
+    ),
+    "7501088576495": p(
+        "7501088576495",
+        sku="FC-88576495",
+        nombre="Troferit 30 mg",
+        tipo="marca",
+        forma="Tableta",
+        marca="Troferit",
+        laboratorio=None,
+        presentacion="Caja con 15 tabletas",
+        concentracion="30 mg",
+        receta=True,
+        ya=False,
+    ),
+    "7501300421821": p(
+        "7501300421821",
+        sku="FC-00421821",
+        nombre="Zivata-Duo dutasterida/tamsulosina",
+        tipo="marca",
+        forma="Cápsula",
+        marca="Zivata-Duo",
+        laboratorio="Siegfried Rhein",
+        presentacion="Caja con 30 cápsulas",
+        principio="Dutasterida / tamsulosina",
+        concentracion="0.5/0.4 mg",
+        receta=True,
+        ya=False,
+    ),
 }
 
 
@@ -522,6 +726,66 @@ TICKETS = [
             row("7502001165748", "SON244 EXBENZOL 6 TAB 100 MG", 3, 15.00, "26040942"),
         ],
     },
+    {
+        "key": "farmalive_13999",
+        "folio": "13999",
+        "proveedor": "Farmalive",
+        "proveedor_ilike": "farmalive",
+        "fecha": "2026-10-06",
+        "total": 778.75,
+        "notas": (
+            "Ticket Farmalive 13999 · Club Iztapalapa 1 · 06-oct-2026 · "
+            "cliente FARMACAPITAL · descuentos por renglón 2%/5% · "
+            "cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "tmp": "_fc_fl_13999",
+        "header": (
+            "Farmalive · ticket 13999 · 2026-10-06 16:41 · Club Iztapalapa 1\n"
+            "-- 8 renglones / 23 unidades. Papel: subtotal $798.10 − desc. ≈ $778.69/778.70.\n"
+            "-- Costo = P.U. neto del renglón (2% o 5%) a 2 decimales → suma SQL $778.75.\n"
+            "-- Ticket trunca Suerox/Asepxia a 12 dígitos; pistola = EAN canónico 650…4.\n"
+            "-- Algodón Dibar 50 g: 12 pzas (cantidad marcada a mano en el ticket)."
+        ),
+        "rows": [
+            row("7501008409534", "SARIDON EXH TAB C/100 | BAYER OTC", 1, 269.50),
+            row("7502214980350", "LUBRICANTE PRUDENCE MORA AZUL 75 ML | DKT MEXICO", 1, 70.17),
+            row("6502400746914", "ASEPXIA JABON SUAVIZANTE 100 GR 4PACK | GENOMMA LAB", 1, 49.98),
+            row("6502400046434", "ASEPXIA JABON EXFOLIANTE 100 GR | GENOMMA LAB", 2, 39.81),
+            row("7501008409541", "SARIDON TAB C/20 | BAYER OTC", 2, 63.46),
+            row("6502400322644", "SUEROX 8IONES FRESA KIWI 630 ML | GENOMMA LAB", 2, 14.73),
+            row("7503003406167", "CINTA MICROPOR QUIRMEX PIEL 2.5CMX10M | QUIRMEX", 2, 17.15),
+            row("7501868910034", "ALGODON DIBAR 50 GR | DIBAR", 12, 9.90),
+        ],
+    },
+    {
+        "key": "cityfarma_s329263",
+        "folio": "S329263",
+        "proveedor": "Cityfarma Iztapalapa",
+        "proveedor_ilike": "cityfarma",
+        "fecha": "2026-10-06",
+        "total": 1425.01,
+        "notas": (
+            "Ticket Cityfarma S329263 · 06-oct-2026 · foto térmica · "
+            "Pendiente de pago $1,425.01 · cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "tmp": "_fc_cf_s329263",
+        "header": (
+            "Cityfarma Iztapalapa · orden S329263 · 2026-10-06 17:33\n"
+            "-- Ticket térmico. IVA 0%. Pendiente de pago = $1,425.01.\n"
+            "-- DOXICICLINA 100MG C1 → Randall C/10 EAN 7501563380026.\n"
+            "-- Zivata-Duo dutasterida/tamsulosina 0.5/0.4 mg (Siegfried).\n"
+            "-- Sin lote ni caducidad (MMAA de la caja). No inventar 0000."
+        ),
+        "rows": [
+            row("7501318645080", "CANESTEN V CRA 20 GR", 2, 141.95),
+            row("7501563380026", "DOXICICLINA 100MG C1", 2, 24.13),
+            row("7501165000315", "NEO MELUBRINA JBE", 2, 118.48),
+            row("7501384543983", "RISPERIDONA 2MG 40", 2, 62.40),
+            row("7501825300786", "SEDICLON DICICLOVERI", 5, 21.24),
+            row("7501088576495", "TROFERIT 30 MG C 15", 1, 150.79),
+            row("7501300421821", "ZIVATA-DUO DUTASTERI", 1, 474.10),
+        ],
+    },
 ]
 
 
@@ -529,6 +793,14 @@ def main() -> None:
     GEN_DIR.mkdir(parents=True, exist_ok=True)
     paths: list[Path] = []
     for t in TICKETS:
+        for r in t["rows"]:
+            r["sub"] = round(r["qty"] * r["pu"], 2)
+            r["precio"] = ceil_pvp(r["pu"], r["tipo"])
+
+        # Farmalive: ticket $778.69 / tarjeta $778.70; P.U.×qty a 2 decimales = $778.75
+        if t["key"] == "farmalive_13999":
+            t["total"] = round(sum(r["sub"] for r in t["rows"]), 2)
+
         suma = round(sum(r["sub"] for r in t["rows"]), 2)
         pzas = sum(r["qty"] for r in t["rows"])
         if abs(suma - t["total"]) > 0.02:
@@ -580,13 +852,15 @@ def main() -> None:
     leerme.write_text(
         """# Tickets Recibir · 06-oct-2026
 
-Fotos IFC + Zorro + Equilibrio. Pegar **cada** SQL en Supabase → SQL Editor → Run.
+Fotos IFC + Zorro + Equilibrio + Farmalive + Cityfarma. Pegar **cada** SQL en Supabase → SQL Editor → Run.
 
 | Pedido | Archivo | Piezas | Total |
 |--------|---------|--------|-------|
 | IFC 127425 | `patch_carga_ifc_127425.sql` | 1 | $238.00 |
 | Grupo Zorro T01696085 | `patch_carga_zorro_T01696085.sql` | 1 | $161.67 |
 | Equilibrio 447156 | `patch_carga_equilibrio_447156.sql` | 75 | $2,643.87 |
+| Farmalive 13999 | `patch_carga_farmalive_13999.sql` | 23 | $778.75 |
+| Cityfarma S329263 | `patch_carga_cityfarma_s329263.sql` | 15 | $1,425.01 |
 
 ## Todo-en-uno
 
@@ -597,6 +871,8 @@ Fotos IFC + Zorro + Equilibrio. Pegar **cada** SQL en Supabase → SQL Editor �
 - Equilibrio trae **lote de fábrica**; caducidad = MMAA de la caja al escanear.
 - Schick bolsa 12 pzas EAN `7502274881475` (no la pieza suelta `7591066701015`).
 - Cintapore caja C/12 EAN `7506484500034` (código IFC 84129).
+- Farmalive: costo = neto del renglón (2% o 5%). Suerox/Asepxia con EAN canónico 13 dígitos.
+- Cityfarma: pendiente de pago $1,425.01.
 - Regenerar: `python3 scripts/generar_carga_tickets_20261006.py`
 """,
         encoding="utf-8",
