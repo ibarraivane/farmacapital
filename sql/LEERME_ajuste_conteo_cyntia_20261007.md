@@ -65,9 +65,9 @@ Auditoría física vs POS. Correr en Supabase SQL Editor, en este orden:
 select sku, nombre, stock
 from public.productos
 where sku in (
-  'FC-BE76D409','EQ-AVT201','FC-D210172A','EQ-SON091','FC-27427392',
+  'FC-BE76D409','FC-D210172A','EQ-SON091','FC-27427392',
   'EQ-BEA424','EQ-MAI150','EQ-SON153','EQ-BEA336','FC-58207010',
-  'FC-9022434','FC-49078205','FC-42802213','FC-9022126'
+  'FC-447B30F9','FC-9022434','FC-49078205','FC-42802213','FC-9022126'
 )
 order by sku;
 ```
