@@ -71,7 +71,7 @@ begin
       ('EQ-BEA424',   3),   -- Metoprolol 100 mg C/20
       ('EQ-ALP0628',  2),   -- Alpharma Metamizol C/3 amp
       ('EQ-MAI150',   3),   -- Maviglin C/60
-      ('EQ-SON153',   1),   -- Nysmoson's-V (confirmar si hay más)
+      ('EQ-SON153',   2),   -- Nysmoson's-V («no estan»; ya existe)
       ('EQ-EXA045',   2),   -- Neomicina/Polimixina/Bacitracina ung.
       ('EQ-BEA336',   3),   -- Neomicina/Kaolín/Pectina C/20
       ('FC-AEA8C8DA', 1),   -- Namifen 500 mg C/20
