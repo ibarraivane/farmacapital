@@ -169,8 +169,11 @@ begin
     raise exception 'Selecciona a qué empleado corresponde la compra';
   end if;
 
-  select nombre into v_nombre_beneficiario
-    from public.empleados where id = p_empleado_beneficiario_id;
+  -- IMPORTANTE: esta función RETURNS TABLE(... id bigint ...), así que `id`
+  -- es una variable de salida. Hay que calificar siempre tabla.id o Postgres
+  -- tira "column reference id is ambiguous" (p. ej. contra caja_sesiones.id).
+  select e.nombre into v_nombre_beneficiario
+    from public.empleados e where e.id = p_empleado_beneficiario_id;
   if v_nombre_beneficiario is null then
     raise exception 'Empleado beneficiario no encontrado';
   end if;
@@ -196,9 +199,9 @@ begin
     from public.configuracion where clave = 'tope_mensual_descuento_empleado';
   v_tope_mensual := coalesce(v_tope_mensual, 200);
 
-  select id into v_caja_sesion_id from public.caja_sesiones
-    where empleado_id = v_user_id and estado = 'abierta'
-    order by abierta_at desc limit 1;
+  select cs.id into v_caja_sesion_id from public.caja_sesiones cs
+    where cs.empleado_id = v_user_id and cs.estado = 'abierta'
+    order by cs.abierta_at desc limit 1;
 
   for v_item in select value from jsonb_array_elements(p_cart_items)
   loop
