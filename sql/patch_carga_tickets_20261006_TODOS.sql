@@ -274,7 +274,8 @@ commit;
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -- Grupo Zorro E-9 · ticket T01696085 · 2026-10-06 17:20:22
 -- Menudeo. 1 pza · total $161.67 (IVA incluido en ticket).
--- RASTRILLOS SCHICK XTREME 3 12-12 PZ → EAN bolsa 7502274881475 (no confundir con pieza suelta 7591066701015).
+-- RASTRILLOS SCHICK XTREME 3 12-12 PZ → EAN bolsa 7502274881475
+-- (alias display Edgewell 6937266702079; no confundir con pieza suelta 7591066701015).
 -- Sin lote ni caducidad. No inventar 0000.
 -- 1 alta(s) stock 0. 0 ya estaban: solo costo / ficha vacía, no PVP.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -313,7 +314,7 @@ insert into _fc_zorro_T01696085 (
   subcategoria, forma, marca, laboratorio, presentacion, principio_activo,
   concentracion, receta, ya, imagen, foto_file, lote
 ) values
-  (1, '7502274881475', 'FC-274881475', 'Schick Xtreme 3', 'RASTRILLOS SCHICK XTREME 3 12-12 PZ', 1, 161.67, 203, 'marca', 'Cuidado personal', 'Afeitado', 'Rastrillo', 'Schick', 'Edgewell', 'Bolsa con 12 rastrillos', null, null, false, false, null, null, null);
+  (1, '7502274881475', 'FC-274881475', 'Schick Xtreme 3 Piel Sensible', 'RASTRILLOS SCHICK XTREME 3 12-12 PZ', 1, 161.67, 203, 'marca', 'Cuidado personal', 'Afeitado', 'Rastrillo', 'Schick', 'Edgewell', 'Bolsa / display con 12 rastrillos', null, null, false, false, null, null, null);
 
 -- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
@@ -1142,7 +1143,7 @@ insert into _fc_cf_s329263 (
   (3, '7501165000315', 'FC-50003151', 'Neo-Melubrina jarabe infantil', 'NEO MELUBRINA JBE', 2, 118.48, 149, 'marca', 'Medicamentos', null, 'Jarabe', 'Neo-Melubrina', 'Opella', 'Frasco 100 mL', 'Metamizol sódico', '250 mg/5 mL', false, true, 'https://www.farmacapital.mx/catalogo-propia/neo-melubrina-jarabe-100ml.jpg', 'catalogo-propia/neo-melubrina-jarabe-100ml.jpg', null),
   (4, '7501384543983', 'FC-84543983', 'Risperidona 2 mg', 'RISPERIDONA 2MG 40', 2, 62.40, 100, 'generico', 'Medicamentos', null, 'Tableta', 'Alpharma', 'Alpharma', 'Caja con 40 tabletas', 'Risperidona', '2 mg', true, false, null, null, null),
   (5, '7501825300786', 'FC-25300786', 'Sediclon dicicloverina 10 mg', 'SEDICLON DICICLOVERI', 5, 21.24, 34, 'generico', 'Medicamentos', null, 'Tableta', 'Sediclon', 'Degort''s', 'Caja con 30 tabletas', 'Dicicloverina', '10 mg', true, false, null, null, null),
-  (6, '7501088576495', 'FC-88576495', 'Troferit 30 mg', 'TROFERIT 30 MG C 15', 1, 150.79, 189, 'marca', 'Medicamentos', null, 'Tableta', 'Troferit', null, 'Caja con 15 tabletas', null, '30 mg', true, false, null, null, null),
+  (6, '7501088575495', 'FC-88576495', 'Troferit 30 mg', 'TROFERIT 30 MG C 15', 1, 150.79, 189, 'marca', 'Medicamentos', null, 'Tableta', 'Troferit', 'Chinoin', 'Caja con 15 tabletas', 'Dropropizina', '30 mg', true, false, null, null, null),
   (7, '7501300421821', 'FC-00421821', 'Zivata-Duo dutasterida/tamsulosina', 'ZIVATA-DUO DUTASTERI', 1, 474.10, 593, 'marca', 'Medicamentos', null, 'Cápsula', 'Zivata-Duo', 'Siegfried Rhein', 'Caja con 30 cápsulas', 'Dutasterida / tamsulosina', '0.5/0.4 mg', true, false, null, null, null);
 
 -- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).

@@ -58,6 +58,43 @@ describe("Dibar rojo 500 ml: bote vs ticket OCR", () => {
   });
 });
 
+describe("Troferit / Schick: tipógrafo y display Edgewell", () => {
+  test("Troferit: tipógrafo Cityfarma abre la caja real", () => {
+    const troferit = {
+      id: 901,
+      activo: true,
+      sku: "FC-88576495",
+      nombre: "Troferit 30 mg",
+      codigo_barras: "7501088575495",
+      descripcion: "EAN caja 7501088575495 · tipógrafo ticket 7501088576495.",
+    };
+    expect(findProductExactScan([troferit], "7501088575495")?.id).toBe(901);
+    expect(findProductExactScan([troferit], "7501088576495")?.id).toBe(901);
+  });
+
+  test("Schick bolsa ×12: display Edgewell abre el SKU Zorro; pieza suelta no", () => {
+    const bolsa = {
+      id: 902,
+      activo: true,
+      sku: "FC-274881475",
+      nombre: "Schick Xtreme 3 Piel Sensible",
+      codigo_barras: "7502274881475",
+      descripcion:
+        "EAN bolsa ticket 7502274881475 · EAN display Edgewell 6937266702079 · no confundir con empaque individual.",
+    };
+    const pieza = {
+      id: 903,
+      activo: true,
+      sku: "FC-66701015",
+      nombre: "Schick Xtreme 3 Piel Sensible",
+      codigo_barras: "7591066701015",
+    };
+    expect(findProductExactScan([bolsa, pieza], "6937266702079")?.id).toBe(902);
+    expect(findProductExactScan([bolsa, pieza], "7502274881475")?.id).toBe(902);
+    expect(findProductExactScan([bolsa, pieza], "7591066701015")?.id).toBe(903);
+  });
+});
+
 describe("Estomaquil C/20 vs C/10: ficha no debe robar el EAN", () => {
   const c20 = {
     id: 637,

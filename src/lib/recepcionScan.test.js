@@ -80,6 +80,57 @@ describe("itemMatchScan", () => {
     expect(itemMatchScan(item, "7501868900226", cat)).toBe(false);
   });
 
+  test("Troferit: caja Chinoín abre el renglón del tipógrafo Cityfarma", () => {
+    const item = {
+      id: 6,
+      confirmado: false,
+      codigo_escaneado: "7501088576495",
+      sku: "FC-88576495",
+      producto_id: 901,
+      origen: "pdf",
+    };
+    const cat = [
+      {
+        id: 901,
+        sku: "FC-88576495",
+        codigo_barras: "7501088575495",
+        activo: true,
+      },
+    ];
+    expect(itemMatchScan(item, "7501088575495", cat)).toBe(true);
+    expect(itemMatchScan(item, "7501088576495", cat)).toBe(true);
+  });
+
+  test("Schick bolsa ×12: display Edgewell abre el renglón Zorro (no la pieza)", () => {
+    const item = {
+      id: 1,
+      confirmado: false,
+      codigo_escaneado: "7502274881475",
+      sku: "FC-274881475",
+      producto_id: 902,
+      origen: "pdf",
+    };
+    const cat = [
+      {
+        id: 902,
+        sku: "FC-274881475",
+        codigo_barras: "7502274881475",
+        descripcion:
+          "EAN bolsa ticket 7502274881475 · EAN display Edgewell 6937266702079 · no confundir con empaque individual.",
+        activo: true,
+      },
+      {
+        id: 903,
+        sku: "FC-66701015",
+        codigo_barras: "7591066701015",
+        activo: true,
+      },
+    ];
+    expect(itemMatchScan(item, "6937266702079", cat)).toBe(true);
+    expect(itemMatchScan(item, "7502274881475", cat)).toBe(true);
+    expect(itemMatchScan(item, "7591066701015", cat)).toBe(false);
+  });
+
   test("EAN de exhibidor anotado en descripción abre la pieza", () => {
     const item = {
       id: 9,
