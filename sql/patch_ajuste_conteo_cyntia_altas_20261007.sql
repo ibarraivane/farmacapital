@@ -229,7 +229,7 @@ begin
   end if;
 
   ---------------------------------------------------------------------------
-  -- 4) Metamizol sódico AMSA 1 g/2 ml C/3 amp · EAN 7501349022126 · físico 1
+  -- 4) Metamizol sódico AMSA 1 g/2 ml C/3 amp · EAN 7501349022126 · físico 2
   --    Distinto de Alpharma EQ-ALP0628 (EAN 7502226293776).
   ---------------------------------------------------------------------------
   select id into v_pid
@@ -253,7 +253,7 @@ begin
           'activo', true,
           'requiere_receta', true
         ),
-        1,
+        2,
         'INV-CONTEO-20261007',
         null::date,
         null::numeric,
@@ -275,7 +275,7 @@ begin
     select costo into v_costo from public.productos where id = v_pid;
     select coalesce(sum(cantidad_actual), 0) into v_sum
       from public.lotes where producto_id = v_pid and coalesce(activo, true);
-    if v_sum is distinct from 1 then
+    if v_sum is distinct from 2 then
       select id into v_lote from public.lotes
        where producto_id = v_pid
        order by coalesce(activo, true) desc, coalesce(cantidad_actual, 0) desc, id desc
@@ -284,18 +284,18 @@ begin
         insert into public.lotes (
           producto_id, numero_lote, cantidad_inicial, cantidad_actual,
           fecha_caducidad, costo_unitario, activo
-        ) values (v_pid, 'INV-CONTEO-20261007', 1, 1, null, v_costo, true);
+        ) values (v_pid, 'INV-CONTEO-20261007', 2, 2, null, v_costo, true);
       else
         update public.lotes set cantidad_actual = 0, activo = false
          where producto_id = v_pid and id <> v_lote
            and coalesce(activo, true) and coalesce(cantidad_actual, 0) > 0;
         update public.lotes
-           set cantidad_actual = 1, activo = true,
-               cantidad_inicial = greatest(coalesce(cantidad_inicial, 0), 1)
+           set cantidad_actual = 2, activo = true,
+               cantidad_inicial = greatest(coalesce(cantidad_inicial, 0), 2)
          where id = v_lote;
       end if;
       insert into public.movimientos_inventario (producto_id, tipo, cantidad, motivo)
-      values (v_pid, 'ajuste', 1, 'Conteo Cyntia 2026-10-07 · Metamizol AMSA → 1');
+      values (v_pid, 'ajuste', 2, 'Conteo Cyntia 2026-10-07 · Metamizol AMSA → 2');
     end if;
     raise notice 'Metamizol AMSA ya existía id %', v_pid;
   end if;
