@@ -44,18 +44,18 @@ declare
   v_motivo text := 'Conteo físico Cyntia WhatsApp 2026-10-07';
 begin
   for r in
+    -- A–C: alineado con conteo Cinthia #440 (no bajar Alphalock/Celecoxib;
+    -- Amikacina 100≠pila 100+500; Budesonida sí).
     select * from (values
       ('FC-BE76D409', 8),   -- Amcef IM 1 g
-      ('EQ-AVT201',   4),   -- Alphalock Tamsulosina 0.4 mg (ver LEERME si fue 1)
       ('FC-D210172A', 2),   -- Ampicilina 1 g AMSA
       ('FC-08496701', 2),   -- Aspirina efervescente C/12
-      ('FC-070839',   2),   -- Alliviax Garganta C/8
+      ('FC-070839',   2),   -- Alliviax Garganta (foto C/6; stock 2)
       ('EQ-AMS147',   8),   -- Ácido alendrónico 10 mg C/30
       ('EQ-AMS458',   3),   -- Ácido alendrónico 70 mg C/4
       ('FL-8509810',  2),   -- Antiflu-Des Pediátrico
-      ('FC-347A49C7', 2),   -- Amikacina 100 mg/2 ml
       ('FC-369D1689', 2),   -- Beneventol 400 mg C/6
-      ('FC-E6B50AC3', 2),   -- Celecoxib 200 mg
+      ('FC-447B30F9', 1),   -- Budesonida 0.250 mg/2 ml
       ('EQ-WER038',   5),   -- Charyn 500 mg C/3
       ('EQ-MAV236',   6),   -- Ideliver Pro Duloxetina 60 mg
       ('FC-49022492', 2),   -- Irbesartán 150 mg C/28 Lgen
@@ -150,13 +150,13 @@ select p.sku, p.nombre, p.stock, p.presentacion, p.codigo_barras,
   from public.productos p
   left join public.lotes l on l.producto_id = p.id
  where p.sku in (
-   'FC-BE76D409','EQ-AVT201','FC-D210172A','FC-08496701','FC-070839',
-   'EQ-AMS147','EQ-AMS458','FL-8509810','FC-347A49C7','FC-369D1689',
-   'FC-E6B50AC3','EQ-WER038','EQ-MAV236','FC-49022492','FC-42700643',
+   'FC-BE76D409','FC-D210172A','FC-08496701','FC-070839',
+   'EQ-AMS147','EQ-AMS458','FL-8509810','FC-369D1689','FC-447B30F9',
+   'EQ-WER038','EQ-MAV236','FC-49022492','FC-42700643',
    'FC-697EEAD0','FC-93888302','EQ-SER024','EQ-QUI096','FC-09740435',
    'FC-09742828','EQ-SON091','FC-27427392','EQ-BEA424','EQ-ALP0628',
    'EQ-MAI150','EQ-SON153','EQ-EXA045','EQ-BEA336','FC-AEA8C8DA',
-   'EQ-MAV196','FC-58207010'
+   'EQ-MAV196','FC-58207010','EQ-AVT201','FC-E6B50AC3','FC-347A49C7'
  )
  group by p.id, p.sku, p.nombre, p.stock, p.presentacion, p.codigo_barras
  order by p.sku;

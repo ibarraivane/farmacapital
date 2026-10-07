@@ -10,16 +10,14 @@ Auditoría física vs POS. Correr en Supabase SQL Editor, en este orden:
 | SKU | Producto | Sistema → Físico |
 |---|---|---|
 | FC-BE76D409 | Amcef IM 1 g | 9 → 8 |
-| EQ-AVT201 | Alphalock Tamsulosina 0.4 mg | 5 → 4 |
 | FC-D210172A | Ampicilina 1 g / 5 ml AMSA | 3 → 2 |
 | FC-08496701 | Aspirina efervescente C/12 | 1 → 2 |
-| FC-070839 | Alliviax Garganta C/8 | → 2 |
+| FC-070839 | Alliviax Garganta | → 2 |
 | EQ-AMS147 | Ácido alendrónico 10 mg C/30 | 7 → 8 |
 | EQ-AMS458 | Ácido alendrónico 70 mg C/4 | 4 → 3 |
 | FL-8509810 | Antiflu-Des Pediátrico 30 ml | 1 → 2 |
-| FC-347A49C7 | Amikacina 100 mg / 2 ml | 1 → 2 |
 | FC-369D1689 | Beneventol Cefixima 400 mg C/6 | 1 → 2 |
-| FC-E6B50AC3 | Celecoxib 200 mg C/10 | 3 → 2 |
+| FC-447B30F9 | Budesonida 0.250 mg/2 ml | 2 → 1 |
 | EQ-WER038 | Charyn Azitromicina 500 mg C/3 | 6 → 5 |
 | EQ-MAV236 | Ideliver Pro Duloxetina 60 mg C/14 | 9 → 6 |
 | FC-49022492 | Irbesartán 150 mg C/28 Lgen | 1 → 2 |
@@ -51,12 +49,15 @@ Auditoría física vs POS. Correr en Supabase SQL Editor, en este orden:
 | 7501342802213 | Ketorolaco Trometamina Advance 10 mg C/10 | 6 | FC-42802213 |
 | 7501349022126 | Metamizol sódico AMSA 1 g/2 ml C/3 amp | 1 | FC-9022126 |
 
-## No tocado a propósito
+## No tocado a propósito (alineado con #440 A–C)
 
-- **Neuralin** (`FC-8505126`): sistema 2, foto sin caption «Físico N» → no se ajusta.
-- **Neomicina ung. precio $60 vs sticker $224**: no se cambia PVP sin confirmación (puede ser etiqueta de otra farmacia).
-- **Alphalock**: en el chat hubo «4 fisico» y luego un posible «Físico 1». Se aplica **4** (foto con 4 cajas). Si el conteo final fue 1, avisar y se corrige.
+- **Alphalock** (`EQ-AVT201`): fotos 4 + 1 = 5 = sistema. No se toca.
+- **Celecoxib** (`FC-E6B50AC3`): caption «Fisco 2» pero foto de 3 cajas = sistema. No se baja.
+- **Amikacina 100 mg** (`FC-347A49C7`): la pila «2» es 100 mg + **500 mg**, no dos de 100.
+- **Neuralin** (`FC-8505126`): sistema 2, foto sin caption «Físico N».
+- **Neomicina ung. precio $60 vs sticker $224**: no se cambia PVP sin confirmación.
 - **Caducidades**: no se inventan MMAA. Los lotes de conteo van sin fecha.
+- Este PR **supersede** el draft #440 (`patch_conteo_cinthia_a_c_20261006.sql`).
 
 ## Verificación rápida
 
