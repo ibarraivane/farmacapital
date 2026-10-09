@@ -7,6 +7,7 @@
  * «Te lo conseguimos» no usa esta vista.
  */
 import { esBajoPedido } from "./bajoPedido";
+import { esServicio } from "./servicioSalud";
 
 export const STORAGE_MOSTRAR_VITRINA = "farmacapital_inv_mostrar_vitrina";
 
@@ -32,6 +33,9 @@ export function guardarMostrarVitrina(storage, on) {
  * El filtro «Bajo pedido» los pide a propósito, aunque el interruptor esté apagado.
  */
 export function pasaVistaInventario(p, { mostrarVitrina = false, filtroAlerta = "todos" } = {}) {
+  // Atención en mostrador no es anaquel: solo el filtro «Servicios de salud».
+  if (esServicio(p)) return filtroAlerta === "servicios";
+  if (filtroAlerta === "servicios") return false;
   if (mostrarVitrina || filtroAlerta === "bajo_pedido") return true;
   return !esBajoPedido(p);
 }

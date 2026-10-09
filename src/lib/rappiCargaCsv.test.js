@@ -66,6 +66,13 @@ test("fila de carga tiene EAN limpio y AVAILABLE según stock", () => {
   expect(row.PRICE).toBe("65");
 });
 
+test("una atención de mostrador no entra a la carga de Rappi", () => {
+  const presion = { ...otc, sku: "SERV-PRESION", tipo: "servicio", nombre: "Toma de presión arterial", stock: 0, precio: 20 };
+  expect(stockPublicadoRappi(presion)).toBe(0);
+  expect(filaCargaRappi(presion)).toBeNull();
+  expect(csvCargaRappi([presion, otc])).not.toMatch(/SERV-PRESION/i);
+});
+
 test("sin sku no hay fila; precio decimal se formatea", () => {
   expect(filaCargaRappi({ ...otc, sku: "" })).toBe(null);
   expect(precioCsvRappi(66.5)).toBe("66.50");

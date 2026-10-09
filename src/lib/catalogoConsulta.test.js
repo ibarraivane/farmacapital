@@ -47,6 +47,33 @@ test("la vitrina se pide sola y con tope", async () => {
   expect(db.llamadas.some((c) => c[0] === "or")).toBe(false);
 });
 
+test("la tienda no recibe servicios aunque vengan en la página", async () => {
+  const db = cliente([
+    { id: 1, nombre: "Omeprazol", tipo: "generico" },
+    { id: 2, nombre: "Toma de presión arterial", tipo: "servicio" },
+    { id: 3, nombre: "Paracetamol", tipo: "generico" },
+  ]);
+  const { data, error } = await traerProductosActivos(db, { modo: "anaquel", pageSize: 10 });
+  expect(error).toBeNull();
+  expect(data.map((p) => p.id)).toEqual([1, 3]);
+});
+
+test("el deep-link de un servicio no abre ficha", async () => {
+  const llamadas = [];
+  const q = {
+    select: (s) => { llamadas.push(["select", s]); return q; },
+    eq: (col, val) => { llamadas.push(["eq", col, val]); return q; },
+    maybeSingle: () => Promise.resolve({
+      data: { id: 9, nombre: "Toma de presión arterial", tipo: "servicio" },
+      error: null,
+    }),
+  };
+  const client = { from: () => q };
+  const { data, error } = await traerProductoPorId(client, "9");
+  expect(error).toBeNull();
+  expect(data).toBeNull();
+});
+
 test("trae un producto por id para el deep-link", async () => {
   const llamadas = [];
   const q = {

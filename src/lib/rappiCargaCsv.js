@@ -7,6 +7,7 @@
  * cajas de granel (Aspirina C/40, Alka C/50…) salen en 0. El POS no cambia.
  */
 
+import { esServicio } from "./servicioSalud";
 import { productoEsCajaAbiertaMostrador } from "../utils/cajaAbiertaMostrador";
 
 export const RAPPI_SKU_PREFIX = "FARMACAPITALmt_";
@@ -44,6 +45,7 @@ export function productoPublicableRappi(producto) {
   if (producto.requiere_receta) return false;
   if (producto.controlado) return false;
   if (productoEsCajaAbiertaMostrador(producto)) return false;
+  if (esServicio(producto)) return false;
   return true;
 }
 
@@ -62,6 +64,7 @@ export function precioCsvRappi(precio) {
 }
 
 export function filaCargaRappi(producto, reserva = DEFAULT_RESERVA) {
+  if (esServicio(producto)) return null;
   const sku = rappiSkuFromInternal(producto?.sku);
   if (!sku) return null;
   const stock = stockPublicadoRappi(producto, reserva);

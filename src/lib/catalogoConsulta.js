@@ -4,7 +4,12 @@
  * Suplementos y dermatología (bajo_pedido) siguen en `productos`. No se bajan
  * en la consulta del anaquel: la tienda, el POS y el inventario piden solo el
  * medicamento, y la vitrina aparte cuando hace falta.
+ *
+ * La tienda pública no filtra `visible_tienda` en el query (null sigue
+ * visible). Un servicio de salud (`tipo = servicio`) se quita aquí aunque
+ * alguien lo marque visible: no se vende en línea.
  */
+import { esServicio } from "./servicioSalud";
 
 export const PAGE_CATALOGO = 400;
 
@@ -84,9 +89,11 @@ export async function traerProductosActivos(client, {
     q = aplicarModoCatalogo(q, modo);
     const { data, error } = await q.order(order).order("id").range(desde, desde + pedidas - 1);
     if (error) return { data: null, error };
-    const lote = data || [];
-    filas.push(...lote);
-    if (lote.length < pedidas) break;
+    const crudo = data || [];
+    // El corte de página usa el lote crudo: si se descarta un servicio, la
+    // página sigue llena y hay que pedir la siguiente.
+    filas.push(...crudo.filter((row) => !esServicio(row)));
+    if (crudo.length < pedidas) break;
   }
   return { data: limite > 0 ? filas.slice(0, limite) : filas, error: null };
 }
@@ -104,5 +111,6 @@ export async function traerProductoPorId(client, id, { select = "*" } = {}) {
     .select(select)
     .eq("id", numeric ? Number(key) : key)
     .maybeSingle();
-  return { data: data || null, error: error || null };
+  if (error || !data || esServicio(data)) return { data: null, error: error || null };
+  return { data, error: null };
 }

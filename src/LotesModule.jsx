@@ -18,6 +18,7 @@ import {
   PRODUCTOS_SELECT_LOTES,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO } from "./lib/caducidad";
+import { esServicio } from "./lib/servicioSalud";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -100,7 +101,7 @@ export default function LotesModule() {
     const lotRows = Array.isArray(lsRes.data) ? [...lsRes.data] : [];
     lotRows.sort(compararLotesPeps);
     setLotes(lotRows);
-    setProductos(Array.isArray(psRes.data) ? psRes.data : []);
+    setProductos((Array.isArray(psRes.data) ? psRes.data : []).filter((p) => !esServicio(p)));
     setProveedores(Array.isArray(pvRes.data) ? pvRes.data : []);
     if (!silencioso) setLoading(false);
   },[]);
@@ -126,6 +127,7 @@ export default function LotesModule() {
     const q = filtroP.trim();
     const list = lotes.filter((l) => {
       const prod = loteRowProducto(l, prodById);
+      if (esServicio(prod)) return false;
       const enCatalogo = prod.activo !== false;
       const matchCat =
         filtroCat === "todos" ? true :
@@ -252,7 +254,7 @@ export default function LotesModule() {
     return prod.activo === false;
   }).length;
   const idsConLote = useMemo(() => new Set(lotes.map((l) => String(l.producto_id))), [lotes]);
-  const catalogoSinLote = productos.filter((p) => p.activo !== false && !idsConLote.has(String(p.id))).length;
+  const catalogoSinLote = productos.filter((p) => p.activo !== false && !esServicio(p) && !idsConLote.has(String(p.id))).length;
 
   return(
     <div>

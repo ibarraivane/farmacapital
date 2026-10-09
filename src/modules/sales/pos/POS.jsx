@@ -29,6 +29,8 @@ import {
   stockMostradorPos,
 } from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
+import { esServicio, lineaFaltaStock, serviciosAtencionActivos, STOCK_SERVICIO_POS } from "../../../lib/servicioSalud";
+import PosAtencionRapida from "./PosAtencionRapida";
 import { IconoAnaquel, IconoBlister, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
 import PrecioOferta from "../../../components/PrecioOferta";
@@ -447,6 +449,7 @@ function PosProductoFichaPanel({
   }
 
   const variantes = posVariantesDeProducto(productos, item);
+  const servicio = esServicio(item);
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
   const cajaFalsa = productoCajaEsFalsa(item);
@@ -570,11 +573,12 @@ function PosProductoFichaPanel({
               {esCategoriaAntibiotico(item.categoria) && !esMedicamentoControlado(item) && (
                 <Tag col={C.amber} sm>Receta recomendada</Tag>
               )}
-              {item.tipo === "generico" && <Tag col={C.teal} sm>Genérico</Tag>}
-              {!esMedicamentoControlado(item) && !esCategoriaAntibiotico(item.categoria) && (
+              {servicio ? <Tag col={C.teal} sm>Atención</Tag> : null}
+              {!servicio && item.tipo === "generico" && <Tag col={C.teal} sm>Genérico</Tag>}
+              {!servicio && !esMedicamentoControlado(item) && !esCategoriaAntibiotico(item.categoria) && (
                 <Tag col={C.blue} sm>Venta libre</Tag>
               )}
-              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{etiquetaStock}</Tag>}
+              {!servicio && (sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{etiquetaStock}</Tag>)}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
               {tituloPublicoProducto(item)}
@@ -658,13 +662,15 @@ function PosProductoFichaPanel({
                 </div>
               )}
             </div>
+            {!servicio && (
             <span style={{ fontSize: 12, fontWeight: 700, color: item.ubicacion_texto ? C.blue : C.textDim, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <IconoAnaquel size={15} />
               {item.ubicacion_texto || "Sin ubicación"}
             </span>
+            )}
           </div>
 
-          {resumenFefo?.ok && (
+          {!servicio && resumenFefo?.ok && (
             <div
               data-testid="pos-fefo-aviso"
               style={{
@@ -718,14 +724,25 @@ function PosProductoFichaPanel({
             </div>
           )}
 
-          {vendeBlister && (
+          {!servicio && vendeBlister && (
             <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>
               {stockCajas} cajas · {stockBlisters} blisters · {stockPiezas} piezas
             </div>
           )}
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
-            {sinPrecio ? (
+            {servicio ? (
+              <Btn
+                col={C.teal}
+                full
+                disabled={sinPrecio}
+                onClick={() => onAddCaja(item)}
+                style={filaIconoBtn()}
+              >
+                <IconoBolsa size={18} />
+                {sinPrecio ? "Sin precio de venta" : `Agregar · ${$(pesoPublico(item.precio))}`}
+              </Btn>
+            ) : sinPrecio ? (
               <Btn col={C.amber} disabled full>
                 Sin precio de venta — cárgalo en Inventario
               </Btn>
@@ -1479,6 +1496,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   }, [consxCobrar]);
 
 
+  const atencionRapida = React.useMemo(
+    () => serviciosAtencionActivos(productos),
+    [productos],
+  );
+
   const fil = React.useMemo(() => {
     const s = queryCatalogoDesdeInputPos(srch);
     if (!s) return [];
@@ -1650,6 +1672,37 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   };
 
   const add = (item, modo=false) => {
+    if (esServicio(item)) {
+      const esUnidad = modo === true || modo === "unidad";
+      const esBlister = modo === "blister";
+      if (esUnidad || esBlister) {
+        showToast("La atención se cobra completa, no por unidad ni por blister.", "warning");
+        return false;
+      }
+      if (item.activo === false) {
+        showToast(`"${item?.nombre || "Atención"}" está desactivado.`, "warning");
+        return false;
+      }
+      if (!productoEsVendible(item)) {
+        showToast(`"${item?.nombre || "Atención"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
+        return false;
+      }
+      setCart((p) => {
+        const ex = p.find((c) => c.id === item.id);
+        if (ex) return p.map((c) => (c.id === item.id ? { ...c, qty: c.qty + 1 } : c));
+        return [...p, {
+          ...item,
+          producto_id: item.id,
+          qty: 1,
+          rxI: null,
+          esUnidad: false,
+          esBlister: false,
+          nombre: tituloPublicoProducto(item),
+          ...precioCajaDesdeProducto(item, 1, especialesRef.current),
+        }];
+      });
+      return true;
+    }
     const esUnidad = modo === true || modo === "unidad";
     const esBlister = modo === "blister";
     if (esBlister && precioBlisterParaVenta(item) <= 0) {
@@ -1791,7 +1844,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     if (!rxRow) return;
     const productosFifo = (productos || []).map((p) => ({
       ...p,
-      stock: getStockFifoDisponible(p),
+      stock: esServicio(p) ? 0 : getStockFifoDisponible(p),
     }));
     const plan = planSurtirReceta({
       medicamentos: rxRow.medicamentos,
@@ -1923,6 +1976,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
   const getStockFifoDisponible = (producto) => {
     if (!producto) return 0;
+    if (esServicio(producto)) return STOCK_SERVICIO_POS;
     const lotes = Array.isArray(producto.lotes) ? producto.lotes : [];
     const hayFilasLote = lotes.some((l) => l?.activo !== false);
     // Misma regla que SQL get_lote_fefo: no contar vencidos.
@@ -1952,12 +2006,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const getStockCajasPOS = (producto) => getStockFifoDisponible(producto);
 
   const productoSinLotesPEPS = (producto) => {
+    if (esServicio(producto)) return false;
     if (producto?.venta_unidad) return false;
     return getStockFifoDisponible(producto) <= 0;
   };
 
   /** Mismo criterio que la lista de resultados, para el tablero de equivalentes. */
   const estadoStockPos = (producto) => {
+    if (esServicio(producto)) return { agotado: false, etiqueta: "Atención" };
     if (productoSinLotesPEPS(producto)) return { agotado: true, etiqueta: "Sin lotes" };
     const existencia = existenciaMostradorPos(producto, getStockCajasPOS(producto));
     return { agotado: existencia.agotado, etiqueta: existencia.etiqueta };
@@ -1983,6 +2039,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       showToast(`"${item.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
       return false;
     }
+
+    if (esServicio(item)) return true;
 
     if (esUnidad) {
       const disponibleUnidades = piezasSueltasDisponibles(item, getStockFifoDisponible(item));
@@ -2033,6 +2091,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   };
 
   const abrirCaja = async (item) => {
+    if (esServicio(item)) return;
     if (getStockCajasPOS(item) <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada.", "error"); return; }
@@ -2243,7 +2302,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           : modoLinea === "blister"
             ? (Number(p?.stock_blisters) || 0)
             : getStockFifoDisponible(p);
-        if (!p || requested <= available) return null;
+        if (!lineaFaltaStock({ ...c, qty: requested }, p, available)) return null;
         return {
           nombre: p.nombre || c.nombre || `Producto ${pid}`,
           requested,
@@ -2438,14 +2497,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         }
       }
 
-      const ticketItems = (pedidoItems || []).map((it) => ({
-        nombre: it.productos?.nombre || "Producto",
-        sku: it.productos?.sku || "",
-        qty: it.cantidad || 1,
-        precio: it.precio_unitario || 0,
-        lote: it.lotes?.numero_lote || null,
-        caducidad: it.lotes?.fecha_caducidad || null,
-      }));
+      const ticketItems = (pedidoItems || []).map((it) => {
+        const loteNumero = String(it.lotes?.numero_lote || "").trim();
+        const lote = loteNumero && loteNumero !== "—" && loteNumero !== "-" ? loteNumero : null;
+        return {
+          nombre: it.productos?.nombre || "Producto",
+          sku: it.productos?.sku || "",
+          qty: it.cantidad || 1,
+          precio: it.precio_unitario || 0,
+          lote,
+          caducidad: lote ? (it.lotes?.fecha_caducidad || null) : null,
+        };
+      });
 
       const ivaAmt = parseFloat((total * 0.16 / 1.16).toFixed(2));
       const netoAmt = parseFloat((total - ivaAmt).toFixed(2));
@@ -2899,7 +2962,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                       <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
                     ) : null;
                   }
+                  if (esServicio(item)) return null;
                   const prod = productos.find((x) => String(x.id) === String(item.producto_id ?? item.id)) || item;
+                  if (esServicio(prod)) return null;
                   const aviso = resumenFefoMostrador(prod, especialesRef.current, hoyISOMexico());
                   if (aviso.ok) {
                     return (
@@ -2935,6 +3000,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   : piezasSueltasDisponibles(prodLive, getStockFifoDisponible(prodLive));
                 if(c.qty>=maxU){ showToast(c.esBlister ? `Máx blisters: ${maxU}` : `Máx piezas: ${maxU}`,"warning"); return c; }
                 return {...c,qty:c.qty+1};
+              }
+              if (esServicio(c)) {
+                const qty = c.qty + 1;
+                const prodSrv = productos.find(x=>String(x.id)===String(item.producto_id??item.id)) || c;
+                return {...c, qty, ...precioCajaDesdeProducto(prodSrv, qty, especialesRef.current)};
               }
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
               const maxF = prod ? getStockFifoDisponible(prod) : 0;
@@ -3982,6 +4052,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               )}
             </div>
             )}
+            <PosAtencionRapida
+              servicios={atencionRapida}
+              onAdd={(p) => add(p, false)}
+              C={C}
+            />
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <form ref={srchWrapRef} onSubmit={(e)=>{ e.preventDefault(); e.stopPropagation(); }} style={{flex:1,minWidth:0,position:"relative"}}>
               <PosCampoBusqueda

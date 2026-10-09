@@ -18,7 +18,7 @@ import {
 const PAGE_CARGA = 1000;
 const SELECT_CARGA = [
   "id", "sku", "nombre", "codigo_barras", "stock", "precio", "activo",
-  "requiere_receta", "controlado", "categoria", "venta_unidad",
+  "requiere_receta", "controlado", "categoria", "tipo", "venta_unidad",
   "unidades_por_caja", "presentacion", "forma_farmaceutica",
 ].join(",");
 

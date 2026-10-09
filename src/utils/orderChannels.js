@@ -104,6 +104,7 @@ export function mapUiEntregaToRpc(entregaUi, opts = {}) {
 export function productoPermitidoEnTiendaWeb(p, options = {}) {
   if (!p || !p.activo) return false;
   if (p.visible_tienda === false) return false;
+  if (String(p.tipo || "").trim().toLowerCase() === "servicio") return false;
   if (p.controlado === true) return false;
   if (String(p.grupo_controlado || "").trim()) return false;
   if (!politicaProducto(p, options.politica).ventaEnLinea) return false;

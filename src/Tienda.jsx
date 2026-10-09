@@ -34,6 +34,7 @@ import {
   descripcionPublicaTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
+import { esServicio } from "./lib/servicioSalud";
 import { productosSimilaresTienda } from "./lib/productosSimilaresTienda";
 import { AREA_DERMOCOSMETICA, categoriaCanon, categoriaVitrina, chipsAreaTienda, esCategoriaAntibiotico, productoPasaAreaTienda } from "./constants/categoriasProducto";
 import { chipsDeSeccion, conteosDeSeccion, etiquetasFiltroSeccion, productoEnVitrina, SECCIONES_VITRINA } from "./constants/vitrinaTienda";
@@ -4464,7 +4465,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       const [{ data: stockRows }, { data: lotesRowsRaw }] = await Promise.all([
         supabase
           .from("productos")
-          .select("id,stock,precio,descuento_pct,activo,requiere_receta,categoria,bajo_pedido,controlado")
+          .select("id,stock,precio,descuento_pct,activo,requiere_receta,categoria,bajo_pedido,controlado,tipo")
           .in("id", productIds),
         supabase.rpc("tienda_public_lotes_resumen_checkout", { p_producto_ids: numericIds }),
       ]);
@@ -4484,6 +4485,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         }
         if (!dbp.activo) {
           cambios.push(`• ${c.nombre}: producto inactivo`);
+          continue;
+        }
+        if (esServicio(dbp)) {
+          cambios.push(`• ${c.nombre}: la atención solo se cobra en mostrador`);
           continue;
         }
         if ((dbp.bajo_pedido === true) !== esBajoPedido(c)) {
@@ -7616,7 +7621,7 @@ export default function TiendaFarmaCapital(){
   const stackPaginas = useMediaQuery("(max-width: 768px)");
   /** Catálogo visible en la tienda web (sin minisuper ni cajas de granel; ver `tiendaFarmaciaCatalogo.js`). */
   const productosVistaTiendaFarmacia = useMemo(
-    () => productos.filter((p) => !productoEsCategoriaMinisuperTienda(p) && !productoEsCajaAbiertaMostrador(p)),
+    () => productos.filter((p) => !esServicio(p) && !productoEsCategoriaMinisuperTienda(p) && !productoEsCajaAbiertaMostrador(p)),
     [productos]
   );
   const recomprasHome = useMemo(
