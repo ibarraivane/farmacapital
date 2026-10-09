@@ -219,7 +219,7 @@ insert into _fc_alta_rx20260918 values
   ),
   (
     '7501088509926', '7501088509926 7501088599926',
-    'FC-08850926',
+    'FC-88509926',
     'Gotinal adulto nafazolina 1 mg/ml spray 15 ml',
     'Gotinal', 'Atomizador 15 ml', 'Spray nasal',
     'Medicamentos', 'Respiratorio',
@@ -243,6 +243,15 @@ insert into _fc_alta_rx20260918 values
     'Medicamentos', 'Analgésico',
     'Farmalive 12790 · Bayer Aspirina GO 500 mg C/10 · EAN 7501008499245',
     58.80, 74
+  ),
+  (
+    '7501033954061', '7501033954061',
+    'FC-33954061',
+    'Ensure líquido chocolate 237 ml',
+    'Ensure', 'Botella 237 ml', 'Líquido',
+    'Suplemento', 'Nutrición',
+    'Farmalive 12790 · Abbott Ensure chocolate 237 ml · EAN 7501033954061 · no es el 236 ml FC-33950100 (7501033950100)',
+    42.63, 54
   );
 
 insert into public.productos (
