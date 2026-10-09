@@ -1,0 +1,768 @@
+{
+  "yamin_total": 1253,
+  "fc_total": 6005,
+  "matches_total": 554,
+  "matches_ean": 546,
+  "matches_nombre": 8,
+  "yamin_sin_match": 699,
+  "cobertura_yamin_pct": 44.2,
+  "precio_ean": {
+    "n": 546,
+    "fc_mas_caro": 322,
+    "fc_mas_barato": 200,
+    "igual": 24,
+    "diff_promedio_fc_menos_yamin": 3.45,
+    "diff_mediana": 1.56,
+    "pct_promedio": 22.0,
+    "pct_mediana": 4.2
+  },
+  "yamin_por_departamento": {
+    "PERFUMERIA": 337,
+    "CURACION": 120,
+    "GENERICO": 616,
+    "PATENTE": 164,
+    "RECARGAS": 11,
+    "DULCES": 5
+  },
+  "matches_por_departamento": {
+    "PERFUMERIA": 109,
+    "GENERICO": 318,
+    "PATENTE": 87,
+    "CURACION": 39,
+    "DULCES": 1
+  },
+  "sin_match_por_departamento": {
+    "PERFUMERIA": 228,
+    "CURACION": 81,
+    "PATENTE": 77,
+    "GENERICO": 298,
+    "RECARGAS": 11,
+    "DULCES": 4
+  },
+  "top_fc_mas_caro": [
+    {
+      "nombre": "TRAYENTA 5mg C/30 Tab",
+      "ean": "7501037925579",
+      "yamin": 550.0,
+      "fc": 1650.0,
+      "diff": 1100.0,
+      "pct": 200.0
+    },
+    {
+      "nombre": "PERLAS DE ETER C/3 MERCURIO",
+      "ean": "3311000003487",
+      "yamin": 8.0,
+      "fc": 250.0,
+      "diff": 242.0,
+      "pct": 3025.0
+    },
+    {
+      "nombre": "THERAFLU RESFRIADO NOCHE LIMON C/1 15%",
+      "ean": "7501065000835",
+      "yamin": 25.0,
+      "fc": 230.0,
+      "diff": 205.0,
+      "pct": 820.0
+    },
+    {
+      "nombre": "BISMUTO 1grs MERCURIO",
+      "ean": "3311000003708",
+      "yamin": 5.0,
+      "fc": 117.5,
+      "diff": 112.5,
+      "pct": 2250.0
+    },
+    {
+      "nombre": "CLINDAMICINA 600mg C/1 Iny AMSA",
+      "ean": "7501349021860",
+      "yamin": 31.0,
+      "fc": 142.0,
+      "diff": 111.0,
+      "pct": 358.1
+    },
+    {
+      "nombre": "SULFATIAZOL POLVO 2g MERCURIO",
+      "ean": "3311000003494",
+      "yamin": 5.0,
+      "fc": 110.0,
+      "diff": 105.0,
+      "pct": 2100.0
+    },
+    {
+      "nombre": "SILKA MEDIC SPRAY 150ml",
+      "ean": "650240036880",
+      "yamin": 123.0,
+      "fc": 179.0,
+      "diff": 56.0,
+      "pct": 45.5
+    },
+    {
+      "nombre": "OXIDO ZINC SOBRE MERCURIO",
+      "ean": "3311000003722",
+      "yamin": 5.0,
+      "fc": 54.0,
+      "diff": 49.0,
+      "pct": 980.0
+    },
+    {
+      "nombre": "CEFALOTINA 1g C/1 Amp AMSA",
+      "ean": "7501349022768",
+      "yamin": 53.0,
+      "fc": 100.0,
+      "diff": 47.0,
+      "pct": 88.7
+    },
+    {
+      "nombre": "FASICLOR 125mg (CEFACLOR) Susp.75ml",
+      "ean": "7502009741043",
+      "yamin": 74.0,
+      "fc": 116.0,
+      "diff": 42.0,
+      "pct": 56.8
+    },
+    {
+      "nombre": "ORFEOX 150mg (PROPAFENONA) C/20 Tab",
+      "ean": "7502009749100",
+      "yamin": 58.0,
+      "fc": 98.0,
+      "diff": 40.0,
+      "pct": 69.0
+    },
+    {
+      "nombre": "FLOSEP 400mg (OFLOXACINO) C/8 Tab",
+      "ean": "785118753887",
+      "yamin": 34.0,
+      "fc": 70.0,
+      "diff": 36.0,
+      "pct": 105.9
+    },
+    {
+      "nombre": "PIOGLITAZONA 30mg C/7 Tab AMSA",
+      "ean": "7501349024175",
+      "yamin": 28.0,
+      "fc": 62.0,
+      "diff": 34.0,
+      "pct": 121.4
+    },
+    {
+      "nombre": "NOVAGON PIÑA PLANTAGO 400g",
+      "ean": "7501075718676",
+      "yamin": 143.0,
+      "fc": 175.0,
+      "diff": 32.0,
+      "pct": 22.4
+    },
+    {
+      "nombre": "PRALEX (ESCITALOPRAM) 10 MG C/28 TAB",
+      "ean": "785120755442",
+      "yamin": 43.0,
+      "fc": 74.0,
+      "diff": 31.0,
+      "pct": 72.1
+    },
+    {
+      "nombre": "AMPIGRIN INF C/3 INY",
+      "ean": "780083140939",
+      "yamin": 106.0,
+      "fc": 135.0,
+      "diff": 29.0,
+      "pct": 27.4
+    },
+    {
+      "nombre": "NOVAGON NATURAL PLANTAGO 400g",
+      "ean": "7501075713770",
+      "yamin": 146.0,
+      "fc": 175.0,
+      "diff": 29.0,
+      "pct": 19.9
+    },
+    {
+      "nombre": "SITAGLIPTINA 100MG C/14TAB AMSA",
+      "ean": "7501349010048",
+      "yamin": 137.0,
+      "fc": 165.0,
+      "diff": 28.0,
+      "pct": 20.4
+    },
+    {
+      "nombre": "SYNCOL C/12 Tab 25%",
+      "ean": "7501070600709",
+      "yamin": 97.0,
+      "fc": 125.0,
+      "diff": 28.0,
+      "pct": 28.9
+    },
+    {
+      "nombre": "FLUCONAZOL 100MG C/10CAP AMSA",
+      "ean": "7501349020139",
+      "yamin": 29.0,
+      "fc": 55.0,
+      "diff": 26.0,
+      "pct": 89.7
+    },
+    {
+      "nombre": "BENCIEFEDRIL JBE 120ML (DEXTROMETORFANO/GUAIFENESINA)",
+      "ean": "7501075710465",
+      "yamin": 16.0,
+      "fc": 40.0,
+      "diff": 24.0,
+      "pct": 150.0
+    },
+    {
+      "nombre": "VOLTAREN EMULGEL 30G",
+      "ean": "7501065085191",
+      "yamin": 97.0,
+      "fc": 120.0,
+      "diff": 23.0,
+      "pct": 23.7
+    },
+    {
+      "nombre": "AMPIGRIN AD C/3 INY",
+      "ean": "780083140922",
+      "yamin": 117.0,
+      "fc": 140.0,
+      "diff": 23.0,
+      "pct": 19.7
+    },
+    {
+      "nombre": "FEBRAX C/15 Tab 20%",
+      "ean": "7501300407047",
+      "yamin": 230.0,
+      "fc": 252.0,
+      "diff": 22.0,
+      "pct": 9.6
+    },
+    {
+      "nombre": "FASICLOR 500mg (CEFACLOR) C/15 Cap.",
+      "ean": "7502009741425",
+      "yamin": 199.0,
+      "fc": 221.0,
+      "diff": 22.0,
+      "pct": 11.1
+    }
+  ],
+  "top_fc_mas_barato": [
+    {
+      "nombre": "MICRODACYN 60ML 15%",
+      "ean": "7502246642073",
+      "yamin": 376.0,
+      "fc": 155.0,
+      "diff": -221.0,
+      "pct": -58.8
+    },
+    {
+      "nombre": "DOLO-NEUROBION C/20 TAB",
+      "ean": "7501298223704",
+      "yamin": 324.0,
+      "fc": 250.0,
+      "diff": -74.0,
+      "pct": -22.8
+    },
+    {
+      "nombre": "NIKZON MASTICABLES C/90",
+      "ean": "650240001314",
+      "yamin": 492.0,
+      "fc": 420.0,
+      "diff": -72.0,
+      "pct": -14.6
+    },
+    {
+      "nombre": "BEDOYECTA C/30 CAP 35%",
+      "ean": "7501123013340",
+      "yamin": 371.0,
+      "fc": 300.0,
+      "diff": -71.0,
+      "pct": -19.1
+    },
+    {
+      "nombre": "GRANEODIN B FAMBRUESA C/24 10%",
+      "ean": "7501095409004",
+      "yamin": 166.0,
+      "fc": 100.0,
+      "diff": -66.0,
+      "pct": -39.8
+    },
+    {
+      "nombre": "BEDOYECTA TRI C/5 Iny 30%",
+      "ean": "7501123013302",
+      "yamin": 450.0,
+      "fc": 397.0,
+      "diff": -53.0,
+      "pct": -11.8
+    },
+    {
+      "nombre": "DOLO-NEUROBION FORTE C/1 Iny 30%",
+      "ean": "7501298217635",
+      "yamin": 435.0,
+      "fc": 385.0,
+      "diff": -50.0,
+      "pct": -11.5
+    },
+    {
+      "nombre": "ANTIFLU-DES PED GTS 30ML 20%",
+      "ean": "7501088509810",
+      "yamin": 221.46,
+      "fc": 175.0,
+      "diff": -46.46,
+      "pct": -21.0
+    },
+    {
+      "nombre": "PEPTO-BISMOL SUSPENSION 118ML 5%",
+      "ean": "20800753067",
+      "yamin": 169.0,
+      "fc": 125.0,
+      "diff": -44.0,
+      "pct": -26.0
+    },
+    {
+      "nombre": "CEPILLO INTERDENTAL C/6 GUM",
+      "ean": "070942303460",
+      "yamin": 160.0,
+      "fc": 118.0,
+      "diff": -42.0,
+      "pct": -26.2
+    },
+    {
+      "nombre": "VICK 44 Jarabe 120ml 15%",
+      "ean": "7501001116187",
+      "yamin": 184.0,
+      "fc": 145.0,
+      "diff": -39.0,
+      "pct": -21.2
+    },
+    {
+      "nombre": "AJOLOTIUS PROPOLEO AMARILLO 250ml",
+      "ean": "7500462746698",
+      "yamin": 118.0,
+      "fc": 80.0,
+      "diff": -38.0,
+      "pct": -32.2
+    },
+    {
+      "nombre": "PASTA COLGATE TRIPLE ACCION 150ml",
+      "ean": "7509546000350",
+      "yamin": 77.0,
+      "fc": 39.0,
+      "diff": -38.0,
+      "pct": -49.4
+    },
+    {
+      "nombre": "OXITAL 1g (ACIDO ASCORBICO) C/10 Tab",
+      "ean": "7501258206723",
+      "yamin": 95.0,
+      "fc": 59.0,
+      "diff": -36.0,
+      "pct": -37.9
+    },
+    {
+      "nombre": "PAROEX GUM GINGIVITIS 300ml",
+      "ean": "070942302289",
+      "yamin": 221.0,
+      "fc": 185.0,
+      "diff": -36.0,
+      "pct": -16.3
+    },
+    {
+      "nombre": "NORMEX 360ml Suspencion",
+      "ean": "7501109760541",
+      "yamin": 85.0,
+      "fc": 53.0,
+      "diff": -32.0,
+      "pct": -37.6
+    },
+    {
+      "nombre": "CLAMOXIN 875mg C/10 Tab",
+      "ean": "7502009740763",
+      "yamin": 121.0,
+      "fc": 89.0,
+      "diff": -32.0,
+      "pct": -26.4
+    },
+    {
+      "nombre": "BEPANTHEN POMADA 100G 10%",
+      "ean": "7501008427330",
+      "yamin": 195.47,
+      "fc": 165.0,
+      "diff": -30.47,
+      "pct": -15.6
+    },
+    {
+      "nombre": "OXITAL-C 2g (ACIDO ASCORBICO) C/10",
+      "ean": "7501258207010",
+      "yamin": 91.0,
+      "fc": 61.0,
+      "diff": -30.0,
+      "pct": -33.0
+    },
+    {
+      "nombre": "MURREOLAK TAB (ACETILCISTEINA) 600mg C/10 Tab",
+      "ean": "7501258215954",
+      "yamin": 192.0,
+      "fc": 165.0,
+      "diff": -27.0,
+      "pct": -14.1
+    },
+    {
+      "nombre": "ASPIRINA PROTEC C/28 Tab 5%",
+      "ean": "7501318612655",
+      "yamin": 196.0,
+      "fc": 169.0,
+      "diff": -27.0,
+      "pct": -13.8
+    },
+    {
+      "nombre": "CETILVER GEL (PIRFENIDONA) 10G",
+      "ean": "7502009748448",
+      "yamin": 100.0,
+      "fc": 73.0,
+      "diff": -27.0,
+      "pct": -27.0
+    },
+    {
+      "nombre": "HISTIACIL NF INFANTIL JBE 20%",
+      "ean": "7501328979496",
+      "yamin": 185.0,
+      "fc": 159.0,
+      "diff": -26.0,
+      "pct": -14.1
+    },
+    {
+      "nombre": "VALCLAN 500/125mg C/10 Tab",
+      "ean": "7503001007199",
+      "yamin": 52.0,
+      "fc": 30.0,
+      "diff": -22.0,
+      "pct": -42.3
+    },
+    {
+      "nombre": "BENEVENTOL C/6 (CEFIXIMA) 400mg Cap",
+      "ean": "7502009746253",
+      "yamin": 241.0,
+      "fc": 220.0,
+      "diff": -21.0,
+      "pct": -8.7
+    }
+  ],
+  "top_oportunidades_yamin": [
+    {
+      "yamin_sku": "7506022313515",
+      "yamin_nombre": "JERINGA INSULINA 1ML SENSI",
+      "yamin_precio": 5,
+      "yamin_stock": 178,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "BUSCA",
+      "yamin_nombre": "BUSCAPINA COMPUESTA C/1 Tab",
+      "yamin_precio": 17,
+      "yamin_stock": 159,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "7501868900110",
+      "yamin_nombre": "GASA DIBAR C/1",
+      "yamin_precio": 2,
+      "yamin_stock": 119,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "75062576",
+      "yamin_nombre": "ALKASELTZER C/2",
+      "yamin_precio": 7,
+      "yamin_stock": 101,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "7501048907151",
+      "yamin_nombre": "GUANTES MEDIANO LATEX C/1 PROTEC",
+      "yamin_precio": 8,
+      "yamin_stock": 98,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "7506346600292",
+      "yamin_nombre": "LIMA CARTON C/1",
+      "yamin_precio": 1.5,
+      "yamin_stock": 92,
+      "yamin_departamento": "PERFUMERIA",
+      "yamin_categoria": "REBOTICA"
+    },
+    {
+      "yamin_sku": "7506022300683",
+      "yamin_nombre": "JERINGA 10ml VERDE SENSI",
+      "yamin_precio": 5,
+      "yamin_stock": 91,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "TERRA",
+      "yamin_nombre": "TERRAMICINA C/1",
+      "yamin_precio": 19,
+      "yamin_stock": 85,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "CONDON",
+      "yamin_nombre": "CONDON KONDO C/1",
+      "yamin_precio": 10,
+      "yamin_stock": 85,
+      "yamin_departamento": "PERFUMERIA",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "7506022300782",
+      "yamin_nombre": "JERINGA 3ml AZUL SENSI",
+      "yamin_precio": 4,
+      "yamin_stock": 83,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "TREDA",
+      "yamin_nombre": "TREDA C/2 Tab",
+      "yamin_precio": 20,
+      "yamin_stock": 76,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "7501041941930",
+      "yamin_nombre": "PICOT C/1",
+      "yamin_precio": 6,
+      "yamin_stock": 68,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "chupon",
+      "yamin_nombre": "CHUPON MIEL MA.ISABEL",
+      "yamin_precio": 8,
+      "yamin_stock": 56,
+      "yamin_departamento": "PERFUMERIA",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "7501048660582",
+      "yamin_nombre": "JERINGA 5ml NEGRA PROTEC",
+      "yamin_precio": 4,
+      "yamin_stock": 55,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "CURITAS",
+      "yamin_nombre": "CURITAS C/1",
+      "yamin_precio": 1,
+      "yamin_stock": 52,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "3311000003364",
+      "yamin_nombre": "ACIDO BORICO 10 GR",
+      "yamin_precio": 5,
+      "yamin_stock": 50,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "3311000003432",
+      "yamin_nombre": "MAGNESIA CALCINADA 12grs",
+      "yamin_precio": 5,
+      "yamin_stock": 47,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "3311000003463",
+      "yamin_nombre": "ALCANFOR C/3 MERCURIO",
+      "yamin_precio": 7,
+      "yamin_stock": 44,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "COFIA",
+      "yamin_nombre": "COFIA AZUL C/1",
+      "yamin_precio": 4,
+      "yamin_stock": 40,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "CUBREAZUL",
+      "yamin_nombre": "CUBREBOCAS AZUL C/3",
+      "yamin_precio": 5,
+      "yamin_stock": 30,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "7501075727203",
+      "yamin_nombre": "SUERO HYDRASOR NATURAL C/1 SBR",
+      "yamin_precio": 10,
+      "yamin_stock": 24,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "75062583",
+      "yamin_nombre": "ALKA-SELTZER BOOST EFERV. C/2",
+      "yamin_precio": 15,
+      "yamin_stock": 23,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "mamila",
+      "yamin_nombre": "MAMILA SILICON MA.ISABEL",
+      "yamin_precio": 14,
+      "yamin_stock": 23,
+      "yamin_departamento": "PERFUMERIA",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "SEGURITOS",
+      "yamin_nombre": "SEGURITOS #0 C/6",
+      "yamin_precio": 3,
+      "yamin_stock": 23,
+      "yamin_departamento": "PERFUMERIA",
+      "yamin_categoria": "REBOTICA"
+    },
+    {
+      "yamin_sku": "FLANAX",
+      "yamin_nombre": "FLANAX 550mg C/1",
+      "yamin_precio": 17,
+      "yamin_stock": 21,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "7502009745775",
+      "yamin_nombre": "DEXAMETASONA 8MG C/1INY MEDIGEN",
+      "yamin_precio": 15,
+      "yamin_stock": 21,
+      "yamin_departamento": "GENERICO",
+      "yamin_categoria": "UNA FORMULA"
+    },
+    {
+      "yamin_sku": "75045616",
+      "yamin_nombre": "TRIDENT YERBABUENA",
+      "yamin_precio": 4,
+      "yamin_stock": 21,
+      "yamin_departamento": "DULCES",
+      "yamin_categoria": "CHICLES"
+    },
+    {
+      "yamin_sku": "75045654",
+      "yamin_nombre": "TRIDENT FRESA C/4",
+      "yamin_precio": 4,
+      "yamin_stock": 20,
+      "yamin_departamento": "DULCES",
+      "yamin_categoria": "CHICLES"
+    },
+    {
+      "yamin_sku": "CUBRENEGRO",
+      "yamin_nombre": "CUBREBOCAS DESECHABLE C/3 NEGRO",
+      "yamin_precio": 5,
+      "yamin_stock": 19,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "7501563380200",
+      "yamin_nombre": "CLORFENAMINA COMPUESTA C/10TAB RANDALL",
+      "yamin_precio": 15,
+      "yamin_stock": 18,
+      "yamin_departamento": "GENERICO",
+      "yamin_categoria": "COMPUESTOS"
+    },
+    {
+      "yamin_sku": "7501369200115",
+      "yamin_nombre": "ESTOMAQUIL SOBRE C/1",
+      "yamin_precio": 9,
+      "yamin_stock": 18,
+      "yamin_departamento": "PATENTE",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "7501023108887",
+      "yamin_nombre": "MICROPORE CAFE 1/2 NEXCARE",
+      "yamin_precio": 20,
+      "yamin_stock": 17,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "7501868900509",
+      "yamin_nombre": "TELA ADHESIVA 1.251 DIBAR",
+      "yamin_precio": 14,
+      "yamin_stock": 17,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "7502261263123",
+      "yamin_nombre": "AGUA BURST 500ML",
+      "yamin_precio": 8,
+      "yamin_stock": 16,
+      "yamin_departamento": "PERFUMERIA",
+      "yamin_categoria": "SUELTOS"
+    },
+    {
+      "yamin_sku": "7501023108849",
+      "yamin_nombre": "MICROPORE BLANCO 1/2 NEXCARE",
+      "yamin_precio": 19,
+      "yamin_stock": 15,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "7501048660490",
+      "yamin_nombre": "JERINGA 3ml VERDE PROTEC",
+      "yamin_precio": 4,
+      "yamin_stock": 15,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "7501048695003",
+      "yamin_nombre": "VENDA VENDALASTIC 5cm",
+      "yamin_precio": 8,
+      "yamin_stock": 14,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    },
+    {
+      "yamin_sku": "CORTAPIE",
+      "yamin_nombre": "CORTAUÑAS GRANDE CURTIS",
+      "yamin_precio": 35,
+      "yamin_stock": 12,
+      "yamin_departamento": "PERFUMERIA",
+      "yamin_categoria": "REBOTICA"
+    },
+    {
+      "yamin_sku": "COTONETES",
+      "yamin_nombre": "COTONETES KIUTS JALOMA C/20",
+      "yamin_precio": 7,
+      "yamin_stock": 12,
+      "yamin_departamento": "PERFUMERIA",
+      "yamin_categoria": "HIGIENE"
+    },
+    {
+      "yamin_sku": "755331010029",
+      "yamin_nombre": "ALGODON 6G SUPERIOR",
+      "yamin_precio": 5,
+      "yamin_stock": 12,
+      "yamin_departamento": "CURACION",
+      "yamin_categoria": "CURACION"
+    }
+  ]
+}
