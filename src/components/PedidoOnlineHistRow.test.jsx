@@ -1,6 +1,10 @@
 import React from "react";
+import fs from "fs";
+import path from "path";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import PedidoOnlineHistRow, { etiquetaEstadoSurtidoHist } from "./PedidoOnlineHistRow";
+
+const histCss = fs.readFileSync(path.join(__dirname, "../index.css"), "utf8");
 
 const baseEnvio = {
   tipo: "online",
@@ -38,10 +42,11 @@ it("etiqueta Listo vs Entregado según estado", () => {
 
 it("reserva las mismas columnas con o sin botón de ruta", () => {
   const onMarcarRuta = jest.fn();
+  const onEnviarRecibo = jest.fn();
   const { container } = render(
     <div>
-      <PedidoOnlineHistRow pedido={listoRuta} onMarcarRuta={onMarcarRuta} />
-      <PedidoOnlineHistRow pedido={entregado} />
+      <PedidoOnlineHistRow pedido={listoRuta} onMarcarRuta={onMarcarRuta} onEnviarRecibo={onEnviarRecibo} />
+      <PedidoOnlineHistRow pedido={entregado} onEnviarRecibo={onEnviarRecibo} />
     </div>
   );
 
@@ -67,6 +72,20 @@ it("reserva las mismas columnas con o sin botón de ruta", () => {
 
   fireEvent.click(within(rowListo).getByRole("button", { name: /Marcar en ruta/ }));
   expect(onMarcarRuta).toHaveBeenCalledWith(listoRuta);
+
+  const reciboListo = within(rowListo).getByRole("button", { name: /Enviar recibo por correo/ });
+  const reciboEntregado = within(rowEntregado).getByRole("button", { name: /Enviar recibo por correo/ });
+  expect(reciboListo).toHaveStyle({ whiteSpace: "nowrap" });
+  expect(reciboEntregado).toHaveStyle({ whiteSpace: "nowrap" });
+  fireEvent.click(reciboEntregado);
+  expect(onEnviarRecibo).toHaveBeenCalledWith(entregado);
+});
+
+it("el botón de recibo no se aplasta a un círculo", () => {
+  const bloque = histCss.slice(histCss.indexOf(".farmacapital-pedido-hist-row {"));
+  expect(bloque).toMatch(/6\.25rem\s+13rem;/);
+  expect(bloque).toMatch(/\.farmacapital-pedido-hist-row__accion > button,\s*\.farmacapital-pedido-hist-row__accion > a\s*\{[^}]*white-space:\s*nowrap/s);
+  expect(bloque).not.toMatch(/9\.75rem/);
 });
 
 it("al abrir el folio muestra los productos del pedido", () => {
