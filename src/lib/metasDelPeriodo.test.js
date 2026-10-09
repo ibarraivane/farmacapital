@@ -39,6 +39,8 @@ describe("metasDelPeriodo", () => {
     const r = metasDelPeriodo(new Date(2026, 7, 3), CFG);
     expect(r.fracMes).toBeCloseTo(3 / 31, 5);
     expect(r.mes).toBe(Math.round(80000 * (3 / 31)));
+    expect(r.mesCompleto).toBe(80000);
+    expect(r.semanaCompleta).toBe(20800);
   });
 
   test("con mezclarCfgMetas vacío no queda meta día en 0", () => {
