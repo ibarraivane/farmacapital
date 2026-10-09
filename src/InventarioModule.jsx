@@ -46,7 +46,10 @@ import {
   agruparLotesPorProducto,
   diasParaCaducar,
   enriquecerProductoConLotes,
+  ejecutarConReintentoTimeout,
+  esTimeoutPostgres,
   fetchLotesInventario,
+  mensajeErrorGuardadoInventario,
   patchProductoSinColumnaProveedor,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
@@ -3607,6 +3610,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   // pantalla que acaba de grabar no espera esa descarga: pinta el renglón y
   // ignora el eco unos segundos. Las otras terminales sí se refrescan.
   const silencioCatalogoRef = useRef(0);
+  const edicionInlineAbiertaRef = useRef(false);
   const callarCatalogoLocal = useCallback(() => {
     silencioCatalogoRef.current = Date.now() + 8000;
   }, []);
@@ -3618,6 +3622,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   }, []);
   useCatalogoVivo(() => {
     if (Date.now() < silencioCatalogoRef.current) return;
+    // Mientras la celda está abierta, no bajar todos los lotes: esa lectura
+    // se queda con la sesión y el guardado del precio muere por timeout.
+    if (edicionInlineAbiertaRef.current) return;
     fetchProductos({ silencioso: true });
   });
 
@@ -3736,6 +3743,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
   const [inlineEdit, setInlineEdit] = useState(null);
   const [inlineSaving, setInlineSaving] = useState(false);
+  useEffect(() => {
+    edicionInlineAbiertaRef.current = Boolean(inlineEdit) || inlineSaving;
+  }, [inlineEdit, inlineSaving]);
 
   const cancelInlineEdit = useCallback(() => {
     setInlineEdit(null);
@@ -3768,9 +3778,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       if (!fecha) {
         if (!prev) return true;
         if (!quitar && !window.confirm("¿Quitar la fecha de caducidad de este lote?")) return false;
-        const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, product.id, null, loteId);
+        const { data: resp, error } = await ejecutarConReintentoTimeout(() =>
+          rpcGuardarCaducidadProducto(tok, product.id, null, loteId)
+        );
         if (error) {
-          showToast(error.message, "error");
+          showToast(mensajeErrorGuardadoInventario(error), "error");
           return false;
         }
         if (!resp?.success) {
@@ -3789,9 +3801,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         return true;
       }
       if (prev === fecha) return true;
-      const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, product.id, fecha, loteId);
+      const { data: resp, error } = await ejecutarConReintentoTimeout(() =>
+        rpcGuardarCaducidadProducto(tok, product.id, fecha, loteId)
+      );
       if (error) {
-        showToast(error.message, "error");
+        showToast(mensajeErrorGuardadoInventario(error), "error");
         return false;
       }
       if (!resp?.success) {
@@ -3821,9 +3835,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       const next = draft || null;
       const prev = (product.proveedor || "").trim() || null;
       if ((next || "") === (prev || "")) return true;
-      const { data: resp, error } = await rpcGuardarProveedorProducto(tok, product.id, next);
+      const { data: resp, error } = await ejecutarConReintentoTimeout(() =>
+        rpcGuardarProveedorProducto(tok, product.id, next)
+      );
       if (error) {
-        showToast(mensajeErrorProveedor(error), "error");
+        showToast(
+          esTimeoutPostgres(error.message) ? mensajeErrorGuardadoInventario(error) : mensajeErrorProveedor(error),
+          "error"
+        );
         return false;
       }
       if (resp && resp.success === false) {
@@ -3844,14 +3863,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         return false;
       }
       if (n === stockVisibleInventario(product)) return true;
-      const { error } = await supabase.rpc("adjust_stock_secure", {
+      const { error } = await ejecutarConReintentoTimeout(() => supabase.rpc("adjust_stock_secure", {
         p_session_token: tok,
         p_producto_id: product.id,
         p_nuevo_stock: stockObjetivoAjusteInline(product, n),
         p_motivo: "Edición inline inventario",
-      });
+      }));
       if (error) {
-        showToast(error.message, "error");
+        showToast(mensajeErrorGuardadoInventario(error), "error");
         return false;
       }
       callarCatalogoLocal();
@@ -3872,13 +3891,13 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         return false;
       }
       if (modoConsulta) {
-        const { data, error } = await supabase.rpc("empleado_guardar_codigo_barras", {
+        const { data, error } = await ejecutarConReintentoTimeout(() => supabase.rpc("empleado_guardar_codigo_barras", {
           p_session_token: tok,
           p_producto_id: product.id,
           p_codigo_barras: patchValue,
-        });
+        }));
         if (error) {
-          showToast(error.message, "error");
+          showToast(mensajeErrorGuardadoInventario(error), "error");
           return false;
         }
         if (!data?.success) {
@@ -3940,13 +3959,13 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           : String(currentRaw);
     if (currentNorm === patchValue || (patchValue == null && !currentNorm)) return true;
 
-    const { error } = await supabase.rpc("admin_editar_producto", {
+    const { error } = await ejecutarConReintentoTimeout(() => supabase.rpc("admin_editar_producto", {
       p_session_token: tok,
       p_producto_id: product.id,
       p_patch: { [patchKey]: patchValue },
-    });
+    }));
     if (error) {
-      showToast(error.message, "error");
+      showToast(mensajeErrorGuardadoInventario(error), "error");
       return false;
     }
     callarCatalogoLocal();
@@ -3958,6 +3977,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
   const commitInlineEdit = useCallback(async (draftOverride) => {
     if (!inlineEdit || inlineSaving) return;
+    edicionInlineAbiertaRef.current = true;
+    callarCatalogoLocal();
     const product = productos.find((x) => x.id === inlineEdit.productId);
     if (!product) {
       cancelInlineEdit();
@@ -3977,13 +3998,15 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     } finally {
       setInlineSaving(false);
     }
-  }, [inlineEdit, inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
+  }, [inlineEdit, inlineSaving, productos, guardarCampoInline, cancelInlineEdit, callarCatalogoLocal]);
 
   const quitarCaducidadInline = useCallback(async (productId, meta = null) => {
     if (inlineSaving) return;
     const product = productos.find((x) => x.id === productId);
     if (!product) return;
     if (!window.confirm("¿Quitar la fecha de caducidad de este lote?")) return;
+    edicionInlineAbiertaRef.current = true;
+    callarCatalogoLocal();
     setInlineSaving(true);
     try {
       const ok = await guardarCampoInline(product, "cad", "", { ...(meta || {}), quitar: true });
@@ -3991,9 +4014,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     } finally {
       setInlineSaving(false);
     }
-  }, [inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
+  }, [inlineSaving, productos, guardarCampoInline, cancelInlineEdit, callarCatalogoLocal]);
 
   const startInlineEdit = useCallback((productId, field, rawValue, meta = null) => {
+    edicionInlineAbiertaRef.current = true;
     setInlineEdit({
       productId,
       field,
@@ -4302,15 +4326,15 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     const quitar = !fecha;
     setLoteCadSaving(loteId);
     try {
-      const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
+      const { data: resp, error } = await ejecutarConReintentoTimeout(() => supabase.rpc("admin_editar_lote", {
         p_session_token: tok,
         p_lote_id: loteId,
         p_fecha_caducidad: fecha || null,
         p_numero_lote: null,
         p_quitar_caducidad: quitar,
-      });
+      }));
       if (error) {
-        showToast(error.message, "error");
+        showToast(mensajeErrorGuardadoInventario(error), "error");
         return;
       }
       if (!resp?.success) {
