@@ -108,6 +108,16 @@ function catalogUnitTokenMatchesField(unitTok, fieldNorm) {
   return new RegExp(`(^|[^a-z])\\d+(?:\\.\\d+)?\\s*${u}(?=\\s|$|x)`, "i").test(` ${f} `);
 }
 
+/** Código de la lista del mayorista (columna del CSV), no el SKU FarmaCapital. */
+export function codigoListaSkuOrigen(product) {
+  const notas = String(product?.notas ?? "");
+  const fromNotas = notas.match(/Lista SKU origen:\s*([^·]+)/);
+  if (fromNotas && fromNotas[1].trim()) return fromNotas[1].trim();
+  const desc = String(product?.descripcion ?? "");
+  const fromDesc = desc.match(/suplementosmayoreo\s*·\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*$/i);
+  return fromDesc ? fromDesc[1].trim() : "";
+}
+
 function catalogSearchFieldEntries(product, { inventario = false } = {}) {
   const pairs = [
     ["nombre", product?.nombre],
@@ -120,6 +130,7 @@ function catalogSearchFieldEntries(product, { inventario = false } = {}) {
     ["forma_farmaceutica", product?.forma_farmaceutica],
     ["sku", product?.sku],
     ["codigo_barras", product?.codigo_barras],
+    ["sku_origen", codigoListaSkuOrigen(product)],
     ["categoria", product?.categoria],
     ["subcategoria", product?.subcategoria],
   ];
@@ -140,6 +151,9 @@ function catalogSearchFieldEntries(product, { inventario = false } = {}) {
 function catalogTokenMatchesField(tok, kind, fieldNorm, { queryTokens = [] } = {}) {
   if (!tok || !fieldNorm) return false;
   const t = String(tok).toLowerCase();
+
+  // El código del archivo de mayoreo puede ser corto (6474). Tiene que coincidir entero.
+  if (kind === "sku_origen") return fieldNorm === t;
 
   if (isPureNumericSearchToken(t)) {
     if (kind === "sku" || kind === "codigo_barras") {
