@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { diasLaboralesSemana, hoyISOMexico, sabadoDeSemana, viernesDeSemana } from "../../lib/rhSemana";
 import NominaSemanalPanel from "./NominaSemanalPanel";
 
 jest.mock("../../supabase", () => ({
@@ -27,20 +28,18 @@ const EMPS = [
   { id: 1, nombre: "Erika", rol: "vendedor", turno: "matutino", estado: true, salario_semanal: 1133.32 },
 ];
 
+const HOY = hoyISOMexico();
 const SEMANA = {
   empleado_id: 1,
   nombre: "Erika",
   salario_semanal: 1133.32,
-  diario: 283.33,
-  semana_inicio: "2026-08-18",
-  semana_fin: "2026-08-21",
-  dias: [
-    { fecha: "2026-08-18", estado: "trabajo", origen: "caja", abrio_caja: true },
-    { fecha: "2026-08-19", estado: "trabajo", origen: "caja", abrio_caja: true },
-    { fecha: "2026-08-20", estado: "trabajo", origen: "caja", abrio_caja: true },
-    { fecha: "2026-08-21", estado: "trabajo", origen: "caja", abrio_caja: true },
-  ],
-  dias_trabajo: 4,
+  diario: 161.9,
+  semana_inicio: sabadoDeSemana(HOY),
+  semana_fin: viernesDeSemana(HOY),
+  dias: diasLaboralesSemana(HOY).map((fecha) => ({
+    fecha, estado: "trabajo", origen: "caja", abrio_caja: true,
+  })),
+  dias_trabajo: 7,
   bruto: 1133.32,
   pago: null,
 };
@@ -50,15 +49,17 @@ beforeEach(() => {
   supabase.rpc.mockReset();
 });
 
-test("el panel es semanal de viernes, no quincenal ni ISR automático", () => {
+test("el panel es semanal de viernes, sábado a viernes, no quincenal ni ISR automático", () => {
   render(<NominaSemanalPanel empleados={EMPS} S={S} C={C} />);
   expect(screen.getByText(/Nómina semanal/i)).toBeInTheDocument();
   expect(screen.getByText(/se paga el viernes/i)).toBeInTheDocument();
+  expect(screen.getByText(/sábado a viernes/i)).toBeInTheDocument();
+  expect(screen.getByText(/abrir o cerrar caja siguen en su lugar/i)).toBeInTheDocument();
   expect(screen.queryByText(/quincenal/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/ISR estimado/i)).not.toBeInTheDocument();
 });
 
-test("al elegir empleado carga la semana martes–viernes", async () => {
+test("al elegir empleado carga la semana sábado–viernes", async () => {
   supabase.rpc.mockResolvedValue({ data: SEMANA, error: null });
   render(<NominaSemanalPanel empleados={EMPS} S={S} C={C} />);
   await userEvent.selectOptions(screen.getByLabelText("Empleado"), "1");
@@ -70,7 +71,19 @@ test("al elegir empleado carga la semana martes–viernes", async () => {
   });
   expect(await screen.findByText(/Neto a pagar el viernes/)).toBeInTheDocument();
   expect(screen.getAllByText("$1,133.32").length).toBeGreaterThan(0);
-  expect(screen.getByRole("button", { name: "Registrar pago del viernes" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Registrar pago del viernes" })).toBeEnabled();
+  expect(screen.getAllByText(/sábado/i).length).toBeGreaterThan(0);
+});
+
+test("si la base sigue empezando en martes, no deja registrar el pago", async () => {
+  supabase.rpc.mockResolvedValue({
+    data: { ...SEMANA, semana_inicio: "2026-08-18", semana_fin: "2026-08-21", dias_trabajo: 4 },
+    error: null,
+  });
+  render(<NominaSemanalPanel empleados={EMPS} S={S} C={C} />);
+  await userEvent.selectOptions(screen.getByLabelText("Empleado"), "1");
+  expect(await screen.findByText(/patch_rh_semana_sabado_viernes_20260926\.sql/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Registrar pago del viernes" })).toBeDisabled();
 });
 
 test("si falta el SQL semanal, calcula en local y no inventa ISR", async () => {
