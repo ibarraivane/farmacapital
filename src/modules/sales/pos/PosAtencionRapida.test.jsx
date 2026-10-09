@@ -14,6 +14,7 @@ test("muestra Atención con precio y agrega al toque", () => {
   expect(screen.getByText("Atención")).toBeInTheDocument();
   const presion = screen.getByRole("button", { name: /Presión/ });
   expect(presion).toHaveTextContent("$20");
+  expect(presion).toHaveStyle({ fontSize: "13px", lineHeight: "18px", padding: "0px" });
   expect(screen.getByRole("button", { name: /Inyección/ })).toHaveTextContent("$30");
   expect(screen.getByRole("button", { name: /Oxigenación/ })).toBeInTheDocument();
   fireEvent.click(presion);
