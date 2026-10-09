@@ -17,7 +17,9 @@ Fotos IFC + Zorro + Equilibrio + Farmalive + Cityfarma. Pegar **cada** SQL en Su
 ## Notas
 
 - Equilibrio trae **lote de fábrica**; caducidad = MMAA de la caja al escanear.
-- Schick bolsa 12 pzas EAN `7502274881475` (no la pieza suelta `7591066701015`).
+- Schick bolsa 12 pzas EAN `7502274881475` (alias display Edgewell `6937266702079`; no la pieza suelta `7591066701015`).
+- Troferit caja EAN `7501088575495` (el tipógrafo del ticket metió `7501088576495`, checksum inválido).
+- Corrección pistola 07-oct: `patch_ean_troferit_schick_pistola_20261007.sql` (después del deploy).
 - Cintapore caja C/12 EAN `7506484500034` (código IFC 84129).
 - Farmalive: costo = neto del renglón (2% o 5%). Suerox/Asepxia con EAN canónico 13 dígitos.
 - Cityfarma: pendiente de pago $1,425.01.

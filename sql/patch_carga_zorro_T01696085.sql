@@ -1,6 +1,7 @@
 -- Grupo Zorro E-9 · ticket T01696085 · 2026-10-06 17:20:22
 -- Menudeo. 1 pza · total $161.67 (IVA incluido en ticket).
--- RASTRILLOS SCHICK XTREME 3 12-12 PZ → EAN bolsa 7502274881475 (no confundir con pieza suelta 7591066701015).
+-- RASTRILLOS SCHICK XTREME 3 12-12 PZ → EAN bolsa 7502274881475
+-- (alias display Edgewell 6937266702079; no confundir con pieza suelta 7591066701015).
 -- Sin lote ni caducidad. No inventar 0000.
 -- 1 alta(s) stock 0. 0 ya estaban: solo costo / ficha vacía, no PVP.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -39,7 +40,7 @@ insert into _fc_zorro_T01696085 (
   subcategoria, forma, marca, laboratorio, presentacion, principio_activo,
   concentracion, receta, ya, imagen, foto_file, lote
 ) values
-  (1, '7502274881475', 'FC-274881475', 'Schick Xtreme 3', 'RASTRILLOS SCHICK XTREME 3 12-12 PZ', 1, 161.67, 203, 'marca', 'Cuidado personal', 'Afeitado', 'Rastrillo', 'Schick', 'Edgewell', 'Bolsa con 12 rastrillos', null, null, false, false, null, null, null);
+  (1, '7502274881475', 'FC-274881475', 'Schick Xtreme 3 Piel Sensible', 'RASTRILLOS SCHICK XTREME 3 12-12 PZ', 1, 161.67, 203, 'marca', 'Cuidado personal', 'Afeitado', 'Rastrillo', 'Schick', 'Edgewell', 'Bolsa / display con 12 rastrillos', null, null, false, false, null, null, null);
 
 -- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (

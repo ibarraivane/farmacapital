@@ -85,17 +85,19 @@ PRODUCTOS: dict[str, dict] = {
         foto_file="cintapore-piel-2.5x5.jpg",
     ),
     # ── Zorro ──
+    # Bolsa/display ×12. Empaque Edgewell también escanea 6937266702079 (alias).
+    # No confundir con pieza suelta 7591066701015.
     "7502274881475": p(
         "7502274881475",
         sku="FC-274881475",
-        nombre="Schick Xtreme 3",
+        nombre="Schick Xtreme 3 Piel Sensible",
         tipo="marca",
         categoria="Cuidado personal",
         subcategoria="Afeitado",
         forma="Rastrillo",
         marca="Schick",
         laboratorio="Edgewell",
-        presentacion="Bolsa con 12 rastrillos",
+        presentacion="Bolsa / display con 12 rastrillos",
         ya=False,
     ),
     # ── Equilibrio ──
@@ -562,15 +564,17 @@ PRODUCTOS: dict[str, dict] = {
         receta=True,
         ya=False,
     ),
-    "7501088576495": p(
-        "7501088576495",
+    # Caja Chinoín 7501088575495 (el tipógrafo del ticket metió 76495, checksum inválido).
+    "7501088575495": p(
+        "7501088575495",
         sku="FC-88576495",
         nombre="Troferit 30 mg",
         tipo="marca",
         forma="Tableta",
         marca="Troferit",
-        laboratorio=None,
+        laboratorio="Chinoin",
         presentacion="Caja con 15 tabletas",
+        principio="Dropropizina",
         concentracion="30 mg",
         receta=True,
         ya=False,
@@ -672,7 +676,7 @@ TICKETS = [
             "Grupo Zorro E-9 · ticket T01696085 · 2026-10-06 17:20:22\n"
             "-- Menudeo. 1 pza · total $161.67 (IVA incluido en ticket).\n"
             "-- RASTRILLOS SCHICK XTREME 3 12-12 PZ → EAN bolsa 7502274881475 "
-            "(no confundir con pieza suelta 7591066701015).\n"
+            "(alias display Edgewell 6937266702079; no confundir con pieza suelta 7591066701015).\n"
             "-- Sin lote ni caducidad. No inventar 0000."
         ),
         "rows": [
@@ -782,7 +786,7 @@ TICKETS = [
             row("7501165000315", "NEO MELUBRINA JBE", 2, 118.48),
             row("7501384543983", "RISPERIDONA 2MG 40", 2, 62.40),
             row("7501825300786", "SEDICLON DICICLOVERI", 5, 21.24),
-            row("7501088576495", "TROFERIT 30 MG C 15", 1, 150.79),
+            row("7501088575495", "TROFERIT 30 MG C 15", 1, 150.79),
             row("7501300421821", "ZIVATA-DUO DUTASTERI", 1, 474.10),
         ],
     },
@@ -869,7 +873,8 @@ Fotos IFC + Zorro + Equilibrio + Farmalive + Cityfarma. Pegar **cada** SQL en Su
 ## Notas
 
 - Equilibrio trae **lote de fábrica**; caducidad = MMAA de la caja al escanear.
-- Schick bolsa 12 pzas EAN `7502274881475` (no la pieza suelta `7591066701015`).
+- Schick bolsa 12 pzas EAN `7502274881475` (alias display `6937266702079`; no la pieza suelta `7591066701015`).
+- Troferit caja EAN `7501088575495` (el tipógrafo del ticket metió `7501088576495`).
 - Cintapore caja C/12 EAN `7506484500034` (código IFC 84129).
 - Farmalive: costo = neto del renglón (2% o 5%). Suerox/Asepxia con EAN canónico 13 dígitos.
 - Cityfarma: pendiente de pago $1,425.01.
