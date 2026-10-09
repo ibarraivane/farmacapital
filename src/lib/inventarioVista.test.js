@@ -30,6 +30,16 @@ describe("vista de inventario", () => {
     expect(pasaVistaInventario(omeprazol, { filtroAlerta: "bajo_pedido" })).toBe(true);
   });
 
+  test("un servicio no entra al anaquel ni a la vitrina", () => {
+    const presion = { id: 8, nombre: "Toma de presión arterial", tipo: "servicio", stock: 0, activo: true };
+    expect(pasaVistaInventario(presion)).toBe(false);
+    expect(pasaVistaInventario(presion, { mostrarVitrina: true })).toBe(false);
+    expect(pasaVistaInventario(presion, { filtroAlerta: "agotados" })).toBe(false);
+    expect(pasaVistaInventario(presion, { filtroAlerta: "bajo_pedido" })).toBe(false);
+    expect(pasaVistaInventario(presion, { filtroAlerta: "servicios" })).toBe(true);
+    expect(pasaVistaInventario(omeprazol, { filtroAlerta: "servicios" })).toBe(false);
+  });
+
   test("la preferencia queda en este navegador y nace apagada", () => {
     const storage = memoria();
     expect(leerMostrarVitrina(storage)).toBe(false);

@@ -5,6 +5,7 @@
  * y la última compra con nombre (El Surtidor, Farma City, Equilibrio…).
  */
 
+import { esServicio } from "./servicioSalud";
 import { opcionesTiendaCompra, fmtPrecioRef } from "./preciosReferencia";
 import { normalizeProveedorCompra, parseCostoTicket, proveedorCompraVisible } from "./ultimaCompra";
 
@@ -72,7 +73,7 @@ export function claveIdentidadCompra(p) {
 export function stockVisiblePorIdentidad(productos) {
   const map = new Map();
   for (const p of productos || []) {
-    if (p?.activo === false || p?.bajo_pedido === true) continue;
+    if (p?.activo === false || p?.bajo_pedido === true || esServicio(p)) continue;
     if (!claveNombreVisible(p)) continue;
     const key = claveIdentidadCompra(p);
     const s = Math.max(0, stockDe(p));
@@ -114,12 +115,12 @@ export function stockMinimoEfectivo(p) {
 
 /** Filas del dashboard / badge: vitrina bajo pedido no es hueco de anaquel. */
 export function filasAlertaStockAnaquel(rows) {
-  return (Array.isArray(rows) ? rows : []).filter((p) => p?.bajo_pedido !== true);
+  return (Array.isArray(rows) ? rows : []).filter((p) => p?.bajo_pedido !== true && !esServicio(p));
 }
 
 export function nivelStockUrgencia(p, stockPorIdentidad) {
   // Bajo pedido no es hueco de anaquel: nunca entra a agotados / stock bajo / pedir.
-  if (p?.bajo_pedido === true) return null;
+  if (p?.bajo_pedido === true || esServicio(p)) return null;
   // Mismo nombre con otra dosis o presentación se juzga solo. El código repetido no.
   if (esCodigoRepetido(p, stockPorIdentidad)) return null;
   const min = stockMinimoEfectivo(p);

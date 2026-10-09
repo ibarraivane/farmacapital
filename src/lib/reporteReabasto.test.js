@@ -39,6 +39,13 @@ describe("urgencia de stock", () => {
     ]).map((p) => p.id)).toEqual([2]);
   });
 
+  test("un servicio con stock 0 no es agotado ni se pide", () => {
+    const presion = prod({ id: 7, nombre: "Toma de presión arterial", tipo: "servicio", stock: 0, stock_minimo: 0 });
+    expect(nivelStockUrgencia(presion)).toBe(null);
+    expect(clasificarAlertas([presion, prod({ id: 2, stock: 0 })]).agotados.map((p) => p.id)).toEqual([2]);
+    expect(filasAlertaStockAnaquel([presion, prod({ id: 2 })]).map((p) => p.id)).toEqual([2]);
+  });
+
   test("caja abierta con piezas no cuenta como agotado", () => {
     expect(nivelStockUrgencia(prod({ stock: 0, stock_unidades: 40, stock_minimo: 5 }))).not.toBe("AGOTADO");
     expect(nivelStockUrgencia(prod({ stock: 0, stock_blisters: 2, stock_minimo: 5 }))).not.toBe("AGOTADO");

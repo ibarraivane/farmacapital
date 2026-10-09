@@ -13,6 +13,7 @@ import {
 } from "./utils/barcodeProductLookup";
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
+import { catalogoSinServicios } from "./lib/servicioSalud";
 import {
   desgloseAltaRecepcion,
   payloadAltaRecepcion,
@@ -324,7 +325,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       showToast("Catálogo no cargó: " + prodRes.error.message, "warning");
       setProductos([]);
     } else {
-      setProductos(prodRes.data || []);
+      setProductos(catalogoSinServicios(prodRes.data || []));
     }
     setLoading(false);
   }, [cargarLista]);
@@ -343,7 +344,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       order: "nombre",
       incluirVitrina: true,
     });
-    if (!prodRes.error) setProductos(prodRes.data || []);
+    if (!prodRes.error) setProductos(catalogoSinServicios(prodRes.data || []));
     await cargarLista();
   }, [cargarLista]);
   useCatalogoVivo(refrescarCatalogoRecepcion, { pausado: () => !!pendienteRef.current });

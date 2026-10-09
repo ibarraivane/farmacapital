@@ -32,6 +32,8 @@ import {
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { ayudaRecargoVsMargen, resumenRecargoYMargen } from "./lib/margenMarkup";
 import { productoEsVendible } from "./utils/productoVendible";
+import { catalogoSinServicios, esServicio } from "./lib/servicioSalud";
+import ServiciosSaludPanel from "./modules/inventario/ServiciosSaludPanel";
 import {
   CATEGORIAS_PRODUCTO as CATEGORIAS,
   categoriaCanon,
@@ -862,7 +864,7 @@ const exportarCSV = (productos) => {
     "Contenido_Caja", "Linea_Comercial", "Grupo_Farmacologico", "Jerarquia",
     "SKU_Casa_Saba", "Margen_Sobre_Venta", "Recargo_Sobre_Costo", "Stock_Maximo", "Notas"
   ];
-  const rows = productos.map(p => {
+  const rows = catalogoSinServicios(productos).map(p => {
     const m = resumenRecargoYMargen(p.precio, p.costo);
     return [
     p.sku||"", p.codigo_barras||"", p.nombre||"", p.categoria||"", p.tipo||"generico",
@@ -3510,7 +3512,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
         let q = supabase
           .from("productos")
-          .select("id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,principio_activo,forma_farmaceutica,precio,bajo_pedido")
+          .select("id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,principio_activo,forma_farmaceutica,precio,bajo_pedido,tipo")
           .eq("activo", true)
           .order("nombre")
           .order("id");
@@ -3554,7 +3556,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       }
       let lotesByProducto = {};
       if (!conLotes) lotesByProducto = await fetchLotesPorProducto(tok, { omitCosto: true });
-      const enriched = (data || []).map((p) => enrichProductoConLotes(p, p.lotes || lotesByProducto[p.id]));
+      const enriched = (data || []).filter((p) => !esServicio(p)).map((p) => enrichProductoConLotes(p, p.lotes || lotesByProducto[p.id]));
       setProductos(enriched);
       if (!silencioso) setLoading(false);
       return enriched;
@@ -3573,9 +3575,23 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       return null;
     }
     const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
-    setProductos(enriched);
+    let serviciosExtra = [];
+    const { data: serviciosRows, error: serviciosErr } = await supabase
+      .from("productos")
+      .select("id,sku,nombre,precio,activo,tipo,categoria,descripcion")
+      .eq("tipo", "servicio")
+      .order("nombre");
+    if (!serviciosErr && Array.isArray(serviciosRows)) serviciosExtra = serviciosRows;
+    const idsServicio = new Set(serviciosExtra.map((s) => String(s.id)));
+    const sinServicio = enriched.filter((p) => !esServicio(p) && !idsServicio.has(String(p.id)));
+    const serviciosMerged = serviciosExtra.map((s) => {
+      const prev = enriched.find((p) => String(p.id) === String(s.id));
+      return prev ? { ...prev, ...s, tipo: "servicio" } : { ...s, tipo: "servicio" };
+    });
+    const lista = [...sinServicio, ...serviciosMerged];
+    setProductos(lista);
     if (!silencioso) setLoading(false);
-    return enriched;
+    return lista;
   }, [verInactivos, modoConsulta, incluirVitrinaConsulta]);
 
   const catalogoListoRef = useRef(false);
@@ -3609,7 +3625,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
     if (!pasaVistaInventario(p, { mostrarVitrina, filtroAlerta })) return false;
-    const cat = pasaFiltroCategorias(p, filtroCategorias);
+    const cat = filtroAlerta === "servicios" ? true : pasaFiltroCategorias(p, filtroCategorias);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const cubierto = esCodigoRepetido(p, stockPorIdentidad);
     const piezas = stockParaComprar(p, stockPorIdentidad);
@@ -3676,14 +3692,15 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   };
 
   const catalogoConteo = useMemo(
-    () => (mostrarVitrina ? productos : productos.filter((p) => !esBajoPedido(p))),
+    () => productos.filter((p) => !esServicio(p) && (mostrarVitrina || !esBajoPedido(p))),
     [productos, mostrarVitrina]
   );
   const nVitrina = productos.filter((p) => esBajoPedido(p)).length;
   const activos    = catalogoConteo.filter(p => p.activo).length;
   // Bajo pedido no cuenta como faltante de góndola.
-  const agotadosInv = productos.filter(p => p.activo && !p.bajo_pedido && !esCodigoRepetido(p, stockPorIdentidad) && stockParaComprar(p, stockPorIdentidad) === 0).length;
-  const bajoStock  = productos.filter(p => p.activo && !p.bajo_pedido && !esCodigoRepetido(p, stockPorIdentidad) && stockParaComprar(p, stockPorIdentidad) <= (p.stock_minimo??0)).length;
+  const agotadosInv = productos.filter(p => !esServicio(p) && p.activo && !p.bajo_pedido && !esCodigoRepetido(p, stockPorIdentidad) && stockParaComprar(p, stockPorIdentidad) === 0).length;
+  const bajoStock  = productos.filter(p => !esServicio(p) && p.activo && !p.bajo_pedido && !esCodigoRepetido(p, stockPorIdentidad) && stockParaComprar(p, stockPorIdentidad) <= (p.stock_minimo??0)).length;
+  const nServiciosSalud = productos.filter((p) => esServicio(p)).length;
   const porCaducar = catalogoConteo.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = catalogoConteo.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = catalogoConteo.filter(p => p.activo && productoSinPrecioVenta(p)).length;
@@ -3734,6 +3751,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
     if (modoConsulta && field !== "cad" && field !== "codigo_barras") {
       showToast("En este perfil solo puedes corregir código de barras y caducidad.", "error");
+      return false;
+    }
+
+    if (esServicio(product) && field !== "nombre" && field !== "precio") {
+      showToast("Un servicio de salud solo cambia nombre, precio y si está activo.", "warning");
       return false;
     }
 
@@ -4093,6 +4115,37 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     fetchProductos();
   };
 
+  const toggleServicioActivo = async (p) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    const next = p.activo === false;
+    const { data: resp, error } = await supabase.rpc("admin_toggle_producto", {
+      p_session_token: tok,
+      p_producto_id: p.id,
+      p_activo: next,
+    });
+    if (error) {
+      showToast(error.message, "error");
+      return;
+    }
+    if (resp && resp.success === false) {
+      showToast("No se pudo actualizar el servicio.", "error");
+      return;
+    }
+    callarCatalogoLocal();
+    pintarProductoLocal(p.id, { activo: next });
+    avisarCatalogoCambio({ origen: "inventario" });
+    showToast(
+      next
+        ? "Servicio activado. El POS lo muestra en Atención."
+        : "Servicio desactivado. El POS ya no lo ofrece.",
+      "success"
+    );
+  };
+
   const aplicarEdicionLote = async (patch) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
@@ -4408,9 +4461,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
             {isMobileInv ? "🖼️ Masivo" : "🖼️ Cargar fotos masivo"}
           </button>
           <button style={btnOutline} onClick={descargarPlantilla}>📋 Plantilla</button>
-          <button style={btnOutline} onClick={()=>exportarCSV(filtradosTodosInv)}>
+          {filtroAlerta !== "servicios" && (
+          <button style={btnOutline} onClick={()=>exportarCSV(catalogoSinServicios(filtradosTodosInv))}>
             ⬇ Exportar CSV
           </button>
+          )}
             </>
           )}
         </div>
@@ -4427,6 +4482,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
             {label:"Sin foto", val:sinFoto, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="sin_foto"?"todos":"sin_foto"), on: filtroAlerta==="sin_foto"},
             {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
             {label:"Margen raro", val:margenAlto, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="margen_alto"?"todos":"margen_alto"), on: filtroAlerta==="margen_alto"},
+            {label:"Servicios de salud", val:nServiciosSalud, col:C.teal, click:()=>{ setFiltroAlerta(filtroAlerta==="servicios"?"todos":"servicios"); setFiltroCategorias([]); setBusqueda(""); }, on: filtroAlerta==="servicios"},
             {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
           ] : []),
         ].map(s=>(
@@ -4487,11 +4543,17 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           autoFocus
           focusNonce={buscarFocusNonce}
           placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…"
-          items={mostrarVitrina || filtroAlerta === "bajo_pedido" ? productos : catalogoConteo}
+          items={
+            filtroAlerta === "servicios"
+              ? productos.filter(esServicio)
+              : (mostrarVitrina || filtroAlerta === "bajo_pedido"
+                ? productos.filter((p) => !esServicio(p))
+                : catalogoConteo)
+          }
           labelKey="nombre"
           subKey="sku"
           searchMode="inventario"
-          badgeKey="stock"
+          badgeKey={filtroAlerta === "servicios" ? null : "stock"}
           badgeCol="#1E3ABA"
           style={{width:"100%",maxWidth:"100%"}}
           emptyMsg="Sin productos"
@@ -4513,6 +4575,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           <option value="sin_foto">🖼 Sin foto</option>
           {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
           {!modoConsulta && <option value="margen_alto">Margen raro (PVP vs costo)</option>}
+          {!modoConsulta && <option value="servicios">Servicios de salud</option>}
         </select>
         <label
           title="Prender o apagar en esta pantalla. No se borran del catálogo ni de «Te lo conseguimos»."
@@ -4698,6 +4761,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
       {loading ? (
         <SkeletonTable rows={8} cols={12}/>
+      ) : filtroAlerta === "servicios" && !modoConsulta ? (
+        <ServiciosSaludPanel
+          servicios={filtradosTodosInv}
+          onGuardar={guardarCampoInline}
+          onToggleActivo={toggleServicioActivo}
+        />
       ) : (
         <>
         <HorizontalScrollSync data-tour="inv-tabla">

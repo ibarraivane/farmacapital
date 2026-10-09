@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../../supabase';
+import { esServicio } from '../../lib/servicioSalud';
 
 // ============================================================
 // FLUJO 1: CREAR NUEVO PRODUCTO
@@ -114,6 +115,10 @@ export async function actualizarStock(datos) {
 
     if (searchError || !producto) {
       throw new Error('Producto no encontrado');
+    }
+
+    if (esServicio(producto)) {
+      throw new Error('Un servicio de salud no tiene stock, lote ni ajuste de inventario');
     }
 
     // Crear nuevo lote

@@ -82,6 +82,14 @@ describe("productoPermitidoEnTiendaWeb", () => {
     expect(productoPermitidoEnTiendaWeb({ activo: false })).toBe(false);
     expect(productoPermitidoEnTiendaWeb({ activo: true, visible_tienda: false })).toBe(false);
   });
+  test("una atención de mostrador no entra a la tienda", () => {
+    expect(productoPermitidoEnTiendaWeb({
+      activo: true,
+      visible_tienda: true,
+      tipo: "servicio",
+      nombre: "Toma de presión arterial",
+    })).toBe(false);
+  });
 
   test("antibiótico en línea sí entra; a domicilio no (default)", () => {
     const amoxi = { activo: true, nombre: "Amoxicilina 500", categoria: "Antibiótico" };
