@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,T620721328,2026-10-02,Mayorista de Dulces,076350614570,ch.MINI paleta Chupa Chups 6/240pzs,240,0.78,186.70,,,FC-50614570,335.20,alta
+2,T620721328,2026-10-02,Mayorista de Dulces,,vero MIX Clasico 6/1.5kg,1,148.50,148.50,,,FC-HS-VEROMIX15,335.20,alta
