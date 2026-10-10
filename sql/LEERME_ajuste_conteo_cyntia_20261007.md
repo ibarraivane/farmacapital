@@ -38,7 +38,7 @@ Auditoría física vs POS. Correr en Supabase SQL Editor, en este orden:
 | EQ-EXA045 | Neomicina/Polimixina B/Bacitracina ung. | 1 → 2 |
 | EQ-BEA336 | Neomicina/Kaolín/Pectina C/20 | → 3 (decía «no está»; ya existe) |
 | FC-AEA8C8DA | Namifen Ácido mefenámico 500 mg C/20 | 2 → 1 |
-| EQ-MAV196 | Oxatech Olanzapina 10 mg C/14 | 3 → 1 |
+| EQ-MAV196 | Oxatech Olanzapina 10 mg C/14 | 3 → 1 (SKU mal: usar `EQ-MAV198`, ver patch 20261010) |
 | FC-58207010 | Oxital-C Vitamina C 2 g C/10 | 6 → 1 |
 
 ## Altas / piezas fuera de catálogo
