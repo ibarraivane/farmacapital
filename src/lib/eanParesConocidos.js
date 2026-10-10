@@ -10,4 +10,6 @@ export const EAN_PARES_CONOCIDOS = [
   ["650240078996", "6502400078996"],
   // Palmolive Optims Extra Suavidad 250 ml. El ticket F-42 84416 la partió en dos SKU.
   ["7509546695570", "7509546695587"],
+  // Zagapsol Amlodipino 5 mg C/10 Avitus: caja física ↔ EAN Levic 9012242979.
+  ["7502209858152", "7502209850231"],
 ];

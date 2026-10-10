@@ -128,6 +128,25 @@ describe("Broncolin paleta: bote y pieza", () => {
   });
 });
 
+describe("Zagapsol: EAN caja física vs Levic", () => {
+  const zagapsol = {
+    id: 1760,
+    activo: true,
+    sku: "EQ-AVT218",
+    nombre: "Zagapsol amlodipino 10 tab 5 mg",
+    codigo_barras: "7502209858152",
+    descripcion: "EAN caja 7502209858152 · EAN Levic 7502209850231",
+  };
+
+  test("la pistola con cualquiera de los dos EAN abre el mismo SKU", () => {
+    expect(codigosBarrasDeProducto(zagapsol)).toEqual(
+      expect.arrayContaining(["7502209858152", "7502209850231"])
+    );
+    expect(findProductExactScan([zagapsol], "7502209858152")?.id).toBe(1760);
+    expect(findProductExactScan([zagapsol], "7502209850231")?.id).toBe(1760);
+  });
+});
+
 const TEGADERM = {
   id: 88,
   activo: true,
