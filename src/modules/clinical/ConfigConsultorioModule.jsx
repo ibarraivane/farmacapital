@@ -96,6 +96,7 @@ const FIELDS = {
   ajuste_viernes:            { tab:"ventas",    grupo:"ajustes",        label:"Viernes",                   def:15,    tipo:"percent_signed" },
   ajuste_lunes:              { tab:"ventas",    grupo:"ajustes",        label:"Lunes",                     def:-10,   tipo:"percent_signed" },
   ajuste_domingo:            { tab:"ventas",    grupo:"ajustes",        label:"Domingo (castigo)",         def:-10,   tipo:"percent_signed" },
+  ticket_auto_imprimir:      { tab:"ventas",    grupo:"ticket",         label:"Imprimir ticket al cobrar", def:0,     tipo:"toggle" },
 
   // ── TAB 3 · Bonos por desempeño ───────────────────────────────
   bonos_activos:             { tab:"bonos",     grupo:"switch",         label:"Bonos al vendedor",         def:0,    tipo:"toggle" },
@@ -458,6 +459,17 @@ export default function ConfigConsultorioModule() {
             </div>
             <div style={{ marginTop: 14, padding: "10px 12px", background: C.amberDim, border: `1px solid ${C.amber}40`, borderRadius: 8, fontSize: 12, color: C.textMid }}>
               <strong>Ejemplo:</strong> viernes {fmtPct(previewAjuste.pct)} → meta matutino {fmtMXN(previewAjuste.base)} sube a <strong>{fmtMXN(previewAjuste.ajustada)}</strong>.
+            </div>
+          </Box>
+
+          <Box style={{ padding: 20, marginBottom: 16 }}>
+            <SectionTitle sub="Encendido, el ticket sale solo al cerrar la venta: nadie tiene que dar clic en Imprimir. Para que además no aparezca el cuadro de la impresora, Chrome debe abrirse con --kiosk-printing y la impresora de tickets ser la predeterminada de Windows.">
+              TICKET DE VENTA
+            </SectionTitle>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,260px),1fr))", gap: 14 }}>
+              {keysInTab("ventas").filter((k) => FIELDS[k].grupo === "ticket").map((k) => (
+                <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
+              ))}
             </div>
           </Box>
 

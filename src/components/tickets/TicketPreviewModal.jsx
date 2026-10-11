@@ -346,11 +346,12 @@ function WhatsAppTicketPanel({
 export default function TicketPreviewModal({
   open, venta={}, productos=[], cliente: clienteProp=null,
   metodoPago="Efectivo", config={}, promoMsg=null,
-  origen="tienda", autoWhatsApp=false,
+  origen="tienda", autoWhatsApp=false, autoImprimir=false,
   onClose, onNuevaVenta,
 }) {
   const ticketRef = useRef(null);
   const panelRef = useRef(null);
+  const yaImprimioRef = useRef(null);
   const [showFactura, setShowFactura] = useState(false);
   const [clienteLocal, setClienteLocal] = useState(clienteProp);
   const [mostrarWaPanel, setMostrarWaPanel] = useState(false);
@@ -378,6 +379,26 @@ export default function TicketPreviewModal({
   }, [open, autoWhatsApp]);
 
   const pedidoId = venta?.id;
+
+  // Impresión automática del ticket de venta (Config → Ventas → Ajustes).
+  // Una sola vez por venta: reimprimir es el botón, no volver a abrir el modal.
+  // El retraso deja que el ticket (y su QR en SVG) estén en el DOM antes de
+  // que printTicket lo clone; sin eso saldría en blanco.
+  useEffect(() => {
+    if (!open || !autoImprimir) return undefined;
+    const marca = pedidoId ?? "sin-folio";
+    if (yaImprimioRef.current === marca) return undefined;
+    yaImprimioRef.current = marca;
+    const t = setTimeout(() => {
+      try {
+        printTicket("farmacapital-ticket");
+      } catch (e) {
+        console.warn("[FarmaCapital] impresión automática:", e);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [open, autoImprimir, pedidoId]);
+
   const { ticketUrl, loading: ticketUrlLoading } = usePedidoTicketUrl(pedidoId, open);
 
   if (!open) return null;

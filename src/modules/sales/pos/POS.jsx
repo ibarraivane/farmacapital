@@ -88,6 +88,7 @@ import {
 } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
+import { configFlagActiva } from "../../../utils/configFlags";
 import PedidoOnlineCard from "../../../components/PedidoOnlineCard";
 import PedidoOnlineHistRow from "../../../components/PedidoOnlineHistRow";
 import { despacharEnvioPedido } from "../../../lib/envioDomicilioClient";
@@ -1060,6 +1061,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [config,setConfig]   = useState(mergeFarmaciaConfig({}, {
     precio_consulta: CONSULTA_PRECIO_DEFAULT,
     nombre_doctor: "Dra. Lourdes Lucio Falcón",
+    // mergeFarmaciaConfig solo propaga las claves fiscales: las demás se
+    // nombran aquí o no llegan al POS.
+    ticket_auto_imprimir: "0",
   }));
 
   useEffect(() => {
@@ -1123,6 +1127,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           ...p,
           precio_consulta: parseFloat(map.precio_consulta) || CONSULTA_PRECIO_DEFAULT,
           nombre_doctor: map.nombre_doctor || p.nombre_doctor,
+          ticket_auto_imprimir: map.ticket_auto_imprimir ?? p.ticket_auto_imprimir,
         }));
       }
     });
@@ -3893,6 +3898,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         promoMsg={promoTicket}
         origen={ticket.origen || "tienda"}
         autoWhatsApp={ticket.autoWhatsApp === true}
+        autoImprimir={configFlagActiva(config, "ticket_auto_imprimir")}
         onClose={()=>setTicket(null)}
         onNuevaVenta={()=>{ setTicket(null); setCart([]); setTel(""); setCli(null); clearPosSearch(); }}
       />}
