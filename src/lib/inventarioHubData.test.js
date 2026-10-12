@@ -61,12 +61,21 @@ test("las piezas de la caja abierta no se suman a las cajas", () => {
 
 test("caja abierta: lotes en 0 no rescatan productos.stock viejo", () => {
   const abierta = enriquecerProductoConLotes(
-    { id: 9, stock: 1, stock_unidades: 40, stock_blisters: 0 },
+    { id: 9, stock: 1, stock_unidades: 40, stock_blisters: 0, venta_unidad: true },
     [{ id: 1, cantidad_actual: 0, activo: false }],
   );
   expect(abierta.stock_peps).toBe(0);
   expect(abierta.sinLotePeps).toBe(false);
   expect(stockVisibleInventario(abierta)).toBe(0);
+});
+
+test("venta por pieza: al acabar las sueltas el stock viejo no vuelve", () => {
+  const vacia = enriquecerProductoConLotes(
+    { id: 9, stock: 1, stock_unidades: 0, stock_blisters: 0, venta_unidad: true },
+    [{ id: 1, cantidad_actual: 0, activo: false }],
+  );
+  expect(vacia.stock_peps).toBe(0);
+  expect(stockVisibleInventario(vacia)).toBe(0);
 });
 
 test("sin sueltas, lote vacío sigue pudiendo mostrar el stock de anaquel", () => {

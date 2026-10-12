@@ -176,13 +176,17 @@ export function enriquecerProductoConLotes(p, lotes) {
   const sueltas = Math.max(0, Math.trunc(Number(p?.stock_unidades) || 0));
   const blisters = Math.max(0, Math.trunc(Number(p?.stock_blisters) || 0));
   const cajaAbierta = sueltas > 0 || blisters > 0;
-  // Misma idea que el POS: si ya hay filas de lote, la suma manda.
-  // Caja abierta (piezas/blisters): no rescatar productos.stock viejo — esa caja
-  // ya se abrió y no cuenta. Solo sin lotes y sin sueltas se usa el caché
-  // (caso Afrín: mercancía en anaquel sin lote PEPS cargado).
+  const vendePieza = Boolean(p?.venta_unidad);
+  const hayFilasLote = lotesList.length > 0;
+  // Cajas cerradas = suma de lotes con qty. No rescatar productos.stock si:
+  // - hay piezas/blisters de una caja ya abierta, o
+  // - el producto se vende por pieza y ya tiene filas de lote (aunque en 0):
+  //   al acabar las sueltas el caché viejo no debe volver a pintar 1 caja.
+  // Afrín (!venta_unidad, lote vacío, stock de anaquel): sí se usa el caché.
   let stockVisible = stockPeps;
   if (lotesConStock.length === 0) {
-    stockVisible = cajaAbierta ? 0 : (Number(p.stock) || 0);
+    if (cajaAbierta || (vendePieza && hayFilasLote)) stockVisible = 0;
+    else stockVisible = Number(p.stock) || 0;
   }
   return {
     ...p,
