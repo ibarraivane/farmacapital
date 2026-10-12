@@ -273,7 +273,8 @@ def write_readme(path: Path) -> None:
     path.write_text(
         f"""# Nadro folio {FOLIO} · {FECHA} · ${TOTAL_TICKET:.2f}
 
-Factura CFDI (foto) · UUID E11D25BA-… · subtotal $867.28 + IVA Hypafix $10.70.
+Factura CFDI (foto `sql/generated/factura_nadro_6091017798.jpg`) · UUID E11D25BA-… · subtotal ~$867.28 + IVA Hypafix $10.70 = **$877.98**.
+Suma de renglones a costo unitario: $867.31 (3 centavos de redondeo vs subtotal impreso).
 
 ## Veredicto
 
