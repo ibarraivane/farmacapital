@@ -28,6 +28,7 @@ import {
   enriquecerProductoConLotes,
   fetchLotesInventario,
   fetchProductosPaginados,
+  sueltosInventario,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
@@ -40,6 +41,16 @@ const calcStockUrgencia = (p, C, stockPorNombre) => {
   if (!nivel) return null;
   return estiloUrgencia(nivel, C);
 };
+
+function textoStockCajas(p) {
+  const cajas = stockDe(p);
+  const { piezas, blisters } = sueltosInventario(p);
+  const extra = [
+    blisters > 0 ? `${blisters} blister` : null,
+    piezas > 0 ? `${piezas} pzas` : null,
+  ].filter(Boolean);
+  return extra.length ? `${cajas} (${extra.join(" · ")})` : String(cajas);
+}
 
 const calcCaducidadUrgencia = (p, C) => {
   const dias = p.diasCaducidad;
@@ -296,7 +307,7 @@ export default function ReabastoModule() {
       <tr>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${p.nombre}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${p.sku||"—"}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${p.stock}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${textoStockCajas(p)}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${p.min_caducidad_lotes||"—"}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;color:#0D1B2A">${p.cantidadPedida}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right">$${(((p.precioUnit ?? p.mejorCompra?.precio ?? p.costo)||0)*p.cantidadPedida).toFixed(2)}</td>
@@ -486,7 +497,7 @@ export default function ReabastoModule() {
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
                         <div>
                           <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>STOCK ACTUAL</div>
-                          <div style={{fontSize:16,fontWeight:800,color:p.stock===0?C.red:C.text}}>{p.stock}</div>
+                          <div style={{fontSize:16,fontWeight:800,color:stockDe(p)===0?C.red:C.text}}>{textoStockCajas(p)}</div>
                         </div>
                         <div>
                           <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>TU COSTO</div>
@@ -544,7 +555,7 @@ export default function ReabastoModule() {
                         </td>
                         <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
-                        <td style={{padding:"9px 12px",color:p.stock===0?C.red:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{p.stock}</td>
+                        <td style={{padding:"9px 12px",color:stockDe(p)===0?C.red:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{textoStockCajas(p)}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderTuCosto(p)}</td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{cantidadSugerida(p)}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{inputPedir(p)}</td>
@@ -624,7 +635,7 @@ export default function ReabastoModule() {
                           )}
                         </td>
                         <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
-                        <td style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{p.stock}</td>
+                        <td style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{textoStockCajas(p)}</td>
                         <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.min_caducidad_lotes||"—"}</td>
                         <td style={{padding:"8px 12px",color:BRAND.primary,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{p.cantidadPedida}</td>
                         <td style={{padding:"8px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(((p.precioUnit ?? p.mejorCompra?.precio ?? p.costo)||0)*p.cantidadPedida)}</td>

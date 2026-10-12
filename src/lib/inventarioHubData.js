@@ -11,7 +11,7 @@ export const PRODUCTOS_POR_PAGINA = 1000;
 
 /** Columnas que sí existen en `productos`. No incluir `proveedor`. */
 export const PRODUCTOS_SELECT_HUB =
-  "id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,costo,activo,marca,presentacion,forma_farmaceutica,tipo";
+  "id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,costo,activo,marca,presentacion,forma_farmaceutica,tipo,venta_unidad,stock_unidades,stock_blisters";
 
 export const PRODUCTOS_SELECT_LOTES =
   "id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria,activo,tipo";
@@ -52,6 +52,13 @@ export function stockVisibleInventario(p) {
   const n = Number(raw);
   if (!Number.isFinite(n)) return 0;
   return Math.trunc(n);
+}
+
+/** Lo que queda de la caja abierta: no se suma a la columna de cajas. */
+export function sueltosInventario(p) {
+  const piezas = Math.max(0, Math.trunc(Number(p?.stock_unidades) || 0));
+  const blisters = Math.max(0, Math.trunc(Number(p?.stock_blisters) || 0));
+  return { piezas, blisters };
 }
 
 /**

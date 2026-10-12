@@ -7,6 +7,7 @@ import {
   proveedorDesdeLotes,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
+  sueltosInventario,
 } from "./inventarioHubData";
 
 test("agrupa lotes aunque producto_id venga string o anidado", () => {
@@ -49,6 +50,12 @@ test("la celda de stock y el clic usan los lotes, no la columna desfasada", () =
   expect(stockObjetivoAjusteInline({ stock: 4, stock_peps: 4 }, 3)).toBe(3);
   expect(stockVisibleInventario({ stock: 4 })).toBe(4);
   expect(stockVisibleInventario({ stock: 4, stock_peps: 0 })).toBe(0);
+});
+
+test("las piezas de la caja abierta no se suman a las cajas", () => {
+  const aspirina = { stock: 1, stock_peps: 0, stock_unidades: 40, stock_blisters: 2 };
+  expect(stockVisibleInventario(aspirina)).toBe(0);
+  expect(sueltosInventario(aspirina)).toEqual({ piezas: 40, blisters: 2 });
 });
 
 test("el patch de ficha no manda productos.proveedor", () => {

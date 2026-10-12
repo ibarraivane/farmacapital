@@ -29,14 +29,19 @@ const FUENTE_POR_SURTIDOR = {
   "Farma Mayoreo": "surtidor:farma_mayoreo",
 };
 
+/** Piezas o blisters de una caja que ya se abrió en mostrador. */
+export function hayCajaAbiertaInventario(p) {
+  return (Number(p?.stock_unidades) || 0) > 0 || (Number(p?.stock_blisters) || 0) > 0;
+}
+
+/**
+ * Cajas cerradas que cuentan en inventario / reabasto.
+ * Una caja abierta que se vende por pieza o blister ya no es caja:
+ * vive en stock_unidades / stock_blisters. El POS sigue vendiéndola suelta.
+ */
 export function stockDe(p) {
   const cajas = Number(p?.stock_peps ?? p?.stock) || 0;
-  if (cajas > 0) return cajas;
-  // Caja ya abierta: hay piezas o blisters → no es “agotado” (0).
-  // Devolvemos 1 (= hay mercancía), no las 40 tabletas como si fueran 40 cajas.
-  if ((Number(p?.stock_unidades) || 0) > 0) return 1;
-  if ((Number(p?.stock_blisters) || 0) > 0) return 1;
-  return 0;
+  return cajas > 0 ? cajas : 0;
 }
 
 function normCampoCompra(v) {

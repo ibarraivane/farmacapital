@@ -724,9 +724,11 @@ function PosProductoFichaPanel({
             </div>
           )}
 
-          {!servicio && vendeBlister && (
+          {!servicio && item.venta_unidad && !cajaFalsa && (
             <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>
-              {stockCajas} cajas · {stockBlisters} blisters · {stockPiezas} piezas
+              {stockCajas} cajas
+              {vendeBlister ? ` · ${stockBlisters} blisters` : ""}
+              {` · ${stockPiezas} piezas`}
             </div>
           )}
 
