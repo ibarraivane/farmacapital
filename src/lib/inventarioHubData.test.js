@@ -1,5 +1,6 @@
 import {
   agruparLotesPorProducto,
+  enriquecerProductoConLotes,
   filasJson,
   loteObjetivoProveedor,
   patchProductoSinColumnaProveedor,
@@ -56,6 +57,25 @@ test("las piezas de la caja abierta no se suman a las cajas", () => {
   const aspirina = { stock: 1, stock_peps: 0, stock_unidades: 40, stock_blisters: 2 };
   expect(stockVisibleInventario(aspirina)).toBe(0);
   expect(sueltosInventario(aspirina)).toEqual({ piezas: 40, blisters: 2 });
+});
+
+test("caja abierta: lotes en 0 no rescatan productos.stock viejo", () => {
+  const abierta = enriquecerProductoConLotes(
+    { id: 9, stock: 1, stock_unidades: 40, stock_blisters: 0 },
+    [{ id: 1, cantidad_actual: 0, activo: false }],
+  );
+  expect(abierta.stock_peps).toBe(0);
+  expect(abierta.sinLotePeps).toBe(false);
+  expect(stockVisibleInventario(abierta)).toBe(0);
+});
+
+test("sin sueltas, lote vacío sigue pudiendo mostrar el stock de anaquel", () => {
+  const afrin = enriquecerProductoConLotes(
+    { id: 3, stock: 4, stock_unidades: 0 },
+    [{ id: 1, cantidad_actual: 0, activo: true }],
+  );
+  expect(afrin.stock_peps).toBe(4);
+  expect(afrin.sinLotePeps).toBe(true);
 });
 
 test("el patch de ficha no manda productos.proveedor", () => {
