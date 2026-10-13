@@ -5,7 +5,21 @@ import {
   etiquetaCaducidadIso,
   diasRestantesCaducidad,
   esPorCaducar,
+  fechaCaducidadInvalida,
 } from "./caducidad";
+
+describe("fechaCaducidadInvalida", () => {
+  test("0027-10-01 (Tukol OCR) es inválida", () => {
+    expect(fechaCaducidadInvalida("0027-10-01")).toBe(true);
+  });
+  test("2027-10-01 es válida", () => {
+    expect(fechaCaducidadInvalida("2027-10-01")).toBe(false);
+  });
+  test("null/vacío no es inválida (es ausencia)", () => {
+    expect(fechaCaducidadInvalida(null)).toBe(false);
+    expect(fechaCaducidadInvalida("")).toBe(false);
+  });
+});
 
 describe("parseCaducidadMMAA", () => {
   test("0629 → último día de junio 2029", () => {
