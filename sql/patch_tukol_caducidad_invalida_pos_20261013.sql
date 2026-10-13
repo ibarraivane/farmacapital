@@ -34,7 +34,16 @@ update public.lotes l
    end
  where l.fecha_caducidad is not null
    and extract(year from l.fecha_caducidad) < 1990;
--- FC-40010712 (Tukol-D adulto): 0027-10-01 → 2027-10-01 con la regla de arriba.
+
+-- A2) Tukol-D adulto: caducidad correcta = 1 oct 2027 (confirmado mostrador).
+update public.lotes l
+   set fecha_caducidad = '2027-10-01'::date
+  from public.productos p
+ where l.producto_id = p.id
+   and p.sku = 'FC-40010712'
+   and coalesce(l.activo, true) = true
+   and coalesce(l.cantidad_actual, 0) > 0
+   and l.fecha_caducidad is distinct from '2027-10-01'::date;
 
 -- B) FEFO: no descartar basura OCR como «vencido»
 create or replace function public.get_lote_fefo(
