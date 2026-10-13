@@ -9,6 +9,7 @@ import {
   DIAS_CADUCIDAD_CRITICO,
   diasRestantesCaducidad,
   etiquetaCaducidadIso,
+  fechaCaducidadInvalida,
 } from "./caducidad";
 
 export function ymd(value) {
@@ -20,6 +21,12 @@ export function ymd(value) {
     return `${y}-${m}-${d}`;
   }
   return String(value).slice(0, 10) || null;
+}
+
+/** ISO usable en FEFO; basura OCR (0027-…) → null (= sin MMAA, se vende primero). */
+export function ymdCaducidadFefo(value) {
+  if (!value || fechaCaducidadInvalida(value)) return null;
+  return ymd(value);
 }
 
 export function propuestaVigente(propuesta, hoy) {
@@ -40,14 +47,14 @@ export function ordenarLotesFefo(lotes, hoy) {
       if (l?.activo === false) return false;
       const qty = Number(l.cantidad_actual ?? l.cantidad_disponible ?? 0);
       if (!(qty > 0)) return false;
-      const cad = ymd(l.fecha_caducidad);
+      const cad = ymdCaducidadFefo(l.fecha_caducidad);
       if (cad && dia && cad < dia) return false;
       return true;
     })
     .slice()
     .sort((a, b) => {
-      const ca = ymd(a.fecha_caducidad);
-      const cb = ymd(b.fecha_caducidad);
+      const ca = ymdCaducidadFefo(a.fecha_caducidad);
+      const cb = ymdCaducidadFefo(b.fecha_caducidad);
       if (!ca && cb) return -1;
       if (ca && !cb) return 1;
       if (ca && cb && ca !== cb) return ca < cb ? -1 : 1;
@@ -168,7 +175,7 @@ export function resumenFefoMostrador(producto, propuestasByLote, hoy) {
 
   const head = ordered[0];
   const cantidad = qtyLote(head);
-  const cad = ymd(head.fecha_caducidad);
+  const cad = ymdCaducidadFefo(head.fecha_caducidad);
   const etiquetaCad = cad ? etiquetaCaducidadIso(cad) : null;
   const dias = cad ? diasRestantesCaducidad(cad, dia) : null;
   const prop = (propuestasByLote || {})[head.id] || (propuestasByLote || {})[String(head.id)];
@@ -189,7 +196,7 @@ export function resumenFefoMostrador(producto, propuestasByLote, hoy) {
   let secundaria = null;
   if (ordered.length > 1) {
     const next = ordered[1];
-    const nextCad = ymd(next.fecha_caducidad);
+    const nextCad = ymdCaducidadFefo(next.fecha_caducidad);
     const nextEt = nextCad ? etiquetaCaducidadIso(nextCad) : "sin MMAA";
     const nextQty = qtyLote(next);
     const extra = ordered.length - 2;
