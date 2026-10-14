@@ -24,8 +24,14 @@ Suma importes (sin IVA/IEPS): $644.52 · Total CFDI: **$720.23** ✓
 
 ## Qué pegar en Supabase
 
-1. `sql/patch_carga_nadro_6091110421.sql` — altas + cola Recibir borrador.
-2. Tras deploy Vercel: `sql/patch_fotos_nadro_6091110421.sql`.
+**Si el ticket no aparece en Recibir**, pega primero solo la cola:
+
+1. `sql/patch_recepcion_nadro_6091110421_cola.sql` — borrador + 6 renglones (sin altas).
+2. El `SELECT` final debe mostrar `renglones = 6` y `sin_confirmar = 6`.
+3. Luego (opcional, para fichas/precios): `sql/patch_carga_nadro_6091110421.sql`.
+4. Tras deploy Vercel: `sql/patch_fotos_nadro_6091110421.sql`.
+
+Diagnóstico: `sql/diag_nadro_6091110421.sql`.
 
 Stock **0** hasta escanear con pistola y capturar MMAA de la caja.
 
