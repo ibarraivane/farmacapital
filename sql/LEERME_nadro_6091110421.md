@@ -24,16 +24,14 @@ Suma importes (sin IVA/IEPS): $644.52 · Total CFDI: **$720.23** ✓
 
 ## Qué pegar en Supabase
 
-**Si el ticket no aparece en Recibir**, pega primero solo la cola:
-
-1. `sql/patch_recepcion_nadro_6091110421_cola.sql` — borrador + 6 renglones (sin altas).
-2. El `SELECT` final debe mostrar `renglones = 6` y `sin_confirmar = 6`.
-3. Luego (opcional, para fichas/precios): `sql/patch_carga_nadro_6091110421.sql`.
-4. Tras deploy Vercel: `sql/patch_fotos_nadro_6091110421.sql`.
+1. Cola (si no aparece el ticket): `sql/patch_recepcion_nadro_6091110421_cola.sql`
+2. **Si sale el aviso rojo “sin registrar en catálogo”:** `sql/patch_altas_nadro_6091110421_enlazar.sql`  
+   (crea las 5 fichas y enlaza los renglones; no ir a Inventario → Catálogo)
+3. Tras deploy Vercel: `sql/patch_fotos_nadro_6091110421.sql`
 
 Diagnóstico: `sql/diag_nadro_6091110421.sql`.
 
-Stock **0** hasta escanear con pistola y capturar MMAA de la caja.
+Stock **0** hasta escanear con pistola y capturar MMAA de la caja. Amcef IM ya puede estar verde si ya lo escanearon.
 
 ## Notas de ficha
 
