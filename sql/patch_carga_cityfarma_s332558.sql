@@ -141,7 +141,7 @@ select
   '2026-10-17',
   430.00,
   'borrador',
-  'Ticket Cityfarma S332558 · 17-oct-2026 12:39 · efectivo pagado $430.00 · cola Recibir; stock al confirmar pistola + MMAA'
+  'Ticket Cityfarma S332558 · 17-oct-2026 12:39 · efectivo pagado $430.00 · cola Recibir, stock al confirmar pistola y MMAA'
 where not exists (
   select 1 from public.recepciones
   where folio = 'S332558'
@@ -153,18 +153,20 @@ set
   total_ticket = 430.00,
   fecha = '2026-10-17',
   proveedor = 'Cityfarma Iztapalapa',
-  notas = 'Ticket Cityfarma S332558 · 17-oct-2026 12:39 · efectivo pagado $430.00 · cola Recibir; stock al confirmar pistola + MMAA',
+  notas = 'Ticket Cityfarma S332558 · 17-oct-2026 12:39 · efectivo pagado $430.00 · cola Recibir, stock al confirmar pistola y MMAA',
   updated_at = now()
 where folio = 'S332558'
   and coalesce(proveedor, '') ilike '%cityfarma%'
   and estado = 'borrador';
 
-delete from public.recepcion_items i
-using public.recepciones r
-where i.recepcion_id = r.id
-  and r.folio = 'S332558'
-  and coalesce(r.proveedor, '') ilike '%cityfarma%'
-  and r.estado = 'borrador';
+delete from public.recepcion_items
+where recepcion_id in (
+  select id
+  from public.recepciones
+  where folio = 'S332558'
+    and coalesce(proveedor, '') ilike '%cityfarma%'
+    and estado = 'borrador'
+);
 
 insert into public.recepcion_items (
   recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,
@@ -194,9 +196,14 @@ select
   null
 from _fc_cf_s332558 t
 join public.recepciones r
-  on r.folio = 'S332558'
- and coalesce(r.proveedor, '') ilike '%cityfarma%'
- and r.estado = 'borrador'
+  on r.id = (
+    select id
+    from public.recepciones
+    where folio = 'S332558'
+      and coalesce(proveedor, '') ilike '%cityfarma%'
+      and estado = 'borrador'
+    limit 1
+  )
 left join lateral (
   select coalesce(
     public.fc_buscar_producto_escaneo(t.ean),

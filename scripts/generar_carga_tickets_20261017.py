@@ -196,7 +196,7 @@ TICKETS = [
         "total": 491.64,
         "notas": (
             "Ticket Citymark Caja 1/75116 · Bodega F-42 Ejidos del Moral · "
-            "17-oct-2026 11:40 · efectivo · cola Recibir; stock al confirmar pistola + MMAA"
+            "17-oct-2026 11:40 · efectivo · cola Recibir, stock al confirmar pistola y MMAA"
         ),
         "tmp": "_fc_cm_75116",
         "header": (
@@ -204,7 +204,7 @@ TICKETS = [
             "-- Ticket. Subtotal $423.83 + IVA $67.81 = total $491.64.\n"
             "-- El P.U. impreso ya incluye IVA (246.88 + 244.76 = 491.64).\n"
             "-- Costo = P.U. pagado a 2 decimales: Sedal 48.952 → 48.95 "
-            "(5×48.95 = 244.75; el centavo queda en el total del ticket).\n"
+            "(5 x 48.95 = 244.75). El centavo queda en el total del ticket.\n"
             "-- Fotosun UV 100 FPS 50+ tubo 125 mL (Daclaf). Sedal Liso Perfecto crema para peinar 300 mL.\n"
             "-- Sin lote ni caducidad (MMAA de la caja). No inventar 0000."
         ),
@@ -223,7 +223,7 @@ TICKETS = [
         "notas": (
             "Ticket Farmalive 14702 · Club Iztapalapa 1 · 17-oct-2026 12:31 · "
             "cliente FARMACAPITAL · descuento 2% en ambos renglones · tarjeta débito · "
-            "cola Recibir; stock al confirmar pistola + MMAA"
+            "cola Recibir, stock al confirmar pistola y MMAA"
         ),
         "tmp": "_fc_fl_14702",
         "header": (
@@ -248,7 +248,7 @@ TICKETS = [
         "total": 430.00,
         "notas": (
             "Ticket Cityfarma S332558 · 17-oct-2026 12:39 · efectivo pagado $430.00 · "
-            "cola Recibir; stock al confirmar pistola + MMAA"
+            "cola Recibir, stock al confirmar pistola y MMAA"
         ),
         "tmp": "_fc_cf_s332558",
         "header": (

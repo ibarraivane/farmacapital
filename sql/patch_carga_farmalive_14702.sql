@@ -143,7 +143,7 @@ select
   '2026-10-17',
   723.44,
   'borrador',
-  'Ticket Farmalive 14702 · Club Iztapalapa 1 · 17-oct-2026 12:31 · cliente FARMACAPITAL · descuento 2% en ambos renglones · tarjeta débito · cola Recibir; stock al confirmar pistola + MMAA'
+  'Ticket Farmalive 14702 · Club Iztapalapa 1 · 17-oct-2026 12:31 · cliente FARMACAPITAL · descuento 2% en ambos renglones · tarjeta débito · cola Recibir, stock al confirmar pistola y MMAA'
 where not exists (
   select 1 from public.recepciones
   where folio = '14702'
@@ -155,18 +155,20 @@ set
   total_ticket = 723.44,
   fecha = '2026-10-17',
   proveedor = 'Farmalive',
-  notas = 'Ticket Farmalive 14702 · Club Iztapalapa 1 · 17-oct-2026 12:31 · cliente FARMACAPITAL · descuento 2% en ambos renglones · tarjeta débito · cola Recibir; stock al confirmar pistola + MMAA',
+  notas = 'Ticket Farmalive 14702 · Club Iztapalapa 1 · 17-oct-2026 12:31 · cliente FARMACAPITAL · descuento 2% en ambos renglones · tarjeta débito · cola Recibir, stock al confirmar pistola y MMAA',
   updated_at = now()
 where folio = '14702'
   and coalesce(proveedor, '') ilike '%farmalive%'
   and estado = 'borrador';
 
-delete from public.recepcion_items i
-using public.recepciones r
-where i.recepcion_id = r.id
-  and r.folio = '14702'
-  and coalesce(r.proveedor, '') ilike '%farmalive%'
-  and r.estado = 'borrador';
+delete from public.recepcion_items
+where recepcion_id in (
+  select id
+  from public.recepciones
+  where folio = '14702'
+    and coalesce(proveedor, '') ilike '%farmalive%'
+    and estado = 'borrador'
+);
 
 insert into public.recepcion_items (
   recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,
@@ -196,9 +198,14 @@ select
   null
 from _fc_fl_14702 t
 join public.recepciones r
-  on r.folio = '14702'
- and coalesce(r.proveedor, '') ilike '%farmalive%'
- and r.estado = 'borrador'
+  on r.id = (
+    select id
+    from public.recepciones
+    where folio = '14702'
+      and coalesce(proveedor, '') ilike '%farmalive%'
+      and estado = 'borrador'
+    limit 1
+  )
 left join lateral (
   select coalesce(
     public.fc_buscar_producto_escaneo(t.ean),
