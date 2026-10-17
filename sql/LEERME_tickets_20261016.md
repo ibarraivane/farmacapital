@@ -18,7 +18,7 @@ Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42 + Cityfarma. Peg
 
 - Equilibrio 448303 trae **lote 7230526**. El papel dice caducidad 31/05/2029; no se guarda. MMAA de la caja. Clave ALPO608 = Alpharma `7501384541163`.
 - Surtidor: costo = total neto del renglón. Jardianz queda en $991.87, no en la lista de $2,717.46. El agua cierra $285.01 en el papel y $285.00 en el SQL (15 × $19.00).
-- La Hacienda Pets no trae código. En Recibir se toca el renglón gris. El EAN de la botella se anota después en la ficha.
+- La Hacienda Pets: el papel no trae código. La botella es EAN `7506343804129`. El SKU sigue siendo `FC-1792190821000` (M26125 es el código de fábrica). Si el ticket ya se pegó sin código, corre `patch_kannes_delta_ean_7506343804129.sql`.
 - Bodega F-42: costo = P.U. a 2 decimales. El total pagado con tarjeta es $1,812.74. La suma de renglones a 2 decimales queda en $1,812.73 (el papel trae milésimas).
 - Ricitos de Oro: el renglón dice «C 12» y la cantidad impresa es 1 pieza de 500 ml.
 - Precio de alta = recargo sobre ese costo (marca +25%, genérico +60%). Si el producto ya tenía precio, no se pisa.

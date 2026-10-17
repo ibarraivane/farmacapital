@@ -8,7 +8,8 @@
 Nombres de mostrador desde ficha cuando hay página con el EAN.
 El código del ticket no se usa como nombre.
 Sin caducidad inventada (MMAA de la caja). Equilibrio sí trae lote de fábrica.
-Kannes Delta: el ticket no trae código de barras.
+Kannes Delta: el ticket no trae código. La botella es EAN 7506343804129.
+El SKU de FarmaCapital sigue siendo FC-1792190821000. M26125 es de fábrica.
 """
 from __future__ import annotations
 
@@ -28,9 +29,11 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "sql"
 GEN_DIR = ROOT / "sql" / "generated"
 
-# Instante del ticket 143865 (16:47:01 CDMX = 22:47:01 UTC). Sin EAN no hay
-# últimos 8 dígitos; el SKU queda fijo para que el SQL sea idempotente.
+# Instante del ticket 143865 (16:47:01 CDMX = 22:47:01 UTC). El papel no traía
+# EAN, así que el SKU no sale de los últimos 8. La botella sí: 7506343804129.
+# M26125 impreso junto al código es de fábrica; no se usa como SKU.
 SKU_KANNES = "FC-1792190821000"
+EAN_KANNES = "7506343804129"
 
 
 def p(
@@ -74,7 +77,7 @@ def p(
 PRODUCTOS: dict[str, dict] = {
     # ── La Hacienda Pets ──
     "KANNES": p(
-        None,
+        EAN_KANNES,
         sku=SKU_KANNES,
         nombre="Kannes Delta shampoo",
         categoria="Mascotas",
@@ -545,14 +548,15 @@ TICKETS = [
         "notas": (
             "Ticket Bodega G-71 La Hacienda Pets 143865 · 16-oct-2026 16:47 · "
             "efectivo $290.00 · sello PAGADO · cola Recibir. "
-            "El papel no trae código: toca el renglón gris y pon MMAA de la botella. "
-            "Cuando leas el código de la etiqueta, anótalo en la ficha."
+            "El papel no trae código. La botella es EAN 7506343804129. "
+            "M26125 es el código de fábrica, no el SKU. Pon MMAA de la botella."
         ),
         "header": (
             "La Hacienda Pets · Bodega G-71 · ticket 143865 · 2026-10-16 16:47\n"
             "-- 1 renglón / 2 piezas. Efectivo $290.00. Cambio $0.\n"
             "-- Ficha Pet's Pharma: shampoo insecticida deltametrina 0.058%, 250 ml.\n"
-            "-- Sin EAN en el ticket. SKU FC-1792190821000 (instante del ticket).\n"
+            "-- El papel no trae código. Botella EAN 7506343804129 (dígito verificador ok).\n"
+            "-- SKU FarmaCapital FC-1792190821000. M26125 es código de fábrica, no se usa como SKU.\n"
             "-- Sin lote ni caducidad. No inventar 0000."
         ),
         "rows": [
@@ -705,13 +709,6 @@ TICKETS = [
 ]
 
 
-def relax_kannes_ean(path: Path) -> None:
-    """El ticket no trae EAN: la columna temporal acepta null y no se inventa código."""
-    text = path.read_text(encoding="utf-8")
-    text = text.replace("ean text not null,", "ean text,", 1)
-    path.write_text(text, encoding="utf-8")
-
-
 def main() -> None:
     GEN_DIR.mkdir(parents=True, exist_ok=True)
     paths: list[Path] = []
@@ -749,8 +746,6 @@ def main() -> None:
             ],
         )
         sql_path = write_carga_sql(t)
-        if t["key"] == "hacienda_143865":
-            relax_kannes_ean(sql_path)
         paths.append(sql_path)
         resumen.append((t["proveedor"], sql_path.name, pzas, t["total"]))
         print(f"{t['folio']}: {report(t['rows'], t['total'])}  suma_sql={suma:.2f}")
@@ -793,7 +788,7 @@ Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42 + Cityfarma. Peg
 
 - Equilibrio 448303 trae **lote 7230526**. El papel dice caducidad 31/05/2029; no se guarda. MMAA de la caja. Clave ALPO608 = Alpharma `7501384541163`.
 - Surtidor: costo = total neto del renglón. Jardianz queda en $991.87, no en la lista de $2,717.46. El agua cierra $285.01 en el papel y $285.00 en el SQL (15 × $19.00).
-- La Hacienda Pets no trae código. En Recibir se toca el renglón gris. El EAN de la botella se anota después en la ficha.
+- La Hacienda Pets: el papel no trae código. La botella es EAN `7506343804129`. El SKU sigue siendo `FC-1792190821000` (M26125 es el código de fábrica). Si el ticket ya se pegó sin código, corre `patch_kannes_delta_ean_7506343804129.sql`.
 - Bodega F-42: costo = P.U. a 2 decimales. El total pagado con tarjeta es $1,812.74. La suma de renglones a 2 decimales queda en $1,812.73 (el papel trae milésimas).
 - Ricitos de Oro: el renglón dice «C 12» y la cantidad impresa es 1 pieza de 500 ml.
 - Precio de alta = recargo sobre ese costo (marca +25%, genérico +60%). Si el producto ya tenía precio, no se pisa.

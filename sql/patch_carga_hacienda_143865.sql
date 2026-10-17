@@ -1,7 +1,8 @@
 -- La Hacienda Pets · Bodega G-71 · ticket 143865 · 2026-10-16 16:47
 -- 1 renglón / 2 piezas. Efectivo $290.00. Cambio $0.
 -- Ficha Pet's Pharma: shampoo insecticida deltametrina 0.058%, 250 ml.
--- Sin EAN en el ticket. SKU FC-1792190821000 (instante del ticket).
+-- El papel no trae código. Botella EAN 7506343804129 (dígito verificador ok).
+-- SKU FarmaCapital FC-1792190821000. M26125 es código de fábrica, no se usa como SKU.
 -- Sin lote ni caducidad. No inventar 0000.
 -- 1 alta(s) stock 0. 0 ya estaban: solo costo / ficha vacía, no PVP.
 -- Nombres de ficha, no del ticket. Fotos en public/catalogo-propia/ (tras deploy).
@@ -12,7 +13,7 @@ begin;
 
 create temp table _fc_hda_143865 (
   linea integer primary key,
-  ean text,
+  ean text not null,
   sku text not null,
   nombre text not null,
   snap text not null,
@@ -40,7 +41,7 @@ insert into _fc_hda_143865 (
   subcategoria, forma, marca, laboratorio, presentacion, principio_activo,
   concentracion, receta, ya, imagen, foto_file, lote
 ) values
-  (1, null, 'FC-1792190821000', 'Kannes Delta shampoo', 'FAR SHAMPOO KANNES DELTA 250ML', 2, 145.00, 182, 'marca', 'Mascotas', 'Antiparasitario', 'Shampoo', 'Kannes', 'Pet''s Pharma', '250 ml', 'Deltametrina', '0.058%', false, false, 'https://www.farmacapital.mx/catalogo-propia/kannes-delta-shampoo-250ml.png', 'catalogo-propia/kannes-delta-shampoo-250ml.png', null);
+  (1, '7506343804129', 'FC-1792190821000', 'Kannes Delta shampoo', 'FAR SHAMPOO KANNES DELTA 250ML', 2, 145.00, 182, 'marca', 'Mascotas', 'Antiparasitario', 'Shampoo', 'Kannes', 'Pet''s Pharma', '250 ml', 'Deltametrina', '0.058%', false, false, 'https://www.farmacapital.mx/catalogo-propia/kannes-delta-shampoo-250ml.png', 'catalogo-propia/kannes-delta-shampoo-250ml.png', null);
 
 -- Una fila por EAN (mismo producto con 2 lotes no debe insertar 2 veces el SKU).
 insert into public.productos (
@@ -141,7 +142,7 @@ select
   '2026-10-16',
   290.00,
   'borrador',
-  'Ticket Bodega G-71 La Hacienda Pets 143865 · 16-oct-2026 16:47 · efectivo $290.00 · sello PAGADO · cola Recibir. El papel no trae código: toca el renglón gris y pon MMAA de la botella. Cuando leas el código de la etiqueta, anótalo en la ficha.'
+  'Ticket Bodega G-71 La Hacienda Pets 143865 · 16-oct-2026 16:47 · efectivo $290.00 · sello PAGADO · cola Recibir. El papel no trae código. La botella es EAN 7506343804129. M26125 es el código de fábrica, no el SKU. Pon MMAA de la botella.'
 where not exists (
   select 1 from public.recepciones
   where folio = '143865'
@@ -153,7 +154,7 @@ set
   total_ticket = 290.00,
   fecha = '2026-10-16',
   proveedor = 'La Hacienda Pets',
-  notas = 'Ticket Bodega G-71 La Hacienda Pets 143865 · 16-oct-2026 16:47 · efectivo $290.00 · sello PAGADO · cola Recibir. El papel no trae código: toca el renglón gris y pon MMAA de la botella. Cuando leas el código de la etiqueta, anótalo en la ficha.',
+  notas = 'Ticket Bodega G-71 La Hacienda Pets 143865 · 16-oct-2026 16:47 · efectivo $290.00 · sello PAGADO · cola Recibir. El papel no trae código. La botella es EAN 7506343804129. M26125 es el código de fábrica, no el SKU. Pon MMAA de la botella.',
   updated_at = now()
 where folio = '143865'
   and coalesce(proveedor, '') ilike '%hacienda%'
