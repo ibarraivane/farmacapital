@@ -1,6 +1,6 @@
 # Tickets Recibir · 16-oct-2026
 
-Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42. Pegar **cada** SQL en Supabase → SQL Editor → Run.
+Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42 + Cityfarma. Pegar **cada** SQL en Supabase → SQL Editor → Run.
 
 | Pedido | Archivo | Piezas | Total |
 |--------|---------|--------|-------|
@@ -8,6 +8,7 @@ Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42. Pegar **cada** 
 | El Surtidor | `patch_carga_surtidor_146002.sql` | 16 | $1,276.88 |
 | Equilibrio | `patch_carga_equilibrio_448303.sql` | 10 | $181.10 |
 | Bodega F-42 | `patch_carga_bodega_f42_86064.sql` | 46 | $1,812.74 |
+| Cityfarma Iztapalapa | `patch_carga_cityfarma_s332343.sql` | 13 | $1,167.37 |
 
 ## Todo-en-uno
 
@@ -21,5 +22,6 @@ Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42. Pegar **cada** 
 - Bodega F-42: costo = P.U. a 2 decimales. El total pagado con tarjeta es $1,812.74. La suma de renglones a 2 decimales queda en $1,812.73 (el papel trae milésimas).
 - Ricitos de Oro: el renglón dice «C 12» y la cantidad impresa es 1 pieza de 500 ml.
 - Precio de alta = recargo sobre ese costo (marca +25%, genérico +60%). Si el producto ya tenía precio, no se pisa.
-- Foto pendiente (el alta queda sin imagen hasta conseguir packshot): BIC Flex 5, BIC Flex 3, Secret Cherry Blossom, Secret Berry, Secret Orange Blossom, Grisi algas rojas, Axe Dark Temptation, Ricitos de Oro lavanda y lechuga, Lactacyd Pro-Bio, Silkhair manzana / uva / coco, Pantene rizos definidos 200 ml, Head & Shoulders romero, Head & Shoulders anti comezón, T.Taio Bathtime, esponja redonda, Evenflo Basic, Gillette gel aloe, Gillette Sport Triumph, Gillette Cool Wave 45 g, Pantene cuidado clásico 2 en 1 100 ml, agua destilada La Flor.
+- Cityfarma S332343: pendiente de pago $1,167.37. El P.U. ya incluye el IVA del pie ($42.76, solo Kitoscell).
+- Foto pendiente (el alta queda sin imagen hasta conseguir packshot): BIC Flex 5, BIC Flex 3, Secret Cherry Blossom, Secret Berry, Secret Orange Blossom, Grisi algas rojas, Axe Dark Temptation, Ricitos de Oro lavanda y lechuga, Lactacyd Pro-Bio, Silkhair manzana / uva / coco, Pantene rizos definidos 200 ml, Head & Shoulders romero, Head & Shoulders anti comezón, T.Taio Bathtime, esponja redonda, Evenflo Basic, Gillette gel aloe, Gillette Sport Triumph, Gillette Cool Wave 45 g, Pantene cuidado clásico 2 en 1 100 ml, agua destilada La Flor, Kitoscell 3.5 g, Malival 25 mg.
 - Regenerar: `python3 scripts/generar_carga_tickets_20261016.py`

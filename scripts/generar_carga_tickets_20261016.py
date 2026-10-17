@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Tickets 16-oct-2026 (fotos térmicas) → altas + cola Recibir.
 
-4 pedidos:
+5 pedidos:
   La Hacienda Pets 143865 · El Surtidor 146002
-  Equilibrio 448303 · Bodega F-42 86064
+  Equilibrio 448303 · Bodega F-42 86064 · Cityfarma S332343
 
 Nombres de mostrador desde ficha cuando hay página con el EAN.
 El código del ticket no se usa como nombre.
@@ -415,6 +415,76 @@ PRODUCTOS: dict[str, dict] = {
         laboratorio="Procter & Gamble",
         presentacion="100 ml",
     ),
+    # ── Cityfarma S332343 ──
+    "7501298206455": p(
+        "7501298206455",
+        nombre="Dabex XR metformina 500 mg",
+        categoria="Medicamentos",
+        subcategoria="Diabetes",
+        forma="Tabletas",
+        marca="Dabex",
+        laboratorio="Merck",
+        presentacion="Caja con 30 tabletas",
+        principio="Metformina",
+        concentracion="500 mg",
+        receta=True,
+        foto_file="dabex-xr-metformina-500mg-c30-7501298206455.jpg",
+    ),
+    "7501008498866": p(
+        "7501008498866",
+        sku="FC-08498866",
+        nombre="Flanax naproxeno sódico 550 mg",
+        categoria="Medicamentos",
+        subcategoria="Analgésico",
+        forma="Tabletas",
+        marca="Flanax",
+        laboratorio="Bayer",
+        presentacion="Caja con 6 tabletas",
+        principio="Naproxeno sódico",
+        concentracion="550 mg",
+        ya=True,
+        foto_file="flanax-550mg-c6-7501008498866.jpg",
+    ),
+    "7502227425008": p(
+        "7502227425008",
+        sku="FC-27425008",
+        nombre="Groobe dimenhidrinato 50 mg",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Antiemético",
+        forma="Cápsulas",
+        marca="Groobe",
+        laboratorio="Gelpharma",
+        presentacion="Caja con 24 cápsulas",
+        principio="Dimenhidrinato",
+        concentracion="50 mg",
+        ya=True,
+        foto_file="groobe-dimenhidrinato-50mg-c24-7502227425008.jpg",
+    ),
+    "7502224228060": p(
+        "7502224228060",
+        nombre="Kitoscell",
+        categoria="Dermocosmético",
+        subcategoria="Cicatrices",
+        forma="Gel",
+        marca="Kitoscell",
+        laboratorio="Cell Pharma",
+        presentacion="Tubo 3.5 g",
+        principio="Pirfenidona",
+        concentracion="8 g/100 g",
+    ),
+    "7501101614026": p(
+        "7501101614026",
+        nombre="Malival indometacina 25 mg",
+        categoria="Medicamentos",
+        subcategoria="Analgésico",
+        forma="Cápsulas",
+        marca="Malival",
+        laboratorio="Silanes",
+        presentacion="Caja con 30 cápsulas",
+        principio="Indometacina",
+        concentracion="25 mg",
+    ),
     "7506195148686": p(
         "7506195148686",
         nombre="Head & Shoulders limpieza renovadora",
@@ -602,6 +672,36 @@ TICKETS = [
             row("7506195148686", "SH H&S LIMP RENOV 90ML", 2, 15.19),
         ],
     },
+    {
+        "key": "cityfarma_s332343",
+        "tmp": "_fc_cf_s332343",
+        "folio": "S332343",
+        "proveedor": "Cityfarma Iztapalapa",
+        "proveedor_ilike": "cityfarma",
+        "fecha": "2026-10-16",
+        "total": 1167.37,
+        "notas": (
+            "Ticket Cityfarma S332343 · 16-oct-2026 17:01 · vendedor Eduardo Nicanor · "
+            "cliente Luis Angel Palillero Ventura · pendiente de pago $1,167.37 · "
+            "P.U. ya trae IVA · cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "header": (
+            "Cityfarma Iztapalapa · orden S332343 · 2026-10-16 17:01\n"
+            "-- Subtotal $1,124.61 + IVA 16% $42.76 = pendiente $1,167.37.\n"
+            "-- El IVA del pie está en el renglón de Kitoscell (3 × $103.33 = $310.00).\n"
+            "-- Costo = P.U. impreso. Kitoscell a 2 decimales cierra $309.99 (1 centavo).\n"
+            "-- Flanax EAN 7501008498866 es caja con 6 tabletas.\n"
+            "-- Groobe: el papel dice TABS; la caja es 24 cápsulas.\n"
+            "-- Sin lote ni caducidad. No inventar 0000."
+        ),
+        "rows": [
+            row("7501298206455", "DABEX XR 500MG T30", 1, 270.88),
+            row("7501008498866", "FLANAX 550MG C6 TABS", 3, 99.54),
+            row("7502227425008", "GROOBE 50MG C24 TABS", 5, 27.53),
+            row("7502224228060", "KITOSCELL 3.5GR GEL", 3, 103.33),
+            row("7501101614026", "MALIVAL 25 MG C 30CA", 1, 150.22),
+        ],
+    },
 ]
 
 
@@ -679,7 +779,7 @@ def main() -> None:
     (OUT_DIR / "LEERME_tickets_20261016.md").write_text(
         f"""# Tickets Recibir · 16-oct-2026
 
-Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42. Pegar **cada** SQL en Supabase → SQL Editor → Run.
+Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42 + Cityfarma. Pegar **cada** SQL en Supabase → SQL Editor → Run.
 
 | Pedido | Archivo | Piezas | Total |
 |--------|---------|--------|-------|
@@ -697,7 +797,8 @@ Fotos La Hacienda Pets + El Surtidor + Equilibrio + Bodega F-42. Pegar **cada** 
 - Bodega F-42: costo = P.U. a 2 decimales. El total pagado con tarjeta es $1,812.74. La suma de renglones a 2 decimales queda en $1,812.73 (el papel trae milésimas).
 - Ricitos de Oro: el renglón dice «C 12» y la cantidad impresa es 1 pieza de 500 ml.
 - Precio de alta = recargo sobre ese costo (marca +25%, genérico +60%). Si el producto ya tenía precio, no se pisa.
-- Foto pendiente (el alta queda sin imagen hasta conseguir packshot): BIC Flex 5, BIC Flex 3, Secret Cherry Blossom, Secret Berry, Secret Orange Blossom, Grisi algas rojas, Axe Dark Temptation, Ricitos de Oro lavanda y lechuga, Lactacyd Pro-Bio, Silkhair manzana / uva / coco, Pantene rizos definidos 200 ml, Head & Shoulders romero, Head & Shoulders anti comezón, T.Taio Bathtime, esponja redonda, Evenflo Basic, Gillette gel aloe, Gillette Sport Triumph, Gillette Cool Wave 45 g, Pantene cuidado clásico 2 en 1 100 ml, agua destilada La Flor.
+- Cityfarma S332343: pendiente de pago $1,167.37. El P.U. ya incluye el IVA del pie ($42.76, solo Kitoscell).
+- Foto pendiente (el alta queda sin imagen hasta conseguir packshot): BIC Flex 5, BIC Flex 3, Secret Cherry Blossom, Secret Berry, Secret Orange Blossom, Grisi algas rojas, Axe Dark Temptation, Ricitos de Oro lavanda y lechuga, Lactacyd Pro-Bio, Silkhair manzana / uva / coco, Pantene rizos definidos 200 ml, Head & Shoulders romero, Head & Shoulders anti comezón, T.Taio Bathtime, esponja redonda, Evenflo Basic, Gillette gel aloe, Gillette Sport Triumph, Gillette Cool Wave 45 g, Pantene cuidado clásico 2 en 1 100 ml, agua destilada La Flor, Kitoscell 3.5 g, Malival 25 mg.
 - Regenerar: `python3 scripts/generar_carga_tickets_20261016.py`
 """,
         encoding="utf-8",
