@@ -34,6 +34,8 @@ alter table public.productos
   add column if not exists grupo_controlado text;
 alter table public.productos
   add column if not exists visible_tienda boolean not null default true;
+alter table public.productos
+  add column if not exists laboratorio text;
 
 do $$
 declare
