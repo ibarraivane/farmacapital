@@ -627,7 +627,7 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
               guarda otro.
               {jornada?.cubre_ambos
                 ? " Si hoy cubres ambos, abre el siguiente turno en el POS."
-                : " Mary cierra el matutino y Erika el vespertino."}
+                : " Cada quien cierra sólo el turno que RH le asignó."}
               {esVendedor(usuario)
                 ? ""
                 : <> Ábrelo en <button type="button" onClick={() => setTab("historial")}
