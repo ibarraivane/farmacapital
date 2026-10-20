@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Tickets 19-oct-2026 (fotos) → cola Recibir.
 
-5 pedidos:
+6 pedidos:
   Cityfarma S333074 · Sahuayo 428641 · Equilibrio 448644
-  Farmalive 14814 · Nadro 6091278111
+  Farmalive 14814 · Nadro 6091278111 · Nadro 6091329944
 
 Nombres de mostrador desde ficha (no el código del ticket).
 Sin caducidad inventada (MMAA de la caja). Equilibrio sí trae lote de fábrica.
 Farmalive: costo = P.U. neto después del descuento del renglón.
 Cityfarma: P.U. como en ticket (nebulizador Omron incluye IVA 16% → total líneas $2,545.99).
+Nadro 6091329944: Tena con IVA 16% en el costo unitario (Pants $117.47 · Predoblado $88.01)
+para que la suma coincida con total factura $1,615.56.
 """
 from __future__ import annotations
 
@@ -628,6 +630,88 @@ PRODUCTOS: dict[str, dict] = {
         receta=True,
         ya=False,
     ),
+    # ── Nadro 6091329944 ──
+    "7501088509773": p(
+        "7501088509773",
+        sku="FC-8509773",
+        nombre="Antiflu-Des",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Antigripal",
+        forma="Cápsula",
+        marca="Antiflu-Des",
+        laboratorio="Chinoin",
+        presentacion="Caja con 24 cápsulas",
+        principio="Amantadina / clorfenamina / paracetamol",
+        ya=True,
+    ),
+    "7501088509766": p(
+        "7501088509766",
+        sku="FC-8509766",
+        nombre="Antiflu-Des Junior",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Antigripal",
+        forma="Solución",
+        marca="Antiflu-Des",
+        laboratorio="Chinoin",
+        presentacion="Frasco 60 mL",
+        principio="Amantadina / clorfenamina / paracetamol",
+        ya=False,
+    ),
+    "7501019064807": p(
+        "7501019064807",
+        sku="FC-19064807",
+        nombre="Tena Pants Comfort grande",
+        tipo="marca",
+        categoria="Higiene",
+        subcategoria="Incontinencia",
+        forma="Pants",
+        marca="Tena",
+        laboratorio="Essity",
+        presentacion="Bolsa con 13 pants talla grande",
+        ya=False,
+    ),
+    "7501065060891": p(
+        "7501065060891",
+        sku="FC-65060891",
+        nombre="Contac Ultra",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Antigripal",
+        forma="Tableta",
+        marca="Contac",
+        laboratorio="Haleon",
+        presentacion="Caja con 12 tabletas",
+        principio="Paracetamol / fenilefrina / clorfenamina",
+        ya=True,
+    ),
+    "7506442701039": p(
+        "7506442701039",
+        nombre="Lacosamida 100 mg",
+        tipo="generico",
+        forma="Tableta",
+        marca=None,
+        laboratorio=None,
+        presentacion="Caja con 28 tabletas",
+        principio="Lacosamida",
+        concentracion="100 mg",
+        receta=True,
+        ya=False,
+    ),
+    "7501019051401": p(
+        "7501019051401",
+        sku="FC-19051401",
+        nombre="Tena pañal predoblado unitario",
+        tipo="marca",
+        categoria="Higiene",
+        subcategoria="Incontinencia",
+        forma="Pañal",
+        marca="Tena",
+        laboratorio="Essity",
+        presentacion="Bolsa con 10 piezas",
+        ya=False,
+    ),
 }
 
 def row(ean: str, snap: str, qty: int, pu: float, lote: str | None = None) -> dict:
@@ -830,6 +914,45 @@ TICKETS = [
             row("75049612", "TIMOL 0.50% FCO GOT 5ML SOL LGEN", 2, 31.22),
         ],
     },
+    {
+        "key": "nadro_6091329944",
+        "folio": "6091329944",
+        "proveedor": "Nadro",
+        "proveedor_ilike": "nadro",
+        "fecha": "2026-10-19",
+        "total": 1615.56,
+        "notas": (
+            "Factura Nadro 6091329944 · 19-oct-2026 · entrega FarmaCapital · "
+            "6 renglones / 13 pzas · $1,615.56 · cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "tmp": "_fc_nd_6091329944",
+        "header": (
+            "Nadro · folio 6091329944 · 2026-10-19 · NADRO MÉXICO SUR\n"
+            "-- Entrega FARMACAPITAL (LA CAPI). 13 pzas · total $1,615.56 "
+            "(subtotal $1,562.94 + IVA 16% $52.62).\n"
+            "-- Tena Pants / Predoblado: costo = total concepto c/IVA "
+            "($117.47 y $88.01) para cuadrar factura.\n"
+            "-- LGEN Lacosamida 100 mg 28 tab. Sin caducidad en cola (MMAA caja)."
+        ),
+        "rows": [
+            row("7501088509773", "ANTIFLU-DES 24 CAPS", 2, 146.59),
+            row("7501088509766", "ANTIFLU-DES JR SOL 60 ML", 2, 111.86),
+            row(
+                "7501019064807",
+                "CALZ TENA PANTS COMFORT GDE C/13",
+                1,
+                117.47,
+            ),
+            row("7501065060891", "CONTAC ULTRA 12 TAB", 3, 30.54),
+            row("7506442701039", "LACOSAMIDA 100MG 28 TAB LGEN", 2, 312.77),
+            row(
+                "7501019051401",
+                "PAÑAL TENA PREDOBLADO UNIT C/10",
+                3,
+                88.01,
+            ),
+        ],
+    },
 ]
 
 
@@ -908,6 +1031,7 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro. Pegar **cada** SQL e
 | Equilibrio 448644 | `patch_carga_equilibrio_448644.sql` | 29 | $1,059.65 |
 | Farmalive 14814 | `patch_carga_farmalive_14814.sql` | 42 | $1,664.96 |
 | Nadro 6091278111 | `patch_carga_nadro_6091278111.sql` | 13 | $1,008.73 |
+| Nadro 6091329944 | `patch_carga_nadro_6091329944.sql` | 13 | $1,615.56 |
 
 ## Todo-en-uno
 
@@ -919,7 +1043,8 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro. Pegar **cada** SQL e
 - Equilibrio: renglón ácido ascórbico cortado en la foto → AMSA 6 amp EAN `7501349022119` (confirmar caja). AMS365 Zolmitriptano → EAN Ultra/AMSA `7502216805446`.
 - Farmalive: costo = neto del renglón. Papel $1,664.99; suma SQL $1,664.96.
 - Cityfarma: total = suma de renglones $2,545.99 (nebulizador Omron lleva el IVA 16% $80).
-- Nadro: Timolol Exakta EAN corto `75049612` (mismo estilo que otros Exakta en Farmacity).
+- Nadro 6091278111: Timolol Exakta EAN corto `75049612` (mismo estilo que otros Exakta en Farmacity).
+- Nadro 6091329944: Tena con IVA en costo (Pants $117.47 · Predoblado $88.01). Total factura $1,615.56.
 - Sahuayo: Nuvel Aclarado Ideal roll-on 50 mL EAN `7501082730258`.
 - Regenerar: `python3 scripts/generar_carga_tickets_20261019.py`
 """,
