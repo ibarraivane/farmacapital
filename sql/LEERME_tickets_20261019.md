@@ -1,6 +1,6 @@
-# Tickets Recibir · 19-oct-2026
+# Tickets Recibir · 19–20-oct-2026
 
-Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro. Pegar **cada** SQL en Supabase → SQL Editor → Run.
+Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro + compra Huggies. Pegar **cada** SQL en Supabase → SQL Editor → Run.
 
 | Pedido | Archivo | Piezas | Total |
 |--------|---------|--------|-------|
@@ -10,6 +10,7 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro. Pegar **cada** SQL e
 | Farmalive 14814 | `patch_carga_farmalive_14814.sql` | 42 | $1,664.96 |
 | Nadro 6091278111 | `patch_carga_nadro_6091278111.sql` | 13 | $1,008.73 |
 | Nadro 6091329944 | `patch_carga_nadro_6091329944.sql` | 13 | $1,615.56 |
+| Compra directa Huggies E4 | `patch_carga_compra_huggies_e4_250.sql` | 1 | $250.00 |
 
 ## Todo-en-uno
 
@@ -23,5 +24,6 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro. Pegar **cada** SQL e
 - Cityfarma: total = suma de renglones $2,545.99 (nebulizador Omron lleva el IVA 16% $80).
 - Nadro 6091278111: Timolol Exakta EAN corto `75049612` (mismo estilo que otros Exakta en Farmacity).
 - Nadro 6091329944: Tena con IVA en costo (Pants $117.47 · Predoblado $88.01). Total factura $1,615.56.
+- Huggies Supreme Etapa 4 · EAN `7501943441767` · costo $250 · foto `catalogo-propia/panales-huggies-supreme-etapa-4-36-7501943441767.jpg` (tras deploy).
 - Sahuayo: Nuvel Aclarado Ideal roll-on 50 mL EAN `7501082730258`.
 - Regenerar: `python3 scripts/generar_carga_tickets_20261019.py`

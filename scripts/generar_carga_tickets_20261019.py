@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Tickets 19-oct-2026 (fotos) → cola Recibir.
+"""Tickets 19–20-oct-2026 (fotos) → cola Recibir.
 
-6 pedidos:
+7 pedidos:
   Cityfarma S333074 · Sahuayo 428641 · Equilibrio 448644
   Farmalive 14814 · Nadro 6091278111 · Nadro 6091329944
+  Compra directa Huggies Supreme E4 (foto + EAN, costo $250)
 
 Nombres de mostrador desde ficha (no el código del ticket).
 Sin caducidad inventada (MMAA de la caja). Equilibrio sí trae lote de fábrica.
@@ -712,6 +713,21 @@ PRODUCTOS: dict[str, dict] = {
         presentacion="Bolsa con 10 piezas",
         ya=False,
     ),
+    # ── Compra directa Huggies (foto caja + EAN) ──
+    "7501943441767": p(
+        "7501943441767",
+        sku="FC-43441767",
+        nombre="Huggies Supreme Etapa 4",
+        tipo="marca",
+        categoria="Higiene",
+        subcategoria="Bebé",
+        forma="Pañal",
+        marca="Huggies",
+        laboratorio="Kimberly-Clark",
+        presentacion="Bolsa con 36 pañales unisex (9 a 12 kg)",
+        ya=False,
+        foto_file="panales-huggies-supreme-etapa-4-36-7501943441767.jpg",
+    ),
 }
 
 def row(ean: str, snap: str, qty: int, pu: float, lote: str | None = None) -> dict:
@@ -953,6 +969,35 @@ TICKETS = [
             ),
         ],
     },
+    {
+        "key": "compra_huggies_e4_250",
+        "folio": "FOTO-441767",
+        "proveedor": "Compra directa",
+        "proveedor_ilike": "compra directa",
+        "fecha": "2026-10-20",
+        "total": 250.00,
+        "notas": (
+            "Compra directa · foto caja Huggies Supreme Etapa 4 · 20-oct-2026 · "
+            "EAN 7501943441767 · 1 pza · costo $250.00 · "
+            "cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "tmp": "_fc_cd_hug_e4",
+        "header": (
+            "Compra directa · folio FOTO-441767 · 2026-10-20\n"
+            "-- Foto caja + código de barras. Sin ticket de proveedor.\n"
+            "-- Huggies Supreme Protección Delicada Etapa 4 · 36 pañales · "
+            "unisex 9–12 kg · EAN 7501943441767 · Clave KC 94082.\n"
+            "-- Costo reportado $250.00. Sin lote/caducidad en cola (MMAA caja)."
+        ),
+        "rows": [
+            row(
+                "7501943441767",
+                "HUGGIES SUPREME E4 36 PZ 9-12KG",
+                1,
+                250.00,
+            ),
+        ],
+    },
 ]
 
 
@@ -1020,9 +1065,9 @@ def main() -> None:
 
     leerme = OUT_DIR / "LEERME_tickets_20261019.md"
     leerme.write_text(
-        """# Tickets Recibir · 19-oct-2026
+        """# Tickets Recibir · 19–20-oct-2026
 
-Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro. Pegar **cada** SQL en Supabase → SQL Editor → Run.
+Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro + compra Huggies. Pegar **cada** SQL en Supabase → SQL Editor → Run.
 
 | Pedido | Archivo | Piezas | Total |
 |--------|---------|--------|-------|
@@ -1032,6 +1077,7 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro. Pegar **cada** SQL e
 | Farmalive 14814 | `patch_carga_farmalive_14814.sql` | 42 | $1,664.96 |
 | Nadro 6091278111 | `patch_carga_nadro_6091278111.sql` | 13 | $1,008.73 |
 | Nadro 6091329944 | `patch_carga_nadro_6091329944.sql` | 13 | $1,615.56 |
+| Compra directa Huggies E4 | `patch_carga_compra_huggies_e4_250.sql` | 1 | $250.00 |
 
 ## Todo-en-uno
 
@@ -1045,6 +1091,7 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro. Pegar **cada** SQL e
 - Cityfarma: total = suma de renglones $2,545.99 (nebulizador Omron lleva el IVA 16% $80).
 - Nadro 6091278111: Timolol Exakta EAN corto `75049612` (mismo estilo que otros Exakta en Farmacity).
 - Nadro 6091329944: Tena con IVA en costo (Pants $117.47 · Predoblado $88.01). Total factura $1,615.56.
+- Huggies Supreme Etapa 4 · EAN `7501943441767` · costo $250 · foto `catalogo-propia/panales-huggies-supreme-etapa-4-36-7501943441767.jpg` (tras deploy).
 - Sahuayo: Nuvel Aclarado Ideal roll-on 50 mL EAN `7501082730258`.
 - Regenerar: `python3 scripts/generar_carga_tickets_20261019.py`
 """,
