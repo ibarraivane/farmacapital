@@ -12,6 +12,7 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro + compra Huggies. Peg
 | Nadro 6091329944 | `patch_carga_nadro_6091329944.sql` | 13 | $1,615.56 |
 | Compra directa Huggies E4 | `patch_carga_compra_huggies_e4_250.sql` | 1 | $250.00 |
 | Levic 9012489145 | `patch_carga_levic_9012489145.sql` | 2 | $558.72 |
+| FESA V11004000055574 | `patch_carga_fesa_v11004000055574.sql` | 3 | $416.04 |
 
 ## Todo-en-uno
 
@@ -27,5 +28,6 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro + compra Huggies. Peg
 - Nadro 6091329944: Tena con IVA en costo (Pants $117.47 · Predoblado $88.01). Total factura $1,615.56.
 - Huggies Supreme Etapa 4 · EAN `7501943441767` · costo $250 · foto `catalogo-propia/panales-huggies-supreme-etapa-4-36-7501943441767.jpg` (tras deploy).
 - Levic 9012489145: Dexal susp EAN `7502009747335` ($166.22) + Fossin 12 caps EAN `7501300450012` ($392.50). Total $558.72.
+- FESA V11004000055574: Ulmextral metotrexato 50 mg EAN `7506429601086` · promo 2+1 (2×$208.02 + 1×$0) = 3 pzas · $416.04.
 - Sahuayo: Nuvel Aclarado Ideal roll-on 50 mL EAN `7501082730258`.
 - Regenerar: `python3 scripts/generar_carga_tickets_20261019.py`

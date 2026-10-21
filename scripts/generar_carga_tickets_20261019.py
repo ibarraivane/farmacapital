@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Tickets 19–20-oct-2026 (fotos) → cola Recibir.
 
-8 pedidos:
+9 pedidos:
   Cityfarma S333074 · Sahuayo 428641 · Equilibrio 448644
   Farmalive 14814 · Nadro 6091278111 · Nadro 6091329944
   Compra directa Huggies Supreme E4 (foto + EAN, costo $250)
   Levic 9012489145 (Dexal susp + Fossin)
+  FESA V11004000055574 (Ulmextral 3 pzas, promo 2+1)
 
 Nombres de mostrador desde ficha (no el código del ticket).
 Sin caducidad inventada (MMAA de la caja). Equilibrio / Levic sí traen lote de fábrica.
@@ -14,6 +15,7 @@ Cityfarma: P.U. como en ticket (nebulizador Omron incluye IVA 16% → total lín
 Nadro 6091329944: Tena con IVA 16% en el costo unitario (Pants $117.47 · Predoblado $88.01)
 para que la suma coincida con total factura $1,615.56.
 Levic: costo = precio neto CFDI (Dexal $166.22 · Fossin $392.50 → total $558.72).
+FESA: 2×$208.02 + 1×$0 (promo) = $416.04.
 """
 from __future__ import annotations
 
@@ -765,6 +767,24 @@ PRODUCTOS: dict[str, dict] = {
         ya=False,
         foto_file="fossin-fosfomicina-500mg-12caps-7501300450012.jpg",
     ),
+    # ── FESA Ulmextral ──
+    "7506429601086": p(
+        "7506429601086",
+        sku="FC-42960108",
+        nombre="Ulmextral metotrexato 50 mg",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Oncología",
+        forma="Solución inyectable",
+        marca="Ulmextral",
+        laboratorio="Ulsa Tech",
+        presentacion="Caja con 1 frasco ámpula",
+        principio="Metotrexato",
+        concentracion="50 mg",
+        receta=True,
+        ya=False,
+        foto_file="ulmextral-metotrexato-50mg-iny-7506429601086.jpg",
+    ),
 }
 
 def row(ean: str, snap: str, qty: int, pu: float, lote: str | None = None) -> dict:
@@ -1073,6 +1093,41 @@ TICKETS = [
             ),
         ],
     },
+    {
+        "key": "fesa_v11004000055574",
+        "folio": "V11004000055574",
+        "proveedor": "Farmacias Especializadas",
+        "proveedor_ilike": "especializadas",
+        "fecha": "2026-10-20",
+        "total": 416.04,
+        "notas": (
+            "Ticket FESA V11004000055574 · Iztapalapa · 20-oct-2026 18:31 · "
+            "Ulmextral 50 mg · promo 2+1 · 3 pzas · $416.04 · "
+            "cola Recibir; stock al confirmar pistola + MMAA"
+        ),
+        "tmp": "_fc_fesa_55574",
+        "header": (
+            "Farmacias Especializadas (FESA) · folio V11004000055574 · 2026-10-20 18:31\n"
+            "-- Sucursal Iztapalapa · ID 6635450. Total $416.04 (IVA 0%).\n"
+            "-- Ulmextral metotrexato 50 mg SOL INY FAM C/1 EAN 7506429601086.\n"
+            "-- Promo Más calidad de vida: 2×$208.02 + 1×$0.00 = 3 pzas.\n"
+            "-- Sin lote/caducidad en ticket (MMAA de la caja). 0000 inválido."
+        ),
+        "rows": [
+            row(
+                "7506429601086",
+                "ULMEXTRAL 50MG SOL INY FAM C/1",
+                2,
+                208.02,
+            ),
+            row(
+                "7506429601086",
+                "ULMEXTRAL 50MG SOL INY FAM C/1",
+                1,
+                0.00,
+            ),
+        ],
+    },
 ]
 
 
@@ -1154,6 +1209,7 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro + compra Huggies. Peg
 | Nadro 6091329944 | `patch_carga_nadro_6091329944.sql` | 13 | $1,615.56 |
 | Compra directa Huggies E4 | `patch_carga_compra_huggies_e4_250.sql` | 1 | $250.00 |
 | Levic 9012489145 | `patch_carga_levic_9012489145.sql` | 2 | $558.72 |
+| FESA V11004000055574 | `patch_carga_fesa_v11004000055574.sql` | 3 | $416.04 |
 
 ## Todo-en-uno
 
@@ -1169,6 +1225,7 @@ Fotos Cityfarma + Sahuayo + Equilibrio + Farmalive + Nadro + compra Huggies. Peg
 - Nadro 6091329944: Tena con IVA en costo (Pants $117.47 · Predoblado $88.01). Total factura $1,615.56.
 - Huggies Supreme Etapa 4 · EAN `7501943441767` · costo $250 · foto `catalogo-propia/panales-huggies-supreme-etapa-4-36-7501943441767.jpg` (tras deploy).
 - Levic 9012489145: Dexal susp EAN `7502009747335` ($166.22) + Fossin 12 caps EAN `7501300450012` ($392.50). Total $558.72.
+- FESA V11004000055574: Ulmextral metotrexato 50 mg EAN `7506429601086` · promo 2+1 (2×$208.02 + 1×$0) = 3 pzas · $416.04.
 - Sahuayo: Nuvel Aclarado Ideal roll-on 50 mL EAN `7501082730258`.
 - Regenerar: `python3 scripts/generar_carga_tickets_20261019.py`
 """,
