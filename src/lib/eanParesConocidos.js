@@ -10,4 +10,7 @@ export const EAN_PARES_CONOCIDOS = [
   ["650240078996", "6502400078996"],
   // Palmolive Optims Extra Suavidad 250 ml. El ticket F-42 84416 la partió en dos SKU.
   ["7509546695570", "7509546695587"],
+  // Timolol OPKO/Exakta 5 mg/mL 5 mL: caja imprime 75049812; mayoreo Dilopsan/recipe
+  // listan GTIN 0000075049812 (mismas cajas, “código distinto” por padding).
+  ["75049812", "0000075049812", "075049812"],
 ];

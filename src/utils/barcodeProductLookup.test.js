@@ -107,6 +107,44 @@ describe("Optims Extra Suavidad: los dos códigos del ticket son la misma crema"
   });
 });
 
+describe("Timolol OPKO: caja 75049812 vs GTIN mayoreo", () => {
+  const timolol = {
+    id: 91001,
+    activo: true,
+    sku: "FC-75049812",
+    nombre: "Timolol 5 mg/mL",
+    codigo_barras: "75049812",
+    descripcion:
+      "OPKO Timolol 5.0 mg/mL 5 mL · EAN caja 75049812 · alias GTIN 0000075049812",
+  };
+  const dexlansoprazol = {
+    id: 91002,
+    activo: true,
+    sku: "FC-49078281",
+    nombre: "Dexlansoprazol 60 mg",
+    codigo_barras: "7503049078281",
+    descripcion: "Avivia Dexlansoprazol 60 mg C/7 · EAN 7503049078281",
+  };
+
+  test("caja corta y GTIN con ceros abren el mismo Timolol", () => {
+    expect(codigosBarrasDeProducto(timolol)).toEqual(
+      expect.arrayContaining(["75049812", "0000075049812", "075049812"])
+    );
+    expect(findProductExactScan([timolol], "75049812")?.id).toBe(91001);
+    expect(findProductExactScan([timolol], "0000075049812")?.id).toBe(91001);
+    expect(findProductExactScan([timolol], "075049812")?.id).toBe(91001);
+  });
+
+  test("Dexlansoprazol Avivia no se confunde con Timolol", () => {
+    expect(findProductExactScan([timolol, dexlansoprazol], "7503049078281")?.sku).toBe(
+      "FC-49078281"
+    );
+    expect(findProductExactScan([timolol, dexlansoprazol], "75049812")?.sku).toBe(
+      "FC-75049812"
+    );
+  });
+});
+
 describe("Broncolin paleta: bote y pieza", () => {
   const paleta = {
     id: 702,
