@@ -80,6 +80,33 @@ describe("itemMatchScan", () => {
     expect(itemMatchScan(item, "7501868900226", cat)).toBe(false);
   });
 
+  test("Tena Maxi Protect: caja nueva abre renglón con EAN viejo del ticket", () => {
+    const chm = {
+      id: 11,
+      confirmado: false,
+      codigo_escaneado: "7501019051159",
+      sku: "FC-19051159",
+      producto_id: 901,
+      origen: "pdf",
+    };
+    const grande = {
+      id: 12,
+      confirmado: false,
+      codigo_escaneado: "7501019051166",
+      sku: "FC-19051166",
+      producto_id: 902,
+      origen: "pdf",
+    };
+    const cat = [
+      { id: 901, sku: "FC-19051159", codigo_barras: "7501019051159", activo: true },
+      { id: 902, sku: "FC-19051166", codigo_barras: "7501019051166", activo: true },
+    ];
+    expect(itemMatchScan(chm, "7501019064432", cat)).toBe(true);
+    expect(itemMatchScan(grande, "7501019064449", cat)).toBe(true);
+    expect(itemMatchScan(chm, "7501019064449", cat)).toBe(false);
+    expect(itemMatchScan(grande, "7501019064432", cat)).toBe(false);
+  });
+
   test("EAN de exhibidor anotado en descripción abre la pieza", () => {
     const item = {
       id: 9,
