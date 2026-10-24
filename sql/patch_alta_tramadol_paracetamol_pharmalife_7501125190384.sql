@@ -12,9 +12,9 @@
 --   Las fotos no muestran número de lote: el alta deja el lote inicial
 --   del sistema (INICIAL-…). No se inventa lote de fábrica ni registro sanitario.
 --
--- Sin costo en la caja: costo y precio quedan vacíos. No se copia ancla
---   de otra farmacia. Antes de cobrar, poner costo y precio (genérico +60%
---   sobre costo).
+-- Sin costo en la caja: costo queda null; precio = 0 (la columna es NOT NULL
+--   en prod — no se puede omitir). No se copia ancla de otra farmacia.
+--   Antes de cobrar, poner costo y precio (genérico +60% sobre costo).
 --
 -- CONTROLADO fracción III (tramadol): solo mostrador, con receta. No va a
 --   la tienda web.
@@ -70,7 +70,8 @@ begin
         'codigo_barras', v_ean,
         'categoria', 'Analgésico',
         'tipo', 'generico',
-        'descripcion', 'Alta mostrador · Pharmalife · caja con 20 tabletas · Laboratorios PiSA · EAN 7501125190384 · caducidad feb 2028 · controlado fracción III',
+        'descripcion', 'Alta mostrador · Pharmalife · caja con 20 tabletas · Laboratorios PiSA · EAN 7501125190384 · caducidad feb 2028 · controlado fracción III · precio 0 hasta costo',
+        'precio', 0,
         'stock_minimo', 1,
         'activo', true,
         'requiere_receta', true,
