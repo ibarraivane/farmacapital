@@ -56,6 +56,22 @@ update public.productos
           then 'Respiratorio'
         when t ~ '(^|[^a-z0-9])(levonorgestrel|etinilestradiol|levotiroxina|desogestrel|drospirenona|anticonceptivo)([^a-z0-9]|$)'
           then 'Hormonales'
+        -- Vitamina en sérum/crema/gel es piel. Dove con vitamina E es higiene.
+        -- Tableta, cápsula, jarabe, gomita o polvo se queda en Vitaminas.
+        when t ~ '(^|[^a-z0-9])(vitamina c|vitamina d|vitamina a|vitamina e|complejo b|acido folico|centrum|aderogyl|redoxon|neurobion|multivitamin)([^a-z0-9]|$)'
+         and t !~ '(^|[^a-z0-9])(tabletas?|tabs?|capsulas?|caps|comprimidos?|grageas?|gomitas?|efervescentes?|jarabes?|polvos?|sobres?|ampolletas?|softgels?|masticables?|perlas?|porcion(es)?|suplementos?)([^a-z0-9]|$)'
+         and t ~ '(^|[^a-z0-9])(shampoo|acondicionador|desodorante|antitranspirante|pantene|sedal|dove|crema dental|pasta dental|enjuague bucal)([^a-z0-9]|$)'
+          then 'Higiene'
+        when t ~ '(^|[^a-z0-9])(vitamina c|vitamina d|vitamina a|vitamina e|complejo b|acido folico|centrum|aderogyl|redoxon|neurobion|multivitamin)([^a-z0-9]|$)'
+         and t !~ '(^|[^a-z0-9])(tabletas?|tabs?|capsulas?|caps|comprimidos?|grageas?|gomitas?|efervescentes?|jarabes?|polvos?|sobres?|ampolletas?|softgels?|masticables?|perlas?|porcion(es)?|suplementos?)([^a-z0-9]|$)'
+         and (
+           t ~ '(^|[^a-z0-9])(serums?|cremas?|gel(es)?|mascarillas?|limpiador(es)?|locion(es)?|fluidos?|fluidbase|fps[0-9]*|spf[0-9]*|protector solar|bloqueador|exfoliantes?|tonicos?|balsamos?|pomadas?|unguentos?|desmaquillantes?|agua micelar|peeling|retinol|activo puro|liftactiv|geneskin|pigmentbio|depiderm|actine|facial|contorno)([^a-z0-9]|$)'
+           or (
+             t ~ '(^|[^a-z0-9])aceite([^a-z0-9]|$)'
+             and t !~ 'aceite de (pescado|higado|coco|onagra|primula|krill|lino|oliva|germen)'
+           )
+         )
+          then 'Cuidado personal'
         when t ~ '(^|[^a-z0-9])(vitamina c|vitamina d|vitamina a|vitamina e|complejo b|acido folico|centrum|aderogyl|redoxon|neurobion|multivitamin)([^a-z0-9]|$)'
           then 'Vitaminas'
         when t ~ '(^|[^a-z0-9])(ensure|pediasure|glucerna|omega 3|suplemento nutricional)([^a-z0-9]|$)'
