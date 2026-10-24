@@ -24,6 +24,11 @@ describe("compra vigente", () => {
     expect(normalizeProveedorCompra("Farmacias Guadalajara")).toBe("Farmacias Guadalajara");
     expect(normalizeProveedorCompra("Farmacia Integral")).toBe("Farma Integral");
     expect(normalizeProveedorCompra("https://farmacia-integral.odoo.com/shop")).toBe("Farma Integral");
+    expect(normalizeProveedorCompra("MAYORISTA DE DULCES IZTAPALAPA, S.A. DE C.V.")).toBe(
+      "HS Comercial",
+    );
+    expect(normalizeProveedorCompra("HS Comercial")).toBe("HS Comercial");
+    expect(normalizeProveedorCompra("www.hscomercial.mx")).toBe("HS Comercial");
   });
 
   test("solo reemplaza si el nuevo es más barato", () => {
