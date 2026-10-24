@@ -1,0 +1,15 @@
+# Lotes: no hay PATCH directo a las piezas
+
+`lotes.cantidad_actual` y `lotes.activo` son el anaquel. Un `.update()` por la API los pone en 0 sin fila en `movimientos_inventario` y el filtro Agotados miente (stock fantasma, 2026-09-25).
+
+## Obligatorio
+
+1. Entrada, venta, ajuste y baja de un lote pasan por una función que ya existe: `recepcion_entrar_stock_item`, `consume_stock_via_lotes`, `adjust_stock_secure` / `adjust_stock_via_lotes`, `restock_via_lote`, `admin_desactivar_lote`.
+2. Esas funciones son `SECURITY DEFINER`. El trigger `trg_lotes_bloquear_patch_directo` deja pasar a `postgres` y rechaza a `service_role`.
+3. Si hace falta un script de corrección, va en `sql/patch_*.sql` para el SQL Editor (rol `postgres`), con `movimientos_inventario`. No uses `SUPABASE_SERVICE_ROLE_KEY` contra `/rest/v1/lotes`.
+
+## Prohibido
+
+- `supabase.from('lotes').update({ cantidad_actual })` o el mismo PATCH con `eq('cantidad_actual', …)` (compare-and-swap).
+- Poner `cantidad_actual = 0` y `activo = false` “para cuadrar” sin una salida real en el kardex.
+- Tragar el error de `fn_audit_trigger` sin `RAISE WARNING`.
