@@ -18,7 +18,7 @@ Pegar **todo** `sql/patch_alta_tramadol_paracetamol_pharmalife_7501125190384.sql
 
 ## Notas
 
-1. **Costo / precio:** vacíos a propósito. Con costo, precio genérico = costo × 1.60.
+1. **Costo / precio:** sin costo en la caja. `precio = 0` (placeholder; la columna es NOT NULL). Con costo, precio genérico = costo × 1.60.
 2. **Lote de fábrica:** no sale en las fotos; queda el lote inicial del sistema.
 3. **Foto:** `public/catalogo-propia/tramadol-paracetamol-pharmalife-37-5-325-c20.jpg` → tras deploy: `https://www.farmacapital.mx/catalogo-propia/tramadol-paracetamol-pharmalife-37-5-325-c20.jpg`.
 4. Idempotente: si ya hay lote con esa caducidad y stock, no vuelve a sumar las 5 cajas.
