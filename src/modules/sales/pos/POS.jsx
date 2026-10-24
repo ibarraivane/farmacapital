@@ -29,7 +29,7 @@ import {
   stockMostradorPos,
 } from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
-import { esServicio, lineaFaltaStock, serviciosAtencionActivos, STOCK_SERVICIO_POS } from "../../../lib/servicioSalud";
+import { esServicio, lineaFaltaStock, repartoAtencion, serviciosAtencionActivos, STOCK_SERVICIO_POS } from "../../../lib/servicioSalud";
 import PosAtencionRapida from "./PosAtencionRapida";
 import { IconoAnaquel, IconoBlister, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
@@ -450,6 +450,7 @@ function PosProductoFichaPanel({
 
   const variantes = posVariantesDeProducto(productos, item);
   const servicio = esServicio(item);
+  const partesServicio = servicio ? repartoAtencion(item.precio) : null;
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
   const cajaFalsa = productoCajaEsFalsa(item);
@@ -659,6 +660,11 @@ function PosProductoFichaPanel({
               {!cajaFalsa && Math.abs((parseFloat(item.precio) || 0) - pesoPublico(item.precio)) > 0.001 && !(item.descuento_pct > 0) && (
                 <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>
                   Lista {$(item.precio)} · en caja se cobra peso entero
+                </div>
+              )}
+              {partesServicio && partesServicio.total > 0 && (
+                <div style={{ fontSize: 12, color: C.textMid, marginTop: 4, fontWeight: 700 }}>
+                  Quien aplica {$(partesServicio.aplica)} · Farmacia {$(partesServicio.farmacia)}
                 </div>
               )}
             </div>
@@ -2962,7 +2968,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                       <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
                     ) : null;
                   }
-                  if (esServicio(item)) return null;
+                  if (esServicio(item)) {
+                    const partes = repartoAtencion(item.precio, item.qty);
+                    if (partes.total <= 0) return null;
+                    return (
+                      <div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginTop: 2 }}>
+                        Quien aplica {$(partes.aplica)} · Farmacia {$(partes.farmacia)}
+                      </div>
+                    );
+                  }
                   const prod = productos.find((x) => String(x.id) === String(item.producto_id ?? item.id)) || item;
                   if (esServicio(prod)) return null;
                   const aviso = resumenFefoMostrador(prod, especialesRef.current, hoyISOMexico());
