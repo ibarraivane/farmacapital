@@ -344,19 +344,8 @@ insert into public.productos (
 )
 select
   t.nombre,
-  case
-    -- SKU libre
-    when not exists (
-      select 1 from public.productos p where p.sku = t.sku
-    ) then t.sku
-    -- Colisión (activo o no): FC-ND- + últimos 8
-    when not exists (
-      select 1 from public.productos p
-      where p.sku = 'FC-ND-' || right(t.ean, 8)
-    ) then 'FC-ND-' || right(t.ean, 8)
-    -- Último recurso por folio/línea (no chocar unique)
-    else 'FC-B' || '{FOLIO}' || '-' || lpad(t.linea::text, 3, '0')
-  end,
+  -- SKU siempre único por ticket/línea (evita productos_sku_key con FC-xxxxxxxx del catálogo).
+  'FC-B{FOLIO}-' || lpad(t.linea::text, 3, '0'),
   t.ean,
   t.categoria,
   t.subcategoria,
@@ -381,13 +370,15 @@ from (
   from {TMP}
   order by ean, linea
 ) t
--- Solo por EAN: no exigir SKU libre (si el SKU está ocupado, arriba lo remapeamos).
--- Incluye inactivos con el mismo código (fc_buscar solo mira activos).
+-- Solo por EAN (activos vía fc_buscar; cualquier fila con el mismo código).
 where public.fc_buscar_producto_escaneo(t.ean) is null
   and not exists (
     select 1 from public.productos p
-    where coalesce(p.codigo_barras, '') = t.ean
-       or public.fc_match_codigo_barras(t.ean, p.codigo_barras)
+    where nullif(btrim(p.codigo_barras), '') = t.ean
+  )
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = ('FC-B{FOLIO}-' || lpad(t.linea::text, 3, '0'))
   );
 
 -- Ya existían: costo. PVP solo si estaba en 0.
