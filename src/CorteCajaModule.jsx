@@ -21,6 +21,7 @@ import {
   cargarVentasDetalleTurno,
   recargoServiciosPorMetodo,
 } from "./utils/corteTicket";
+import { corteBloqueaGuardado, parseCorteTurnoRpc } from "./lib/corteSesion";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -85,6 +86,7 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
   const [sesionAbierta,      setSesionAbierta] = useState(null);
   const [jornada,            setJornada] = useState(null);
   const [corteHoy,           setCorteHoy] = useState(null);
+  const [cortePrevio,        setCortePrevio] = useState(null);
   const [anulando,           setAnulando] = useState(false);
   const [electronicosError,  setElectronicosError] = useState(null);
   const [desgloseTarjeta,    setDesgloseTarjeta]   = useState(null);
@@ -118,9 +120,13 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
   // Un vendedor sólo cierra la caja que abrió. Antes bastaba con tener turno
   // en el perfil, y así se guardó el corte fantasma del 24-ago a las 15:19:
   // cerró un turno que nadie había abierto y dejó a Erika fuera siete horas.
+  //
+  // Varias aperturas el mismo día (Cinthia corta → Iván abre) son válidas:
+  // con sesión abierta no bloquea el corte de quien salió antes.
+  const bloqueaPorCorte = corteBloqueaGuardado(corteHoy, sesionAbierta);
   const puedeGuardar  = (usaDenoms || efectivo_declarado !== "")
     && (!vendedorFijo || !!sesionAbierta)
-    && !corteHoy;
+    && !bloqueaPorCorte;
 
   // Sólo se muestran tarjeta y MercadoPago. El efectivo esperado NO se pide:
   // si viajara al navegador, bastaría con abrir la pestaña de red para verlo
@@ -226,20 +232,34 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
         p_fecha: new Date().toLocaleDateString("sv-SE"),
         p_turno: turno,
       });
-      if (!cancelled) setCorteHoy(data?.existe ? data : null);
+      if (cancelled) return;
+      const parsed = parseCorteTurnoRpc(data);
+      // RPC viejo (antes del patch): admin veía el corte de Cinthia como propio.
+      // Con caja abierta no lo tratamos como bloqueo.
+      if (sesionAbierta && parsed.propio && !data?.sesion_abierta && !data?.propio) {
+        setCorteHoy(null);
+        setCortePrevio({
+          id: parsed.propio.id,
+          nombre: null,
+        });
+        return;
+      }
+      setCorteHoy(parsed.propio);
+      setCortePrevio(parsed.previo);
     })();
     return () => { cancelled = true; };
-  }, [turno]);
+  }, [turno, sesionAbierta]);
 
   // Gerencia puede deshacer un corte del mismo día. Sin esto, un clic
   // equivocado cierra el turno de alguien hasta mañana y sólo se arregla
   // entrando a Supabase: el 24-ago costó siete horas de caja parada.
   const puedeAnular = ["admin", "gerente"].includes(usuario?.rol || "");
 
-  const anularCorte = async () => {
-    if (!corteHoy?.id) return;
+  const anularCorte = async (corteId) => {
+    const id = corteId || corteHoy?.id || cortePrevio?.id;
+    if (!id) return;
     const motivo = window.prompt(
-      `Vas a anular el corte #${corteHoy.id} (${TURNOS[turno]?.label || turno}).\n` +
+      `Vas a anular el corte #${id} (${TURNOS[turno]?.label || turno}).\n` +
       "La caja se reabre y quien lo hizo puede volver a su turno hoy.\n\n" +
       "¿Por qué se anula? Queda en la bitácora."
     );
@@ -253,7 +273,7 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
     setAnulando(true);
     const { data, error } = await supabase.rpc("anular_corte_caja", {
       p_session_token: tok,
-      p_corte_id: corteHoy.id,
+      p_corte_id: id,
       p_motivo: motivo.trim(),
     });
     setAnulando(false);
@@ -271,6 +291,7 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
       return;
     }
     setCorteHoy(null);
+    setCortePrevio(null);
     setResultado(null);
     showToast(data?.mensaje || "Corte anulado.", "success");
     fetchTotalesElectronicos();
@@ -420,8 +441,8 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
       );
       return;
     }
-    if (corteHoy) {
-      showToast("Ya hay un corte de este turno hoy. No se guarda otro.", "warning");
+    if (bloqueaPorCorte) {
+      showToast("Ya cerraste este turno hoy. No se guarda otro sin abrir caja de nuevo.", "warning");
       return;
     }
     if (!puedeGuardar) { showToast("Captura el efectivo contado", "warning"); return; }
@@ -470,7 +491,7 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
         : /empleado_id_fkey|foreign key/i.test(raw)
           ? "Falta actualizar la base. Ejecuta sql/patch_cortes_caja_fk_usuarios.sql en Supabase."
           : /ya existe un corte/i.test(raw)
-            ? "Ya existe un corte de este turno hoy. No se puede guardar otro."
+            ? "Ya cerraste este turno hoy. Si necesitas otro, abre caja de nuevo tras el corte anterior."
             : "Error al guardar corte: " + raw;
       showToast(msg, "error");
       return;
@@ -480,6 +501,10 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
       return;
     }
     setCorteHoy({ existe: true, id: data?.corte_id });
+    setCortePrevio(null);
+    // El RPC ya cerró la sesión en la base; si la dejamos en estado, el
+    // siguiente «Nuevo corte» creería que aún hay cajón abierto.
+    setSesionAbierta(null);
 
     // Recién ahora se destapa: el cajero ya se comprometió con su conteo.
     // El RPC a veces no devuelve tarjeta/MP; se conservan los del turno para el PDF.
@@ -559,7 +584,7 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
           onCerrarSesion={onCerrarSesion}
           cierreHint={jornada?.cubre_ambos
             ? "Hoy cubres ambos. Abre el siguiente turno en el POS."
-            : "Turno cerrado. El otro turno lo abre tu compañera."}
+            : "Turno cerrado. Quien siga abre caja en el POS y hace su propio corte."}
         />
       )}
 
@@ -617,14 +642,14 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
             )}
           </div>
 
-          {corteHoy && (
+          {bloqueaPorCorte && (
             <div style={{
               marginBottom: 16, padding: "12px 14px", borderRadius: 10,
               background: C.amberDim, border: `1px solid ${C.amber}50`,
               color: C.text, fontSize: 13, lineHeight: 1.45,
             }}>
-              Ya hay un corte {TURNOS[turno]?.label || turno} de hoy. No se
-              guarda otro.
+              Ya cerraste el turno {TURNOS[turno]?.label || turno} de hoy. No se
+              guarda otro sin abrir caja de nuevo.
               {jornada?.cubre_ambos
                 ? " Si hoy cubres ambos, abre el siguiente turno en el POS."
                 : " Cada quien cierra el turno que abrió en caja."}
@@ -642,7 +667,7 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
                   </div>
                   <button
                     type="button"
-                    onClick={anularCorte}
+                    onClick={() => anularCorte(corteHoy.id)}
                     disabled={anulando}
                     style={{
                       padding: "8px 16px", borderRadius: 8,
@@ -656,6 +681,47 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {!bloqueaPorCorte && cortePrevio?.id && !sesionAbierta && puedeAnular && (
+            <div style={{
+              marginBottom: 16, padding: "12px 14px", borderRadius: 10,
+              background: C.blueDim, border: `1px solid ${C.blue}40`,
+              color: C.text, fontSize: 13, lineHeight: 1.45,
+            }}>
+              Ya hubo un corte {TURNOS[turno]?.label || turno} de{" "}
+              {cortePrevio.nombre || "quien abrió antes"} (#{cortePrevio.id}).
+              Si abriste caja después, guarda el tuyo con normalidad. Si ese
+              corte fue por error, puedes anularlo.
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => anularCorte(cortePrevio.id)}
+                  disabled={anulando}
+                  style={{
+                    padding: "8px 16px", borderRadius: 8,
+                    border: `1px solid ${C.border}`, background: C.card,
+                    color: C.text, fontSize: 12, fontWeight: 800,
+                    cursor: anulando ? "default" : "pointer",
+                    opacity: anulando ? 0.6 : 1,
+                  }}
+                >
+                  {anulando ? "Anulando…" : `Anular corte #${cortePrevio.id}`}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {sesionAbierta && cortePrevio?.id && (
+            <div style={{
+              marginBottom: 16, padding: "12px 14px", borderRadius: 10,
+              background: C.blueDim, border: `1px solid ${C.blue}40`,
+              color: C.textMid, fontSize: 12, lineHeight: 1.45,
+            }}>
+              Antes hubo un corte {TURNOS[turno]?.label || turno}
+              {cortePrevio.nombre ? ` de ${cortePrevio.nombre}` : ""} #{cortePrevio.id}.
+              El tuyo es de esta apertura: cuenta y guarda con normalidad.
             </div>
           )}
 
@@ -833,8 +899,8 @@ export default function CorteCajaModule({usuario, onCerrarSesion }) {
               </button>
               {!puedeGuardar && (
                 <div style={{color:C.textDim,fontSize:11,textAlign:"center",marginTop:-4}}>
-                  {corteHoy
-                    ? "Este turno ya tiene corte. No se guarda otro."
+                  {bloqueaPorCorte
+                    ? "Ya cerraste este turno hoy. No se guarda otro sin abrir caja."
                     : "Captura el efectivo contado para poder cerrar."}
                 </div>
               )}
