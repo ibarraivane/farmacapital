@@ -137,10 +137,7 @@ from (
   order by ean, linea
 ) t
 where coalesce(p.activo, true) = false
-  and (
-    coalesce(p.codigo_barras, '') = t.ean
-    or public.fc_match_codigo_barras(t.ean, p.codigo_barras)
-  );
+  and nullif(btrim(p.codigo_barras), '') = t.ean;
 
 -- Una fila por EAN (mismo producto no debe insertar 2 veces el SKU).
 insert into public.productos (
