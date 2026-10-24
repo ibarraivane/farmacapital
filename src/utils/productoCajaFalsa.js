@@ -55,15 +55,28 @@ export function stockMostradorPos(p, stockCajas) {
   return num(stockCajas);
 }
 
+/** Sueltas reales; ignora C/N fantasma cuando productos.stock aún cuenta la caja. */
+export function stockUnidadesMostrador(p, stockCajas = 0) {
+  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  const cajas = Math.max(0, Math.floor(num(stockCajas)));
+  const upc = Math.max(0, Math.floor(num(p?.unidades_por_caja)));
+  const stockCache = Math.max(0, Math.floor(num(p?.stock)));
+  // C/N metido en stock_unidades con la caja aún en productos.stock (Topron:
+  // stock=1 y stock_unidades=16). No es caja abierta: abrir_caja deja stock=0.
+  if (cajas <= 0 && stockCache > 0 && upc >= 2 && sueltas === upc) return 0;
+  return sueltas;
+}
+
 /**
  * Agotado solo cuando no queda caja, blister ni pieza suelta.
  * Con la caja ya abierta, el letrero cuenta las piezas (no “0 en stock”).
  */
 export function existenciaMostradorPos(p, stockCajas) {
   const cajas = Math.max(0, Math.floor(num(stockCajas)));
-  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  const sueltas = stockUnidadesMostrador(p, cajas);
   const blisters = Math.max(0, Math.floor(num(p?.stock_blisters)));
   const vendeBlister = productoVendeBlister(p);
+  const stockCache = Math.max(0, Math.floor(num(p?.stock)));
 
   if (productoCajaEsFalsa(p)) {
     const visible = Math.max(0, Math.floor(stockMostradorPos(p, cajas)));
@@ -76,6 +89,9 @@ export function existenciaMostradorPos(p, stockCajas) {
   const sinPiezas = !vendePieza || sueltas <= 0;
   const sinBlisters = !vendeBlister || blisters <= 0;
   if (sinCajas && sinPiezas && sinBlisters) {
+    if (stockCache > 0) {
+      return { agotado: false, etiqueta: `${stockCache} disp.`, texto: `${stockCache} en stock` };
+    }
     return { agotado: true, etiqueta: "Agotado", texto: "Agotado" };
   }
   if (sinCajas && sueltas > 0) {
@@ -114,7 +130,7 @@ export function puedeAbrirCajaParaPiezas(p) {
 
 /** Piezas que se pueden vender: sueltas más lo que sale de abrir cajas cerradas. */
 export function piezasSueltasDisponibles(p, stockCajas) {
-  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  const sueltas = stockUnidadesMostrador(p, stockCajas);
   if (!puedeAbrirCajaParaPiezas(p)) return sueltas;
   const cajas = Math.max(0, Math.floor(num(stockCajas)));
   const upc = Math.max(2, Math.floor(num(p.unidades_por_caja)));
@@ -123,7 +139,7 @@ export function piezasSueltasDisponibles(p, stockCajas) {
 
 /** Cuántas cajas hay que abrir para cubrir `piezasPedidas`. */
 export function cajasAAbrirParaPiezas(p, stockCajas, piezasPedidas) {
-  const sueltas = Math.max(0, Math.floor(num(p?.stock_unidades)));
+  const sueltas = stockUnidadesMostrador(p, stockCajas);
   const pedidas = Math.max(0, Math.floor(num(piezasPedidas)));
   if (pedidas <= sueltas) return 0;
   if (!puedeAbrirCajaParaPiezas(p)) return 0;
