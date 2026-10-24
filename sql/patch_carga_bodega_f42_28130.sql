@@ -114,6 +114,31 @@ insert into _fc_bf42_28130 (
   (72, '7501054558682', 'FC-54558682', 'Nivea Milk crema corporal 400 ml + 100 ml', 'CRA CORP NIVEAMILK 400ML+CRA100ML', 1, 85.87, 108, 'marca', 'Cuidado personal', 'Cuidado corporal', 'Crema', 'Nivea', null, '400 ml + 100 ml', null, null, false, true, null, null, null),
   (73, '7509552525427', 'FC-52525427', 'Obao Frescura Suave / Piel Delicada roll-on 65 g 3-pack', 'DESOD OBAO 65G ROLL ON FRESC SUAVE-PIEL DEL IC 3PACK', 1, 58.95, 74, 'marca', 'Cuidado personal', 'Desodorante', 'Roll-on', 'Obao', null, '3 roll-on 65 g', null, null, false, false, null, null, null);
 
+-- Si ya hay ficha inactiva con el mismo EAN, reactivar (fc_buscar solo ve activos).
+update public.productos p
+set
+  activo = true,
+  costo = t.costo,
+  precio = case
+    when coalesce(p.precio, 0) <= 0 then t.precio
+    else p.precio
+  end,
+  nombre = case
+    when length(trim(coalesce(p.nombre, ''))) < 8 then t.nombre
+    else p.nombre
+  end,
+  marca = coalesce(nullif(trim(p.marca), ''), t.marca),
+  presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
+  subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
+  forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma)
+from (
+  select distinct on (ean) *
+  from _fc_bf42_28130
+  order by ean, linea
+) t
+where coalesce(p.activo, true) = false
+  and nullif(btrim(p.codigo_barras), '') = t.ean;
+
 -- Una fila por EAN (mismo producto no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
@@ -123,13 +148,8 @@ insert into public.productos (
 )
 select
   t.nombre,
-  case
-    when exists (
-      select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
-    ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
-  end,
+  -- SKU siempre único por ticket/línea (evita productos_sku_key con FC-xxxxxxxx del catálogo).
+  'FC-B28130-' || lpad(t.linea::text, 3, '0'),
   t.ean,
   t.categoria,
   t.subcategoria,
@@ -154,8 +174,16 @@ from (
   from _fc_bf42_28130
   order by ean, linea
 ) t
+-- Solo por EAN (activos vía fc_buscar; cualquier fila con el mismo código).
 where public.fc_buscar_producto_escaneo(t.ean) is null
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+  and not exists (
+    select 1 from public.productos p
+    where nullif(btrim(p.codigo_barras), '') = t.ean
+  )
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = ('FC-B28130-' || lpad(t.linea::text, 3, '0'))
+  );
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
