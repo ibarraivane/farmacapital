@@ -307,6 +307,34 @@ insert into {TMP} (
 ) values
 {",\n".join(vals)};
 
+-- Si ya hay ficha inactiva con el mismo EAN, reactivar (fc_buscar solo ve activos).
+update public.productos p
+set
+  activo = true,
+  costo = t.costo,
+  precio = case
+    when coalesce(p.precio, 0) <= 0 then t.precio
+    else p.precio
+  end,
+  nombre = case
+    when length(trim(coalesce(p.nombre, ''))) < 8 then t.nombre
+    else p.nombre
+  end,
+  marca = coalesce(nullif(trim(p.marca), ''), t.marca),
+  presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
+  subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
+  forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma)
+from (
+  select distinct on (ean) *
+  from {TMP}
+  order by ean, linea
+) t
+where coalesce(p.activo, true) = false
+  and (
+    coalesce(p.codigo_barras, '') = t.ean
+    or public.fc_match_codigo_barras(t.ean, p.codigo_barras)
+  );
+
 -- Una fila por EAN (mismo producto no debe insertar 2 veces el SKU).
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
