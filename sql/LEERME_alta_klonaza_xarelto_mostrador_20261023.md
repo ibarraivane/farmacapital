@@ -8,6 +8,8 @@ Cajas en mostrador. No estaban en catálogo. Stock **1** de cada una.
 2. Pegar **todo** `sql/patch_alta_klonaza_xarelto_mostrador_20261023.sql` en Supabase → SQL Editor → Run.
 3. Cuando veas MMAA en la caja: actualizar el lote (no dejar `0000`).
 
+Re-ejecutable: si la galería ya tiene la URL (`ux_producto_imagenes_producto_url`), no vuelve a insertar.
+
 ## Productos
 
 | Producto | EAN caja | SKU | PVP ancla |

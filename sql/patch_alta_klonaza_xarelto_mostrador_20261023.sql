@@ -226,7 +226,8 @@ begin
   end loop;
 end $$;
 
--- Galería (idempotente)
+-- Galería (idempotente contra ux_producto_imagenes_producto_url
+-- y ux_producto_imagenes_una_principal: insertar false, luego promover).
 insert into public.producto_imagenes (
   producto_id, url, storage_path, posicion, es_principal, origen
 )
@@ -234,8 +235,8 @@ select
   p.id,
   u.url,
   u.storage_path,
-  0,
-  true,
+  coalesce((select max(i.posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
+  false,
   'propia'
 from (
   values
@@ -250,8 +251,39 @@ join public.productos p on p.codigo_barras = u.ean
 where not exists (
   select 1 from public.producto_imagenes i
   where i.producto_id = p.id
-    and i.storage_path = u.storage_path
+    and (i.url = u.url or i.storage_path = u.storage_path)
 );
+
+update public.producto_imagenes i
+set es_principal = false
+from (
+  values
+    ('7501471800029',
+     'https://www.farmacapital.mx/catalogo-propia/klonaza-80-80-125-c20-7501471800029.jpg'),
+    ('7501318608788',
+     'https://www.farmacapital.mx/catalogo-propia/xarelto-20mg-c28-7501318608788.jpg')
+) as u(ean, url)
+join public.productos p on p.codigo_barras = u.ean
+where i.producto_id = p.id
+  and coalesce(i.es_principal, false)
+  and i.url is distinct from u.url;
+
+update public.producto_imagenes i
+set
+  es_principal = true,
+  storage_path = coalesce(nullif(btrim(i.storage_path), ''),
+    'catalogo-propia/' || regexp_replace(u.url, '^.*/', ''))
+from (
+  values
+    ('7501471800029',
+     'https://www.farmacapital.mx/catalogo-propia/klonaza-80-80-125-c20-7501471800029.jpg'),
+    ('7501318608788',
+     'https://www.farmacapital.mx/catalogo-propia/xarelto-20mg-c28-7501318608788.jpg')
+) as u(ean, url)
+join public.productos p on p.codigo_barras = u.ean
+where i.producto_id = p.id
+  and i.url = u.url
+  and not coalesce(i.es_principal, false);
 
 commit;
 
