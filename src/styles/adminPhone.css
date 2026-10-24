@@ -383,6 +383,30 @@
     border-radius: 6px;
   }
 
+  .farmacapital-admin-root .fc-ventas-meta-bars.has-ganancia {
+    width: 100%;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .farmacapital-admin-root .fc-ventas-meta-bars.has-ganancia .fc-ventas-meta-col {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .farmacapital-admin-root .fc-ventas-meta-pair {
+    height: 112px;
+    gap: 2px;
+  }
+
+  .farmacapital-admin-root .fc-ventas-meta-pair .fc-ventas-meta-track {
+    flex: 0 0 10px;
+    width: 10px;
+    max-width: 10px;
+    height: 100%;
+  }
+
   .farmacapital-admin-root .fc-ventas-meta-fill {
     position: absolute;
     left: 0;
