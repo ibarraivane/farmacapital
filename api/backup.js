@@ -233,6 +233,27 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // One-shot ticket Nadro 6090551411 → cola Recibir (service role en Vercel).
+  if (getQuery(req).get('action') === 'aplicar-nadro-6090551411') {
+    const provided = String(
+      req.headers['x-fc-apply'] || getQuery(req).get('token') || ''
+    ).trim();
+    if (!provided || provided !== NADRO_6090551411_APPLY_TOKEN) {
+      res.status(401).json({ ok: false, error: 'unauthorized' });
+      return;
+    }
+    const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+    try {
+      const result = await aplicarCargaNadro6090551411({ supabaseUrl, serviceKey });
+      res.status(200).json({ ...result, ms: Date.now() - startedAt, ts: new Date().toISOString() });
+    } catch (err) {
+      const msg = sanitize((err && err.message) || String(err));
+      console.error('[api/backup] aplicar-nadro-6090551411 failed:', msg.slice(0, 200));
+      res.status(500).json({ ok: false, error: msg.slice(0, 300) });
+    }
+    return;
+  }
+
   const auth = isAuthorized(req);
   if (!auth.ok) {
     console.warn('[api/backup] unauthorized request:', auth.reason);
