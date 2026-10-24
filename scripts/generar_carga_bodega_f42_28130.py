@@ -317,11 +317,17 @@ insert into public.productos (
 select
   t.nombre,
   case
-    when exists (
+    -- SKU libre
+    when not exists (
+      select 1 from public.productos p where p.sku = t.sku
+    ) then t.sku
+    -- Colisión (activo o no): FC-ND- + últimos 8
+    when not exists (
       select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+      where p.sku = 'FC-ND-' || right(t.ean, 8)
     ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
+    -- Último recurso por folio/línea (no chocar unique)
+    else 'FC-B' || '{FOLIO}' || '-' || lpad(t.linea::text, 3, '0')
   end,
   t.ean,
   t.categoria,
@@ -347,8 +353,14 @@ from (
   from {TMP}
   order by ean, linea
 ) t
+-- Solo por EAN: no exigir SKU libre (si el SKU está ocupado, arriba lo remapeamos).
+-- Incluye inactivos con el mismo código (fc_buscar solo mira activos).
 where public.fc_buscar_producto_escaneo(t.ean) is null
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+  and not exists (
+    select 1 from public.productos p
+    where coalesce(p.codigo_barras, '') = t.ean
+       or public.fc_match_codigo_barras(t.ean, p.codigo_barras)
+  );
 
 -- Ya existían: costo. PVP solo si estaba en 0.
 update public.productos p
