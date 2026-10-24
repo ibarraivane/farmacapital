@@ -11,7 +11,7 @@ export const PRODUCTOS_POR_PAGINA = 1000;
 
 /** Columnas que sí existen en `productos`. No incluir `proveedor`. */
 export const PRODUCTOS_SELECT_HUB =
-  "id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,costo,activo,marca,presentacion,forma_farmaceutica,tipo";
+  "id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,costo,activo,marca,presentacion,forma_farmaceutica,tipo,venta_unidad,stock_unidades,stock_blisters";
 
 export const PRODUCTOS_SELECT_LOTES =
   "id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria,activo,tipo";
@@ -52,6 +52,13 @@ export function stockVisibleInventario(p) {
   const n = Number(raw);
   if (!Number.isFinite(n)) return 0;
   return Math.trunc(n);
+}
+
+/** Lo que queda de la caja abierta: no se suma a la columna de cajas. */
+export function sueltosInventario(p) {
+  const piezas = Math.max(0, Math.trunc(Number(p?.stock_unidades) || 0));
+  const blisters = Math.max(0, Math.trunc(Number(p?.stock_blisters) || 0));
+  return { piezas, blisters };
 }
 
 /**
@@ -166,17 +173,30 @@ export function enriquecerProductoConLotes(p, lotes) {
   const stockPeps = stockDesdeLotes(lotesList);
   const minCad = minCaducidadLotes(lotesList);
   const proveedorLote = proveedorDesdeLotes(lotesList);
+  const sueltas = Math.max(0, Math.trunc(Number(p?.stock_unidades) || 0));
+  const blisters = Math.max(0, Math.trunc(Number(p?.stock_blisters) || 0));
+  const cajaAbierta = sueltas > 0 || blisters > 0;
+  const vendePieza = Boolean(p?.venta_unidad);
+  const hayFilasLote = lotesList.length > 0;
+  // Cajas cerradas = suma de lotes con qty. No rescatar productos.stock si:
+  // - hay piezas/blisters de una caja ya abierta, o
+  // - el producto se vende por pieza y ya tiene filas de lote (aunque en 0):
+  //   al acabar las sueltas el caché viejo no debe volver a pintar 1 caja.
+  // Afrín (!venta_unidad, lote vacío, stock de anaquel): sí se usa el caché.
+  let stockVisible = stockPeps;
+  if (lotesConStock.length === 0) {
+    if (cajaAbierta || (vendePieza && hayFilasLote)) stockVisible = 0;
+    else stockVisible = Number(p.stock) || 0;
+  }
   return {
     ...p,
     lotes: lotesList,
     lotes_activos: lotesConStock,
-    // Solo lotes con piezas cuentan como PEPS. Un lote vacío (qty 0, activo)
-    // no debe tapar productos.stock: eso marcaba AGOTADO con mercancía en anaquel.
-    stock_peps: lotesConStock.length ? stockPeps : (Number(p.stock) || 0),
+    stock_peps: stockVisible,
     min_caducidad_lotes: minCad,
     diasCaducidad: diasParaCaducar(minCad),
     proveedor: proveedorLote || "",
-    sinLotePeps: lotesConStock.length === 0 && (Number(p.stock) || 0) > 0,
+    sinLotePeps: lotesConStock.length === 0 && stockVisible > 0 && !cajaAbierta,
   };
 }
 
