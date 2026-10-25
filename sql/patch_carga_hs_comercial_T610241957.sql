@@ -4,10 +4,8 @@
 -- Negocio: HS Comercial · www.hscomercial.mx · WhatsApp 55 4412 5724.
 -- Total tarjeta $396.66 (bruto $430.20 − desc. $33.54).
 -- Mayoreo → piezas de mostrador. Costo = línea neta / piezas.
---
--- SIN EAN en el ticket: no se inventan códigos. codigo_barras queda null
--- hasta escanear la caja. Stock al confirmar en Recibir + MMAA de la caja.
--- No poner caducidad 0000.
+-- EAN de fotos de caja (ver también sql/patch_ean_hs_comercial_T610241957.sql).
+-- Stock al confirmar en Recibir + MMAA de la caja. No poner caducidad 0000.
 --
 -- Idempotente mientras el ticket siga en borrador.
 -- Pegar TODO este archivo en Supabase → SQL Editor → Run.
@@ -25,6 +23,7 @@ where not exists (
 create temp table _fc_hs_t610241957 (
   linea integer primary key,
   sku text not null,
+  ean text,
   snap text not null,
   nombre text not null,
   marca text not null,
@@ -37,16 +36,23 @@ create temp table _fc_hs_t610241957 (
 ) on commit drop;
 
 insert into _fc_hs_t610241957
-  (linea, sku, snap, nombre, marca, presentacion, categoria, tipo, qty, costo, precio)
+  (linea, sku, ean, snap, nombre, marca, presentacion, categoria, tipo, qty, costo, precio)
 values
-  (1, 'FC-HS-BOCADIN50', 'Bimbo BOCADIN Bolsa 12/50pzs', 'Bocadin', 'Bimbo', 'Pieza (bolsa mayoreo 12/50)', 'Impulso', 'marca', 50, 1.0990, 2.00),
-  (2, 'FC-HS-CHIKIBOT40', 'alv.Chiki BOTELLA 32/40pzs', 'Chiki Botella', 'Alvbro', 'Botella (bolsa mayoreo 32/40)', 'Impulso', 'marca', 40, 0.8115, 2.00),
-  (3, 'FC-LV-ORBITMEN40', 'wrigley Orbit 4is Menta 24/40pzs', 'Orbit 4''s Menta', 'Orbit', 'Pack 4 pastillas (exhibidor 40)', 'Impulso', 'marca', 40, 1.9363, 3.00),
-  (4, 'FC-HS-SKITTLES220', 'wrigley Skittles PAQUETE Original 220g', 'Skittles Original 220 g', 'Skittles', 'Sobre 220 g (paquete mayoreo 10)', 'Impulso', 'marca', 10, 6.6390, 10.00),
-  (5, 'FC-HS-MMCAFE6', 'effem m&m CHOCOLATE cafe 32/6pzs', 'M&M''s Chocolate', 'M&M''s', 'Pack (mayoreo 32/6)', 'Impulso', 'marca', 6, 13.5233, 19.00),
-  (6, 'FC-HS-KITCHUNKY6', 'nest.KIT KAT Chunky 40g 12/6pzs', 'Kit Kat Chunky', 'Kit Kat', 'Barra 40 g (display mayoreo 12/6)', 'Impulso', 'marca', 6, 14.0450, 20.00);
+  (1, 'FC-HS-BOCADIN50', '025046501052', 'Bimbo BOCADIN Bolsa 12/50pzs', 'Bocadin', 'Bimbo', 'Bolsa 50 piezas (525 g)', 'Impulso', 'marca', 50, 1.0990, 2.00),
+  (2, 'FC-HS-CHIKIBOT40', '799583006003', 'alv.Chiki BOTELLA 32/40pzs', 'Chiki Botella', 'Alvher', 'Botella (bolsa mayoreo 40)', 'Impulso', 'marca', 40, 0.8115, 2.00),
+  (3, 'FC-LV-ORBITMEN40', '7502271913353', 'wrigley Orbit 4is Menta 24/40pzs', 'Orbit 4''s Menta', 'Orbit', 'Pack 4 pastillas (exhibidor 40)', 'Impulso', 'marca', 40, 1.9363, 3.00),
+  (4, 'FC-HS-SKITTLES220', '7502226816937', 'wrigley Skittles PAQUETE Original 220g', 'Skittles Original', 'Skittles', 'Caja 10 sobres 22 g (220 g)', 'Impulso', 'marca', 10, 6.6390, 10.00),
+  (5, 'FC-HS-MMCAFE6', '7502271917641', 'effem m&m CHOCOLATE cafe 32/6pzs', 'M&M''s Chocolate', 'M&M''s', '6 pack 37.8 g (226.8 g)', 'Impulso', 'marca', 6, 13.5233, 19.00),
+  (6, 'FC-HS-KITCHUNKY6', '7501058626554', 'nest.KIT KAT Chunky 40g 12/6pzs', 'Kit Kat Chunky', 'Kit Kat', 'Caja 6 barras 40 g', 'Impulso', 'marca', 6, 14.0450, 20.00);
 
--- Altas sin EAN (null). Completar codigo_barras al escanear la caja.
+-- Soltar EAN de otro SKU si chocaría UNIQUE.
+update public.productos p
+set codigo_barras = null
+where nullif(btrim(p.codigo_barras), '') in (
+  select nullif(btrim(t.ean), '') from _fc_hs_t610241957 t where t.ean is not null
+)
+and p.sku not in (select t.sku from _fc_hs_t610241957 t);
+
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, tipo, descripcion,
   marca, presentacion, costo, precio, stock, stock_minimo,
@@ -55,10 +61,10 @@ insert into public.productos (
 select
   t.nombre,
   t.sku,
-  null,
+  t.ean,
   t.categoria,
   t.tipo,
-  'Alta HS Comercial T610241957 · 2026-10-24 · EAN pendiente de caja · ticket Mayorista de Dulces Iztapalapa',
+  'Alta HS Comercial T610241957 · 2026-10-24 · ticket Mayorista de Dulces Iztapalapa',
   t.marca,
   t.presentacion,
   t.costo,
@@ -78,7 +84,11 @@ set
   precio = case when coalesce(p.precio, 0) <= 0 then t.precio else p.precio end,
   marca = coalesce(nullif(btrim(p.marca), ''), t.marca),
   presentacion = coalesce(nullif(btrim(p.presentacion), ''), t.presentacion),
-  categoria = t.categoria
+  categoria = t.categoria,
+  codigo_barras = case
+    when nullif(btrim(p.codigo_barras), '') is null then t.ean
+    else p.codigo_barras
+  end
 from _fc_hs_t610241957 t
 where p.sku = t.sku;
 
@@ -89,7 +99,7 @@ select
   '2026-10-24',
   396.66,
   'borrador',
-  'Nota T610241957 · Mayorista de Dulces Iztapalapa Bodega E-17 · HS Comercial · 6 renglones impulso · EAN pendiente de caja · stock al confirmar pistola · descuento ticket prorrateado'
+  'Nota T610241957 · Mayorista de Dulces Iztapalapa Bodega E-17 · HS Comercial · 6 renglones impulso · EAN de fotos de caja · stock al confirmar pistola · descuento ticket prorrateado'
 where not exists (
   select 1 from public.recepciones
   where folio = 'T610241957'
@@ -101,7 +111,7 @@ set
   total_ticket = 396.66,
   fecha = '2026-10-24',
   proveedor = 'HS Comercial',
-  notas = 'Nota T610241957 · Mayorista de Dulces Iztapalapa Bodega E-17 · HS Comercial · 6 renglones impulso · EAN pendiente de caja · stock al confirmar pistola · descuento ticket prorrateado',
+  notas = 'Nota T610241957 · Mayorista de Dulces Iztapalapa Bodega E-17 · HS Comercial · 6 renglones impulso · EAN de fotos de caja · stock al confirmar pistola · descuento ticket prorrateado',
   updated_at = now()
 where folio = 'T610241957'
   and coalesce(proveedor, '') ilike '%hs comercial%'
@@ -122,7 +132,7 @@ insert into public.recepcion_items (
 select
   r.id,
   p.id,
-  null,
+  t.ean,
   t.snap,
   t.qty,
   null,

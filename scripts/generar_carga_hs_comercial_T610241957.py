@@ -5,16 +5,16 @@ Ticket imprime MAYORISTA DE DULCES IZTAPALAPA, S.A. DE C.V.
 (Central de Abasto Sec.2 Bodega E-17, RFC MDI0803131A9).
 Negocio / web: HS Comercial (www.hscomercial.mx).
 
-Sin EAN en el papel. Altas por SKU mnemónico FC-HS-* (Orbit Menta
-alineado a la familia FC-LV-ORBIT*). codigo_barras null hasta pistola.
+EAN de fotos de caja (sql/patch_ean_hs_comercial_T610241957.sql).
+Altas por SKU mnemónico FC-HS-* (Orbit Menta → FC-LV-ORBITMEN40).
 
 Mayoreo → piezas de mostrador (misma regla que recepcionPackPiezas):
-  Bocadin 12/50pzs ×1 BLS     → 50 pzas
-  Chiki Botella 32/40pzs ×1   → 40 pzas
-  Orbit 4's Menta 24/40pzs ×1 → 40 pzas
-  Skittles Paquete 220g DIS   → 10 sobres (ficha HS: paquete con 10)
-  M&M Chocolate café 32/6 ×1  → 6 pzas
-  Kit Kat Chunky 40g 12/6 ×1  → 6 pzas
+  Bocadin 12/50pzs ×1 BLS     → 50 pzas · EAN 025046501052
+  Chiki Botella 32/40pzs ×1   → 40 pzas · EAN 799583006003 (Alvher)
+  Orbit 4's Menta 24/40pzs ×1 → 40 pzas · EAN 7502271913353
+  Skittles Paquete 220g DIS   → 10 sobres 22 g · EAN 7502226816937
+  M&M Chocolate café 32/6 ×1  → 6 pzas · EAN 7502271917641
+  Kit Kat Chunky 40g 12/6 ×1  → 6 pzas · EAN 7501058626554
 
 Costos: línea bruta del ticket prorrateada al total tarjeta $396.66
 (descuento $33.54 sobre subtotal $430.20). PVP impulso +40% ceil.
@@ -52,10 +52,11 @@ ROWS = [
     {
         "linea": 1,
         "sku": "FC-HS-BOCADIN50",
+        "ean": "025046501052",
         "snap": "Bimbo BOCADIN Bolsa 12/50pzs",
         "nombre": "Bocadin",
         "marca": "Bimbo",
-        "presentacion": "Pieza (bolsa mayoreo 12/50)",
+        "presentacion": "Bolsa 50 piezas (525 g)",
         "categoria": "Impulso",
         "tipo": "marca",
         "pzas_por_caja": 50,
@@ -64,10 +65,11 @@ ROWS = [
     {
         "linea": 2,
         "sku": "FC-HS-CHIKIBOT40",
+        "ean": "799583006003",
         "snap": "alv.Chiki BOTELLA 32/40pzs",
         "nombre": "Chiki Botella",
-        "marca": "Alvbro",
-        "presentacion": "Botella (bolsa mayoreo 32/40)",
+        "marca": "Alvher",
+        "presentacion": "Botella (bolsa mayoreo 40)",
         "categoria": "Impulso",
         "tipo": "marca",
         "pzas_por_caja": 40,
@@ -76,6 +78,7 @@ ROWS = [
     {
         "linea": 3,
         "sku": "FC-LV-ORBITMEN40",
+        "ean": "7502271913353",
         "snap": "wrigley Orbit 4is Menta 24/40pzs",
         "nombre": "Orbit 4's Menta",
         "marca": "Orbit",
@@ -88,24 +91,25 @@ ROWS = [
     {
         "linea": 4,
         "sku": "FC-HS-SKITTLES220",
+        "ean": "7502226816937",
         "snap": "wrigley Skittles PAQUETE Original 220g",
-        "nombre": "Skittles Original 220 g",
+        "nombre": "Skittles Original",
         "marca": "Skittles",
-        "presentacion": "Sobre 220 g (paquete mayoreo 10)",
+        # Foto caja: 10 piezas de 22 g = CONT. NET. 220 g.
+        "presentacion": "Caja 10 sobres 22 g (220 g)",
         "categoria": "Impulso",
         "tipo": "marca",
-        # Ficha hscomercial: «Paquete Original con 10 sobres de 220g».
-        # El ticket no trae 10/N; se fija a mano.
         "pzas_por_caja": 10,
         "costo_caja_bruto": 72.00,
     },
     {
         "linea": 5,
         "sku": "FC-HS-MMCAFE6",
+        "ean": "7502271917641",
         "snap": "effem m&m CHOCOLATE cafe 32/6pzs",
         "nombre": "M&M's Chocolate",
         "marca": "M&M's",
-        "presentacion": "Pack (mayoreo 32/6)",
+        "presentacion": "6 pack 37.8 g (226.8 g)",
         "categoria": "Impulso",
         "tipo": "marca",
         "pzas_por_caja": 6,
@@ -114,10 +118,11 @@ ROWS = [
     {
         "linea": 6,
         "sku": "FC-HS-KITCHUNKY6",
+        "ean": "7501058626554",
         "snap": "nest.KIT KAT Chunky 40g 12/6pzs",
         "nombre": "Kit Kat Chunky",
         "marca": "Kit Kat",
-        "presentacion": "Barra 40 g (display mayoreo 12/6)",
+        "presentacion": "Caja 6 barras 40 g",
         "categoria": "Impulso",
         "tipo": "marca",
         "pzas_por_caja": 6,
@@ -176,7 +181,7 @@ def write_csv(rows: list[dict]) -> None:
                     FOLIO,
                     FECHA,
                     PROVEEDOR,
-                    "",
+                    r.get("ean") or "",
                     r["sku"],
                     r["snap"],
                     r["qty"],
@@ -190,13 +195,14 @@ def write_csv(rows: list[dict]) -> None:
 def write_sql(rows: list[dict]) -> None:
     notas = (
         f"Nota {FOLIO} · Mayorista de Dulces Iztapalapa Bodega E-17 · "
-        "HS Comercial · 6 renglones impulso · EAN pendiente de caja · "
+        "HS Comercial · 6 renglones impulso · EAN de fotos de caja · "
         "stock al confirmar pistola · descuento ticket prorrateado"
     )
     vals = []
     for r in rows:
+        ean_sql = "null" if not r.get("ean") else q(r["ean"])
         vals.append(
-            f"  ({r['linea']}, {q(r['sku'])}, {q(r['snap'])}, {q(r['nombre'])}, "
+            f"  ({r['linea']}, {q(r['sku'])}, {ean_sql}, {q(r['snap'])}, {q(r['nombre'])}, "
             f"{q(r['marca'])}, {q(r['presentacion'])}, {q(r['categoria'])}, "
             f"{q(r['tipo'])}, {r['qty']}, {r['costo']:.4f}, {r['precio']:.2f})"
         )
@@ -207,10 +213,8 @@ def write_sql(rows: list[dict]) -> None:
 -- Negocio: HS Comercial · www.hscomercial.mx · WhatsApp 55 4412 5724.
 -- Total tarjeta ${TOTAL_TICKET:.2f} (bruto ${SUBTOTAL_BRUTO:.2f} − desc. ${DESCUENTO:.2f}).
 -- Mayoreo → piezas de mostrador. Costo = línea neta / piezas.
---
--- SIN EAN en el ticket: no se inventan códigos. codigo_barras queda null
--- hasta escanear la caja. Stock al confirmar en Recibir + MMAA de la caja.
--- No poner caducidad 0000.
+-- EAN de fotos de caja (ver también sql/patch_ean_hs_comercial_T610241957.sql).
+-- Stock al confirmar en Recibir + MMAA de la caja. No poner caducidad 0000.
 --
 -- Idempotente mientras el ticket siga en borrador.
 -- Pegar TODO este archivo en Supabase → SQL Editor → Run.
@@ -228,6 +232,7 @@ where not exists (
 create temp table _fc_hs_t610241957 (
   linea integer primary key,
   sku text not null,
+  ean text,
   snap text not null,
   nombre text not null,
   marca text not null,
@@ -240,11 +245,18 @@ create temp table _fc_hs_t610241957 (
 ) on commit drop;
 
 insert into _fc_hs_t610241957
-  (linea, sku, snap, nombre, marca, presentacion, categoria, tipo, qty, costo, precio)
+  (linea, sku, ean, snap, nombre, marca, presentacion, categoria, tipo, qty, costo, precio)
 values
 {',\n'.join(vals)};
 
--- Altas sin EAN (null). Completar codigo_barras al escanear la caja.
+-- Soltar EAN de otro SKU si chocaría UNIQUE.
+update public.productos p
+set codigo_barras = null
+where nullif(btrim(p.codigo_barras), '') in (
+  select nullif(btrim(t.ean), '') from _fc_hs_t610241957 t where t.ean is not null
+)
+and p.sku not in (select t.sku from _fc_hs_t610241957 t);
+
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, tipo, descripcion,
   marca, presentacion, costo, precio, stock, stock_minimo,
@@ -253,10 +265,10 @@ insert into public.productos (
 select
   t.nombre,
   t.sku,
-  null,
+  t.ean,
   t.categoria,
   t.tipo,
-  {q(f'Alta HS Comercial {FOLIO} · {FECHA} · EAN pendiente de caja · ticket Mayorista de Dulces Iztapalapa')},
+  {q(f'Alta HS Comercial {FOLIO} · {FECHA} · ticket Mayorista de Dulces Iztapalapa')},
   t.marca,
   t.presentacion,
   t.costo,
@@ -276,7 +288,11 @@ set
   precio = case when coalesce(p.precio, 0) <= 0 then t.precio else p.precio end,
   marca = coalesce(nullif(btrim(p.marca), ''), t.marca),
   presentacion = coalesce(nullif(btrim(p.presentacion), ''), t.presentacion),
-  categoria = t.categoria
+  categoria = t.categoria,
+  codigo_barras = case
+    when nullif(btrim(p.codigo_barras), '') is null then t.ean
+    else p.codigo_barras
+  end
 from _fc_hs_t610241957 t
 where p.sku = t.sku;
 
@@ -320,7 +336,7 @@ insert into public.recepcion_items (
 select
   r.id,
   p.id,
-  null,
+  t.ean,
   t.snap,
   t.qty,
   null,
@@ -369,14 +385,14 @@ order by i.id;
 
 def write_md(rows: list[dict]) -> None:
     table = [
-        "| # | Ticket | Piezas | Neto línea | Costo/pza | PVP (+40% ceil) | SKU |",
-        "|---|--------|--------|------------|-----------|-----------------|-----|",
+        "| # | Ticket | Piezas | Neto | Costo/pza | PVP | EAN | SKU |",
+        "|---|--------|--------|------|-----------|-----|-----|-----|",
     ]
     for r in rows:
         table.append(
             f"| {r['linea']} | `{r['snap']}` | {r['qty']} | "
             f"${r['costo_caja_neto']:.2f} | ${r['costo']:.4f} | "
-            f"${r['precio']:.0f} | `{r['sku']}` |"
+            f"${r['precio']:.0f} | `{r.get('ean') or '—'}` | `{r['sku']}` |"
         )
     md = f"""# Ticket HS Comercial · {FOLIO}
 
@@ -397,21 +413,20 @@ El ticket imprime **MAYORISTA DE DULCES IZTAPALAPA, S.A. DE C.V.** (RFC `MDI0803
 {chr(10).join(table)}
 
 `12/50pzs` / `32/40pzs` / `24/40pzs` / `32/6pzs` / `12/6pzs` = el 2.º número es el exhibidor (regla `piezasPorEmpaqueDesdeNombre`).  
-Skittles **PAQUETE Original 220g**: sin `N/Mpz` en el papel; ficha HS «paquete con 10 sobres» → **10**.
+Skittles **PAQUETE Original 220g**: caja con **10 sobres de 22 g** (foto; CONT. NET. 220 g).
 
-## Pendiente antes de cerrar altas
+## Cómo aplicar
 
-El ticket **no trae EAN**. No inventar códigos.
-
-1. Foto del código de barras de cada pieza (Bocadin, Chiki, Orbit 4's, sobre Skittles 220 g, M&M's, Kit Kat Chunky).
-2. Packshot de mostrador → `public/catalogo-propia/` si la URL es frágil (sin placeholder de competencia).
-3. Correr `sql/patch_carga_hs_comercial_T610241957.sql` en Supabase (cola Recibir; stock al escanear + MMAA).
-4. Caducidad: de la caja (MMAA). No poner `0000`.
+1. Si el ticket **aún no** está en Recibir: pegar `sql/patch_carga_hs_comercial_T610241957.sql`.
+2. Si ya corriste la carga sin EAN: pegar `sql/patch_ean_hs_comercial_T610241957.sql` (solo códigos).
+3. Recibir → pistola → MMAA de la caja. No poner `0000`.
+4. Packshot de mostrador → `public/catalogo-propia/` si hace falta (sin placeholder de competencia).
 
 ## Archivos
 
 - `sql/generated/ticket_hs_comercial_T610241957.csv`
 - `sql/patch_carga_hs_comercial_T610241957.sql`
+- `sql/patch_ean_hs_comercial_T610241957.sql`
 - `scripts/generar_carga_hs_comercial_T610241957.py`
 """
     OUT_MD.write_text(md, encoding="utf-8")

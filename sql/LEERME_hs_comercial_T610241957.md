@@ -14,29 +14,28 @@ El ticket imprime **MAYORISTA DE DULCES IZTAPALAPA, S.A. DE C.V.** (RFC `MDI0803
 
 ## Renglones (1 bolsa/display cada uno → piezas de mostrador)
 
-| # | Ticket | Piezas | Neto línea | Costo/pza | PVP (+40% ceil) | SKU |
-|---|--------|--------|------------|-----------|-----------------|-----|
-| 1 | `Bimbo BOCADIN Bolsa 12/50pzs` | 50 | $54.95 | $1.0990 | $2 | `FC-HS-BOCADIN50` |
-| 2 | `alv.Chiki BOTELLA 32/40pzs` | 40 | $32.46 | $0.8115 | $2 | `FC-HS-CHIKIBOT40` |
-| 3 | `wrigley Orbit 4is Menta 24/40pzs` | 40 | $77.45 | $1.9363 | $3 | `FC-LV-ORBITMEN40` |
-| 4 | `wrigley Skittles PAQUETE Original 220g` | 10 | $66.39 | $6.6390 | $10 | `FC-HS-SKITTLES220` |
-| 5 | `effem m&m CHOCOLATE cafe 32/6pzs` | 6 | $81.14 | $13.5233 | $19 | `FC-HS-MMCAFE6` |
-| 6 | `nest.KIT KAT Chunky 40g 12/6pzs` | 6 | $84.27 | $14.0450 | $20 | `FC-HS-KITCHUNKY6` |
+| # | Ticket | Piezas | Neto | Costo/pza | PVP | EAN | SKU |
+|---|--------|--------|------|-----------|-----|-----|-----|
+| 1 | `Bimbo BOCADIN Bolsa 12/50pzs` | 50 | $54.95 | $1.0990 | $2 | `025046501052` | `FC-HS-BOCADIN50` |
+| 2 | `alv.Chiki BOTELLA 32/40pzs` | 40 | $32.46 | $0.8115 | $2 | `799583006003` | `FC-HS-CHIKIBOT40` |
+| 3 | `wrigley Orbit 4is Menta 24/40pzs` | 40 | $77.45 | $1.9363 | $3 | `7502271913353` | `FC-LV-ORBITMEN40` |
+| 4 | `wrigley Skittles PAQUETE Original 220g` | 10 | $66.39 | $6.6390 | $10 | `7502226816937` | `FC-HS-SKITTLES220` |
+| 5 | `effem m&m CHOCOLATE cafe 32/6pzs` | 6 | $81.14 | $13.5233 | $19 | `7502271917641` | `FC-HS-MMCAFE6` |
+| 6 | `nest.KIT KAT Chunky 40g 12/6pzs` | 6 | $84.27 | $14.0450 | $20 | `7501058626554` | `FC-HS-KITCHUNKY6` |
 
 `12/50pzs` / `32/40pzs` / `24/40pzs` / `32/6pzs` / `12/6pzs` = el 2.º número es el exhibidor (regla `piezasPorEmpaqueDesdeNombre`).  
-Skittles **PAQUETE Original 220g**: sin `N/Mpz` en el papel; ficha HS «paquete con 10 sobres» → **10**.
+Skittles **PAQUETE Original 220g**: caja con **10 sobres de 22 g** (foto; CONT. NET. 220 g).
 
-## Pendiente antes de cerrar altas
+## Cómo aplicar
 
-El ticket **no trae EAN**. No inventar códigos.
-
-1. Foto del código de barras de cada pieza (Bocadin, Chiki, Orbit 4's, sobre Skittles 220 g, M&M's, Kit Kat Chunky).
-2. Packshot de mostrador → `public/catalogo-propia/` si la URL es frágil (sin placeholder de competencia).
-3. Correr `sql/patch_carga_hs_comercial_T610241957.sql` en Supabase (cola Recibir; stock al escanear + MMAA).
-4. Caducidad: de la caja (MMAA). No poner `0000`.
+1. Si el ticket **aún no** está en Recibir: pegar `sql/patch_carga_hs_comercial_T610241957.sql`.
+2. Si ya corriste la carga sin EAN: pegar `sql/patch_ean_hs_comercial_T610241957.sql` (solo códigos).
+3. Recibir → pistola → MMAA de la caja. No poner `0000`.
+4. Packshot de mostrador → `public/catalogo-propia/` si hace falta (sin placeholder de competencia).
 
 ## Archivos
 
 - `sql/generated/ticket_hs_comercial_T610241957.csv`
 - `sql/patch_carga_hs_comercial_T610241957.sql`
+- `sql/patch_ean_hs_comercial_T610241957.sql`
 - `scripts/generar_carga_hs_comercial_T610241957.py`
