@@ -72,8 +72,22 @@ describe("piezasPorEmpaqueDesdeNombre", () => {
     expect(piezasPorEmpaqueDesdeNombre("HALLS YERBA 30/12PZ")).toBe(12);
   });
 
+  test("HS Comercial pzs / 4is (sin a en pzs)", () => {
+    expect(piezasPorEmpaqueDesdeNombre("Bimbo BOCADIN Bolsa 12/50pzs")).toBe(50);
+    expect(piezasPorEmpaqueDesdeNombre("alv.Chiki BOTELLA 32/40pzs")).toBe(40);
+    expect(piezasPorEmpaqueDesdeNombre("wrigley Orbit 4is Menta 24/40pzs")).toBe(40);
+    expect(piezasPorEmpaqueDesdeNombre("effem m&m CHOCOLATE cafe 32/6pzs")).toBe(6);
+    expect(piezasPorEmpaqueDesdeNombre("nest.KIT KAT Chunky 40g 12/6pzs")).toBe(6);
+  });
+
   test("Skittles 24/10PZ → 24 bolsas (no 10)", () => {
     expect(piezasPorEmpaqueDesdeNombre("SKITTLES ORIGINAL, 24/10PZ")).toBe(24);
+  });
+
+  test("Skittles PAQUETE 220g sin N/Mpz → null (qty a mano desde ficha)", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("wrigley Skittles PAQUETE Original 220g"),
+    ).toBeNull();
   });
 });
 

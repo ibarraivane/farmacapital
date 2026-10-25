@@ -38,10 +38,12 @@ export function piezasPorEmpaqueDesdeNombre(nombre) {
   }
 
   // Mayoreo dulces Central de Abasto: "ORBIT 4P FRESA, 24/40PZ",
-  // "CLORETS 4 S PLUS 24/40PZ", "HALLS YERBA 30/12PZ".
+  // "CLORETS 4 S PLUS 24/40PZ", "HALLS YERBA 30/12PZ",
+  // HS Comercial / Mayorista de Dulces: "Orbit 4is Menta 24/40pzs".
   // El 2.º número es el exhibidor/cuadreta que se compra (piezas a vender).
   // Skittles "24/10PZ" es caja de 24 bolsas → usa el 1.º.
-  const mayoreo = n.match(/\b(\d{1,3})\s*\/\s*(\d{1,3})\s*pz(?:as?)?\b/i);
+  // Acepta PZ / pza / pzas / pzs (ticket HS imprime "pzs" sin a).
+  const mayoreo = n.match(/\b(\d{1,3})\s*\/\s*(\d{1,3})\s*pz(?:a)?s?\b/i);
   if (mayoreo) {
     const caja = parseInt(mayoreo[1], 10);
     const exhibidor = parseInt(mayoreo[2], 10);

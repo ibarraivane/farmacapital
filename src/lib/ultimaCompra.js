@@ -29,6 +29,14 @@ export function normalizeProveedorCompra(nombre) {
   if (/famosa|la\s*victoria|dulcer[ií]a\s*la\s*victoria|lafam/i.test(n)) {
     return "Dulcería La Victoria";
   }
+  // Nota T610…: MAYORISTA DE DULCES IZTAPALAPA (Bodega E-17) = HS Comercial.
+  if (
+    /hs\s*comercial|mayorista\s*de\s*dulces|hscomercial\.mx|mdi0803131a9/i.test(
+      n,
+    )
+  ) {
+    return "HS Comercial";
+  }
   return n;
 }
 
