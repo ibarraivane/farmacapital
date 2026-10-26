@@ -68,11 +68,22 @@
   gap: 6px;
 }
 
+.fc-ventas-meta-note {
+  margin: -6px 0 14px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .fc-ventas-meta-swatch {
   width: 10px;
   height: 10px;
   border-radius: 3px;
   background: #ef4444;
+}
+
+.fc-ventas-meta-swatch.is-ganancia {
+  background: #0f766e;
 }
 
 .fc-ventas-meta-dash {
@@ -100,6 +111,31 @@
 
 .fc-ventas-meta-bars.is-dia {
   gap: 6px;
+}
+
+.fc-ventas-meta-bars.has-ganancia .fc-ventas-meta-col {
+  min-width: 44px;
+}
+
+.fc-ventas-meta-pair {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 132px;
+}
+
+.fc-ventas-meta-pair .fc-ventas-meta-track {
+  flex: 0 0 12px;
+  width: 12px;
+  max-width: 12px;
+  height: 100%;
+}
+
+.fc-ventas-meta-pair .fc-ventas-meta-tick {
+  left: -1px;
+  right: -1px;
 }
 
 .fc-ventas-meta-col {
