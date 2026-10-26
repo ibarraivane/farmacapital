@@ -29,4 +29,18 @@ Las fotos de terceros (Shopify / Tienda Nube) quedan en `imagen_url` para que la
 
 Espejo 17-sep-2026: **2,231** packshots bajaron a `catalogo-imagenes/bajo-pedido/` (3 rechazadas en `fotos_pendientes_bajo_pedido.csv`). **1,086** SKUs siguen sin foto de origen (`sin_imagen_bajo_pedido.csv`), casi todos Ewafra sin match Promexsa: el alta existe, la foto no está cerrada.
 
-Mepiel: cuando llegue la lista, cruzar por EAN contra Dermaexpress y cargar fuente `mepiel`.
+Mepiel (lista 2026): `docs/catalogos/mepiel_lista_2026.csv`. El costo es **precio cliente c/IVA** (lo que cobra ME Piel). El PVP de la lista queda como techo en la referencia, no como `productos.precio`. La vitrina sigue en 0 (Ordenar). Si el EAN ya está en Dermaexpress, se conserva el costo más barato y la foto de Dermaexpress cuando el producto aún no tiene imagen.
+
+```bash
+node scripts/generar-alta-mepiel.js
+python3 scripts/buscar_fotos_mepiel.py   # Farmatodo, solo los que siguen sin foto
+node scripts/generar-alta-mepiel.js      # vuelve a armar el SQL con las fotos nuevas
+```
+
+SQL en orden: `sql/alta_mepiel_2026/00_staging.sql`, luego `01_…23`, luego `24a_insertar_0` … `24a_insertar_3`, `24b_actualizar`, `24c_referencias` y `24d_cerrar`. No corras `24_aplicar.sql`: el editor lo cortaba por tiempo porque llamaba `fc_buscar_producto_escaneo` por cada código. No pisa anaquel (stock > 0) ni un precio que el dueño ya haya publicado. Si el `00` ya corrió, no lo vuelvas a correr: vacía la tabla temporal.
+
+Si el SQL Editor responde `Failed to fetch (api.supabase.com)` o `upstream timeout`, carga directo a Postgres (hace falta la URI Session del pooler, puerto 6543, en `DATABASE_URL` o en `.env.local`):
+
+```bash
+node scripts/aplicar-alta-mepiel-pg.js
+```
