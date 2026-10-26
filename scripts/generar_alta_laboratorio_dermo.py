@@ -319,10 +319,12 @@ where not exists (
      or (t.ean is null and p.sku = t.sku)
 );
 
--- Actualiza existentes (incluye los que vinieron de Dermaexpress/MePiel)
+-- Actualiza existentes (incluye los que vinieron de Dermaexpress/MePiel).
+-- Sin stock físico de lab: quedan bajo pedido con PVP visible para ordenar.
 update public.productos p
    set costo = t.costo,
        precio = t.precio,
+       stock = case when coalesce(p.stock, 0) > 0 then p.stock else 0 end,
        bajo_pedido = case when coalesce(p.stock, 0) > 0 then false else true end,
        activo = true,
        marca = 'Alastin',
@@ -478,6 +480,7 @@ where not exists (
 update public.productos p
    set costo = t.costo,
        precio = t.precio,
+       stock = case when coalesce(p.stock, 0) > 0 then p.stock else 0 end,
        bajo_pedido = case when coalesce(p.stock, 0) > 0 then false else true end,
        activo = true,
        marca = 'Medik8',
@@ -603,7 +606,9 @@ def write_leerme(svr_n: int, alastin_n: int, medik8_n: int) -> None:
 **Regla de precios**
 - `costo` = precio de venta al médico / especialista (compra)
 - `precio` = precio al público de la lista (por ahora)
-- **SVR**: solo los PVP que dio el dueño en el catálogo FarmaCapital + costo de su factura
+- **SVR**: anaquel con stock + PVP FarmaCapital
+- **Alastin / Medik8**: `bajo_pedido=true`, `stock=0` — se ve el PVP y se **ordena**
+  (reserva), no se compra como si hubiera existencia
 
 Se **quita del inventario** lo cargado desde listas de páginas (MePiel / Dermaexpress).
 Solo se mantienen / cargan estas listas de laboratorio.

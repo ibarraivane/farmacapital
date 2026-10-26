@@ -38,9 +38,14 @@ export function tituloVisibleFicha(prod) {
   return titulo;
 }
 
-export function entregaFicha({ esEncargo, agotado, permitidoWeb, textoBloqueo }) {
+export function entregaFicha({ esEncargo, encargoConPrecio, agotado, permitidoWeb, textoBloqueo }) {
   if (esEncargo) {
-    return { titulo: "Por encargo · 24-48 hrs", detalle: "Confirmamos precio y fecha con el proveedor antes de cobrar." };
+    return {
+      titulo: "Por encargo · 24-48 hrs",
+      detalle: encargoConPrecio
+        ? "Sin existencias en anaquel. Ordenas al precio indicado; apartamos con reserva y lo conseguimos en 24-48 hrs."
+        : "Confirmamos precio y fecha con el proveedor antes de cobrar.",
+    };
   }
   if (agotado) {
     return { titulo: "Agotado por ahora", detalle: "Escríbenos y te avisamos en cuanto llegue." };
@@ -62,7 +67,7 @@ export default function FichaV2({
   imagen,
   categoriaLabel,
   precioSlot,
-  estadoCompra,          // { agotado, permitidoWeb, esEncargo, textoBloqueo }
+  estadoCompra,          // { agotado, permitidoWeb, esEncargo, encargoConPrecio, textoBloqueo }
   requiereReceta = false,
   avisoReceta = "",
   added = false,
@@ -95,16 +100,22 @@ export default function FichaV2({
   }, [prod?.id]);
 
   if (!prod) return null;
-  const { agotado, permitidoWeb, esEncargo, textoBloqueo } = estadoCompra || {};
+  const { agotado, permitidoWeb, esEncargo, encargoConPrecio, textoBloqueo } = estadoCompra || {};
   const filas = fichaTecnicaDe(prod, ficha, monografia);
   const pres = presentacionPublicaTienda(prod);
-  const entrega = entregaFicha({ esEncargo, agotado, permitidoWeb, textoBloqueo });
+  const entrega = entregaFicha({ esEncargo, encargoConPrecio, agotado, permitidoWeb, textoBloqueo });
+  // Encargo con PVP: se ordena (reserva). "Comprar ahora" solo anaquel con stock.
+  const puedeOrdenarEncargo = Boolean(esEncargo && encargoConPrecio && permitidoWeb);
   const sePuedeComprar = !esEncargo && !agotado && permitidoWeb;
   const subtitulo = [prod.marca, pres].map((x) => String(x || "").trim()).filter(Boolean).join(" · ");
 
-  const accionPrincipal = esEncargo ? (
+  const accionPrincipal = esEncargo && !encargoConPrecio ? (
     <button type="button" className="fc-primary" onClick={onCotizar}>
       Pedir por encargo <ArrowRight aria-hidden="true" />
+    </button>
+  ) : esEncargo && encargoConPrecio ? (
+    <button type="button" className="fc-primary" disabled={!puedeOrdenarEncargo} onClick={onAgregar}>
+      {!permitidoWeb ? (textoBloqueo || "Solo en mostrador") : added ? "✓ Agregado" : "Ordenar al precio"}
     </button>
   ) : (
     <button type="button" className="fc-primary" disabled={!sePuedeComprar} onClick={onAgregar}>
@@ -162,6 +173,8 @@ export default function FichaV2({
             {accionPrincipal}
             {sePuedeComprar ? (
               <button type="button" className="fc-secondary" onClick={onComprar}>Comprar ahora</button>
+            ) : puedeOrdenarEncargo ? (
+              <button type="button" className="fc-secondary" onClick={onComprar}>Ir al carrito</button>
             ) : null}
           </div>
 

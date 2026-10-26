@@ -78,10 +78,12 @@ where not exists (
      or (t.ean is null and p.sku = t.sku)
 );
 
--- Actualiza existentes (incluye los que vinieron de Dermaexpress/MePiel)
+-- Actualiza existentes (incluye los que vinieron de Dermaexpress/MePiel).
+-- Sin stock físico de lab: quedan bajo pedido con PVP visible para ordenar.
 update public.productos p
    set costo = t.costo,
        precio = t.precio,
+       stock = case when coalesce(p.stock, 0) > 0 then p.stock else 0 end,
        bajo_pedido = case when coalesce(p.stock, 0) > 0 then false else true end,
        activo = true,
        marca = 'Alastin',

@@ -3,7 +3,9 @@
 **Regla de precios**
 - `costo` = precio de venta al médico / especialista (compra)
 - `precio` = precio al público de la lista (por ahora)
-- **SVR**: solo los PVP que dio el dueño en el catálogo FarmaCapital + costo de su factura
+- **SVR**: anaquel con stock + PVP FarmaCapital
+- **Alastin / Medik8**: `bajo_pedido=true`, `stock=0` — se ve el PVP y se **ordena**
+  (reserva), no se compra como si hubiera existencia
 
 Se **quita del inventario** lo cargado desde listas de páginas (MePiel / Dermaexpress).
 Solo se mantienen / cargan estas listas de laboratorio.
