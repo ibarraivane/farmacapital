@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,9012489145,2026-10-18,Levic,7502009747335,MAV352 DEXAL 1 SUSP 30 ML,1,166.22,166.22,,,FC-09747335,558.72,alta
+2,9012489145,2026-10-18,Levic,7501300450012,WES008 FOSSIN 12 CAPS 500 MG,1,392.50,392.50,,,FC-30045001,558.72,alta
