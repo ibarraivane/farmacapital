@@ -28,14 +28,22 @@ export function guardarMostrarVitrina(storage, on) {
   }
 }
 
+/** Piezas ya en anaquel: no se esconden aunque el flag de vitrina siga prendido. */
+export function tieneStockAnaquel(p) {
+  return (Number(p?.stock) || 0) > 0;
+}
+
 /**
  * true si el renglón entra a la tabla y a los conteos de Inventario.
  * El filtro «Bajo pedido» los pide a propósito, aunque el interruptor esté apagado.
+ * Si hay stock físico, siempre entra: no puede “desaparecer” por quedar marcado
+ * bajo pedido (caso Kitoscell 2026-10-25).
  */
 export function pasaVistaInventario(p, { mostrarVitrina = false, filtroAlerta = "todos" } = {}) {
   // Atención en mostrador no es anaquel: solo el filtro «Servicios de salud».
   if (esServicio(p)) return filtroAlerta === "servicios";
   if (filtroAlerta === "servicios") return false;
   if (mostrarVitrina || filtroAlerta === "bajo_pedido") return true;
+  if (tieneStockAnaquel(p)) return true;
   return !esBajoPedido(p);
 }

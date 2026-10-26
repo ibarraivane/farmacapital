@@ -3,11 +3,18 @@
  * reemplaza por id, agrega los nuevos al final y quita los que quedaron inactivos.
  * Si no hay cambios devuelve el mismo arreglo (sin re-render).
  */
-/** La vitrina no entra al POS: si cambió, se trata como baja para quitarla de pantalla. */
+/**
+ * La vitrina no entra al POS: si cambió, se trata como baja.
+ * Excepto si ya tiene stock: piezas físicas deben venderse en mostrador
+ * (aunque el flag bajo_pedido no se haya apagado aún).
+ */
 export function filasDeltaAnaquel(delta) {
-  return (Array.isArray(delta) ? delta : []).map((p) => (
-    p?.bajo_pedido === true ? { ...p, activo: false } : p
-  ));
+  return (Array.isArray(delta) ? delta : []).map((p) => {
+    if (p?.bajo_pedido === true && !(Number(p?.stock) > 0)) {
+      return { ...p, activo: false };
+    }
+    return p;
+  });
 }
 
 export function mergeCatalogoDelta(prev, delta) {

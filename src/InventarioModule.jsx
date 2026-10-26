@@ -3692,7 +3692,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   };
 
   const catalogoConteo = useMemo(
-    () => productos.filter((p) => !esServicio(p) && (mostrarVitrina || !esBajoPedido(p))),
+    () => productos.filter((p) => !esServicio(p) && (
+      mostrarVitrina || !esBajoPedido(p) || (Number(p.stock) || 0) > 0
+    )),
     [productos, mostrarVitrina]
   );
   const nVitrina = productos.filter((p) => esBajoPedido(p)).length;

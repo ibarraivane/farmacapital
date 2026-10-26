@@ -60,8 +60,13 @@ export function esErrorTimeoutCatalogo(error) {
     || msg === "timeout";
 }
 
-/** PostgREST: null y false son anaquel. true es la vitrina. */
-export const FILTRO_ANAQUEL = "bajo_pedido.eq.false,bajo_pedido.is.null";
+/**
+ * PostgREST: null y false son anaquel. true es la vitrina.
+ * Si ya hay stock (>0) y el flag quedó en vitrina, igual entra al anaquel
+ * (Inventario/POS no pueden ocultar piezas físicas).
+ */
+export const FILTRO_ANAQUEL =
+  "bajo_pedido.eq.false,bajo_pedido.is.null,and(bajo_pedido.eq.true,stock.gt.0)";
 
 export function aplicarModoCatalogo(q, modo = "anaquel") {
   if (!q) return q;
