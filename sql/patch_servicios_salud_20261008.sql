@@ -436,7 +436,9 @@ end;
 $function$;
 
 -- ---------------------------------------------------------------------------
--- 6. Catálogo inicial  ── PRECIOS [CONFIGURABLE]: Iván los confirma antes de correr.
+-- 6. Catálogo inicial  ── Precios confirmados 2026-10-09:
+--    inyección $30, presión $20, oximetría $20 (mitad quien aplica, mitad farmacia).
+--    Si la fila ya existe, el precio lo corrige patch_servicios_salud_precio_inyeccion_20261009.sql.
 --    costo = 0: sin insumo propio (la jeringa / el medicamento se venden aparte).
 --    Glucosa capilar entra DESACTIVADA (gasta tira + lanceta: definir costo primero).
 -- ---------------------------------------------------------------------------
@@ -449,7 +451,7 @@ select s.sku, s.nombre, 'Servicios de salud', null, 'servicio', s.precio, s.cost
        0, 0, s.activo, false, false,
        false, false, false, s.descripcion
 from (values
-  ('SERV-INY-IM',   'Aplicación de inyección intramuscular', 40::numeric, 0::numeric, true,
+  ('SERV-INY-IM',   'Aplicación de inyección intramuscular', 30::numeric, 0::numeric, true,
    'Aplicación de medicamento inyectable intramuscular. El medicamento y la jeringa se cobran aparte.'),
   ('SERV-PRESION',  'Toma de presión arterial',              20::numeric, 0::numeric, true,
    'Medición de presión arterial con baumanómetro digital.'),
