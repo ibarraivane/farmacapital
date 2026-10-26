@@ -11,6 +11,7 @@ import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearc
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
 import { filasDeltaAnaquel, mergeCatalogoDelta } from "../../../lib/catalogoDeltaPos";
+import { fetchLotesInventario } from "../../../lib/inventarioHubData";
 import { aplicarModoCatalogo } from "../../../lib/catalogoConsulta";
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput, esperaBusquedaPos } from "../../../utils/barcodeProductLookup";
 import { posSubtituloProducto, posEtiquetaVariante, tituloPublicoProducto } from "../../../utils/posProductDisplay";
@@ -128,12 +129,10 @@ function posFichaLinea(item) {
   return { nombre, detalle };
 }
 
-/** Anon no puede leer `lotes` por RLS; Inventario ya usa este RPC (security definer). */
+/** Anon no puede leer `lotes` por RLS. Páginas chicas: el JSON completo se pasaba de 8 s. */
 async function fetchLotesMapPos(sessionToken) {
   if (!sessionToken) return {};
-  const { data, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
-    p_session_token: sessionToken,
-  });
+  const { data, error } = await fetchLotesInventario(sessionToken);
   if (error || !data) return {};
   const byProducto = {};
   for (const l of Array.isArray(data) ? data : []) {
