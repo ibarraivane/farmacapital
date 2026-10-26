@@ -12,6 +12,7 @@ export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "far
 export const FUENTES_COMPRA_EXTRA = [
   "scorpion", "abarrotero", "mayoreototal", "otros_compra",
   "dermaexpress", "birdman", "ewafra", "promexsa", "mepiel",
+  "svr", "alastin", "medik8",
 ];
 export const FUENTES_COMPRA = [...FUENTES_COMPRA_TABLA, ...FUENTES_COMPRA_EXTRA];
 export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
@@ -177,7 +178,25 @@ export const FUENTE_META = {
     label: "Mepiel",
     tipo: "compra",
     listaDistribuidor: true,
-    hint: "Mayoreo dermo / médico. Reservada hasta cargar la lista.",
+    hint: "Catálogo legado. Preferir SVR / Alastin / Medik8 a precio de laboratorio cuando exista.",
+  },
+  svr: {
+    label: "SVR (lab)",
+    tipo: "compra",
+    listaDistribuidor: true,
+    hint: "Compra directa SVR. Costo de factura; PVP del catálogo FarmaCapital.",
+  },
+  alastin: {
+    label: "Alastin (lab)",
+    tipo: "compra",
+    listaDistribuidor: true,
+    hint: "Lista Alastin 2026. Costo base c/IVA; hay descuento por volumen sobre sin IVA.",
+  },
+  medik8: {
+    label: "Medik8",
+    tipo: "compra",
+    listaDistribuidor: true,
+    hint: "Dermatotec — precio especialistas c/IVA. RRP de la lista es el PVP.",
   },
   similares: {
     label: "Similares",
