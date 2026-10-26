@@ -67,7 +67,8 @@ def write_svr(rows: list[dict]) -> None:
     parts = [
         """-- ============================================================================
 -- FARMACAPITAL — SVR stock a precio de laboratorio (oct-2026)
--- Costo = factura de compra. Precio = Lista FarmaCapital (IVA incluido).
+-- costo  = precio de compra (factura)
+-- precio = SOLO los PVP públicos que dio el dueño (catálogo FarmaCapital)
 -- Pasa a anaquel (bajo_pedido = false) con lote S/L si aún no hay piezas.
 -- Regenerar: python3 scripts/generar_alta_laboratorio_dermo.py
 -- Pegar TODO en Supabase → SQL Editor → Run.
@@ -240,10 +241,8 @@ def write_alastin(rows: list[dict]) -> None:
     parts = [
         """-- ============================================================================
 -- FARMACAPITAL — Alastin precio laboratorio 2026 (bajo pedido / listo para ordenar)
--- Costo = precio con IVA de lista (0% descuento volumen).
--- Precio = PVP sugerido de la lista.
--- Si el EAN ya venía de Dermaexpress/MePiel: actualiza costo/precio (más barato lab).
--- No toca stock de anaquel > 0 salvo para bajar costo si lab es más barato.
+-- costo  = precio al médico (lista con IVA, sin descuento volumen)
+-- precio = precio al público sugerido de la lista (por ahora)
 -- Regenerar: python3 scripts/generar_alta_laboratorio_dermo.py
 -- ============================================================================
 
@@ -299,7 +298,7 @@ select
   t.ean,
   'Cuidado personal',
   'marca',
-  'Alastin laboratorio 2026 · listo para ordenar · costo base c/IVA',
+  'Alastin laboratorio 2026 · costo = precio médico c/IVA · precio = PVP lista',
   t.costo,
   t.precio,
   0,
@@ -320,13 +319,10 @@ where not exists (
      or (t.ean is null and p.sku = t.sku)
 );
 
--- Actualiza existentes (incluye los que vinieron de Dermaexpress)
+-- Actualiza existentes (incluye los que vinieron de Dermaexpress/MePiel)
 update public.productos p
    set costo = t.costo,
-       precio = case
-         when coalesce(p.stock, 0) > 0 and coalesce(p.precio, 0) > 0.01 then p.precio
-         else t.precio
-       end,
+       precio = t.precio,
        bajo_pedido = case when coalesce(p.stock, 0) > 0 then false else true end,
        activo = true,
        marca = 'Alastin',
@@ -358,9 +354,9 @@ delete from public.producto_precios_referencia r
 insert into public.producto_precios_referencia
   (producto_id, fuente, tipo, precio, sku_externo, origen, notas)
 select p.id, 'alastin', 'compra', t.costo, coalesce(t.ean, t.sku), 'import_csv',
-       'Lista Alastin 2026 · base c/IVA'
+       'Alastin 2026 · precio médico c/IVA'
          || coalesce(' · sin IVA ' || t.costo_sin_iva::text, '')
-         || ' · PVP sugerido ' || t.precio::text
+         || ' · PVP público ' || t.precio::text
          || case when t.cabina then ' · cabina' else '' end
          || ' · descuentos volumen: 15%@30k / 20%@60k / 25%@80k / 30%@140k / 35%@200k (sobre sin IVA)'
   from _fc_alastin_lab t
@@ -383,10 +379,11 @@ def write_medik8(rows: list[dict]) -> None:
     # chunk inserts for editor size
     staging = """-- ============================================================================
 -- FARMACAPITAL — Medik8 / Dermatotec lista especialistas 2025
--- Costo = precio especialistas c/IVA. Precio = RRP c/IVA de la lista.
--- Bajo pedido (listo para ordenar). Sin EAN en la lista → match por SKU estable.
+-- costo  = precio venta al médico / especialistas c/IVA
+-- precio = RRP / precio al público c/IVA (por ahora)
+-- Bajo pedido. Sin EAN en la lista → match por SKU estable.
 -- Regenerar: python3 scripts/generar_alta_laboratorio_dermo.py
--- Orden: 00_staging → 03a_filas_* → 03b_aplicar
+-- Orden: 03_staging → 03a_filas_* → 03b_aplicar
 -- ============================================================================
 
 begin;
@@ -406,7 +403,10 @@ truncate public._fc_medik8_stg;
 
 commit;
 """
-    (SQL_DIR / "00_staging_medik8.sql").write_text(staging, encoding="utf-8")
+    old_stg = SQL_DIR / "00_staging_medik8.sql"
+    if old_stg.exists():
+        old_stg.unlink()
+    (SQL_DIR / "03_staging_medik8.sql").write_text(staging, encoding="utf-8")
 
     chunk_size = 25
     for i in range(0, len(rows), chunk_size):
@@ -442,7 +442,7 @@ begin;
 do $$
 begin
   if to_regclass('public._fc_medik8_stg') is null then
-    raise exception 'Falta _fc_medik8_stg. Corre 00_staging_medik8.sql y las filas 03a.';
+    raise exception 'Falta _fc_medik8_stg. Corre 03_staging_medik8.sql y las filas 03a.';
   end if;
 end $$;
 
@@ -477,10 +477,7 @@ where not exists (
 
 update public.productos p
    set costo = t.costo,
-       precio = case
-         when coalesce(p.stock, 0) > 0 and coalesce(p.precio, 0) > 0.01 then p.precio
-         else t.precio
-       end,
+       precio = t.precio,
        bajo_pedido = case when coalesce(p.stock, 0) > 0 then false else true end,
        activo = true,
        marca = 'Medik8',
@@ -490,8 +487,7 @@ update public.productos p
        categoria = 'Cuidado personal',
        descripcion = coalesce(nullif(btrim(p.descripcion), ''), t.descripcion)
   from public._fc_medik8_stg t
- where p.sku = t.sku
-   and coalesce(p.stock, 0) = 0;
+ where p.sku = t.sku;
 
 delete from public.producto_precios_referencia r
  using public.productos p, public._fc_medik8_stg t
@@ -504,7 +500,7 @@ delete from public.producto_precios_referencia r
 insert into public.producto_precios_referencia
   (producto_id, fuente, tipo, precio, sku_externo, origen, notas)
 select p.id, 'medik8', 'compra', t.costo, t.sku, 'import_csv',
-       'Medik8 especialistas 2025 · Dermatotec · RRP ' || t.precio::text
+       'Medik8 · precio médico/especialistas · PVP público RRP ' || t.precio::text
          || coalesce(' · ' || nullif(t.gama, ''), '')
   from public._fc_medik8_stg t
   join public.productos p on p.sku = t.sku;
@@ -521,44 +517,80 @@ where marca ilike 'medik8';
 
 
 def write_retire_note() -> None:
-    path = SQL_DIR / "09_retirar_mepiel_sin_stock.sql"
+    # Corre ANTES de cargar lab. Saca de inventario/vitrina lo de listas web.
+    old = SQL_DIR / "09_retirar_mepiel_sin_stock.sql"
+    if old.exists():
+        old.unlink()
+    path = SQL_DIR / "00_retirar_mepiel_dermaexpress.sql"
     path.write_text(
-        """-- OPCIONAL. Solo si ya cargaste MePiel / Dermaexpress y quieres
--- apagar la vitrina de esas fuentes cuando NO hay stock ni precio publicado
--- del dueño. NO borra productos ni toca anaquel.
---
--- Revisa el select de conteo ANTES del update.
+        """-- ============================================================================
+-- OBLIGATORIO primero: sacar de inventario/vitrina lo cargado desde
+-- listas de páginas (MePiel, Dermaexpress). NO toca anaquel con stock > 0.
+-- NO toca Birdman / Ewafra. Las altas de laboratorio (SVR/Alastin/Medik8)
+-- que siguen vuelven a activar solo lo pedible al lab.
+-- ============================================================================
 
--- Conteo previo
+-- Conteo previo (revisar antes del update)
 select
-  count(*) filter (where r.fuente = 'mepiel') as refs_mepiel,
-  count(*) filter (where r.fuente = 'dermaexpress') as refs_derma
-from public.producto_precios_referencia r
-where r.fecha >= current_date - 120;
+  count(*) filter (
+    where coalesce(p.stock, 0) = 0
+      and (
+        exists (
+          select 1 from public.producto_precios_referencia r
+           where r.producto_id = p.id
+             and r.fuente in ('mepiel', 'dermaexpress')
+        )
+        or coalesce(p.descripcion, '') ~* 'Bajo pedido ·[[:space:]]*(mepiel|dermaexpress|me[[:space:]]*piel)'
+        or coalesce(p.descripcion, '') ~* '(^|[[:space:]])(mepiel|dermaexpress)([[:space:]]|$)'
+      )
+  ) as a_retirar_sin_stock,
+  count(*) filter (
+    where coalesce(p.stock, 0) > 0
+      and (
+        exists (
+          select 1 from public.producto_precios_referencia r
+           where r.producto_id = p.id
+             and r.fuente in ('mepiel', 'dermaexpress')
+        )
+      )
+  ) as con_stock_se_conservan
+from public.productos p;
 
--- Apaga vitrina MePiel sin stock (no toca precio > 0 publicado)
 begin;
 
 update public.productos p
    set bajo_pedido = false,
-       activo = case
-         when coalesce(p.precio, 0) > 0.01 then p.activo
-         else false
-       end
+       activo = false
  where coalesce(p.stock, 0) = 0
-   and coalesce(p.bajo_pedido, false) = true
-   and exists (
-     select 1 from public.producto_precios_referencia r
-      where r.producto_id = p.id
-        and r.fuente = 'mepiel'
+   and (
+     exists (
+       select 1 from public.producto_precios_referencia r
+        where r.producto_id = p.id
+          and r.fuente in ('mepiel', 'dermaexpress')
+     )
+     or coalesce(p.descripcion, '') ~* 'Bajo pedido ·[[:space:]]*(mepiel|dermaexpress|me[[:space:]]*piel)'
    )
+   -- No apagar lo que ya quedó marcado como lab (por si se re-corre)
    and not exists (
      select 1 from public.producto_precios_referencia r
       where r.producto_id = p.id
         and r.fuente in ('svr', 'alastin', 'medik8')
+   )
+   -- Birdman / Ewafra siguen
+   and not exists (
+     select 1 from public.producto_precios_referencia r
+      where r.producto_id = p.id
+        and r.fuente in ('birdman', 'ewafra')
    );
 
 commit;
+
+select
+  count(*) filter (where coalesce(bajo_pedido, false) and coalesce(activo, false)) as vitrina_activa,
+  count(*) filter (where marca ilike 'alastin' and coalesce(activo, false)) as alastin_activos,
+  count(*) filter (where marca ilike 'medik8' and coalesce(activo, false)) as medik8_activos,
+  count(*) filter (where marca ilike 'svr' and coalesce(activo, false)) as svr_activos
+from public.productos;
 """,
         encoding="utf-8",
     )
@@ -568,24 +600,29 @@ def write_leerme(svr_n: int, alastin_n: int, medik8_n: int) -> None:
     (SQL_DIR / "LEERME.md").write_text(
         f"""# Catálogo dermo a precio de laboratorio (25-oct-2026)
 
-Reemplaza la estrategia de **MePiel / Dermaexpress** para las marcas que ya
-podemos comprar a precio directo de laboratorio.
+**Regla de precios**
+- `costo` = precio de venta al médico / especialista (compra)
+- `precio` = precio al público de la lista (por ahora)
+- **SVR**: solo los PVP que dio el dueño en el catálogo FarmaCapital + costo de su factura
+
+Se **quita del inventario** lo cargado desde listas de páginas (MePiel / Dermaexpress).
+Solo se mantienen / cargan estas listas de laboratorio.
 
 | Archivo | Qué hace | Filas |
 |---|---|---|
 | `../patch_fuentes_laboratorio_dermo_20261025.sql` | Fuentes `svr`, `alastin`, `medik8` | — |
-| `01_svr_stock.sql` | SVR con stock, costo factura y PVP FarmaCapital | {svr_n} |
-| `02_alastin_lab.sql` | Alastin listo para ordenar (costo c/IVA + PVP sugerido) | {alastin_n} |
-| `00_staging_medik8.sql` + `03a_filas_*.sql` + `03b_aplicar_medik8.sql` | Medik8 / Dermatotec | {medik8_n} |
-| `09_retirar_mepiel_sin_stock.sql` | **Opcional**: apaga vitrina MePiel sin stock | — |
+| `00_retirar_mepiel_dermaexpress.sql` | **Obligatorio**: apaga MePiel/Dermaexpress sin stock | — |
+| `01_svr_stock.sql` | SVR anaquel: costo factura + PVP FarmaCapital | {svr_n} |
+| `02_alastin_lab.sql` | Alastin: costo = c/IVA médico · precio = PVP sugerido | {alastin_n} |
+| `03_staging_medik8.sql` + `03a_filas_*.sql` + `03b_aplicar_medik8.sql` | Medik8: costo = especialistas · precio = RRP | {medik8_n} |
 
 ## Orden en Supabase
 
 1. `sql/patch_fuentes_laboratorio_dermo_20261025.sql`
-2. `01_svr_stock.sql`
-3. `02_alastin_lab.sql`
-4. `00_staging_medik8.sql` → todos los `03a_filas_*` → `03b_aplicar_medik8.sql`
-5. (Opcional, después de revisar) `09_retirar_mepiel_sin_stock.sql`
+2. `00_retirar_mepiel_dermaexpress.sql` ← primero limpia listas web
+3. `01_svr_stock.sql`
+4. `02_alastin_lab.sql`
+5. `03_staging_medik8.sql` → todos los `03a_filas_*` → `03b_aplicar_medik8.sql`
 
 ## CSV fuente
 
@@ -598,10 +635,10 @@ extiende `scripts/generar_alta_laboratorio_dermo.py`.
 
 ## Notas
 
-- **SVR Topialyse Gel Lavant**: margen ~15% (costo $475.70 → PVP $559). El resto SVR ronda 31–32% de margen sobre venta.
-- **Alastin**: el costo guardado es el de lista **con IVA sin descuento**. Si compras $30k+ sin IVA, actualiza el costo al escalón real.
-- **Medik8**: la lista no trae EAN; el SKU es estable por nombre+tamaño. Cuando escanees la caja, pégalo en `codigo_barras`.
-- La PR draft de MePiel (`cursor/alta-catalogo-mepiel-2026-83df`) **no se mergea**; este flujo la sustituye para dermo pedible.
+- **SVR Topialyse Gel Lavant**: margen ~15% (costo $475.70 → PVP $559).
+- **Alastin**: costo = precio con IVA de lista (sin descuento volumen). Si compras $30k+ sin IVA, baja el costo al escalón.
+- **Medik8**: sin EAN en PDF; al recibir, escanear y pegar `codigo_barras`.
+- Birdman / Ewafra no se tocan.
 """,
         encoding="utf-8",
     )

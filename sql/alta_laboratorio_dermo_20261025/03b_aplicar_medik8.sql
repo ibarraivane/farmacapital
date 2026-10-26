@@ -4,7 +4,7 @@ begin;
 do $$
 begin
   if to_regclass('public._fc_medik8_stg') is null then
-    raise exception 'Falta _fc_medik8_stg. Corre 00_staging_medik8.sql y las filas 03a.';
+    raise exception 'Falta _fc_medik8_stg. Corre 03_staging_medik8.sql y las filas 03a.';
   end if;
 end $$;
 
@@ -39,10 +39,7 @@ where not exists (
 
 update public.productos p
    set costo = t.costo,
-       precio = case
-         when coalesce(p.stock, 0) > 0 and coalesce(p.precio, 0) > 0.01 then p.precio
-         else t.precio
-       end,
+       precio = t.precio,
        bajo_pedido = case when coalesce(p.stock, 0) > 0 then false else true end,
        activo = true,
        marca = 'Medik8',
@@ -52,8 +49,7 @@ update public.productos p
        categoria = 'Cuidado personal',
        descripcion = coalesce(nullif(btrim(p.descripcion), ''), t.descripcion)
   from public._fc_medik8_stg t
- where p.sku = t.sku
-   and coalesce(p.stock, 0) = 0;
+ where p.sku = t.sku;
 
 delete from public.producto_precios_referencia r
  using public.productos p, public._fc_medik8_stg t
@@ -66,7 +62,7 @@ delete from public.producto_precios_referencia r
 insert into public.producto_precios_referencia
   (producto_id, fuente, tipo, precio, sku_externo, origen, notas)
 select p.id, 'medik8', 'compra', t.costo, t.sku, 'import_csv',
-       'Medik8 especialistas 2025 · Dermatotec · RRP ' || t.precio::text
+       'Medik8 · precio médico/especialistas · PVP público RRP ' || t.precio::text
          || coalesce(' · ' || nullif(t.gama, ''), '')
   from public._fc_medik8_stg t
   join public.productos p on p.sku = t.sku;

@@ -1,6 +1,7 @@
 -- ============================================================================
 -- FARMACAPITAL — SVR stock a precio de laboratorio (oct-2026)
--- Costo = factura de compra. Precio = Lista FarmaCapital (IVA incluido).
+-- costo  = precio de compra (factura)
+-- precio = SOLO los PVP públicos que dio el dueño (catálogo FarmaCapital)
 -- Pasa a anaquel (bajo_pedido = false) con lote S/L si aún no hay piezas.
 -- Regenerar: python3 scripts/generar_alta_laboratorio_dermo.py
 -- Pegar TODO en Supabase → SQL Editor → Run.

@@ -1,9 +1,10 @@
 -- ============================================================================
 -- FARMACAPITAL — Medik8 / Dermatotec lista especialistas 2025
--- Costo = precio especialistas c/IVA. Precio = RRP c/IVA de la lista.
--- Bajo pedido (listo para ordenar). Sin EAN en la lista → match por SKU estable.
+-- costo  = precio venta al médico / especialistas c/IVA
+-- precio = RRP / precio al público c/IVA (por ahora)
+-- Bajo pedido. Sin EAN en la lista → match por SKU estable.
 -- Regenerar: python3 scripts/generar_alta_laboratorio_dermo.py
--- Orden: 00_staging → 03a_filas_* → 03b_aplicar
+-- Orden: 03_staging → 03a_filas_* → 03b_aplicar
 -- ============================================================================
 
 begin;

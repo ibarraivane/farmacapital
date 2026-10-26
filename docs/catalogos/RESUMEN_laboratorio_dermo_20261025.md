@@ -1,5 +1,11 @@
 # Resumen márgenes — dermo laboratorio (25-oct-2026)
 
+## Regla
+- **`costo`** = precio al médico / especialista (compra)
+- **`precio`** = precio al público de la lista (por ahora)
+- **SVR**: solo los PVP que ya diste en el catálogo FarmaCapital
+- Se **apaga** del inventario lo cargado de MePiel / Dermaexpress (sin stock)
+
 ## SVR (stock comprado)
 
 | Producto | Pzas | Costo | PVP FarmaCapital | Margen / venta | Recargo / costo |

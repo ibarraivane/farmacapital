@@ -5,8 +5,14 @@ y el anaquel. **No** se venden con PVP de Promexsa ni de otra farmacia.
 
 ## Prioridad 2026: laboratorio directo
 
-Para dermo que sí podemos pedir al laboratorio, **no** usar MePiel ni Dermaexpress
-como fuente de costo. Ver `sql/alta_laboratorio_dermo_20261025/LEERME.md`.
+Para dermo pedible al laboratorio:
+- **`costo`** = precio al médico / especialista
+- **`precio`** = precio al público de la lista
+- **SVR**: solo PVP del catálogo FarmaCapital + costo de factura
+- **MePiel / Dermaexpress**: se retiran del inventario (sin stock) con
+  `sql/alta_laboratorio_dermo_20261025/00_retirar_mepiel_dermaexpress.sql`
+
+Ver `sql/alta_laboratorio_dermo_20261025/LEERME.md`.
 
 | Archivo | Proveedor | Rol |
 |---|---|---|

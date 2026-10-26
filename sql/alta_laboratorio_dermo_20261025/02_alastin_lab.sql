@@ -1,9 +1,7 @@
 -- ============================================================================
 -- FARMACAPITAL — Alastin precio laboratorio 2026 (bajo pedido / listo para ordenar)
--- Costo = precio con IVA de lista (0% descuento volumen).
--- Precio = PVP sugerido de la lista.
--- Si el EAN ya venía de Dermaexpress/MePiel: actualiza costo/precio (más barato lab).
--- No toca stock de anaquel > 0 salvo para bajar costo si lab es más barato.
+-- costo  = precio al médico (lista con IVA, sin descuento volumen)
+-- precio = precio al público sugerido de la lista (por ahora)
 -- Regenerar: python3 scripts/generar_alta_laboratorio_dermo.py
 -- ============================================================================
 
@@ -59,7 +57,7 @@ select
   t.ean,
   'Cuidado personal',
   'marca',
-  'Alastin laboratorio 2026 · listo para ordenar · costo base c/IVA',
+  'Alastin laboratorio 2026 · costo = precio médico c/IVA · precio = PVP lista',
   t.costo,
   t.precio,
   0,
@@ -80,13 +78,10 @@ where not exists (
      or (t.ean is null and p.sku = t.sku)
 );
 
--- Actualiza existentes (incluye los que vinieron de Dermaexpress)
+-- Actualiza existentes (incluye los que vinieron de Dermaexpress/MePiel)
 update public.productos p
    set costo = t.costo,
-       precio = case
-         when coalesce(p.stock, 0) > 0 and coalesce(p.precio, 0) > 0.01 then p.precio
-         else t.precio
-       end,
+       precio = t.precio,
        bajo_pedido = case when coalesce(p.stock, 0) > 0 then false else true end,
        activo = true,
        marca = 'Alastin',
@@ -118,9 +113,9 @@ delete from public.producto_precios_referencia r
 insert into public.producto_precios_referencia
   (producto_id, fuente, tipo, precio, sku_externo, origen, notas)
 select p.id, 'alastin', 'compra', t.costo, coalesce(t.ean, t.sku), 'import_csv',
-       'Lista Alastin 2026 · base c/IVA'
+       'Alastin 2026 · precio médico c/IVA'
          || coalesce(' · sin IVA ' || t.costo_sin_iva::text, '')
-         || ' · PVP sugerido ' || t.precio::text
+         || ' · PVP público ' || t.precio::text
          || case when t.cabina then ' · cabina' else '' end
          || ' · descuentos volumen: 15%@30k / 20%@60k / 25%@80k / 30%@140k / 35%@200k (sobre sin IVA)'
   from _fc_alastin_lab t
