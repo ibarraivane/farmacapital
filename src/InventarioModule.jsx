@@ -50,6 +50,7 @@ import {
   patchProductoSinColumnaProveedor,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
+  sueltosInventario,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import { esCodigoRepetido, stockParaComprar, stockVisiblePorIdentidad } from "./lib/reporteReabasto";
@@ -2848,7 +2849,23 @@ function renderInventarioColumnCell(colId, ctx) {
           field="stock"
           value={String(stockVisibleInventario(p))}
           type="number"
-          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : cubierto ? C.textMid : C.green }}>{stockVisibleInventario(p)}</span>}
+          display={(() => {
+            const cajas = stockVisibleInventario(p);
+            const { piezas, blisters } = sueltosInventario(p);
+            const partes = [];
+            if (blisters > 0) partes.push(`${blisters} blister`);
+            if (piezas > 0) partes.push(`${piezas} pzas`);
+            return (
+              <span style={{ fontWeight: 700, color: bajo ? C.amber : cubierto ? C.textMid : C.green }}>
+                {cajas}
+                {partes.length > 0 ? (
+                  <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMid, lineHeight: 1.25 }}>
+                    {partes.join(" · ")}
+                  </span>
+                ) : null}
+              </span>
+            );
+          })()}
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("stock") }}
         />
       );
@@ -3512,7 +3529,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
         let q = supabase
           .from("productos")
-          .select("id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,principio_activo,forma_farmaceutica,precio,bajo_pedido,tipo")
+          .select("id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,principio_activo,forma_farmaceutica,precio,bajo_pedido,tipo,venta_unidad,stock_unidades,stock_blisters")
           .eq("activo", true)
           .order("nombre")
           .order("id");
