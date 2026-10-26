@@ -20,6 +20,12 @@ describe("vista de inventario", () => {
     expect(pasaVistaInventario({ id: 4, nombre: "Sin bandera" })).toBe(true);
   });
 
+  test("vitrina con piezas en existencia sí entra al anaquel", () => {
+    const kitoscell = { id: 7436, nombre: "Kitoscell Gel", bajo_pedido: true, stock: 3 };
+    expect(pasaVistaInventario(kitoscell)).toBe(true);
+    expect(pasaVistaInventario({ ...kitoscell, stock: 0 })).toBe(false);
+  });
+
   test("el interruptor los vuelve a mostrar", () => {
     expect(pasaVistaInventario(anthelios, { mostrarVitrina: true })).toBe(true);
     expect(pasaVistaInventario(whey, { mostrarVitrina: true })).toBe(true);

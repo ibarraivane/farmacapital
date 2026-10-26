@@ -35,11 +35,21 @@ describe("mergeCatalogoDelta", () => {
 
   test("un suplemento que cambió sale del POS y no se agrega", () => {
     const delta = filasDeltaAnaquel([
-      { id: 2, nombre: "Whey", activo: true, bajo_pedido: true },
-      { id: 9, nombre: "Anthelios", activo: true, bajo_pedido: true },
+      { id: 2, nombre: "Whey", activo: true, bajo_pedido: true, stock: 0 },
+      { id: 9, nombre: "Anthelios", activo: true, bajo_pedido: true, stock: 0 },
     ]);
     const out = mergeCatalogoDelta(base, delta);
     expect(out.map((p) => p.id)).toEqual([1, 3]);
+  });
+
+  test("vitrina con stock sigue en el POS", () => {
+    const delta = filasDeltaAnaquel([
+      { id: 2, nombre: "Kitoscell Gel", activo: true, bajo_pedido: true, stock: 3 },
+    ]);
+    const out = mergeCatalogoDelta(base, delta);
+    expect(out.map((p) => p.id)).toEqual([1, 2, 3]);
+    expect(out[1].stock).toBe(3);
+    expect(out[1].activo).not.toBe(false);
   });
 
   test("id numérico y texto se tratan igual", () => {
