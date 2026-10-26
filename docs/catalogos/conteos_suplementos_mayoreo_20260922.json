@@ -1,0 +1,21 @@
+{
+  "filas_csv": 2352,
+  "alta": 2231,
+  "con_imagen": 461,
+  "sin_imagen": 1770,
+  "con_ean": 461,
+  "excluidos": {
+    "merch": 16,
+    "hormonal": 98,
+    "inyectable": 7,
+    "sin_costo": 0,
+    "sin_nombre": 0,
+    "sin_stock": 0
+  },
+  "rubros": {
+    "Suplemento / Deportiva": 1606,
+    "Suplemento / Proteína": 467,
+    "Vitaminas / Vitaminas": 99,
+    "Suplemento / Accesorios": 59
+  }
+}
