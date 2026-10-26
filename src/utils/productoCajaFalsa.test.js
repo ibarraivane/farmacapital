@@ -146,6 +146,26 @@ test("caja abierta: no está agotada mientras queden piezas", () => {
   expect(existenciaMostradorPos(aspirina, 2).texto).toBe("2 en stock");
 });
 
+test("C/N en stock_unidades con stock>0 no se pinta como caja abierta (Topron)", () => {
+  const topron = {
+    venta_unidad: true,
+    unidades_por_caja: 16,
+    stock: 1,
+    stock_unidades: 16,
+    precio: 192,
+    precio_unidad: 18,
+    nombre: "Topron nifuroxazida 400 mg C/16",
+    presentacion: "C/16 capsulas 400 mg",
+  };
+  const fantasma = existenciaMostradorPos(topron, 0);
+  expect(fantasma.agotado).toBe(false);
+  expect(fantasma.etiqueta).toBe("1 disp.");
+  expect(fantasma.texto).toBe("1 en stock");
+  // Caja abierta de verdad: stock ya en 0 tras abrir_caja
+  const abierta = existenciaMostradorPos({ ...topron, stock: 0 }, 0);
+  expect(abierta.etiqueta).toBe("16 pzas");
+});
+
 test("pote y caja falsa no se abren para vender piezas", () => {
   const jaloma = {
     venta_unidad: true,
