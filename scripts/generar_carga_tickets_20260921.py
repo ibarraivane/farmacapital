@@ -160,10 +160,11 @@ PRODUCTOS: dict[str, dict] = {
     ),
     "7502226291857": p(
         "7502226291857",
-        nombre="Doxiciclina Alpharma 100 mg C/10",
+        nombre="Vivradoxil 100 mg",
         marca="Alpharma",
         laboratorio="Alpharma",
-        forma="Tableta",
+        categoria="Antibiótico",
+        forma="Tabletas",
         presentacion="Caja con 10 tabletas",
         principio="Doxiciclina",
         concentracion="100 mg",
