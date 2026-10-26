@@ -5,6 +5,7 @@
 - **`precio`** = precio al público de la lista (por ahora)
 - **SVR**: solo los PVP que ya diste en el catálogo FarmaCapital
 - Se **apaga** del inventario lo cargado de MePiel / Dermaexpress (sin stock)
+- La página **Dermocosmética** solo lista SVR / Alastin / Medik8 (`04_vitrina_solo_laboratorio.sql`)
 
 ## SVR (stock comprado)
 

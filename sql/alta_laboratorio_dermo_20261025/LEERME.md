@@ -17,6 +17,7 @@ Solo se mantienen / cargan estas listas de laboratorio.
 | `01_svr_stock.sql` | SVR anaquel: costo factura + PVP FarmaCapital | 10 |
 | `02_alastin_lab.sql` | Alastin: costo = c/IVA médico · precio = PVP sugerido | 14 |
 | `03_staging_medik8.sql` + `03a_filas_*.sql` + `03b_aplicar_medik8.sql` | Medik8: costo = especialistas · precio = RRP | 92 |
+| `04_vitrina_solo_laboratorio.sql` | **Vitrina**: Dermocosmética = solo SVR/Alastin/Medik8; saca Eucerin/CeraVe/Palmolive/… a Higiene | — |
 
 ## Orden en Supabase
 
@@ -25,6 +26,7 @@ Solo se mantienen / cargan estas listas de laboratorio.
 3. `01_svr_stock.sql`
 4. `02_alastin_lab.sql`
 5. `03_staging_medik8.sql` → todos los `03a_filas_*` → `03b_aplicar_medik8.sql`
+6. `04_vitrina_solo_laboratorio.sql` ← deja la página Dermocosmética solo con lab
 
 ## CSV fuente
 
