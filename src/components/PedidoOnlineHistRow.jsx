@@ -46,6 +46,7 @@ export default function PedidoOnlineHistRow({
     && p.estado !== "completado";
   const [abierto, setAbierto] = useState(false);
   const items = Array.isArray(p.pedido_items) ? p.pedido_items : [];
+  const accionBtn = { whiteSpace: "nowrap", flex: "0 0 auto" };
 
   return (
     <Box className="farmacapital-pedido-hist-card" style={{ padding: 12, marginBottom: 10, minWidth: 0, opacity: 0.95 }}>
@@ -91,17 +92,17 @@ export default function PedidoOnlineHistRow({
         <div className="farmacapital-pedido-hist-row__precio">{$(p.total)}</div>
         <div className="farmacapital-pedido-hist-row__accion">
           {mostrarBbva ? (
-            <Btn sm col="#1a237e" dis={guardando} onClick={() => onCobrarBbva?.(p)}>
+            <Btn sm col="#1a237e" dis={guardando} style={accionBtn} onClick={() => onCobrarBbva?.(p)}>
               🏦 Cobrar BBVA
             </Btn>
           ) : null}
           {mostrarRecibo ? (
-            <Btn sm ol col={C.blue} dis={guardando} onClick={() => onEnviarRecibo?.(p)}>
+            <Btn sm ol col={C.blue} dis={guardando} style={accionBtn} onClick={() => onEnviarRecibo?.(p)}>
               Enviar recibo por correo
             </Btn>
           ) : null}
           {mostrarRuta ? (
-            <Btn sm col={C.teal} dis={guardando} onClick={() => onMarcarRuta?.(p)}>
+            <Btn sm col={C.teal} dis={guardando} style={accionBtn} onClick={() => onMarcarRuta?.(p)}>
               Marcar en ruta
             </Btn>
           ) : null}
