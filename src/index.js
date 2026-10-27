@@ -8,6 +8,7 @@ import App from "./App";
 import { initEventStore } from "./core/eventStore/initEventStore";
 import { aplicarTokensCSS } from "./theme/tokens";
 import { iniciarVigilanciaDeploy } from "./utils/appUpdate";
+import { MINIATURAS_ACTIVAS, instalarRespaldoMiniaturas } from "./utils/tiendaCardImage";
 
 aplicarTokensCSS();
 initEventStore();
@@ -24,6 +25,11 @@ if (typeof window !== "undefined" && process.env.REACT_APP_FARMACAPITAL_BUILD_ID
 
 if (typeof window !== "undefined") {
   iniciarVigilanciaDeploy();
+}
+
+// Antes de montar React: si una miniatura aún no existe, la <img> cae a la original.
+if (typeof window !== "undefined" && MINIATURAS_ACTIVAS) {
+  instalarRespaldoMiniaturas(window);
 }
 
 const CHUNK_RETRY_KEY = "farmacapital_chunk_retries";

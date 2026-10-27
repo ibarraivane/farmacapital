@@ -37,6 +37,7 @@ const { drainRappiQueue } = require('./_lib/rappiSync');
 const { runCaducidadJob } = require('./_lib/caducidadJob');
 const { runMonitorPreciosJob } = require('./_lib/monitorPreciosJob');
 const { runCatalogEnrichJob } = require('./_lib/catalog/enrichJob');
+const { runMiniaturasJob } = require('./_lib/miniaturasJob');
 
 function getQuery(req) {
   try {
@@ -113,6 +114,7 @@ function readJsonBody(req) {
  *   /api/caducidad/job        -> /api/backup?job=caducidad
  *   /api/monitor-precios/job  -> /api/backup?job=monitor-precios
  *   /api/catalog/enrich       -> /api/backup?job=catalog-enrich
+ *   /api/miniaturas/job       -> /api/backup?job=miniaturas
  * Se usa el parámetro `job` (no `action`) para no pisar el `action` que ya
  * mandan el front y el cron.
  */
@@ -142,6 +144,20 @@ async function handleJobRoute(job, req, res, startedAt) {
       finish(await runCaducidadJob({ supabaseUrl, serviceKey }));
     } catch (err) {
       fail(err, 'caducidad job');
+    }
+    return;
+  }
+
+  if (job === 'miniaturas') {
+    const auth = isAuthorized(req);
+    if (!auth.ok) {
+      res.status(401).json({ ok: false, error: 'unauthorized' });
+      return;
+    }
+    try {
+      finish(await runMiniaturasJob({ supabaseUrl, serviceKey }));
+    } catch (err) {
+      fail(err, 'miniaturas job');
     }
     return;
   }
@@ -228,7 +244,7 @@ module.exports = async function handler(req, res) {
   // Antes del candado de CRON_SECRET: monitor-precios tiene acciones que se
   // autentican con sesión de usuario, no con el secreto del cron.
   const job = getQuery(req).get('job');
-  if (job === 'caducidad' || job === 'monitor-precios' || job === 'catalog-enrich') {
+  if (job === 'caducidad' || job === 'monitor-precios' || job === 'catalog-enrich' || job === 'miniaturas') {
     await handleJobRoute(job, req, res, startedAt);
     return;
   }

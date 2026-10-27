@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { zoomDeImagen } from "../lib/escalaPackshot";
-import { tiendaCardImageUrl } from "../utils/tiendaCardImage";
+import { tiendaCardImageUrl, urlOriginalDeMiniatura } from "../utils/tiendaCardImage";
 
 /** Hueco real de la foto: el padding no entra, porque la imagen vive adentro. */
 export function cajaFotoSinPadding(el) {
@@ -42,6 +42,12 @@ export function useZoomPackshot(imgSrc, boxRef) {
     probe.onload = () => {
       probeListo = probe;
       aplicar();
+    };
+    // Miniatura aún no generada: medir con la original (fuera del DOM no
+    // llega la red de seguridad global).
+    probe.onerror = () => {
+      const original = urlOriginalDeMiniatura(probe.src);
+      if (original && !cancelado) probe.src = original;
     };
     probe.src = url;
 
