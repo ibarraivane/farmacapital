@@ -12,7 +12,7 @@
 |---|-------|--------|------|------|-----|-----|-------|
 | 1 | `ALP0598` | `ACETONIDO DE FLUOCINOLONA CMA 40/01/100G` | 5 | $19.79 | `7503004908721` | `FC-1BF03D35` | recibir |
 | 2 | `ALP0673` | `ACETONIDO DE FLUOCINOLONA CMA 20/01/100G` | 5 | $11.46 | `7502226294476` | `EQ-ALP0673` | alta |
-| 3 | `BEA215` | `DICLOFENACO 20 TAB 100 MG` | 5 | $7.67 | `*(TODO caja)*` | `EQ-BEA215` | alta |
+| 3 | `BEA215` | `DICLOFENACO 20 TAB 100 MG` | 5 | $7.67 | `7501342802145` | `EQ-BEA215` | recibir |
 | 4 | `BIO149` | `LOZAMIR V C/3 APLICS 1 CMA 2% 20G` | 5 | $22.52 | `7501573906407` | `FC-73906407` | recibir |
 | 5 | `BIO213` | `SAROX 28 CAPS 20 MG` | 5 | $15.00 | `7501573909859` | `FC-73909859` | recibir |
 | 6 | `BRU053` | `NEDICLON 20 GRAG 100 MG` | 20 | $8.84 | `7501537102845` | `EQ-BRU053` | recibir |
@@ -27,13 +27,13 @@
 
 1. Pegar `sql/patch_carga_levic_9012545305.sql` en Supabase → SQL Editor → Run.
 2. Recibir → pistola → MMAA de la caja. No poner `0000`.
-3. **BEA215** (Diclofenaco beadvance): al escanear la caja, anotar EAN y correr un patch `UPDATE productos SET codigo_barras = … WHERE sku = 'EQ-BEA215'`.
+3. **BEA215** (Diclofenaco beadvance): EAN `7501342802145` — pegar `sql/patch_ean_bea215_diclofenaco_7501342802145.sql` si el renglón sigue sin pistola. No uses AMSA iny `7501349025929`.
 4. Packshots de altas ya están en `public/catalogo-propia/` (imagen_url apunta a farmacapital.mx; aplica **después** del deploy).
 
 ## Altas nuevas
 
 - `EQ-ALP0673` · Acetónido de fluocinolona Alpharma crema 0.01% · Tubo 20 g · EAN `7502226294476` · foto ok
-- `EQ-BEA215` · Diclofenaco beadvance 100 mg · Caja con 20 tabletas de liberación prolongada · EAN `pendiente` · foto ok
+- `EQ-BEA215` · Diclofenaco beadvance 100 mg · Caja con 20 tabletas de liberación prolongada · EAN `7501342802145` · foto ok
 - `EQ-BRU070` · Soltrim trimetoprima/sulfametoxazol 40/200 · Frasco suspensión 120 mL · EAN `7501537102067` · foto ok
 - `EQ-CHI029` · Mydocalm-A paracetamol/tolperisona 300/50 mg · Caja con 30 cápsulas · EAN `7501088545658` · foto ok
 - `EQ-RAM092` · Raamcedo aceclofenaco 100 mg · Caja con 10 tabletas · EAN `7502227874417` · foto ok
