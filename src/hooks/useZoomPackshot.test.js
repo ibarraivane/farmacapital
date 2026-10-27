@@ -8,6 +8,7 @@ jest.mock("../lib/escalaPackshot", () => ({
 
 jest.mock("../utils/tiendaCardImage", () => ({
   tiendaCardImageUrl: (url) => (url ? `thumb:${url}` : ""),
+  urlOriginalDeMiniatura: (url) => (String(url).startsWith("thumb:") ? String(url).slice(6) : ""),
 }));
 
 const { zoomDeImagen } = require("../lib/escalaPackshot");
