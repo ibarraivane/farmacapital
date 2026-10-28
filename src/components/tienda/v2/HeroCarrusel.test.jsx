@@ -78,3 +78,23 @@ test("una slide con imágenes muestra la marca de cada una", () => {
   expect(screen.getByText("Isdin")).toBeInTheDocument();
   expect(screen.getByText("Bioderma")).toBeInTheDocument();
 });
+
+test("la pausa manual no se pierde al sacar el mouse del carrusel", () => {
+  render(<HeroCarrusel slides={[slide("a"), slide("b")]} />);
+  const region = screen.getByRole("region", { name: "Destacados" });
+  fireEvent.click(screen.getByLabelText("Pausar carrusel"));
+  fireEvent.mouseEnter(region);
+  fireEvent.mouseLeave(region);
+  expect(screen.getByLabelText("Reproducir carrusel")).toHaveAttribute("aria-pressed", "true");
+});
+
+test("todas las slides comparten el recuadro: solo la activa es visible", () => {
+  const { container } = render(<HeroCarrusel slides={[slide("a"), slide("b", { imagenes: [{ id: 1, src: "/x.jpg", marca: "SVR" }] })]} />);
+  const capas = container.querySelectorAll(".fc-studio-stage > .fc-studio-slide");
+  expect(capas).toHaveLength(2);
+  expect(capas[0]).not.toHaveAttribute("aria-hidden");
+  expect(capas[1]).toHaveAttribute("aria-hidden", "true");
+  fireEvent.click(screen.getByLabelText("Siguiente"));
+  expect(capas[0]).toHaveAttribute("aria-hidden", "true");
+  expect(capas[1]).not.toHaveAttribute("aria-hidden");
+});

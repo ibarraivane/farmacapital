@@ -66,3 +66,9 @@ test("la cintilla del menú no deja ver el título a través del encabezado fijo
   expect(css).toMatch(/\.fc-nav,\.fc-v2 \.fc-nav button,\.fc-v2 \.fc-nav a\{background:#ffffff !important\}/);
   expect(css).not.toMatch(/fc-sticky\{position:static\}/);
 });
+
+test("el carrusel apila las slides en la misma celda para no cambiar de alto", () => {
+  expect(css).toMatch(/\.fc-studio-stage\{display:grid/);
+  expect(css).toMatch(/\.fc-studio-slide\{grid-area:1\/1/);
+  expect(css).not.toMatch(/\.fc-studio\{[^}]*min-height/);
+});
