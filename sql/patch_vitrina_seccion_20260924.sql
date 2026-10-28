@@ -1,4 +1,7 @@
 -- FarmaCapital · Clasificación de vitrina
+-- ⚠️ 2026-10-27: NO volver a correr. Limpia todas las secciones y borraría la
+-- recategorización manual. Los productos nuevos ya se clasifican solos con
+-- sql/trigger_vitrina_autoclasificar_20261027.sql.
 -- Llena productos.vitrina_seccion y productos.vitrina_subseccion.
 -- NO toca productos.categoria (la leen POS, inventario, lotes y reportes).
 --
