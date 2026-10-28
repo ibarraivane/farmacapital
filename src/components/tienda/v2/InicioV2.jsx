@@ -23,11 +23,8 @@ const MAX_FILA = 4;
  * también trae gel para el cabello y acetona; sin esta lista el carrusel podía
  * tocarle enseñar cualquiera de los dos al azar.
  */
-const DERMO_MARCAS = [
-  "la roche posay", "la roche-posay", "isdin", "bioderma", "sesderma",
-  "eucerin", "avène", "avene", "cetaphil", "cerave", "martiderm",
-  "neostrata", "uriage", "ducray", "a-derma", "aderma", "darrow",
-];
+// Catálogo dermatológico vigente (cambio de marcas del 26-oct-2026).
+const DERMO_MARCAS = ["svr", "medik8", "alastin"];
 
 function esDermoReal(prod) {
   return DERMO_MARCAS.includes(String(prod?.marca || "").trim().toLowerCase());
