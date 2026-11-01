@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import TicketVenta from "./TicketVenta";
-import { printTicket } from "../../utils/printTicket";
+import { printTicket, downloadTicketPdf80mm } from "../../utils/printTicket";
 import { downloadFacturaPDF } from "../../utils/generateFacturaPDF";
 import {
   notifyPosTicket,
@@ -11,7 +11,7 @@ import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar, telefonosMxEquivalentes } from "../../utils";
 
-function FacturaInlineForm({ venta, cliente, onClose }) {
+function FacturaInlineForm({ venta, productos, cliente, metodoPago, config, onClose }) {
   const [rfc,    setRfc]    = React.useState(cliente?.rfc||"");
   const [nombre, setNombre] = React.useState(cliente?.razon_social||cliente?.nombre||"");
   const [email,  setEmail]  = React.useState(cliente?.email||"");
@@ -94,6 +94,17 @@ function FacturaInlineForm({ venta, cliente, onClose }) {
         color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",opacity:saving?0.6:1,
       }}>
         {saving?"Guardando…":"📤 Solicitar factura"}
+      </button>
+      <button
+        type="button"
+        onClick={() => downloadFacturaPDF({ venta, productos, cliente, config, metodoPago })}
+        style={{
+          width: "100%", marginTop: 8, padding: "9px", borderRadius: 8,
+          border: "1px solid #7c3aed", background: "#ede9fe", color: "#7c3aed",
+          fontWeight: 700, fontSize: 12, cursor: "pointer",
+        }}
+      >
+        📄 Borrador CFDI (hoja carta)
       </button>
     </div>
   );
@@ -354,6 +365,7 @@ export default function TicketPreviewModal({
   const [showFactura, setShowFactura] = useState(false);
   const [clienteLocal, setClienteLocal] = useState(clienteProp);
   const [mostrarWaPanel, setMostrarWaPanel] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => { setClienteLocal(clienteProp); }, [clienteProp, open]);
 
@@ -383,6 +395,23 @@ export default function TicketPreviewModal({
   if (!open) return null;
 
   const handlePrint = () => printTicket("farmacapital-ticket");
+  const handleDownloadTicketPdf = async () => {
+    if (pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      await downloadTicketPdf80mm("farmacapital-ticket", {
+        folio: venta?.folio || venta?.id,
+      });
+      showToast("PDF del ticket (80 mm) descargado", "success");
+    } catch (e) {
+      console.error("[ticket] PDF 80 mm:", e);
+      showToast(e?.message === "ticket_no_encontrado"
+        ? "No se encontró el ticket en pantalla"
+        : "No se pudo generar el PDF del ticket", "error");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
   const esTienda = origen === "tienda" || origen === "consulta";
   const esInvitado = !clienteLocal?.id && !clienteLocal?.telefono;
 
@@ -483,13 +512,35 @@ export default function TicketPreviewModal({
               style={{...btnBase,border:"1px solid #0D1B2A",background:"#eff6ff",color:"#0D1B2A"}}>
               🧾 Factura CFDI
             </button>
-            <button type="button" onClick={() => downloadFacturaPDF({venta,productos,cliente:clienteLocal,config,metodoPago})}
-              style={{...btnBase,border:"1px solid #7c3aed",background:"#ede9fe",color:"#7c3aed"}}>
-              📄 PDF
+            <button
+              type="button"
+              onClick={handleDownloadTicketPdf}
+              disabled={pdfLoading || Boolean(pedidoId && ticketUrlLoading)}
+              style={{
+                ...btnBase,
+                border: "1px solid #7c3aed",
+                background: "#ede9fe",
+                color: "#7c3aed",
+                opacity: (pdfLoading || (pedidoId && ticketUrlLoading)) ? 0.65 : 1,
+              }}
+            >
+              {pdfLoading ? "Generando…" : "📄 PDF 80 mm"}
             </button>
           </div>
+          <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4, marginTop: -2 }}>
+            «PDF 80 mm» baja el ticket del tamaño del rollo. Imprimir → Guardar como PDF suele salir en hoja carta.
+          </div>
 
-          {showFactura && <FacturaInlineForm venta={venta} cliente={clienteLocal} onClose={() => setShowFactura(false)}/>}
+          {showFactura && (
+            <FacturaInlineForm
+              venta={venta}
+              productos={productos}
+              cliente={clienteLocal}
+              metodoPago={metodoPago}
+              config={config}
+              onClose={() => setShowFactura(false)}
+            />
+          )}
 
           <button type="button" onClick={onNuevaVenta || onClose}
             style={{...btnBase,border:"none",background:"#16a34a",color:"#fff",fontWeight:800,fontSize:14,minHeight:48}}>
