@@ -27,6 +27,7 @@ import {
   blistersPorCaja,
   piezasDesdeBlistersPorCaja,
   piezasPorBlisterDefault,
+  esEmpaqueToallasSinBlister,
   margenBrutoPct,
 } from "./utils/precioUnidad";
 import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
@@ -1605,13 +1606,20 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 setForm((f) => {
                   if (!on) return { ...f, venta_unidad: false };
                   const upc = parseInt(f.unidades_por_caja, 10) || 1;
-                  const ppb = piezasPorBlisterDefault(upc);
-                  const bpc = blistersPorCaja(upc, ppb);
                   const next = {
                     ...f,
                     venta_unidad: true,
                     precio_unidad: sugerirPrecioUnidad(f.precio, f.costo, upc, f.categoria, f.tipo),
                   };
+                  // Toallas C/8 no son blisters de medicina (Naturella/Saba).
+                  if (esEmpaqueToallasSinBlister(next)) {
+                    next.piezas_por_blister = 0;
+                    next.blisters_por_caja = "";
+                    next.precio_blister = 0;
+                    return next;
+                  }
+                  const ppb = piezasPorBlisterDefault(upc);
+                  const bpc = blistersPorCaja(upc, ppb);
                   if (bpc >= 2) {
                     next.piezas_por_blister = ppb;
                     next.blisters_por_caja = String(bpc);

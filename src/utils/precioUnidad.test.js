@@ -4,6 +4,7 @@ import {
   calcPrecioBlister,
   calcPrecioUnidad,
   cobroUnidad,
+  esEmpaqueToallasSinBlister,
   margenBrutoPct,
   piezasPorBlisterDefault,
   piezasDesdeBlistersPorCaja,
@@ -136,4 +137,39 @@ test("abrir caja con blister suma tiras; sin blister suma piezas", () => {
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 0 }).precio_blister).toBe(45);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, precio_unidad: 8, precio_blister: 40 }).precio_blister).toBe(40);
   expect(aplicarReglaPrecioUnidad({ ...cajaBlister, piezas_por_blister: 0, stock_blisters: 2 }).stock_blisters).toBe(0);
+});
+
+const naturella = {
+  venta_unidad: true,
+  unidades_por_caja: 8,
+  piezas_por_blister: 4,
+  precio: 23,
+  costo: 18.5,
+  precio_unidad: 8,
+  precio_blister: 17,
+  stock_blisters: 0,
+  stock_unidades: 8,
+  nombre: "Naturella Noche Con Alas",
+  marca: "Naturella",
+  presentacion: "C/8",
+  forma_farmaceutica: "Toallas sanitarias",
+  categoria: "Higiene",
+  tipo: "marca",
+};
+
+test("Naturella/Saba C/8 no es blister de medicina aunque upc=8 parta en 4+4", () => {
+  expect(esEmpaqueToallasSinBlister(naturella)).toBe(true);
+  expect(esEmpaqueToallasSinBlister({
+    nombre: "Saba Buenas Noches",
+    presentacion: "C/8",
+    forma_farmaceutica: "Toallas sanitarias",
+  })).toBe(true);
+  expect(esEmpaqueToallasSinBlister(cajaBlister)).toBe(false);
+  expect(productoVendeBlister(naturella)).toBe(false);
+  expect(unidadesAlAbrirCaja(naturella)).toEqual({ stock: "unidades", cantidad: 8 });
+  const limpio = aplicarReglaPrecioUnidad(naturella);
+  expect(limpio.piezas_por_blister).toBe(0);
+  expect(limpio.precio_blister).toBe(0);
+  expect(limpio.stock_blisters).toBe(0);
+  expect(limpio.precio_unidad).toBe(8);
 });
