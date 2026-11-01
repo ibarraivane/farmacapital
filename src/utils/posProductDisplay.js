@@ -57,7 +57,7 @@ const FORMA_EN_NOMBRE =
  * Sin esto, el corte a 3 palabras deja cuatro tarjetas como "La Roche Anthelios".
  */
 const TOKEN_VARIANTE_POS =
-  /^(?:invisible|tinted|color|oil|control|matte|uv|air|mune|fps\d*\+?|spf\d*\+?|plus|forte|kids|baby|mineral|sensitive|dry|hydrating|ligero|toque|seco|\d{3,}|\d{2}\+)$/i;
+  /^(?:invisible|tinted|teint[eé]|teinte|h[aâ]l[eé]|hale|blur|flash|color|oil|control|matte|uv|air|mune|fps\d*\+?|spf\d*\+?|plus|forte|kids|baby|mineral|sensitive|dry|hydrating|ligero|toque|seco|\d{3,}|\d{2}\+)$/i;
 
 function esTokenVariantePos(palabra) {
   return TOKEN_VARIANTE_POS.test(String(palabra || "").replace(/[.,;:()]/g, ""));

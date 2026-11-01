@@ -119,6 +119,31 @@ describe("posTituloProducto", () => {
     expect(new Set(titulos).size).toBe(5);
     expect(titulos.every((t) => t === "La Roche Anthelios")).toBe(false);
   });
+
+  test("SVR Sun Secure Blur distingue Teinté (con color) del sin color", () => {
+    const sinColor = {
+      nombre: "SVR Sun Secure Blur SPF50+",
+      marca: "SVR",
+      presentacion: "50 ml · sin color",
+      concentracion: "SPF50+",
+      forma_farmaceutica: "Crema mousse",
+    };
+    const teinte = {
+      nombre: "SVR Sun Secure Blur Teinté SPF50+",
+      marca: "SVR",
+      presentacion: "50 ml · con color",
+      concentracion: "SPF50+",
+      forma_farmaceutica: "Crema mousse",
+    };
+    const tSin = posTituloProducto(sinColor);
+    const tTeinte = posTituloProducto(teinte);
+    expect(tSin).toMatch(/blur/i);
+    expect(tSin).not.toMatch(/teint/i);
+    expect(tTeinte).toMatch(/teint/i);
+    expect(tSin).not.toBe(tTeinte);
+    expect(posSubtituloProducto(sinColor)).toMatch(/sin color/i);
+    expect(posSubtituloProducto(teinte)).toMatch(/con color/i);
+  });
 });
 
 describe("tituloPublicoProducto", () => {
