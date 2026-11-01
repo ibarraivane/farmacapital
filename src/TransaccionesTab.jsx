@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import { C_LIGHT, BRAND } from "./constants";
 import { showToast, SkeletonTable, Paginador } from "./ui";
 import TicketVenta from "./components/tickets/TicketVenta";
-import { printTicket } from "./utils/printTicket";
+import { printTicket, downloadTicketPdf80mm } from "./utils/printTicket";
 import { printServicioTicket } from "./utils/servicioTicket";
 import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedidoEsTipoOnline, pedidoEsTipoServicio } from "./utils/orderChannels";
 import { etiquetaPagoPedidoOnline, esPedidoEnvioPorCotizar } from "./utils/pedidosTiendaWeb";
@@ -936,6 +936,24 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
             <div style={{ flexShrink: 0, padding: 16, display: "flex", gap: 10, flexWrap: "wrap", background: C.card }}>
               <button type="button" onClick={() => printTicket("farmacapital-ticket")} disabled={reprintTicketUrlLoading} style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: reprintTicketUrlLoading ? 0.65 : 1 }}>
                 {reprintTicketUrlLoading ? "Preparando QR…" : "🖨️ Imprimir"}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await downloadTicketPdf80mm("farmacapital-ticket", {
+                      folio: ticketReprint?.venta?.folio || ticketReprint?.venta?.id,
+                    });
+                    showToast("PDF del ticket (80 mm) descargado", "success");
+                  } catch (e) {
+                    console.error("[Transacciones] PDF 80 mm:", e);
+                    showToast("No se pudo generar el PDF del ticket", "error");
+                  }
+                }}
+                disabled={reprintTicketUrlLoading}
+                style={{ flex: "2 1 140px", minHeight: 44, padding: "11px", borderRadius: 10, border: "1px solid #7c3aed", background: "#ede9fe", color: "#7c3aed", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: reprintTicketUrlLoading ? 0.65 : 1 }}
+              >
+                📄 PDF 80 mm
               </button>
               {ticketReprint.pedido && (
                 <button

@@ -28,7 +28,7 @@ import {
   filasServicioDesdeSnapshot,
 } from "../../lib/serviciosEnMetas";
 import TicketVenta from "../../components/tickets/TicketVenta";
-import { printTicket } from "../../utils/printTicket";
+import { printTicket, downloadTicketPdf80mm } from "../../utils/printTicket";
 import { printServicioTicket } from "../../utils/servicioTicket";
 import { configRowsToMap, mergeFarmaciaConfig } from "../../constants/farmaciaFiscal";
 import { parseRpcJsonArray } from "../../utils/rpcJson";
@@ -787,6 +787,22 @@ export default function MiDia({ usuario, setPage }) {
                 style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: reprintTicketUrlLoading ? 0.65 : 1 }}
               >
                 {reprintTicketUrlLoading ? "Preparando QR…" : "🖨️ Imprimir"}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await downloadTicketPdf80mm("farmacapital-ticket", {
+                      folio: ticketReprint?.venta?.folio || ticketReprint?.venta?.id,
+                    });
+                  } catch (e) {
+                    console.error("[MiDia] PDF 80 mm:", e);
+                  }
+                }}
+                disabled={reprintTicketUrlLoading}
+                style={{ flex: "2 1 140px", minHeight: 44, padding: "11px", borderRadius: 10, border: "1px solid #7c3aed", background: "#ede9fe", color: "#7c3aed", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: reprintTicketUrlLoading ? 0.65 : 1 }}
+              >
+                📄 PDF 80 mm
               </button>
               <button
                 type="button"

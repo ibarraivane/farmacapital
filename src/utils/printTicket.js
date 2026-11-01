@@ -27,6 +27,25 @@ export function shouldKeepPrintWindowOpen() {
  */
 export const TICKET_SIDE_PAD_MM = 6;
 
+/** Ancho del rollo Epson / PDF del ticket (no hoja carta). */
+export const TICKET_PDF_WIDTH_MM = 80;
+
+/**
+ * Tamaño de página del PDF térmico a partir del canvas capturado.
+ * Chrome «Imprimir → Guardar como PDF» ignora @page 80mm y usa carta;
+ * este cálculo alimenta jsPDF con formato real [80, alto].
+ */
+export function ticketPdfPageSizeMm(canvasWidthPx, canvasHeightPx, widthMm = TICKET_PDF_WIDTH_MM) {
+  const w = Number(canvasWidthPx);
+  const h = Number(canvasHeightPx);
+  const width = Number(widthMm);
+  if (!(w > 0) || !(h > 0) || !(width > 0)) {
+    return { widthMm: TICKET_PDF_WIDTH_MM, heightMm: TICKET_PDF_WIDTH_MM };
+  }
+  const heightMm = Math.max(20, (h / w) * width);
+  return { widthMm: width, heightMm: Math.round(heightMm * 100) / 100 };
+}
+
 export const TICKET_CSS = `
 * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #fff; }
@@ -329,10 +348,10 @@ function hardenTicketForThermal(root, view) {
   });
 }
 
-async function printElementAs80mmPdf(el) {
+async function captureTicketCanvas(el, { grayscaleLogos = true } = {}) {
   const { default: html2canvas } = await import("html2canvas");
-  const canvas = await html2canvas(el, {
-    scale: 4,
+  return html2canvas(el, {
+    scale: 3,
     letterRendering: true,
     backgroundColor: "#ffffff",
     useCORS: true,
@@ -348,12 +367,59 @@ async function printElementAs80mmPdf(el) {
       t.style.background = "#fff";
       t.style.position = "static";
       hardenTicketForThermal(t, doc.defaultView);
-      t.querySelectorAll("img").forEach((img) => {
-        img.style.filter = "grayscale(1) contrast(8) brightness(0.15)";
-      });
+      if (grayscaleLogos) {
+        t.querySelectorAll("img").forEach((img) => {
+          img.style.filter = "grayscale(1) contrast(8) brightness(0.15)";
+        });
+      }
     },
   });
+}
+
+async function printElementAs80mmPdf(el) {
+  const canvas = await captureTicketCanvas(el, { grayscaleLogos: true });
   return printCanvasFullBleed(canvas);
+}
+
+/**
+ * Arma un jsPDF del ticket a 80 mm de ancho (alto según el contenido).
+ * @returns {Promise<import("jspdf").jsPDF>}
+ */
+export async function buildTicketPdf80mmFromElement(el) {
+  if (!el) throw new Error("ticket_no_encontrado");
+  const canvas = await captureTicketCanvas(el, { grayscaleLogos: false });
+  const { widthMm, heightMm } = ticketPdfPageSizeMm(canvas.width, canvas.height);
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({
+    orientation: heightMm >= widthMm ? "portrait" : "landscape",
+    unit: "mm",
+    format: [widthMm, heightMm],
+  });
+  const png = canvas.toDataURL("image/png");
+  doc.addImage(png, "PNG", 0, 0, widthMm, heightMm);
+  return doc;
+}
+
+export function ticketPdfFilename(folioOrId) {
+  const raw = String(folioOrId || "ticket").replace(/[^\w.-]+/g, "_").slice(0, 40);
+  return `Ticket_FarmaCapital_${raw || "ticket"}.pdf`;
+}
+
+/**
+ * Descarga el ticket montado en pantalla como PDF de 80 mm (no hoja carta).
+ * Usar en lugar de Imprimir → «Guardar como PDF», que Chrome fuerza a Letter/A4.
+ */
+export async function downloadTicketPdf80mm(ticketId = "farmacapital-ticket", { folio } = {}) {
+  const ticket = typeof ticketId === "string"
+    ? document.getElementById(ticketId)
+    : ticketId;
+  if (!ticket) {
+    console.error("[FarmaCapital] Ticket no encontrado:", ticketId);
+    throw new Error("ticket_no_encontrado");
+  }
+  const doc = await buildTicketPdf80mmFromElement(ticket);
+  doc.save(ticketPdfFilename(folio || ticketId));
+  return true;
 }
 
 async function printHtmlAs80mmPdf(html) {
