@@ -17,6 +17,26 @@ function normalizeCategoriaLegacyGeneral(categoria) {
   return String(categoria || "").trim().toLowerCase() === "general";
 }
 
+function textoProducto(producto) {
+  return `${producto?.nombre || ""} ${producto?.presentacion || ""} ${producto?.forma_farmaceutica || ""} ${producto?.categoria || ""} ${producto?.marca || ""}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Bolsa/paquete de toallas o protectores: se vende cerrado (o por pieza suelta),
+ * nunca como “blister” de medicina. El default C/8 → 4+4 inventaba Blister en Naturella/Saba.
+ */
+export function esEmpaqueToallasSinBlister(producto) {
+  const t = textoProducto(producto);
+  if (!t.trim()) return false;
+  if (/\btoallas?\s+sanitari/.test(t)) return true;
+  if (/\b(pantiprotectores?|protectores?\s+diarios|toallas?\s+femeninas?)\b/.test(t)) return true;
+  if (/\b(naturella|saba|kotex|always|nosotras)\b/.test(t)) return true;
+  return false;
+}
+
 /** Precio mínimo sugerido por pieza (entero hacia arriba). */
 export function calcPrecioUnidad(precio, costo, unidadesPorCaja, categoria = "", tipo = "") {
   const u = parseInt(unidadesPorCaja, 10) || 0;
@@ -77,6 +97,7 @@ export function piezasPorBlisterDefault(unidadesPorCaja) {
 /** Venta por blister solo dentro de la venta por pieza, y solo si la caja parte bien. */
 export function productoVendeBlister(producto) {
   if (!producto?.venta_unidad) return false;
+  if (esEmpaqueToallasSinBlister(producto)) return false;
   return blistersPorCaja(producto.unidades_por_caja, producto.piezas_por_blister) >= 2;
 }
 
@@ -109,10 +130,13 @@ export function precioBlisterParaVenta(producto) {
 /**
  * Qué suma abrir una caja. Con blister configurado, blisters; si no, piezas.
  * `unidades_por_caja` vacío cuenta como 1, igual que abrir_caja_lote.
+ * Toallas (Naturella/Saba) nunca abren a blisters aunque traigan ppb sucio.
  */
 export function unidadesAlAbrirCaja(producto) {
-  const n = blistersPorCaja(producto?.unidades_por_caja, producto?.piezas_por_blister);
-  if (n >= 2) return { stock: "blisters", cantidad: n };
+  if (!esEmpaqueToallasSinBlister(producto)) {
+    const n = blistersPorCaja(producto?.unidades_por_caja, producto?.piezas_por_blister);
+    if (n >= 2) return { stock: "blisters", cantidad: n };
+  }
   const upc = parseInt(producto?.unidades_por_caja, 10);
   return { stock: "unidades", cantidad: Number.isFinite(upc) && upc > 0 ? upc : 1 };
 }
@@ -175,6 +199,16 @@ export function aplicarReglaPrecioUnidad(fields) {
   const upc = parseInt(fields.unidades_por_caja, 10) || 0;
   const manual = precioUnidadManual(fields.precio_unidad);
   const sugerido = calcPrecioUnidad(fields.precio, fields.costo, upc, fields.categoria, fields.tipo);
+  if (esEmpaqueToallasSinBlister(fields)) {
+    return {
+      ...fields,
+      unidades_por_caja: upc,
+      precio_unidad: manual > 0 ? manual : sugerido,
+      piezas_por_blister: 0,
+      precio_blister: 0,
+      stock_blisters: 0,
+    };
+  }
   const ppb = parseInt(fields.piezas_por_blister, 10) || 0;
   const blisters = blistersPorCaja(upc, ppb);
   const manualBlister = Math.ceil(parseFloat(fields.precio_blister) || 0);
