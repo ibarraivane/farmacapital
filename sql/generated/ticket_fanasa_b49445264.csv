@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,B49445264,2026-11-02,Fanasa,7501070903237,FLUXEDAN BROMHEXINA OXELADINA 24 COM,1,313.41,313.41,,,FC-70903237,667.19,fanasa
+2,B49445264,2026-11-02,Fanasa,7501070900441,FLUXEDAN CLORHIDRATO DE BROMHEXINA 6/12 mg/10 ml 1 JBE 225 ml,1,353.78,353.78,,,FC-70900441,667.19,fanasa
