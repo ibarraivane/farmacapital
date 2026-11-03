@@ -8,7 +8,7 @@ Caducidad del papel NO se escribe en SQL: MMAA sale de la caja. 0000 inválido.
 
 Nombres de mostrador (no el código interno del PDF). EAN desde portal Levic /
 Sufarmed / Farmahome / Prixz / cargas previos cuando la ficha lo publica.
-BEA215 (Diclofenaco beadvance 20 tab): sin EAN público; TODO leer de la caja.
+BEA215 en papel → caja AMSA iny 75 mg/3 mL C/2 (EAN 7501349025929 / EQ-AMS362).
 """
 from __future__ import annotations
 
@@ -92,28 +92,28 @@ ROWS = [
         "imagen": "https://www.farmacapital.mx/catalogo-propia/acetonido-fluocinolona-alpharma-20g-7502226294476.jpg",
     },
     {
+        # Papel: BEA215 Diclofenaco beadvance tabs. Caja real: AMSA iny C/2.
         "clave": "BEA215",
-        # Sin EAN público confirmado (Curitek/Sufarmed/Prixz). TODO de la caja.
-        "ean": "",
-        "nombre": "Diclofenaco beadvance 100 mg",
-        "desc_ticket": "DICLOFENACO 20 TAB 100 MG",
+        "ean": "7501349025929",
+        "nombre": "Diclofenaco 75 mg/3 ml C/2 ampolletas AMSA",
+        "desc_ticket": "DICLOFENACO 2 FA 75MG/3 ML | AMSA (factura BEA215; caja AMSA)",
         "qty": 5,
         "pu": 7.67,
         "sub": 38.35,
-        "lote": "SMM2088",
-        "caducidad": "2027-12-30",
-        "sku": "EQ-BEA215",
-        "match": False,
+        "lote": "",
+        "caducidad": "",
+        "sku": "EQ-AMS362",
+        "match": True,
         "categoria": "Medicamentos",
         "tipo": "generico",
-        "marca": "beadvance",
-        "presentacion": "Caja con 20 tabletas de liberación prolongada",
-        "principio": "Diclofenaco",
-        "concentracion": "100 mg",
-        "forma": "Tabletas",
+        "marca": "AMSA",
+        "presentacion": "Caja con 2 ampolletas de 3 ml",
+        "principio": "Diclofenaco sódico",
+        "concentracion": "75 mg/3 ml",
+        "forma": "Solución inyectable",
         "receta": True,
         "stock_minimo": 2,
-        "imagen": "https://www.farmacapital.mx/catalogo-propia/diclofenaco-beadvance-100mg-20-tabs.jpg",
+        "imagen": None,
     },
     {
         "clave": "BIO149",
