@@ -1,10 +1,24 @@
 -- =============================================================================
--- PEGAR SOLO ESTE ARCHIVO en Supabase → SQL Editor → Run
+-- PEGAR SOLO ESTE ARCHIVO en Supabase - SQL Editor - Run
 -- Arregla los 2 amarillos BPOllen del Nadro (5% y 2.5%).
--- Sin temp tables, sin do $$, sin producto_imagenes (eso a veces tumba el Run).
+-- Sin tablas temporales. Sin bloques dollar-quote. Sin producto_imagenes.
 -- =============================================================================
 
--- 1) BPOllen 5%
+-- 0) Estado actual (informativo)
+select 'ANTES' as momento, sku, codigo_barras as ean, left(nombre,40) as nombre, activo
+from public.productos
+where codigo_barras in ('7502002461306', '7502002461290')
+   or sku in ('FC-02461306', 'FC-02461290')
+order by sku;
+
+select 'ANTES_ITEMS' as momento, r.folio, r.estado, i.codigo_escaneado as ean,
+       i.pendiente_alta, i.producto_id, i.confirmado
+from public.recepcion_items i
+join public.recepciones r on r.id = i.recepcion_id
+where i.codigo_escaneado in ('7502002461306', '7502002461290')
+order by r.id desc, i.id;
+
+-- 1) BPOllen 5%  EAN 7502002461306
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -15,10 +29,10 @@ select
   'BPOllen gel 5%',
   'FC-02461306',
   '7502002461306',
-  'Dermatología',
-  'Acné',
+  'Dermatologia',
+  'Acne',
   'marca',
-  'Alta Recibir BPOllen 5% · Nadro 6091723171',
+  'Alta Recibir BPOllen 5% Nadro 6091723171',
   185.63,
   233,
   0,
@@ -29,7 +43,7 @@ select
   'Farmapiel',
   'Tubo 60 g',
   'Gel',
-  'Peróxido de benzoílo',
+  'Peroxido de benzoilo',
   '5%',
   'https://www.farmacapital.mx/catalogo-propia/bpollen-gel-5-7502002461306.jpg',
   'https://www.farmacapital.mx/catalogo-propia/bpollen-gel-5-7502002461306.jpg'
@@ -40,12 +54,13 @@ where not exists (
 
 update public.productos
 set
-  codigo_barras = coalesce(nullif(trim(codigo_barras), ''), '7502002461306'),
+  codigo_barras = '7502002461306',
+  nombre = case when length(trim(coalesce(nombre,''))) < 8 then 'BPOllen gel 5%' else nombre end,
   marca = coalesce(nullif(trim(marca), ''), 'BPOllen'),
   laboratorio = coalesce(nullif(trim(laboratorio), ''), 'Farmapiel'),
   presentacion = coalesce(nullif(trim(presentacion), ''), 'Tubo 60 g'),
   forma_farmaceutica = coalesce(nullif(trim(forma_farmaceutica), ''), 'Gel'),
-  principio_activo = coalesce(nullif(trim(principio_activo), ''), 'Peróxido de benzoílo'),
+  principio_activo = coalesce(nullif(trim(principio_activo), ''), 'Peroxido de benzoilo'),
   concentracion = coalesce(nullif(trim(concentracion), ''), '5%'),
   costo = 185.63,
   precio = case when coalesce(precio, 0) <= 0 then 233 else precio end,
@@ -53,9 +68,9 @@ set
   imagen_mobile_url = coalesce(nullif(trim(imagen_mobile_url), ''), 'https://www.farmacapital.mx/catalogo-propia/bpollen-gel-5-7502002461306.jpg'),
   activo = true,
   tipo = coalesce(nullif(trim(tipo), ''), 'marca')
-where codigo_barras = '7502002461306' or sku = 'FC-02461306';
+where sku = 'FC-02461306' or codigo_barras = '7502002461306';
 
--- 2) BPOllen 2.5%
+-- 2) BPOllen 2.5%  EAN 7502002461290
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -66,10 +81,10 @@ select
   'BPOllen gel 2.5%',
   'FC-02461290',
   '7502002461290',
-  'Dermatología',
-  'Acné',
+  'Dermatologia',
+  'Acne',
   'marca',
-  'Alta Recibir BPOllen 2.5% · Nadro 6091723171',
+  'Alta Recibir BPOllen 2.5% Nadro 6091723171',
   170.78,
   214,
   0,
@@ -80,7 +95,7 @@ select
   'Farmapiel',
   'Tubo 60 g',
   'Gel',
-  'Peróxido de benzoílo',
+  'Peroxido de benzoilo',
   '2.5%',
   'https://www.farmacapital.mx/catalogo-propia/bpollen-gel-2.5-7502002461290.jpg',
   'https://www.farmacapital.mx/catalogo-propia/bpollen-gel-2.5-7502002461290.jpg'
@@ -91,12 +106,13 @@ where not exists (
 
 update public.productos
 set
-  codigo_barras = coalesce(nullif(trim(codigo_barras), ''), '7502002461290'),
+  codigo_barras = '7502002461290',
+  nombre = case when length(trim(coalesce(nombre,''))) < 8 then 'BPOllen gel 2.5%' else nombre end,
   marca = coalesce(nullif(trim(marca), ''), 'BPOllen'),
   laboratorio = coalesce(nullif(trim(laboratorio), ''), 'Farmapiel'),
   presentacion = coalesce(nullif(trim(presentacion), ''), 'Tubo 60 g'),
   forma_farmaceutica = coalesce(nullif(trim(forma_farmaceutica), ''), 'Gel'),
-  principio_activo = coalesce(nullif(trim(principio_activo), ''), 'Peróxido de benzoílo'),
+  principio_activo = coalesce(nullif(trim(principio_activo), ''), 'Peroxido de benzoilo'),
   concentracion = coalesce(nullif(trim(concentracion), ''), '2.5%'),
   costo = 170.78,
   precio = case when coalesce(precio, 0) <= 0 then 214 else precio end,
@@ -104,9 +120,9 @@ set
   imagen_mobile_url = coalesce(nullif(trim(imagen_mobile_url), ''), 'https://www.farmacapital.mx/catalogo-propia/bpollen-gel-2.5-7502002461290.jpg'),
   activo = true,
   tipo = coalesce(nullif(trim(tipo), ''), 'marca')
-where codigo_barras = '7502002461290' or sku = 'FC-02461290';
+where sku = 'FC-02461290' or codigo_barras = '7502002461290';
 
--- 3) Enlaza los amarillos en Recibir (cualquier ticket vivo con esos EAN)
+-- 3) Enlaza amarillos (por codigo de barras exacto)
 update public.recepcion_items i
 set
   producto_id = p.id,
@@ -118,21 +134,25 @@ where p.codigo_barras = i.codigo_escaneado
   and i.codigo_escaneado in ('7502002461306', '7502002461290')
   and coalesce(i.confirmado, false) = false;
 
--- 4) Verificación (debe devolver 2 filas de productos y los renglones enlazados)
-select sku, codigo_barras as ean, nombre, costo, precio, activo
+-- 3b) Enlace extra por funcion de escaneo (por si el EAN tiene ceros de mas)
+update public.recepcion_items i
+set
+  producto_id = public.fc_buscar_producto_escaneo(i.codigo_escaneado),
+  pendiente_alta = false
+where i.codigo_escaneado in ('7502002461306', '7502002461290')
+  and coalesce(i.confirmado, false) = false
+  and public.fc_buscar_producto_escaneo(i.codigo_escaneado) is not null
+  and (i.producto_id is null or coalesce(i.pendiente_alta, false));
+
+-- 4) Verificacion
+select 'DESPUES' as momento, sku, codigo_barras as ean, left(nombre,40) as nombre, costo, precio, activo
 from public.productos
 where codigo_barras in ('7502002461306', '7502002461290')
    or sku in ('FC-02461306', 'FC-02461290')
-order by codigo_barras;
+order by sku;
 
-select
-  r.folio,
-  r.estado,
-  i.codigo_escaneado as ean,
-  i.nombre_snapshot,
-  i.pendiente_alta,
-  i.producto_id,
-  i.confirmado
+select 'DESPUES_ITEMS' as momento, r.folio, r.estado, i.codigo_escaneado as ean,
+       i.pendiente_alta, i.producto_id, i.confirmado
 from public.recepcion_items i
 join public.recepciones r on r.id = i.recepcion_id
 where i.codigo_escaneado in ('7502002461306', '7502002461290')

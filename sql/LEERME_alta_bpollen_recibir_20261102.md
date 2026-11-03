@@ -1,17 +1,12 @@
-# Alta BPOllen 5% / 2.5% · Recibir sin registrar
+# Alta BPOllen (Recibir)
 
-Nadro **6091723171** mostraba 2 renglones amarillos:
+**Usa este archivo (más corto, sin temp ni dollar-quote):**
 
-| EAN | Producto | Costo ticket |
-|---|---|---|
-| `7502002461306` | BPOllen gel 5% tubo 60 g | $185.63 |
-| `7502002461290` | BPOllen gel 2.5% tubo 60 g | $170.78 |
+`sql/patch_bpollen_SOLO_pegar_esto.sql`
 
-## Qué pegar
+Pasos: `sql/LEERME_bpollen_SOLO_pegar_esto.md`
 
-- Solo BPOllen: `sql/patch_alta_bpollen_recibir_20261102.sql`
-- Ticket completo + BPOllen: `sql/patch_recibir_nadro_6091723171_y_bpollen_TODOS.sql`
+Raw (cuando esté en main):
+https://raw.githubusercontent.com/ibarraivane/farmacapital/main/sql/patch_bpollen_SOLO_pegar_esto.sql
 
-**Sin `do $$`** (Supabase lo corta). Stock 0 hasta pistola + MMAA.
-
-Ver también: `sql/LEERME_arreglar_recibir_20261103.md`.
+El archivo `patch_alta_bpollen_recibir_20261102.sql` queda de respaldo; preferir el SOLO.

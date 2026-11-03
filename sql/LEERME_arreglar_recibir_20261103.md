@@ -2,18 +2,19 @@
 
 ## Qué fallaba
 
-1. **Nadro 6091723171** (29-oct): en Recibir salían **2 amarillos** — BPOllen 5% y 2.5% sin registrar. El SQL del ticket quedó en PR #505 sin merge; el alta BPOllen (#519) usaba `do $$` y Supabase lo corta.
+1. **Nadro 6091723171** (29-oct): en Recibir salían **2 amarillos** — BPOllen 5% y 2.5% sin registrar. El SQL del ticket quedó en PR #505 sin merge; el alta BPOllen (#519) usaba bloques dollar-quote y Supabase lo corta.
 2. **Tickets “no aparecen”**: el merge a GitHub **no** crea la cola. Hay que pegar el SQL en Supabase. Tenorio / Fanasa / Nadro 6091110421 ya están en `main`; falta Run.
 
 ## Pegar en este orden (Supabase → SQL Editor → Run)
 
 ### A) Arregla el Nadro que ves ahora (BPOllen)
 
-`sql/patch_alta_bpollen_recibir_20261102.sql`
+`sql/patch_bpollen_SOLO_pegar_esto.sql` (Raw en GitHub → copiar TODO → Run)
 
 - Alta `FC-02461306` / `FC-02461290`
 - Enlaza los renglones `pendiente_alta`
-- Costos del ticket: $185.63 (5%) / $170.78 (2.5%)
+- Costos del ticket: $185.63 (5%) / $170.78 (2.5%) → PVP $233 / $214 (+25%)
+- Sin temp tables ni dollar-quote (eso tumba el SQL Editor)
 
 ### B) Si el ticket Nadro 6091723171 no está completo o no existe
 
