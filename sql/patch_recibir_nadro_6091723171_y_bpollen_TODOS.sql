@@ -11,7 +11,7 @@
 -- Softclix / Telmisartán 40 mg ya en catálogo: costo ticket, no baja PVP bueno.
 -- Nombres de ficha (iNadro / packshot), no del ticket. Fotos en catalogo-propia/.
 -- Stock al escanear + MMAA de la caja. No inventar 0000.
--- SIN do $$. Idempotente mientras el ticket siga en borrador.
+-- SIN bloques dollar-quote. Idempotente mientras el ticket siga en borrador.
 -- Pegar TODO en Supabase → SQL Editor → Run.
 -- ============================================================================
 
@@ -265,7 +265,7 @@ commit;
 --   7502002461306 × 1 · BPOllen gel 5% tubo 60 g · Farmapiel · costo ticket $185.63
 --   7502002461290 × 1 · BPOllen gel 2.5% tubo 60 g · Farmapiel · costo ticket $170.78
 --
--- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.
+-- SIN bloques dollar-quote. El SQL Editor de Supabase los corta.
 -- Stock 0 hasta escanear + MMAA de la caja. No inventa caducidad.
 -- Idempotente. Pegar TODO en Supabase → SQL Editor → Run.
 -- ============================================================================

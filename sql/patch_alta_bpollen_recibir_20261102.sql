@@ -5,7 +5,7 @@
 --   7502002461306 × 1 · BPOllen gel 5% tubo 60 g · Farmapiel · costo ticket $185.63
 --   7502002461290 × 1 · BPOllen gel 2.5% tubo 60 g · Farmapiel · costo ticket $170.78
 --
--- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.
+-- SIN bloques dollar-quote. El SQL Editor de Supabase los corta.
 -- Stock 0 hasta escanear + MMAA de la caja. No inventa caducidad.
 -- Idempotente. Pegar TODO en Supabase → SQL Editor → Run.
 -- ============================================================================
