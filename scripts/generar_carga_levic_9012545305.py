@@ -8,7 +8,7 @@ Caducidad del papel NO se escribe en SQL: MMAA sale de la caja. 0000 inválido.
 
 Nombres de mostrador (no el código interno del PDF). EAN desde portal Levic /
 Sufarmed / Farmahome / Prixz / cargas previos cuando la ficha lo publica.
-BEA215 (Diclofenaco beadvance 20 tab): sin EAN público; TODO leer de la caja.
+BEA215 en papel → caja AMSA iny 75 mg/3 mL C/2 (EAN 7501349025929 / EQ-AMS362).
 """
 from __future__ import annotations
 
