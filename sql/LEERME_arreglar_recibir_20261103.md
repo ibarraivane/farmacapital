@@ -22,13 +22,9 @@
 
 8 renglones / $1,119.31. Idempotente en borrador.
 
-### C) Tickets recientes en main (si aún no salen en Recibir)
+### C) Tickets recientes (Tenorio / Fanasa / Nadro 6091110421)
 
-| Archivo | Folio | Total |
-|---|---|---|
-| `sql/patch_carga_tenorio_3838940.sql` | Tenorio **3838940** | $1,148.52 |
-| `sql/patch_carga_fanasa_b49445264.sql` | Fanasa **B49445264** | $667.19 |
-| `sql/patch_carga_nadro_6091110421.sql` | Nadro **6091110421** | $644.52 |
+`sql/patch_recibir_tickets_faltantes_SOLO_pegar_esto.sql` — un solo Run.
 
 ### D) Diagnóstico
 

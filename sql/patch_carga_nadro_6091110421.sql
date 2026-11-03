@@ -3,7 +3,7 @@
 -- PVP = recargo sobre costo (marca ×1.25 / genérico ×1.60). No margen sobre venta.
 -- Amcef IV 1 g EAN 7501349012011 ≠ Amcef IM 1 g 7501349012004 (FC-BE76D409).
 -- Amcef IM 500 mg ya existe (FC-07F04F88); solo costo + ficha.
--- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.
+-- SIN bloques dollar-quote (dollar-quote). El SQL Editor de Supabase los corta.
 -- Ticket borrador. Stock al escanear + MMAA de la caja. No inventar 0000.
 -- Idempotente mientras el ticket siga en borrador.
 -- Pegar TODO este archivo en Supabase → SQL Editor → Run.

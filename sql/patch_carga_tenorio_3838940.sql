@@ -211,33 +211,6 @@ left join lateral (
 ) v on true
 order by t.linea;
 
-insert into public.producto_imagenes
-  (producto_id, url, storage_path, posicion, es_principal, origen)
-select
-  p.id,
-  t.imagen,
-  t.foto_file,
-  coalesce((
-    select max(i.posicion) from public.producto_imagenes i
-    where i.producto_id = p.id
-  ), 0) + 1,
-  not exists (
-    select 1 from public.producto_imagenes i
-    where i.producto_id = p.id and coalesce(i.es_principal, false)
-  ),
-  'propia'
-from _fc_tn_3838940 t
-join public.productos p on p.id = coalesce(
-  public.fc_buscar_producto_escaneo(t.ean),
-  public.fc_buscar_producto_escaneo(t.sku)
-)
-where t.imagen is not null
-  and not exists (
-    select 1 from public.producto_imagenes i
-    where i.producto_id = p.id
-      and (i.url = t.imagen or i.storage_path = t.foto_file)
-  );
-
 -- Diagnóstico
 select
   r.folio,

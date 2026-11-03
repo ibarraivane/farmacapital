@@ -6,7 +6,7 @@
 -- Softclix / Telmisartán 40 mg ya en catálogo: costo ticket, no baja PVP bueno.
 -- Nombres de ficha (iNadro / packshot), no del ticket. Fotos en catalogo-propia/.
 -- Stock al escanear + MMAA de la caja. No inventar 0000.
--- SIN do $$. Idempotente mientras el ticket siga en borrador.
+-- SIN dollar-quote. Idempotente mientras el ticket siga en borrador.
 -- Pegar TODO en Supabase → SQL Editor → Run.
 -- ============================================================================
 

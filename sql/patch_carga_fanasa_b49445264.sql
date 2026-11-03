@@ -2,7 +2,7 @@
 -- Factura · pedido 57020464 · total $667.19.
 -- CANT=1 por renglón (columna BUL ≠ cantidad). Costo = PRECIO FARMACIA.
 -- PVP = recargo marca ×1.25. Ficha Carnot (PCI en ticket = Productos Científicos).
--- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.
+-- SIN bloques dollar-quote (dollar-quote). El SQL Editor de Supabase los corta.
 -- Ticket borrador. Stock al escanear + MMAA de la caja. No inventar 0000.
 -- Idempotente mientras el ticket siga en borrador.
 -- Pegar TODO este archivo en Supabase → SQL Editor → Run.
