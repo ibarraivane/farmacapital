@@ -18,6 +18,25 @@
 -- =============================================================================
 
 
+-- ========== FORZAR reopen a borrador (antes de crear/inyectar) ==========
+begin;
+update public.recepciones r
+set estado = 'borrador', updated_at = now()
+where r.estado is distinct from 'borrador'
+  and (
+       (r.folio = '3838940' and coalesce(r.proveedor,'') ilike '%tenorio%')
+    or (r.folio in ('B49445264','B49397867') and coalesce(r.proveedor,'') ilike '%fanasa%')
+    or (r.folio in ('6091110421','6091723171') and coalesce(r.proveedor,'') ilike '%nadro%')
+    or (r.folio in ('9012545305','9012442706') and coalesce(r.proveedor,'') ilike '%levic%')
+    or (r.folio in ('450233','450041') and coalesce(r.proveedor,'') ilike '%equilibrio%')
+    or (r.folio in ('S336478','S336493') and coalesce(r.proveedor,'') ilike '%cityfarma%')
+    or (r.folio = '76370' and coalesce(r.proveedor,'') ilike '%bodega%f-42%')
+    or (r.folio = '11104' and coalesce(r.proveedor,'') ilike '%farmalive%')
+  );
+commit;
+
+
+
 -- ========== BPOLLEN amarillos Nadro ==========
 -- =============================================================================
 -- PEGAR SOLO ESTE ARCHIVO en Supabase - SQL Editor - Run
