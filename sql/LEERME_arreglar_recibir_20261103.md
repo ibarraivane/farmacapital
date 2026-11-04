@@ -36,3 +36,7 @@
 2. Nadro 6091723171: BPOllen ya no pide alta → MMAA de la caja → Guardar.
 3. Telmisartán 40 mg: si ves cad **03/2008**, corrige a **03/2028** (typo al teclear).
 4. Fotos BPOllen / Asepxia / Contour viven en `catalogo-propia/` tras el deploy de este PR.
+
+### E) Equilibrio 450233 (02-nov)
+
+`sql/patch_equilibrio_450233_SOLO_pegar_esto.sql` — un solo Run.

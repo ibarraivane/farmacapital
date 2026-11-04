@@ -33,7 +33,7 @@ with folios(proveedor_ilike, folio, esperado) as (
     ('cityfarma','S336478',     'PR #508 abierto · 30-oct'),
     ('cityfarma','S336493',     'PR #508 abierto · 30-oct'),
     ('equilibrio','450041',     'PR #508 abierto · 30-oct'),
-    ('equilibrio','450233',     'PR #518 abierto · 02-nov'),
+    ('equilibrio','450233',     'merged · 02-nov · $1,125.10'),
     ('fanasa',   'B49397867',   'PR #504 abierto · Lubrex'),
     ('nadro',    '6091546907',  'PR #499 abierto · 26-oct'),
     ('cityfarma','S334713',     'PR #494 abierto · 24-oct'),

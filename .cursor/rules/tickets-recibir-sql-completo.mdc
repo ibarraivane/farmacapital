@@ -1,0 +1,34 @@
+---
+description: Al crear/arreglar un ticket para Recibir, entregar SQL que corra en Supabase, merge a main y el Raw para pegar. No dejar solo el PR.
+alwaysApply: true
+---
+
+# Tickets Recibir: SQL que corre + merge + Raw
+
+El merge a GitHub **no** crea la cola. Sin **Run** en Supabase no hay tarjeta en Recibir.
+
+## Obligatorio cada vez que armes o arregles un ticket
+
+1. **SQL pegable que funcione** en Supabase SQL Editor:
+   - Sin `do $$` / bloques dollar-quote (ni en comentarios: el Editor los corta).
+   - Preferir `create temp table` + `begin`/`commit` al estilo Tenorio/Fanasa recientes.
+   - Sin `insert into producto_imagenes` en el mismo txn (si falla, no entra la recepción). Fotos: `imagen_url` en `productos` + patch de fotos tras deploy.
+   - Idempotente mientras el ticket siga en `borrador`.
+   - Caducidad **null** (MMAA de la caja). No inventar `0000`.
+   - Select **VERIFICACION** al final (folio, estado, renglones, `sin_confirmar`).
+2. Archivo **`sql/patch_<proveedor>_<folio>_SOLO_pegar_esto.sql`** (o combo si son varios del mismo lote) + LEERME corto con el **Raw de main**.
+3. **Commit → push → PR → merge a `main`** en el mismo turno (no dejar el ticket solo en PR abierto).
+4. En la respuesta al usuario: el **link Raw** + pasos Run + qué tarjeta debe salir. No digas “ya está en main” como si eso bastara.
+
+## Prohibido
+
+- Entregar solo el generador / CSV / PR sin el SQL SOLO limpio.
+- Dejar PRs de tickets abiertos “para después” si el dueño ya pide verlos en Recibir.
+- Confiar en que un SQL viejo con `do $$` “ya mergeado” se pegó: si no sale la tarjeta, reescribe sin dollar-quote y vuelve a dar el Raw.
+
+## Checklist mental (30 s)
+
+- ¿El Raw de `main` abre el SQL?
+- ¿Hay algún `$$` en el archivo?
+- ¿Hay `producto_imagenes` en el mismo begin/commit?
+- ¿La respuesta incluye el link Raw y “pegar → Run → recargar Recibir”?
