@@ -1,22 +1,128 @@
 -- =============================================================================
 -- PEGAR TODO ESTE ARCHIVO en Supabase - SQL Editor - Run
--- UN SOLO pegado: tickets recientes que faltan / faltaban en Recibir.
+-- Revisa + crea / reabre tickets recientes en Recibir.
 -- Merge a GitHub NO crea las tarjetas. Este Run si.
 -- Sin bloques dollar-quote. Sin galeria extra.
--- Al final: VERIFICACION con los folios esperados en borrador.
--- Luego: tablet Recibir - recargar.
+--
+-- IMPORTANTE:
+--  - Si un folio YA se recibio con stock (lote_id), NO lo toca.
+--  - Si existe cerrado/confirmado SIN stock, lo reabre a borrador.
+--  - Si no existe, lo crea.
+--  - Nadro 6091723171: solo arregla BPOllen (el ticket ya esta en cola).
+-- Al final: VERIFICACION. Luego tablet Recibir - recargar (Tickets, no Historia).
 -- =============================================================================
 -- Incluye:
---   BPOllen (Nadro amarillos)
+--   BPOllen (Nadro 6091723171 amarillos)
+--   Nadro 6091546907 (Dove / Memantina / Zolufen) — faltaba
 --   Tenorio 3838940 · Fanasa B49445264 · Nadro 6091110421
 --   Levic 9012545305 + 9012442706
---   Equilibrio 450233
---   Cityfarma S336478 / S336493 + Equilibrio 450041
+--   Equilibrio 450233 · 450041
+--   Cityfarma S336478 / S336493
 --   Bodega F-42 76370
 --   Farmalive 11104
 --   Fanasa B49397867 (Lubrex)
 -- =============================================================================
 
+-- ========== 0) DIAGNOSTICO ANTES ==========
+with esperados(proveedor_like, folio, etiqueta) as (
+  values
+    ('%tenorio%', '3838940', 'Tenorio $1,148.52'),
+    ('%fanasa%', 'B49445264', 'Fanasa Fluxedan $667.19'),
+    ('%fanasa%', 'B49397867', 'Fanasa Lubrex'),
+    ('%nadro%', '6091110421', 'Nadro $644.52'),
+    ('%nadro%', '6091723171', 'Nadro Softclix/BPOllen $1,119.31'),
+    ('%nadro%', '6091546907', 'Nadro Dove/Memantina $312.34'),
+    ('%levic%', '9012545305', 'Levic $1,844.92'),
+    ('%levic%', '9012442706', 'Levic $943.81'),
+    ('%equilibrio%', '450233', 'Equilibrio $1,125.10'),
+    ('%equilibrio%', '450041', 'Equilibrio $152.64'),
+    ('%cityfarma%', 'S336478', 'Cityfarma $1,880.68'),
+    ('%cityfarma%', 'S336493', 'Cityfarma $716.58'),
+    ('%bodega%f-42%', '76370', 'Bodega F-42 / Citymark'),
+    ('%farmalive%', '11104', 'Farmalive')
+)
+select
+  e.folio,
+  e.etiqueta,
+  r.id as recepcion_id,
+  r.proveedor,
+  r.estado,
+  r.total_ticket,
+  count(i.*) as renglones,
+  count(*) filter (where coalesce(i.confirmado,false)) as confirmados,
+  count(*) filter (where not coalesce(i.confirmado,false)) as sin_confirmar,
+  count(*) filter (where i.lote_id is not null) as con_stock_lote,
+  case
+    when r.id is null then 'NO EXISTE — este SQL lo crea'
+    when count(i.*) = 0 then 'SIN RENGLONES — este SQL los pone'
+    when count(*) filter (where i.lote_id is not null) = count(i.*)
+      and count(i.*) > 0
+      and count(*) filter (where not coalesce(i.confirmado,false)) = 0
+      then 'YA RECIBIDO (con stock) — no se toca'
+    when r.estado = 'borrador'
+      and count(*) filter (where not coalesce(i.confirmado,false)) > 0
+      then 'EN COLA — ya deberia verse'
+    when r.estado is distinct from 'borrador'
+      and count(*) filter (where i.lote_id is not null) = 0
+      then 'CERRADO SIN STOCK — se reabre'
+    else 'REVISAR'
+  end as veredicto
+from esperados e
+left join public.recepciones r
+  on r.folio = e.folio
+ and (e.folio = '76370' or coalesce(r.proveedor,'') ilike e.proveedor_like)
+left join public.recepcion_items i on i.recepcion_id = r.id
+group by e.folio, e.etiqueta, r.id, r.proveedor, r.estado, r.total_ticket
+order by
+  case
+    when r.id is null then 0
+    when count(*) filter (where i.lote_id is not null) = 0 then 1
+    else 2
+  end,
+  e.folio;
+
+-- ========== 1) REOPEN SEGURO (solo sin stock en lote) ==========
+begin;
+
+update public.recepciones r
+set estado = 'borrador', updated_at = now()
+where r.estado is distinct from 'borrador'
+  and (
+       (r.folio = '3838940' and coalesce(r.proveedor,'') ilike '%tenorio%')
+    or (r.folio in ('B49445264','B49397867') and coalesce(r.proveedor,'') ilike '%fanasa%')
+    or (r.folio in ('6091110421','6091723171','6091546907') and coalesce(r.proveedor,'') ilike '%nadro%')
+    or (r.folio in ('9012545305','9012442706') and coalesce(r.proveedor,'') ilike '%levic%')
+    or (r.folio in ('450233','450041') and coalesce(r.proveedor,'') ilike '%equilibrio%')
+    or (r.folio in ('S336478','S336493') and coalesce(r.proveedor,'') ilike '%cityfarma%')
+    or (r.folio = '76370' and coalesce(r.proveedor,'') ilike '%bodega%f-42%')
+    or (r.folio = '11104' and coalesce(r.proveedor,'') ilike '%farmalive%')
+  )
+  and not exists (
+    select 1 from public.recepcion_items i
+    where i.recepcion_id = r.id
+      and i.lote_id is not null
+  );
+
+update public.recepcion_items i
+set confirmado = false
+from public.recepciones r
+where i.recepcion_id = r.id
+  and coalesce(i.confirmado, false) = true
+  and i.lote_id is null
+  and i.fecha_caducidad is null
+  and r.estado = 'borrador'
+  and (
+       (r.folio = '3838940' and coalesce(r.proveedor,'') ilike '%tenorio%')
+    or (r.folio in ('B49445264','B49397867') and coalesce(r.proveedor,'') ilike '%fanasa%')
+    or (r.folio in ('6091110421','6091723171','6091546907') and coalesce(r.proveedor,'') ilike '%nadro%')
+    or (r.folio in ('9012545305','9012442706') and coalesce(r.proveedor,'') ilike '%levic%')
+    or (r.folio in ('450233','450041') and coalesce(r.proveedor,'') ilike '%equilibrio%')
+    or (r.folio in ('S336478','S336493') and coalesce(r.proveedor,'') ilike '%cityfarma%')
+    or (r.folio = '76370' and coalesce(r.proveedor,'') ilike '%bodega%f-42%')
+    or (r.folio = '11104' and coalesce(r.proveedor,'') ilike '%farmalive%')
+  );
+
+commit;
 
 -- ========== BPOLLEN amarillos Nadro ==========
 -- =============================================================================
@@ -2851,6 +2957,226 @@ where r.folio = 'B49397867'
   and coalesce(r.proveedor, '') ilike '%fanasa%'
 order by i.id;
 
+
+
+-- ========== NADRO 6091546907 (Dove / Memantina / Zolufen) ==========
+-- Pedido Nadro folio 6091546907 (2026-10-25) — altas + cola Recibir.
+-- Factura CFDI · total $312.34 · UUID 02768924-…
+-- Ficha iNadro (no código del PDF). LGEN no va como marca.
+-- SIN bloques dollar-quote (do XX). El SQL Editor de Supabase los corta.
+--
+-- Ya existía (renombrar ficha + costo):
+--   FC-06241206 Dove Dermoaclarant Skin Calming spray 150 ml
+-- Altas nuevas stock 0:
+--   FC-06241183 Dove Original spray 150 ml
+--   FC-42701200 Memantina 10 mg C/28 (Corne)
+--   FC-23553477 Zolufen (Omeprazol) 20 mg C/30 (Synthon / Novo Nafar)
+-- Ticket borrador. Stock al escanear + MMAA de la caja. No inventar 0000.
+-- Idempotente mientras el ticket siga en borrador.
+-- Pegar TODO este archivo en Supabase → SQL Editor → Run.
+-- Fotos: tras deploy, pegar sql/patch_fotos_nadro_6091546907.sql
+
+begin;
+
+create temp table _fc_nd6091546907 (
+  linea integer primary key,
+  ean text not null,
+  sku text not null,
+  nombre text not null,
+  snap text not null,
+  qty integer not null,
+  costo numeric(12,2) not null,
+  precio numeric(12,2) not null,
+  tipo text not null,
+  categoria text not null,
+  subcategoria text,
+  marca text,
+  presentacion text,
+  forma text,
+  laboratorio text,
+  principio_activo text,
+  concentracion text,
+  lote text,
+  receta boolean not null,
+  alta_nueva boolean not null
+) on commit drop;
+
+insert into _fc_nd6091546907
+  (linea, ean, sku, nombre, snap, qty, costo, precio, tipo, categoria, subcategoria,
+   marca, presentacion, forma, laboratorio, principio_activo, concentracion, lote,
+   receta, alta_nueva)
+values
+  (1, '7506306241206', 'FC-06241206',
+   'Dove Dermoaclarant Skin Calming',
+   'DESOD DOVE DERMAC SK-C 48H SPY150ML',
+   1, 41.35, 52, 'marca', 'Cuidado personal', 'Desodorantes',
+   'Dove', 'Spray 150 ml', 'Spray', 'Unilever', null, null, null,
+   false, false),
+  (2, '7506306241183', 'FC-06241183',
+   'Dove Original',
+   'DESOD DOVE ORIGINAL 48H SPY150ML',
+   2, 41.04, 52, 'marca', 'Cuidado personal', 'Desodorantes',
+   'Dove', 'Spray 150 ml', 'Spray', 'Unilever', null, null, null,
+   false, true),
+  (3, '7502242701200', 'FC-42701200',
+   'Memantina 10 mg',
+   'MEMANTINA 10 MG 28 TAB LGEN',
+   1, 90.41, 145, 'generico', 'Medicamentos', 'Sistema nervioso',
+   null, 'Caja con 28 tabletas', 'Tableta', 'Corne', 'Memantina', '10 mg', '252570',
+   true, true),
+  (4, '7502223553477', 'FC-23553477',
+   'Zolufen (Omeprazol) 20 mg',
+   'OMEPRAZOL 20 MG 30 CAPS LGEN',
+   5, 15.75, 26, 'generico', 'Medicamentos', 'Gastrointestinal',
+   'Zolufen', 'Frasco con 30 cápsulas', 'Cápsula', 'Synthon', 'Omeprazol', '20 mg', 'ZZ8011A',
+   false, true);
+
+-- Altas nuevas (solo si el EAN no existe).
+insert into public.productos (
+  nombre, sku, codigo_barras, categoria, tipo, descripcion,
+  costo, precio, stock, stock_minimo, activo, requiere_receta
+)
+select
+  t.nombre,
+  case
+    when exists (
+      select 1 from public.productos p
+      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+    ) then 'FC-ND-' || right(t.ean, 8)
+    else t.sku
+  end,
+  t.ean,
+  t.categoria,
+  t.tipo,
+  'Alta Nadro 6091546907 · 2026-10-25 · listo para pistola',
+  t.costo,
+  t.precio,
+  0,
+  1,
+  true,
+  t.receta
+from _fc_nd6091546907 t
+where t.alta_nueva
+  and public.fc_buscar_producto_escaneo(t.ean) is null;
+
+-- Ficha de mostrador (marca real; no LGEN).
+update public.productos p set
+  marca = t.marca,
+  presentacion = t.presentacion,
+  forma_farmaceutica = t.forma,
+  principio_activo = t.principio_activo,
+  concentracion = coalesce(t.concentracion, p.concentracion),
+  subcategoria = t.subcategoria,
+  laboratorio = coalesce(nullif(btrim(p.laboratorio), ''), t.laboratorio),
+  nombre = t.nombre,
+  categoria = t.categoria,
+  tipo = t.tipo,
+  requiere_receta = t.receta
+from _fc_nd6091546907 t
+where p.id = public.fc_buscar_producto_escaneo(t.ean);
+
+-- Costos del ticket (PVP solo si estaba en 0).
+update public.productos p
+set
+  costo = t.costo,
+  precio = case
+    when coalesce(p.precio, 0) <= 0 then t.precio
+    else p.precio
+  end
+from _fc_nd6091546907 t
+where p.id = public.fc_buscar_producto_escaneo(t.ean)
+  and (
+    p.costo is distinct from t.costo
+    or coalesce(p.precio, 0) <= 0
+  );
+
+insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
+select
+  'Nadro',
+  '6091546907',
+  '2026-10-25',
+  312.34,
+  'borrador',
+  'Factura Nadro 6091546907 · 25-oct-2026 · CFDI · EAN iNadro · cola Recibir; stock al confirmar pistola · MMAA de la caja'
+where not exists (
+  select 1 from public.recepciones
+  where folio = '6091546907' and coalesce(proveedor, '') ilike '%nadro%'
+);
+
+update public.recepciones
+set
+  total_ticket = 312.34,
+  fecha = '2026-10-25',
+  proveedor = 'Nadro',
+  notas = 'Factura Nadro 6091546907 · 25-oct-2026 · CFDI · EAN iNadro · cola Recibir; stock al confirmar pistola · MMAA de la caja',
+  updated_at = now()
+where folio = '6091546907'
+  and coalesce(proveedor, '') ilike '%nadro%'
+  and estado = 'borrador';
+
+delete from public.recepcion_items i
+using public.recepciones r
+where i.recepcion_id = r.id
+  and r.folio = '6091546907'
+  and coalesce(r.proveedor, '') ilike '%nadro%'
+  and r.estado = 'borrador';
+
+insert into public.recepcion_items (
+  recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,
+  cantidad, fecha_caducidad, numero_lote, costo_estimado, pendiente_alta,
+  origen, confirmado, lote_distinto, lote_id
+)
+select
+  r.id,
+  v.pid,
+  t.ean,
+  t.snap,
+  t.qty,
+  null,
+  nullif(btrim(t.lote), ''),
+  t.costo,
+  (v.pid is null),
+  'pdf',
+  false,
+  (
+    v.pid is not null and exists (
+      select 1 from public.lotes l
+      where l.producto_id = v.pid
+        and coalesce(l.activo, true)
+        and coalesce(l.cantidad_actual, 0) > 0
+    )
+  ),
+  null
+from _fc_nd6091546907 t
+join public.recepciones r
+  on r.folio = '6091546907'
+ and coalesce(r.proveedor, '') ilike '%nadro%'
+ and r.estado = 'borrador'
+left join lateral (
+  select coalesce(
+    public.fc_buscar_producto_escaneo(t.ean),
+    public.fc_buscar_producto_escaneo(t.sku)
+  ) as pid
+) v on true
+order by t.linea;
+
+commit;
+
+select
+  i.id,
+  i.codigo_escaneado as ean,
+  left(i.nombre_snapshot, 48) as nombre,
+  i.cantidad,
+  i.costo_estimado,
+  i.numero_lote as lote,
+  case when i.pendiente_alta then 'ALTA NUEVA' else 'YA EXISTE' end as estado,
+  p.sku,
+  left(p.nombre, 40) as nombre_catalogo
+from public.recepcion_items i
+join public.recepciones r on r.id = i.recepcion_id
+left join public.productos p on p.id = i.producto_id
+where r.folio = '6091546907' and coalesce(r.proveedor, '') ilike '%nadro%'
+order by i.id;
 -- VERIFICACION global (folios de este pegado)
 select
   r.proveedor,
@@ -2859,16 +3185,21 @@ select
   r.total_ticket,
   count(i.*) as renglones,
   coalesce(sum(i.cantidad), 0) as piezas,
-  count(*) filter (where not coalesce(i.confirmado, false)) as sin_confirmar
+  count(*) filter (where not coalesce(i.confirmado, false)) as sin_confirmar,
+  count(*) filter (where i.lote_id is not null) as con_stock_lote,
+  case
+    when count(i.*) = 0 then 'FALTA RENGLONES'
+    when count(*) filter (where not coalesce(i.confirmado, false)) > 0 then 'OK visible en Recibir'
+    when count(*) filter (where i.lote_id is not null) = count(i.*) then 'YA RECIBIDO'
+    else 'REVISAR'
+  end as veredicto
 from public.recepciones r
 left join public.recepcion_items i on i.recepcion_id = r.id
-where r.estado in ('borrador', 'pendiente_alta', 'pendiente_caducidad')
-  and (
+where (
        (r.folio = '3838940' and coalesce(r.proveedor,'') ilike '%tenorio%')
     or (r.folio = 'B49445264' and coalesce(r.proveedor,'') ilike '%fanasa%')
     or (r.folio = 'B49397867' and coalesce(r.proveedor,'') ilike '%fanasa%')
-    or (r.folio = '6091110421' and coalesce(r.proveedor,'') ilike '%nadro%')
-    or (r.folio = '6091723171' and coalesce(r.proveedor,'') ilike '%nadro%')
+    or (r.folio in ('6091110421','6091723171','6091546907') and coalesce(r.proveedor,'') ilike '%nadro%')
     or (r.folio in ('9012545305','9012442706') and coalesce(r.proveedor,'') ilike '%levic%')
     or (r.folio in ('450233','450041') and coalesce(r.proveedor,'') ilike '%equilibrio%')
     or (r.folio in ('S336478','S336493') and coalesce(r.proveedor,'') ilike '%cityfarma%')
@@ -2877,3 +3208,13 @@ where r.estado in ('borrador', 'pendiente_alta', 'pendiente_caducidad')
   )
 group by r.id, r.proveedor, r.folio, r.estado, r.total_ticket
 order by r.proveedor, r.folio;
+
+with esperados(folio) as (
+  values
+    ('3838940'),('B49445264'),('B49397867'),('6091110421'),('6091723171'),
+    ('6091546907'),('9012545305'),('9012442706'),('450233'),('450041'),
+    ('S336478'),('S336493'),('76370'),('11104')
+)
+select e.folio, 'NO EXISTE despues del Run — manda captura del error rojo' as problema
+from esperados e
+where not exists (select 1 from public.recepciones r where r.folio = e.folio);
