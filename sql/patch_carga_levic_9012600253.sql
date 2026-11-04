@@ -2,70 +2,14 @@
 -- PEGAR TODO ESTE ARCHIVO en Supabase - SQL Editor - Run
 -- Levic A 9012600253 · 02-nov-2026 · $649.90 · 1 renglón / 2 pzas
 -- Merge a GitHub NO crea la tarjeta. Este Run si.
--- Sin bloques dollar-quote. Sin galeria extra. Idempotente en borrador.
+-- Sin temp tables. Sin dollar-quote. Idempotente en borrador.
 -- Al final: VERIFICACION con folio 9012600253 en borrador.
 -- Luego: tablet Recibir - recargar.
 -- =============================================================================
--- CFDI UUID B7385380-DAD5-497D-AAEE-05AA746339DA · PUE efectivo.
--- Receptor LUIS ANGEL PALILLERO VENTURA · entrega Chinampac.
--- Clave MAV381 = Gladiatron (Maver) glucosamina/condroitina 1500/1200 mg C/30.
--- EAN ficha 7502009749018. Costo = precio neto $324.95. PVP marca +25% = $407.
--- Lote de fabrica en el papel. Caducidad null: MMAA de la caja. No inventar 0000.
--- Foto: public/catalogo-propia/gladiatron-1500-1200-c30-7502009749018.jpg (tras deploy).
+-- Clave MAV381 = Gladiatron (Maver) 1500/1200 mg C/30. EAN 7502009749018.
+-- Costo $324.95 · PVP marca +25% = $407. Lote 264793. Caducidad null (MMAA caja).
 
-begin;
-
-create temp table _fc_rx_levic9012600253 (
-  linea integer primary key,
-  clave text not null,
-  ean text not null,
-  sku text not null,
-  nombre text not null,
-  snap text not null,
-  qty integer not null,
-  costo numeric(12,2) not null,
-  precio numeric(12,2) not null,
-  tipo text not null,
-  categoria text not null,
-  forma text,
-  marca text,
-  laboratorio text,
-  presentacion text,
-  principio_activo text,
-  concentracion text,
-  receta boolean not null,
-  lote text,
-  imagen text
-) on commit drop;
-
-insert into _fc_rx_levic9012600253 (
-  linea, clave, ean, sku, nombre, snap, qty, costo, precio, tipo, categoria,
-  forma, marca, laboratorio, presentacion, principio_activo, concentracion,
-  receta, lote, imagen
-) values
-  (
-    1,
-    'MAV381',
-    '7502009749018',
-    'FC-09749018',
-    'Gladiatron 1500/1200 mg',
-    'GLUCOSAM/CONDOITRIN 30 SOB 1500/1200 MG *MAV*',
-    2,
-    324.95,
-    407,
-    'marca',
-    'Medicamentos',
-    'Polvo',
-    'Gladiatron',
-    'Maver',
-    'Caja con 30 sobres',
-    'Glucosamina / condroitina',
-    '1500/1200 mg',
-    false,
-    '264793',
-    'https://www.farmacapital.mx/catalogo-propia/gladiatron-1500-1200-c30-7502009749018.jpg'
-  );
-
+-- 1) Alta producto (solo si no existe)
 insert into public.productos (
   nombre, sku, codigo_barras, categoria, tipo, descripcion,
   costo, precio, stock, stock_minimo, activo, requiere_receta,
@@ -73,59 +17,75 @@ insert into public.productos (
   principio_activo, concentracion, imagen_url, imagen_mobile_url
 )
 select
-  t.nombre,
-  case
-    when exists (
-      select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
-    ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
-  end,
-  t.ean,
-  t.categoria,
-  t.tipo,
-  'Alta Levic 9012600253 · clave ' || t.clave || ' · listo para pistola',
-  t.costo,
-  t.precio,
+  'Gladiatron 1500/1200 mg',
+  'FC-09749018',
+  '7502009749018',
+  'Medicamentos',
+  'marca',
+  'Alta Levic 9012600253 · MAV381 · listo para pistola',
+  324.95,
+  407,
   0,
   1,
   true,
-  t.receta,
-  t.marca,
-  t.laboratorio,
-  t.presentacion,
-  t.forma,
-  t.principio_activo,
-  t.concentracion,
-  t.imagen,
-  t.imagen
-from _fc_rx_levic9012600253 t
-where public.fc_buscar_producto_escaneo(t.ean) is null
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+  false,
+  'Gladiatron',
+  'Maver',
+  'Caja con 30 sobres',
+  'Polvo',
+  'Glucosamina / condroitina',
+  '1500/1200 mg',
+  'https://www.farmacapital.mx/catalogo-propia/gladiatron-1500-1200-c30-7502009749018.jpg',
+  'https://www.farmacapital.mx/catalogo-propia/gladiatron-1500-1200-c30-7502009749018.jpg'
+where not exists (
+  select 1 from public.productos
+  where codigo_barras = '7502009749018' or sku = 'FC-09749018'
+)
+and public.fc_buscar_producto_escaneo('7502009749018') is null;
 
-update public.productos p
+-- 2) Completar ficha / costo si ya existia
+update public.productos
 set
-  costo = t.costo,
-  precio = case when coalesce(p.precio, 0) <= 0 then t.precio else p.precio end,
-  codigo_barras = coalesce(nullif(btrim(p.codigo_barras), ''), t.ean),
+  codigo_barras = '7502009749018',
+  costo = 324.95,
+  precio = case when coalesce(precio, 0) <= 0 then 407 else precio end,
   nombre = case
-    when length(trim(coalesce(p.nombre, ''))) < 8 then t.nombre
-    else p.nombre
+    when length(trim(coalesce(nombre, ''))) < 8 then 'Gladiatron 1500/1200 mg'
+    else nombre
   end,
-  marca = coalesce(nullif(trim(p.marca), ''), t.marca),
-  laboratorio = coalesce(nullif(trim(p.laboratorio), ''), t.laboratorio),
-  presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
-  forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
-  principio_activo = coalesce(nullif(trim(p.principio_activo), ''), t.principio_activo),
-  concentracion = coalesce(nullif(trim(p.concentracion), ''), t.concentracion),
-  imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
-from _fc_rx_levic9012600253 t
-where p.id = coalesce(
-  public.fc_buscar_producto_escaneo(t.ean),
-  public.fc_buscar_producto_escaneo(t.sku)
-);
+  marca = coalesce(nullif(trim(marca), ''), 'Gladiatron'),
+  laboratorio = coalesce(nullif(trim(laboratorio), ''), 'Maver'),
+  presentacion = coalesce(nullif(trim(presentacion), ''), 'Caja con 30 sobres'),
+  forma_farmaceutica = coalesce(nullif(trim(forma_farmaceutica), ''), 'Polvo'),
+  principio_activo = coalesce(nullif(trim(principio_activo), ''), 'Glucosamina / condroitina'),
+  concentracion = coalesce(nullif(trim(concentracion), ''), '1500/1200 mg'),
+  imagen_url = coalesce(
+    nullif(trim(imagen_url), ''),
+    'https://www.farmacapital.mx/catalogo-propia/gladiatron-1500-1200-c30-7502009749018.jpg'
+  ),
+  imagen_mobile_url = coalesce(
+    nullif(trim(imagen_mobile_url), ''),
+    'https://www.farmacapital.mx/catalogo-propia/gladiatron-1500-1200-c30-7502009749018.jpg'
+  ),
+  activo = true,
+  tipo = coalesce(nullif(trim(tipo), ''), 'marca')
+where sku = 'FC-09749018'
+   or codigo_barras = '7502009749018'
+   or id = public.fc_buscar_producto_escaneo('7502009749018');
 
+-- 3) Reabrir a borrador solo si no hay stock ya recibido
+update public.recepciones
+set estado = 'borrador', updated_at = now()
+where folio = '9012600253'
+  and coalesce(proveedor, '') ilike '%levic%'
+  and estado is distinct from 'borrador'
+  and not exists (
+    select 1 from public.recepcion_items i
+    where i.recepcion_id = recepciones.id
+      and i.lote_id is not null
+  );
+
+-- 4) Cabecera recepcion
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
   'Levic',
@@ -150,6 +110,7 @@ where folio = '9012600253'
   and coalesce(proveedor, '') ilike '%levic%'
   and estado = 'borrador';
 
+-- 5) Renglones (solo en borrador)
 delete from public.recepcion_items i
 using public.recepciones r
 where i.recepcion_id = r.id
@@ -164,40 +125,45 @@ insert into public.recepcion_items (
 )
 select
   r.id,
-  v.pid,
-  t.ean,
-  t.nombre,
-  t.qty,
+  coalesce(
+    public.fc_buscar_producto_escaneo('7502009749018'),
+    public.fc_buscar_producto_escaneo('FC-09749018')
+  ),
+  '7502009749018',
+  'Gladiatron 1500/1200 mg',
+  2,
   null,
-  t.lote,
-  t.costo,
-  (v.pid is null),
+  '264793',
+  324.95,
+  (
+    coalesce(
+      public.fc_buscar_producto_escaneo('7502009749018'),
+      public.fc_buscar_producto_escaneo('FC-09749018')
+    ) is null
+  ),
   'pdf',
   false,
   (
-    v.pid is not null and exists (
+    coalesce(
+      public.fc_buscar_producto_escaneo('7502009749018'),
+      public.fc_buscar_producto_escaneo('FC-09749018')
+    ) is not null
+    and exists (
       select 1 from public.lotes l
-      where l.producto_id = v.pid
+      where l.producto_id = coalesce(
+          public.fc_buscar_producto_escaneo('7502009749018'),
+          public.fc_buscar_producto_escaneo('FC-09749018')
+        )
         and coalesce(l.activo, true)
         and coalesce(l.cantidad_actual, 0) > 0
-        and l.numero_lote is distinct from t.lote
+        and l.numero_lote is distinct from '264793'
     )
   ),
   null
-from _fc_rx_levic9012600253 t
-join public.recepciones r
-  on r.folio = '9012600253'
- and coalesce(r.proveedor, '') ilike '%levic%'
- and r.estado = 'borrador'
-left join lateral (
-  select coalesce(
-    public.fc_buscar_producto_escaneo(t.ean),
-    public.fc_buscar_producto_escaneo(t.sku)
-  ) as pid
-) v on true
-order by t.linea;
-
-commit;
+from public.recepciones r
+where r.folio = '9012600253'
+  and coalesce(r.proveedor, '') ilike '%levic%'
+  and r.estado = 'borrador';
 
 -- VERIFICACION
 select
