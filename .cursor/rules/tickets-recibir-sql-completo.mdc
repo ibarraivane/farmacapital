@@ -18,7 +18,7 @@ El merge a GitHub **no** crea la cola. Sin **Run** en Supabase no hay tarjeta en
    - Select **VERIFICACION** al final (folio, estado, renglones, `sin_confirmar`).
 2. Archivo **`sql/patch_<proveedor>_<folio>_SOLO_pegar_esto.sql`** (o combo si son varios del mismo lote) + LEERME corto con el **Raw de main**.
 3. **Commit → push → PR → merge a `main`** en el mismo turno (no dejar el ticket solo en PR abierto).
-4. En la respuesta al usuario: **un solo link Raw fácil de copiar/pegar** (preferir `sql/patch_recibir_PEGAR_ESTO_TODO.sql` o el `*_SOLO_pegar_esto.sql` del ticket) + pasos Run + qué tarjetas deben salir. No digas “ya está en main” como si eso bastara. No mandes al usuario a cazar archivos en el repo.
+4. En la respuesta al usuario: el SQL **en el chat** dentro de un bloque ` ```sql ` (botón copiar de un clic). Si el archivo pasa ~100k caracteres, partelo en 2 bloques seguidos (parte 1 / parte 2), cada uno en su propio ` ```sql `. También puedes dejar artifact HTML/SQL en `/opt/cursor/artifacts/`. **Prohibido** mandar solo un link Raw/GitHub (“ábrelo, selecciona todo y pega”). No digas “ya está en main” como si eso bastara.
 
 ## Prohibido
 
