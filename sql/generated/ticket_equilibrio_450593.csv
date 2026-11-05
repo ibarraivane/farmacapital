@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,nombre_mostrador,cantidad,precio_unitario,subtotal,lote,sku_farmacapital,total_ticket,match
+1,450593,2026-11-04,Equilibrio,7506022315281,JAY142 PRUEBA DE EMBARAZO MEDITEST 1 CJA 1 PZA,Meditest,5,15.60,78.00,2605979401,FC-66055303,236.88,ya
+2,450593,2026-11-04,Equilibrio,0780083140731,COL100 VENGESIC 20 GRAG 200/100/0.5 MG,Vengesic,3,48.80,146.40,26142061,FC-83140731,236.88,alta
