@@ -1,0 +1,4 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,447795,2026-10-12,Equilibrio,7502001164413,SON220 CLOTRIMAZOL 1 OV 500 MG,3,29.74,89.22,,,EQ-SON220,263.04,ya
+2,447795,2026-10-12,Equilibrio,7503000422863,MAV006 CEFALVER 12 CAPS 500 MG,3,32.88,98.64,,,EQ-MAV006,263.04,alta
+3,447795,2026-10-12,Equilibrio,7502001164697,"SON098 FENIMETH V 12 OVS 500MG/100,000 UI",2,37.59,75.18,,,EQ-SON096,263.04,ya
