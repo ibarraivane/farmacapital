@@ -6,6 +6,9 @@
 
 import { supabase } from "../supabase";
 import { aplicarModoCatalogo } from "./catalogoConsulta";
+import { fechaCaducidadInvalida } from "./caducidad";
+
+export { fechaCaducidadInvalida } from "./caducidad";
 
 export const PRODUCTOS_POR_PAGINA = 1000;
 
@@ -15,12 +18,6 @@ export const PRODUCTOS_SELECT_HUB =
 
 export const PRODUCTOS_SELECT_LOTES =
   "id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria,activo,tipo";
-
-export function fechaCaducidadInvalida(fecha) {
-  if (!fecha) return false;
-  const y = parseInt(String(fecha).slice(0, 4), 10);
-  return !Number.isFinite(y) || y < 1990 || y > 2045;
-}
 
 export function minCaducidadLotes(lotes) {
   const conFecha = (lotes || []).filter(
