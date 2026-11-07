@@ -9,7 +9,7 @@
 --
 -- PVP ancla $312 (Nadro precio público $311.60). Sin costo de compra.
 -- Si ya estaba en vitrina bajo pedido: baja de bajo_pedido y recibe stock.
--- Sin do $$. Sin producto_imagenes en este txn.
+-- Sin bloques dollar-quote. Sin producto_imagenes en este txn.
 -- Foto propia tras deploy: patch_fotos_pharmaton_complete_kids_3664798064704.sql
 -- =============================================================================
 
