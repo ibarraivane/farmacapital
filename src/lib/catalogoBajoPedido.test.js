@@ -5,6 +5,7 @@ import {
   filaBirdman,
   filaDermaexpress,
   filaEwafra,
+  filaSuplementosMayoreo,
   hashSku8,
   marcaDesdeDescripcionDis,
   matchPromexsa,
@@ -115,6 +116,140 @@ test("Birdman merch fuera; proteína entra", () => {
   expect(fit.sku).toMatch(/^FC-\d{8}$/);
   expect(fit.precio).toBe(0);
   expect(fit.costo).toBe(399);
+});
+
+test("Suplementos Mayoreo: costo de mayoreo, precio público en 0", () => {
+  const whey = filaSuplementosMayoreo({
+    codigo: "9660",
+    nombre: "ISOFLEX 5 LBS CHOCOLATE *OFERTA*",
+    nombre_completo: "ALMX ISOFLEX 5 LBS CHOCOLATE *OFERTA*",
+    marca: "ALLMAX",
+    precio: "1673",
+    stock: "332",
+    imagen_url: "https://firebasestorage.googleapis.com/v0/b/suplementos-mayoreo.appspot.com/o/products%2Fimg%2Fjpeg%2F665553121154.jpg?alt=media",
+  });
+  expect(whey.precio).toBe(0);
+  expect(whey.costo).toBe(1673);
+  expect(whey.marca).toBe("Allmax");
+  expect(whey.nombre).toMatch(/Isoflex/i);
+  expect(whey.nombre).not.toMatch(/oferta/i);
+  expect(whey.nombre).not.toMatch(/5 lb/i);
+  expect(whey.presentacion).toBe("5 lb");
+  expect(whey.categoria).toBe("Suplemento");
+  expect(whey.subcategoria).toBe("Proteína");
+  expect(whey.sku).toBe("FC-53121154");
+  expect(whey.ean).toBe("665553121154");
+  expect(whey.fuente).toBe("suplementosmayoreo");
+  expect(whey.imagen_url).toContain("firebasestorage.googleapis.com");
+
+  const creatina = filaSuplementosMayoreo({
+    codigo: "23641",
+    nombre: "CREATINA MONOHIDRATADA 450 GRS",
+    nombre_completo: "BIRDMAN CREATINA MONOHIDRATADA 450 GRS",
+    marca: "BIRDMAN",
+    precio: "453",
+    stock: "10",
+    imagen_url: "",
+  });
+  expect(creatina.sku).toMatch(/^FC-\d{8}$/);
+  expect(creatina.ean).toBe("");
+  expect(creatina.presentacion).toBe("450 g");
+  expect(creatina.subcategoria).toBe("Deportiva");
+  expect(creatina.precio).toBe(0);
+
+  const sinMarca = filaSuplementosMayoreo({
+    codigo: "1",
+    nombre: "",
+    nombre_completo: "APPLIED NUTRITION CREATINE MONOHYDRATE POWDER 250 GR *NUEVO*",
+    marca: "",
+    precio: "280",
+    stock: "4",
+    imagen_url: "",
+  });
+  expect(sinMarca.marca).toBe("Applied Nutrition");
+  expect(sinMarca.nombre).toMatch(/Creatine/i);
+  expect(sinMarca.presentacion).toBe("250 g");
+
+  const cafe = filaSuplementosMayoreo({
+    codigo: "2",
+    nombre: "CAFFEINE 200 MG 100 CT *OFERTA*",
+    nombre_completo: "ALMX CAFFEINE 200 MG 100 CT *OFERTA*",
+    marca: "ALLMAX",
+    precio: "185",
+    stock: "3",
+    imagen_url: "",
+  });
+  expect(cafe.nombre).toMatch(/200 mg/i);
+  expect(cafe.presentacion).toBe("100 piezas");
+  expect(cafe.concentracion).toBe("200 mg");
+  expect(cafe.subcategoria).toBe("Deportiva");
+
+  expect(filaSuplementosMayoreo({
+    codigo: "3",
+    nombre: "EVOGEN CLASSIC GREY (L)",
+    nombre_completo: "T-SHIRT EVOGEN CLASSIC GREY (L)",
+    marca: "PLAYERAS",
+    precio: "180",
+    stock: "2",
+  })).toBeNull();
+
+  expect(filaSuplementosMayoreo({
+    codigo: "4",
+    nombre: "",
+    nombre_completo: "BIOMEDIC STANOZOLOL 20MG 100TABS",
+    marca: "",
+    precio: "455",
+    stock: "1",
+  })).toBeNull();
+
+  expect(filaSuplementosMayoreo({
+    codigo: "4b",
+    nombre: "",
+    nombre_completo: "BIOMEDIC METHANDROSTENOLONE 20MG 100 TABS",
+    marca: "",
+    precio: "455",
+    stock: "1",
+  })).toBeNull();
+
+  expect(filaSuplementosMayoreo({
+    codigo: "4c",
+    nombre: "IONIC+ DIANA 50 CAPS",
+    nombre_completo: "IONIC+ DIANA 50 CAPS",
+    marca: "",
+    precio: "359",
+    stock: "1",
+  })).toBeNull();
+
+  const anabol = filaSuplementosMayoreo({
+    codigo: "6",
+    nombre: "ANABOL HARDCORE",
+    nombre_completo: "NT ANABOL HARDCORE",
+    marca: "NUTREX",
+    precio: "317",
+    stock: "4",
+  });
+  expect(anabol.nombre).toMatch(/Anabol Hardcore/i);
+  expect(anabol.precio).toBe(0);
+
+  const fitmingo = filaSuplementosMayoreo({
+    codigo: "7",
+    nombre: "FITMINGO 1,020GRS BLUEBERRY",
+    nombre_completo: "BIRDMAN FITMINGO 1,020GRS BLUEBERRY",
+    marca: "BIRDMAN",
+    precio: "861",
+    stock: "3",
+  });
+  expect(fitmingo.presentacion).toBe("1020 g");
+  expect(fitmingo.nombre).toMatch(/Blueberry/i);
+
+  expect(filaSuplementosMayoreo({
+    codigo: "5",
+    nombre: "OMEGA 3 180 CT",
+    nombre_completo: "ALMX OMEGA 3 180 CT",
+    marca: "ALLMAX",
+    precio: "293",
+    stock: "8",
+  }).categoria).toBe("Vitaminas");
 });
 
 test("Ewafra toma nombre/foto Promexsa si el match es fuerte", () => {
