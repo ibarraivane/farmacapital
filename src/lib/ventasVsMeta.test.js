@@ -5,6 +5,7 @@ import {
   metaSemana,
   parseYmdLocal,
   porDiaDesdeSerieRpc,
+  notaCruceSemanaMes,
   resumenMetasActuales,
   resumenPunto,
   ymdFromLocalDate,
@@ -81,7 +82,52 @@ describe("construirSerie", () => {
     expect(r.semana.actual).toBe(3100 + 800 + 12);
     // 23 ago = 23/31 del mes
     expect(r.mes.meta).toBe(Math.round(80000 * (23 / 31)));
+    expect(r.mes.metaCompleta).toBe(80000);
+    expect(r.semana.metaCompleta).toBe(20800);
     expect(r.mes.actual).toBe(3100 + 800 + 12);
+  });
+
+  test("suma la ganancia bruta en día, semana y mes", () => {
+    const gananciaPorDia = {
+      "2026-08-21": 1200,
+      "2026-08-22": 200,
+      "2026-08-23": -50,
+    };
+    const dia = construirSerie({
+      porDia, gananciaPorDia, cfg: CFG, grano: "dia", hoyYmd: "2026-08-23",
+    }).find((p) => p.esActual);
+    expect(dia.ganancia).toBe(-50);
+    const semana = construirSerie({
+      porDia, gananciaPorDia, cfg: CFG, grano: "semana", hoyYmd: "2026-08-23",
+    }).find((p) => p.esActual);
+    expect(semana.ganancia).toBe(1200 + 200 - 50);
+    const mes = construirSerie({
+      porDia, gananciaPorDia, cfg: CFG, grano: "mes", hoyYmd: "2026-08-23",
+    }).find((p) => p.esActual);
+    expect(mes.ganancia).toBe(1200 + 200 - 50);
+  });
+
+  test("4 oct: el ritmo del mes cabe debajo de la semana, la meta del mes no", () => {
+    const por = { "2026-09-30": 5000, "2026-10-04": 1100 };
+    const r = resumenMetasActuales({
+      porDia: por,
+      cfg: {
+        ...CFG,
+        meta_ventas_semana: "27200",
+        meta_ventas_mes: "110000",
+      },
+      hoyYmd: "2026-10-04",
+    });
+    expect(r.semana.meta).toBe(27200);
+    expect(r.mes.meta).toBe(Math.round(110000 * (4 / 31)));
+    expect(r.semana.meta).toBeGreaterThan(r.mes.meta);
+    expect(r.mes.metaCompleta).toBe(110000);
+    expect(r.semana.actual).toBeGreaterThan(r.mes.actual);
+    const nota = notaCruceSemanaMes({ semana: r.semana, mes: r.mes, hoyYmd: "2026-10-04" });
+    expect(nota).toMatch(/mes anterior/);
+    expect(nota).toMatch(/no la meta/);
+    expect(nota).toMatch(/\$110\.0k/);
+    expect(nota).toMatch(/\$27\.2k/);
   });
 
   test("semana: lunes a domingo, meta fija si está configurada", () => {
