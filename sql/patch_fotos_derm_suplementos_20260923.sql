@@ -1,0 +1,174 @@
+-- ============================================================================
+-- FarmaCapital — 2026-09-23
+-- Fotos que faltaban en bajo pedido.
+-- Dermatológicos: ficha viva de Dermaexpress (SKU = EAN). Si esa foto era
+-- de otro producto, DermaPharma, Dermamedina o la marca.
+-- Suplementos y proteína: packshot de Birdman (el mayoreo). Amazon MX
+-- confirma el EAN; Mercado Libre bloquea el acceso automático.
+-- Solo llena imagen_url vacía. No pisa una foto que ya esté. No toca precio.
+--
+-- Pegar completo en Supabase → SQL Editor → Run.
+-- ============================================================================
+
+begin;
+
+create temp table _fc_fotos_nuevas (
+  sku text,
+  ean text,
+  imagen_url text
+) on commit drop;
+
+insert into _fc_fotos_nuevas (sku, ean, imagen_url) values
+  ('FC-91029192', '5702191029192', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/5702191029192_1.avif?v=1774567683'),
+  ('FC-79443333', '3282779443333', 'https://cdn.shopify.com/s/files/1/1324/6819/files/3282779443333_Av_ne_Kit_Protector_Solar_Corporal_en_Spray_FPS_50_200ml_Agua_Termal_150ml.webp?v=1782328862'),
+  ('FC-71631381', '8436571631381', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/8436571631381.jpg?v=1707859276'),
+  ('FC-11329004', '8437011329004', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/8437011329004.jpg?v=1707863626'),
+  ('FC-14389081', '8437014389081', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/8437014389081.jpg?v=1707865777'),
+  ('FC-70075687', '3282770075687', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/3282770075687_1.jpg?v=1746682683'),
+  ('FC-79562102', '3282779562102', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/3282779562102-M-PROTECT-AH-250ML.png?v=1569254909'),
+  ('FC-19683548', '8050519683548', 'https://cdn.shopify.com/s/files/1/0527/3337/8743/files/8050519683548.webp?v=1778076523'),
+  ('FC-19684743', '8050519684743', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/8050519684743_resized.jpg?v=1757127324'),
+  ('FC-19680158', '8050519680158', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/8050519680158.jpg?v=1757044916'),
+  ('FC-05034894', '3504105034894', 'https://cdn.shopify.com/s/files/1/0316/7518/7336/files/MustiEau-Front-Box-Blue-Bottle-2000x1500-v3.png?v=1705503724'),
+  ('FC-05036027', '3504105036027', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3504105036027_1.jpg?v=1730912827'),
+  ('FC-70398632', '3282770398632', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3282770398632_1.jpg?v=1751560963'),
+  ('FC-75917810', '3337875917810', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/1_5481e5c5-aa48-46a2-814f-6dd4f26356dd.png?v=1750634713'),
+  ('FC-75917407', '3337875917407', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/Diseno_sin_titulo_2_791ab0cd-abf6-4897-be36-0bcccc0acecc.png?v=1748381048'),
+  ('FC-47869546', '3401347869546', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/3401347869546_06c3a6cc-97d0-4220-bc7a-966e21bd65f9.jpg?v=1746747541'),
+  ('FC-60936988', '3401560936988', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/3401560936988_eff1c644-f0b5-4ba5-8cd0-298b70e803bb.jpg?v=1569251169'),
+  ('FC-05038724', '3504105038724', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3504105038724_1.jpg?v=1731094612'),
+  ('FC-34011931', '3661434011931', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3661434011931_1.jpg?v=1727547616'),
+  ('FC-76003048', '853676003048', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/9_ae9e8d44-1fac-4e41-8e8b-1a795c6ea9c9.png?v=1723158242'),
+  ('FC-20171763', '8429420171763', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/8429420171763.jpg?v=1620769468'),
+  ('FC-20171756', '8429420171756', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/8429420171756.jpg?v=1620769328'),
+  ('FC-02460699', '7502002460699', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/7502002460699.jpg?v=1569247983'),
+  ('FC-05035617', '3504105035617', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3504105035617_1.jpg?v=1730845119'),
+  ('FC-06185521', '7508006185521', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3ce5b262-7319-4880-a787-a07f625ec3a3.jpg?v=1736980873'),
+  ('FC-71324780', '3337871324780', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/3337871324780_1.jpg?v=1746831802'),
+  ('FC-79100582', '5201279100582', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/5201279100582.jpg?v=1729889558'),
+  ('FC-79100599', '5201279100599', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/5201279100599_1.jpg?v=1729892694'),
+  ('FC-70100273', '3282770100273', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/3282770100273_1.jpg?v=1674233922'),
+  ('FC-34009181', '3661434009181', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3661434009181_1.jpg?v=1727307874'),
+  ('FC-69770447', '3760269770447', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/SensyliaAqua400ml.jpg?v=1645741173'),
+  ('FC-79073176', '5201279073176', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/5201279073176_1.jpg?v=1729724773'),
+  ('FC-34008818', '3661434008818', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3661434008818_1.jpg?v=1727303836'),
+  ('FC-79444400', '8429979444400', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/8429979444400_2.jpg?v=1746829882'),
+  ('FC-11329905', '8437011329905', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/8437011329905.jpg?v=1707864956'),
+  ('FC-01231104', '3760201231104', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3760201231104.avif?v=1776204177'),
+  ('FC-01231166', '3760201231166', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3760201231166.avif?v=1776204320'),
+  ('FC-81001485', '7703281001485', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/7703281001485_8.jpg?v=1746824231'),
+  ('FC-40038432', '8430340038432', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/03_PS_SHAMPOO_CASPA_SECA_PILEXIL_2023.jpg?v=1744395966'),
+  ('FC-71308612', '3337871308612', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/cbcce2b5-9120-4a74-9723-c3109856358a.jpg?v=1746643551'),
+  ('FC-89804518', '7501089804518', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/01_LETI_GEL_DE_BANO_2023.jpg?v=1686957186'),
+  ('FC-06182544', '7508006182544', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/AminoterShampoo300_7508006182544_05.jpg?v=1746829190'),
+  ('FC-75847087', '3337875847087', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/044a32f6-be1e-44f0-82da-ada69b3f7331.jpg?v=1746640862'),
+  ('FC-71321963', '3337871321963', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/415e21f4-4fc0-44ff-bc55-a42213bd4222.jpg?v=1746645109'),
+  ('FC-02460125', '7502002460125', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/7502002460125.jpg?v=1558459521'),
+  ('FC-73697197', '3401573697197', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/3401573697197_f775b5da-a854-425e-8c13-ef433422e8a5.jpg?v=1559248165'),
+  ('FC-02460682', '7502002460682', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/7502002460682.jpg?v=1569247983'),
+  ('FC-69770539', '3760269770539', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/DERMAPOSTPEELING.jpg?v=1663191170'),
+  ('FC-69770041', '3760269770041', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/products/NeotoneAqua250ml.jpg?v=1645889784'),
+  ('FC-75596763', '3337875596763', 'https://cdn.shopify.com/s/files/1/0088/1937/6188/files/3337875596763_12.jpg?v=1746649614'),
+  ('FC-21752837', '7503025737195', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/SHAKER_ad533ad7-b769-4ffb-9bd8-e60215c1e00a.png?v=1721258396'),
+  ('FC-08530091', null, 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Shaker_NEGRO_sin_sombra.webp?v=1752693738'),
+  ('FC-53534244', null, 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Shaker_ROSA_sin_sombra.webp?v=1752693368'),
+  ('FC-39149283', '7503037273247', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/ToallaMicrofibra.png?v=1721258396'),
+  ('FC-41351362', '7503037273230', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/ToallaMicrofibra.png?v=1721258396'),
+  ('FC-59627477', '7503025737577', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/HarinaAlmendras_Front.png?v=1721258397'),
+  ('FC-50020942', '7503025737508', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Linaza_Front.png?v=1721258397'),
+  ('FC-53935550', '7503025737478', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/birdman-alimento-liquido-bebida-plant-based-almendra-6-pack-946-ml-29670778863703.png?v=1721258396'),
+  ('FC-22161396', '7503025737485', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/birdman-alimento-liquido-bebida-plant-based-chocolate-6-pack-946-ml-29670783713367.png?v=1721258397'),
+  ('FC-01408792', '7503025737669', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/birdman-alimento-liquido-bebida-plant-based-light-6-pack-946-ml-29670794395735.png?v=1721258397'),
+  ('FC-77665700', '7503025737492', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/birdman-alimento-liquido-bebida-plant-based-original-6-pack-946-ml-29670806323287.png?v=1721258397'),
+  ('FC-41583926', '7503025737355', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/450_CREATINA_1c799b80-8b3c-4e81-8ec5-e5e55603fe69.png?v=1721258396'),
+  ('FC-39606823', '7503057040911', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/PL_Creatine_for_Women_348_01_1.png?v=1776451289'),
+  ('FC-44415196', '7503057040928', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/SA_Creatine_for_Women_348_01_2.png?v=1776451679'),
+  ('FC-29281200', '7503025737317', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_PERFORMANCE_1140_CHOCOLATE_01.png?v=1781031288'),
+  ('FC-65091786', '7503057040478', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_PERFORMANCE_552_CHOCOLATE_01.png?v=1781029791'),
+  ('FC-06433650', '7503025737324', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_PERFORMANCE_1140_VAINILLA_01.png?v=1781031155'),
+  ('FC-83546244', '7503057040539', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_PERFORMANCE_552_VAINILLA_01.png?v=1781030118'),
+  ('FC-00403428', '7503025737331', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Falcon_Performance_Bag_1900_Chocolate_01.png?v=1781031821'),
+  ('FC-53267306', '7503025737348', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Falcon_Performance_Bag_1900_Chocolate_01.png?v=1781031821'),
+  ('FC-71374695', '7503025737461', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Falcon_Performance_Choco_Bronze_03_1.png?v=1781046399'),
+  ('FC-96653081', '7503025737454', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Falcon_Performance_Choco_Bronze_03_1.png?v=1781046399'),
+  ('FC-34437733', '7503057040409', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_480_CHAI_01.png?v=1781249375'),
+  ('FC-57110856', '7503057040508', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_960_CHAI_01.png?v=1781247487'),
+  ('FC-10011410', '7503057040362', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_480_CHOCOLATE_01.png?v=1781248548'),
+  ('FC-82046711', '7503057040386', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_960_CHOCOLATE_01.png?v=1782521137'),
+  ('FC-53536505', '7503057040416', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_480_FRESA_01.png?v=1781248770'),
+  ('FC-01318124', '7503057040515', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_960_FRESA_01.png?v=1782521471'),
+  ('FC-40393268', '7503057040423', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_480_NATURAL_01.png?v=1781249137'),
+  ('FC-29984421', '7503057040522', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_960_NATURAL_01.png?v=1781247912'),
+  ('FC-31502844', '7503057040355', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_480_VAINILLA_01.png?v=1782434879'),
+  ('FC-82042925', '7503057040379', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_960_VAINILLA_01_1.png?v=1781248067'),
+  ('FC-03985090', '7503057040393', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FALCON_480_PUMPKIN_01_1.png?v=1788551864'),
+  ('FC-16339939', '7503025737041', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/FALCON_VAINILLA_1800_LISTING_01_3.jpg?v=1783541893'),
+  ('FC-30796929', '7503025737058', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/FALCON_VAINILLA_1800_LISTING_01_3.jpg?v=1783541893'),
+  ('FC-04614023', '7503025737003', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MP_CHAI_f7f46966-4037-4327-9bea-1bdea82782f9.png?v=1721258398'),
+  ('FC-59010784', '7503025737027', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MP_CHAI_f7f46966-4037-4327-9bea-1bdea82782f9.png?v=1721258398'),
+  ('FC-22516107', '7503025737683', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MP_CHAI_f7f46966-4037-4327-9bea-1bdea82782f9.png?v=1721258398'),
+  ('FC-22844910', '7503025737010', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MP_CHAI_f7f46966-4037-4327-9bea-1bdea82782f9.png?v=1721258398'),
+  ('FC-11941078', '7503025737034', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MP_CHAI_f7f46966-4037-4327-9bea-1bdea82782f9.png?v=1721258398'),
+  ('FC-80802444', '7503057040812', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Falcon_Chai_03.png?v=1781250679'),
+  ('FC-83686649', '7503057040799', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Falcon_Chai_03.png?v=1781250679'),
+  ('FC-90048160', '7503057040829', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Falcon_Chai_03.png?v=1781250679'),
+  ('FC-78739107', '7503057040850', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Falcon_Chai_03.png?v=1781250679'),
+  ('FC-38682539', '7503057040782', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Falcon_Chai_03.png?v=1781250679'),
+  ('FC-65234248', '7500326818219', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/1.17KG_CHOCOLATE_33a1a4ad-1732-42a1-ad81-8104b4055b69.png?v=1721258396'),
+  ('FC-75908505', '7503025737515', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/1.17KG_FRESA_a07dbeec-c956-44eb-a050-8050bd2e1ffd.png?v=1721258396'),
+  ('FC-27361051', '7503037273322', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Fitmingo_Vanilla_03.png?v=1781046622'),
+  ('FC-18543595', '7503037273339', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Fitmingo_Vanilla_03.png?v=1781046622'),
+  ('FC-87504720', '7503037273346', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Multipack_Fitmingo_Vanilla_03.png?v=1781046622'),
+  ('FC-14780513', '7503037273391', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/FITMINGO_LISTINGS_BLUEBERRY1020_01.jpg?v=1781043593'),
+  ('FC-03210058', '7503037273452', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Fitmingo_Bag_1700_Blueberry_01_1.png?v=1781045337'),
+  ('FC-88523700', '7503037273360', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FITMINGO_510_BLUEBERRY_01_1.png?v=1781042889'),
+  ('FC-50466353', '7503037273407', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/FITMINGO_LISTINGS_MOKA_1020_01_2.jpg?v=1784655875'),
+  ('FC-07219482', '7503037273469', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Fitmingo_Bag_1700_Moka_01.png?v=1781045742'),
+  ('FC-59181380', '7503037273377', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/FITMINGO_LISTINGS_MOKA510_01_1.jpg?v=1781034781'),
+  ('FC-34993090', '7503037273414', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FITMINGO_1020_VAINILLA_01.png?v=1781044232'),
+  ('FC-46159837', '7503037273476', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Fitmingo_Bag_1700_Vainilla_01.png?v=1781045742'),
+  ('FC-57892117', '7503037273384', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/BM_FITMINGO_510_VAINILLA_01.png?v=1772696918'),
+  ('FC-77916472', '7503025737065', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MP_BERRYVANILLA_aabdc10c-358f-4b8b-a211-f998ae712c1e.png?v=1721258398'),
+  ('FC-25076842', '7503025737072', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MP_BERRYVANILLA_aabdc10c-358f-4b8b-a211-f998ae712c1e.png?v=1721258398'),
+  ('FC-01616372', '7500462667726', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/210G_BERRYVAINILLA_9205577e-16e9-42c2-9c8a-b9635a4a582c.png?v=1721258397'),
+  ('FC-04988756', '7500462667733', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/900G_BERRYVANILLA_0648449b-d7ff-4e31-96d2-3ddcda5fced1.png?v=1721258397'),
+  ('FC-93003613', '7500462667757', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/210G_MATCHA_91f2bdfd-727f-4430-a78b-1544b658d51e.png?v=1721258397'),
+  ('FC-84598525', '7500462667740', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/900G_MATCHA_46b4ffc6-3675-4339-8ce9-1c036421c1b3.png?v=1721258396'),
+  ('FC-92571047', '7503038209290', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_BERB_180CAPS_90p.jpg?v=1737566426'),
+  ('FC-08622819', '7503038209412', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_BERB_90CAPS_45p.jpg?v=1737566438'),
+  ('FC-21720347', '7503038209047', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_OMEGAF_120CAPS_60p.jpg?v=1737566262'),
+  ('FC-43700210', '7503038209030', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_OMEGAF_60CAPS_30p.jpg?v=1737566274'),
+  ('FC-59831837', '7503025737379', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MCT_OIL_BIG_9a5ccbec-e779-4c62-b398-0021a5b16320.png?v=1721258397'),
+  ('FC-27575442', '7503025737362', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MCT_OIL_BIG_9a5ccbec-e779-4c62-b398-0021a5b16320.png?v=1721258397'),
+  ('FC-84758742', '7503025737423', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MCT_OIL_POWDER_NATURAL.png?v=1721258398'),
+  ('FC-96952979', '7503025737416', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MCT_OIL_POWDER_NATURAL.png?v=1721258398'),
+  ('FC-66779489', '7503038209221', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_MAGNESIO_180CAPS_60p.jpg?v=1737566335'),
+  ('FC-83648961', '7503038209214', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_MAGNESIO_90CAPS_30p.jpg?v=1737566346'),
+  ('FC-40772944', '7503025737386', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/MINERALS_FRONT.png?v=1721258395'),
+  ('FC-70743533', '7503038209139', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_INOS_180CAPS_60p.jpg?v=1737566311'),
+  ('FC-39852213', '7503038209122', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_INOS_90CAPS_30p.jpg?v=1737566323'),
+  ('FC-88487338', '7503038209016', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_OMEPRE_120CAPS_60p.jpg?v=1737566239'),
+  ('FC-24353857', '7503037273995', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_OMEPRE_60CAPS_30p.jpg?v=1737566251'),
+  ('FC-83116374', '7503053835481', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/Adobe_Express_-_file_18.png?v=1764705253'),
+  ('FC-01633681', '7503053835498', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/WSUP-VITAD3K2_Render_300Caps_Front_1.png?v=1764705164'),
+  ('FC-18820668', '7503038209184', 'https://cdn.shopify.com/s/files/1/0703/1180/5166/files/01_VITD_120CAPS_120p.jpg?v=1737566159');
+
+update public.productos p
+   set imagen_url = f.imagen_url
+  from _fc_fotos_nuevas f
+ where coalesce(f.imagen_url, '') <> ''
+   and coalesce(nullif(trim(p.imagen_url), ''), '') = ''
+   and (
+     (f.ean is not null and p.codigo_barras = f.ean)
+     or (f.sku is not null and p.sku = f.sku)
+   );
+
+select
+  (select count(*) from _fc_fotos_nuevas) as fotos_en_lista,
+  (select count(*) from public.productos p
+     join _fc_fotos_nuevas f
+       on (f.ean is not null and p.codigo_barras = f.ean)
+       or (f.sku is not null and p.sku = f.sku)
+     where p.imagen_url = f.imagen_url) as con_esta_foto;
+
+commit;
