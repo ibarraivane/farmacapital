@@ -3,9 +3,11 @@ import { pesoPublico } from "../../../utils/pesoPublico";
 import { etiquetaCortaAtencion } from "../../../lib/servicioSalud";
 
 /**
- * Acceso rápido de atención en la pestaña Venta.
- * Botones grandes: se usan con prisa y a veces con guantes.
+ * Acceso rápido de atención, en la misma línea y al mismo tamaño que la palabra «Atención».
+ * El precio es el cobro al cliente.
  */
+const LINEA = { fontSize: 13, lineHeight: "18px", fontFamily: "inherit" };
+
 export default function PosAtencionRapida({ servicios, onAdd, C }) {
   const lista = servicios || [];
   if (!lista.length) return null;
@@ -14,32 +16,35 @@ export default function PosAtencionRapida({ servicios, onAdd, C }) {
       data-testid="pos-atencion"
       style={{
         display: "flex",
-        gap: 8,
+        gap: 14,
         flexWrap: "wrap",
-        alignItems: "center",
-        marginBottom: 12,
+        alignItems: "baseline",
+        marginBottom: 8,
       }}
     >
-      <span style={{ fontSize: 13, fontWeight: 800, color: C.textMid, marginRight: 2 }}>Atención</span>
+      <span style={{ ...LINEA, fontWeight: 700, color: C.textMid }}>Atención</span>
       {lista.map((p) => (
         <button
           key={p.id}
           type="button"
           onClick={() => onAdd(p)}
           style={{
-            minHeight: 52,
-            padding: "12px 18px",
-            borderRadius: 12,
-            border: `2px solid ${C.teal}`,
-            background: C.tealDim,
+            ...LINEA,
+            display: "inline-flex",
+            alignItems: "baseline",
+            gap: 4,
+            margin: 0,
+            padding: 0,
+            border: "none",
+            borderBottom: `1px solid ${C.teal}`,
+            background: "transparent",
             color: "#0e7490",
-            fontWeight: 800,
-            fontSize: 16,
+            fontWeight: 600,
             cursor: "pointer",
-            fontFamily: "inherit",
           }}
         >
-          {etiquetaCortaAtencion(p)} {$(pesoPublico(p.precio))}
+          <span>{etiquetaCortaAtencion(p)}</span>
+          <span style={{ fontWeight: 700 }}>{$(pesoPublico(p.precio))}</span>
         </button>
       ))}
     </div>
