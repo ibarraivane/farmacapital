@@ -4,12 +4,14 @@ import { parseRpcJsonObject } from "../../utils/rpcJson";
 import {
   addDaysISO,
   calcularNominaSemanal,
+  DIAS_NOMINA_SEMANA,
   esRpcRhPendiente,
   etiquetaDiaLaboral,
   etiquetaRangoSemana,
   hoyISOMexico,
-  martesDeSemana,
+  sabadoDeSemana,
   salarioSemanalDe,
+  semanaNominaDesfasada,
   viernesDeSemana,
 } from "../../lib/rhSemana";
 
@@ -23,6 +25,7 @@ const ESTADOS = [
 ];
 
 const SQL_SEMANAL = "sql/patch_rh_pago_semanal_20260822.sql";
+const SQL_SEMANA_SABADO = "sql/patch_rh_semana_sabado_viernes_20260926.sql";
 
 function tok() {
   try { return sessionStorage.getItem("farmacapital_session_token") || ""; }
@@ -34,8 +37,8 @@ function localPreview(emp, fechaRef, diasTrabajo) {
   return {
     nombre: emp?.nombre || "",
     salario_semanal: salario,
-    diario: calcularNominaSemanal({ salarioSemanal: salario, diasTrabajo: 4 }).diario,
-    semana_inicio: martesDeSemana(fechaRef),
+    diario: calcularNominaSemanal({ salarioSemanal: salario, diasTrabajo: DIAS_NOMINA_SEMANA }).diario,
+    semana_inicio: sabadoDeSemana(fechaRef),
     semana_fin: viernesDeSemana(fechaRef),
     dias: [],
     dias_trabajo: diasTrabajo,
@@ -58,7 +61,7 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
   const [msg, setMsg] = useState(null);
   const [folio, setFolio] = useState("");
   const [aplicarImss, setAplicarImss] = useState(false);
-  const [diasLocal, setDiasLocal] = useState(4);
+  const [diasLocal, setDiasLocal] = useState(DIAS_NOMINA_SEMANA);
   const [salarioDraft, setSalarioDraft] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -66,7 +69,8 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
   const rango = etiquetaRangoSemana(fechaRef);
   const hoy = hoyISOMexico();
   const viernes = viernesDeSemana(fechaRef);
-  const midWeek = hoy < viernes && martesDeSemana(hoy) === martesDeSemana(fechaRef);
+  const midWeek = hoy < viernes && sabadoDeSemana(hoy) === sabadoDeSemana(fechaRef);
+  const semanaDesfasada = semanaNominaDesfasada(semana, fechaRef);
 
   const cargar = useCallback(async () => {
     if (!selEmpId) {
@@ -81,6 +85,7 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
     }
     setLoading(true);
     setMsg(null);
+    setSemana(null);
     const { data, error } = await supabase.rpc("rh_semana_empleado", {
       p_session_token: session,
       p_empleado_id: Number(selEmpId),
@@ -107,12 +112,12 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
   useEffect(() => {
     if (!selEmp) {
       setSalarioDraft("");
-      setDiasLocal(4);
+      setDiasLocal(DIAS_NOMINA_SEMANA);
       return;
     }
     const n = salarioSemanalDe(selEmp);
     setSalarioDraft(n ? String(n) : "");
-    setDiasLocal(4);
+    setDiasLocal(DIAS_NOMINA_SEMANA);
     setFolio("");
     setAplicarImss(false);
   }, [selEmpId]);
@@ -127,7 +132,7 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
     : null;
   const pagado = Boolean(semana?.pago?.id || semana?.pago?.pagado_en);
 
-  const irSemana = (delta) => setFechaRef(addDaysISO(martesDeSemana(fechaRef), delta * 7));
+  const irSemana = (delta) => setFechaRef(addDaysISO(sabadoDeSemana(fechaRef), delta * 7));
 
   const marcar = async (fecha, estado) => {
     const session = tok();
@@ -190,7 +195,7 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
       const { error } = await supabase.rpc("registrar_nomina", {
         p_session_token: session,
         p_empleado_id: selEmp.id,
-        p_periodo_inicio: martesDeSemana(fechaRef),
+        p_periodo_inicio: sabadoDeSemana(fechaRef),
         p_periodo_fin: viernesDeSemana(fechaRef),
         p_salario_base: calc?.bruto || 0,
         p_horas_extra: 0,
@@ -241,7 +246,7 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
 
   const exportarTXT = () => {
     if (!selEmp || !calc) return;
-    const inicio = martesDeSemana(fechaRef);
+    const inicio = sabadoDeSemana(fechaRef);
     const fin = viernesDeSemana(fechaRef);
     const L = "─".repeat(44);
     const txt = [
@@ -282,7 +287,9 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
     <div style={S.section}>
       <div style={S.h2}>💰 Nómina semanal · se paga el viernes</div>
       <p style={{ color: C.textMid, fontSize: 13, margin: "0 0 16px", lineHeight: 1.45 }}>
-        Semana de pago: martes a viernes. Sábado, domingo y lunes se quedan con el viernes anterior.
+        Semana de pago: sábado a viernes. El depósito es el viernes.
+        El diario es el salario entre 7; al neto solo entra un día marcado en Trabajo.
+        Esta pantalla solo arma ese pago. Los horarios y abrir o cerrar caja siguen en su lugar.
         IMSS e ISR van apagados. Esto no se copia solo al flujo de caja: si ya anotaste el SPEI en Gastos, no lo vuelvas a capturar.
       </p>
 
@@ -310,7 +317,13 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
 
       {sqlPendiente && (
         <p style={{ color: C.amber, fontSize: 13, fontWeight: 700, margin: "0 0 14px" }}>
-          Falta actualizar la base. Ejecuta {SQL_SEMANAL} en Supabase para marcar días y registrar el SPEI del viernes. Mientras tanto puedes calcular y guardar el recibo.
+          Falta actualizar la base. Ejecuta {SQL_SEMANAL} y después {SQL_SEMANA_SABADO} en Supabase para marcar días y registrar el SPEI del viernes. Mientras tanto puedes calcular y guardar el recibo.
+        </p>
+      )}
+
+      {semanaDesfasada && (
+        <p style={{ color: C.amber, fontSize: 13, fontWeight: 700, margin: "0 0 14px" }}>
+          Falta actualizar la base para listar sábado a viernes. Ejecuta {SQL_SEMANA_SABADO} en Supabase. El pago del viernes espera a esa actualización.
         </p>
       )}
 
@@ -347,10 +360,10 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
                   style={S.input}
                   type="number"
                   min="0"
-                  max="4"
+                  max={DIAS_NOMINA_SEMANA}
                   step="1"
                   value={diasLocal}
-                  onChange={(e) => setDiasLocal(Math.max(0, Math.min(4, parseInt(e.target.value, 10) || 0)))}
+                  onChange={(e) => setDiasLocal(Math.max(0, Math.min(DIAS_NOMINA_SEMANA, parseInt(e.target.value, 10) || 0)))}
                 />
               </div>
             )}
@@ -419,7 +432,7 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
                   <p style={{ fontSize: 11, color: C.textMid, fontWeight: 700, textTransform: "uppercase", marginBottom: 12 }}>📈 Percepciones</p>
                   {[
                     ["Salario semanal", fmt(vista.salario_semanal)],
-                    ["Diario (÷ 4)", fmt(calc.diario)],
+                    [`Diario (÷ ${DIAS_NOMINA_SEMANA})`, fmt(calc.diario)],
                     [`Días pagados`, String(calc.dias)],
                   ].map(([lbl, val]) => (
                     <div key={lbl} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "5px 0", borderBottom: `1px solid ${C.border}` }}>
@@ -481,7 +494,7 @@ export default function NominaSemanalPanel({ empleados, S, C, isMobile }) {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {!pagado && (
-              <button type="button" style={S.btnBlue} onClick={() => registrarPago(viernes)} disabled={saving || !calc || calc.dias <= 0}>
+              <button type="button" style={S.btnBlue} onClick={() => registrarPago(viernes)} disabled={saving || !calc || calc.dias <= 0 || semanaDesfasada}>
                 Registrar pago del viernes
               </button>
             )}
