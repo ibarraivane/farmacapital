@@ -724,9 +724,11 @@ function PosProductoFichaPanel({
             </div>
           )}
 
-          {!servicio && vendeBlister && (
+          {!servicio && item.venta_unidad && !cajaFalsa && (
             <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>
-              {stockCajas} cajas · {stockBlisters} blisters · {stockPiezas} piezas
+              {stockCajas} cajas
+              {vendeBlister ? ` · ${stockBlisters} blisters` : ""}
+              {` · ${stockPiezas} piezas`}
             </div>
           )}
 
@@ -2107,15 +2109,20 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const destino = unidadesAlAbrirCaja(item);
     aplicarStockPos(item.id, (p) => {
       const base = restarUnaCajaLocal(p, hoyISOMexico());
+      const stockCajas = row?.stock_nuevo != null
+        ? Number(row.stock_nuevo)
+        : Math.max(0, (Number(base.stock) || 0) - 1);
       if (destino.stock === "blisters") {
         return {
           ...base,
+          stock: stockCajas,
           stock_blisters: row?.stock_blisters_nuevo ?? ((Number(p.stock_blisters) || 0) + destino.cantidad),
           stock_unidades: row?.stock_unidades_nuevo ?? p.stock_unidades,
         };
       }
       return {
         ...base,
+        stock: stockCajas,
         stock_unidades: row?.stock_unidades_nuevo ?? ((Number(p.stock_unidades) || 0) + destino.cantidad),
       };
     });
