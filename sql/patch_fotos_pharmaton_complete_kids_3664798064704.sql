@@ -1,7 +1,7 @@
 -- Fotos catalogo-propia · corrida DESPUÉS del deploy de Vercel.
 -- Archivo: public/catalogo-propia/pharmaton-complete-kids-jarabe-100ml-3664798064704.jpg
 -- Fuente: Nadro i22 packshot EAN 3664798064704.
--- SIN do $$. Pegar TODO en Supabase → SQL Editor → Run.
+-- Sin bloques dollar-quote. Pegar TODO en Supabase → SQL Editor → Run.
 
 begin;
 
