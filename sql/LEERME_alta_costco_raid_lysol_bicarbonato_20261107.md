@@ -17,7 +17,7 @@ Compra Costco (sin remisión PDF). Ninguno estaba en catálogo.
 
 ## Qué pegar
 
-1. Supabase → SQL Editor → Run: `sql/patch_alta_costco_raid_lysol_bicarbonato_20261107.sql`
+1. Supabase → SQL Editor → Run: `sql/patch_alta_costco_raid_lysol_bicarbonato_20261107.sql` (**v2**: sin temp table / sin `×`; si la v1 falló, pega esta).
 2. Stock queda en **0** (sin inventar lote/MMAA). Ajusta a **1** por SKU en Inventario (1 paquete físico c/u).
 3. Fotos: pendientes (packshot Costco / mostrador).
 
