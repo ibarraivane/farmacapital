@@ -4,7 +4,7 @@ import InicioV2, { productosEnSucursal, productosPorEncargo, esGenericoReal, esP
 const PRODUCTOS = [
   { id: 1, nombre: "Omeprazol 20 mg", precio: 89, stock: 12, categoria: "Gastro", vitrina_seccion: "Medicamentos", imagen_url: "https://x/o.jpg" },
   { id: 2, nombre: "Amoxicilina 500 mg", precio: 93, stock: 4, categoria: "Antibiótico", vitrina_seccion: "Medicamentos", requiere_receta: true },
-  { id: 3, nombre: "Sensibio H2O", precio: 329, stock: 0, bajo_pedido: true, marca: "Bioderma", vitrina_seccion: "Dermocosmética", imagen_url: "https://x/b.jpg" },
+  { id: 3, nombre: "Sebiaclear Sérum", precio: 1019, stock: 0, bajo_pedido: true, marca: "SVR", vitrina_seccion: "Dermocosmética", imagen_url: "https://x/b.jpg" },
   { id: 4, nombre: "Agotado sin encargo", precio: 50, stock: 0 },
 ];
 

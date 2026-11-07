@@ -26,7 +26,7 @@ const TONO = Object.freeze({
 /** SKUs preferidos, en orden. El primero que tenga foto gana ese disco. */
 export const FOTO_MUNDO = Object.freeze({
   "nutricion-deportiva": Object.freeze(["FC-27054804", "FC-37273377", "FC-27051254"]),
-  dermocosmetica: Object.freeze(["FC-75904292", "FC-75782357", "FC-75797641"]),
+  dermocosmetica: Object.freeze(["FC-61000364", "FC-61003402", "FC-20016360"]),
   medicamentos: Object.freeze(["FC-54521161", "FC-08491074", "FC-08895196"]),
   higiene: Object.freeze(["FC-06248052", "FC-38891190", "FC-09419324", "FC-40171550"]),
   vitaminas: Object.freeze(["FC-22112250", "FC-9741524", "FC-66031116", "FC-31003741"]),
@@ -39,7 +39,7 @@ export const FOTO_MUNDO = Object.freeze({
  */
 export const FOTO_MUNDO_URL = Object.freeze({
   "nutricion-deportiva": "https://www.farmacapital.mx/catalogo-propia/on-gold-standard-whey-vainilla-907g.jpg",
-  dermocosmetica: "https://www.farmacapital.mx/catalogo-propia/cerave-3337875904292.jpg",
+  dermocosmetica: "https://www.farmacapital.mx/catalogo-propia/svr-sebiaclear-serum-30ml.jpg",
   medicamentos: "https://www.farmacapital.mx/catalogo-propia/aspirina-protect-100mg-c28.jpg",
   higiene: "https://www.farmacapital.mx/catalogo-propia/dove-tono-uniforme-calendula-150ml.jpg",
   vitaminas: "https://www.farmacapital.mx/catalogo-propia/naturex-colageno-700mg-c60-7502009741524.jpg",
@@ -70,14 +70,11 @@ const PREFERIR = Object.freeze({
     /pre.?entreno/,
   ],
   dermocosmetica: [
-    /cerave/,
-    /la roche/,
-    /anthelios/,
-    /eucerin/,
-    /bioderma/,
-    /isdin/,
-    /avene/,
-    /cetaphil/,
+    /\bsvr\b/,
+    /alastin/,
+    /medik8/,
+    /sebiaclear/,
+    /sun secure/,
   ],
   medicamentos: [/tempra/, /aspirina/, /advil/, /tylenol/, /flanax/, /motrin/],
   higiene: [/dove/, /sensodyne/, /colgate/, /rexona/, /head.?shoulders/, /oral.?b/],

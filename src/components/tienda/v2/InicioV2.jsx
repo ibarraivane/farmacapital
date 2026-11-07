@@ -14,23 +14,14 @@ import { $peso } from "../../../utils";
 import { nombrePublicoTienda, presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
 import { normalizeCategoriaKey } from "../../../constants/categoriasProducto";
 import { pageIdToTiendaPath } from "../../../shared/tiendaRoutes";
+import { esMarcaLaboratorioDermo } from "../../../constants/marcasLaboratorioDermo";
 import EnlaceTienda from "./EnlaceTienda";
 
 const MAX_FILA = 4;
 
-/**
- * Marcas de dermocosmética real, para la foto del carrusel. "Cuidado personal"
- * también trae gel para el cabello y acetona; sin esta lista el carrusel podía
- * tocarle enseñar cualquiera de los dos al azar.
- */
-const DERMO_MARCAS = [
-  "la roche posay", "la roche-posay", "isdin", "bioderma", "sesderma",
-  "eucerin", "avène", "avene", "cetaphil", "cerave", "martiderm",
-  "neostrata", "uriage", "ducray", "a-derma", "aderma", "darrow",
-];
-
+/** Solo laboratorio (SVR / Alastin / Medik8) en el carrusel «Cuidado de la piel». */
 function esDermoReal(prod) {
-  return DERMO_MARCAS.includes(String(prod?.marca || "").trim().toLowerCase());
+  return esMarcaLaboratorioDermo(prod?.marca);
 }
 
 /** Dónde se busca genérico o marca original. Nunca en dermocosmética ni deportiva. */
@@ -198,8 +189,8 @@ export default function InicioV2({
       icono: <Droplets aria-hidden="true" />,
       nota: "Catálogo por encargo",
       cta: "Descubrir",
-      href: pageIdToTiendaPath("conseguir"),
-      onIr: () => setPage?.("conseguir"),
+      href: pageIdToTiendaPath("catalogo", { seccion: "Dermocosmética" }),
+      onIr: () => irCategoria("Dermocosmética"),
     },
     {
       id: "cotizar",
