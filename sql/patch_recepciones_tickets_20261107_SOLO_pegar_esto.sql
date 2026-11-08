@@ -55,11 +55,11 @@ insert into _fc_tk_20261107 (
 ('cityfarma', 2, '7502321440013', 'FC-21440013', 'Buscapina Duo', 'BUSCAPINA DUO C10 TA', 3, 106.44, 134, 'marca', 'Medicamentos', 'Gastro', 'Tableta', 'Buscapina', 'Sanofi', 'Caja con 10 tabletas', 'Hioscina / paracetamol', '10/500 mg', false, true, null, null),
 ('cityfarma', 3, '7501070615277', 'FC-70615277', 'Daflon 500 mg', 'DAFLON 500M C 20 TAB', 1, 430.00, 538, 'marca', 'Medicamentos', 'Circulatorio', 'Tableta', 'Daflon', 'Sanfer', 'Caja con 20 tabletas', 'Diosmina / hesperidina', '450/50 mg', false, true, null, null),
 ('cityfarma', 4, '7501075727890', 'FC-75727890', 'Duosym', 'DUOSYM TRIMEBUTINA/S', 2, 123.94, 155, 'marca', 'Medicamentos', 'Gastro', 'Comprimido', 'Duosym', 'Novag', 'Caja con 24 comprimidos', 'Trimebutina / simeticona', '200/75 mg', false, true, null, null),
-('cityfarma', 5, '7501064560163', 'FC-64560163', 'Iodex Cristal', 'IQDEX CRISTAL 24', 1, 72.77, 91, 'marca', 'Cuidado personal', 'Ungüento', 'Ungüento', 'Iodex', 'Haleon', 'Tubo 60 g', 'Mentol / eucalipto', null, false, false, null, null),
+('cityfarma', 5, '7501064560163', 'FC-64560163', 'Iodex Cristal', 'IODEX CRISTAL 24', 1, 72.77, 91, 'marca', 'Cuidado personal', 'Ungüento', 'Ungüento', 'Iodex', 'Haleon', 'Tubo 60 g', 'Mentol / eucalipto', null, false, false, null, null),
 ('cityfarma', 6, '7501300408259', 'FC-00408259', 'Plidan 10 mg', 'PLIDAN 10 MG C 20 CO', 1, 239.12, 299, 'marca', 'Medicamentos', 'Gastro', 'Comprimido', 'Plidan', 'Siegfried Rhein', 'Caja con 20 comprimidos', 'Pargeverina', '10 mg', false, true, null, null),
 ('cityfarma', 7, '7501300408204', 'FC-00408204', 'Plidan Compuesto', 'PLIDAN COMPUESTO C20', 1, 253.08, 317, 'marca', 'Medicamentos', 'Gastro', 'Comprimido', 'Plidan', 'Siegfried Rhein', 'Caja con 20 comprimidos', 'Pargeverina / clonixinato de lisina', '10/125 mg', false, true, null, null),
 ('cityfarma', 8, '7501349028364', 'EQ-AMS279', 'Popram pantoprazol 40 mg', 'POPRAM 40MG C14 TABS', 2, 27.93, 45, 'generico', 'Medicamentos', 'Gastro', 'Tableta', 'Popram', 'AMSA', 'Caja con 14 tabletas', 'Pantoprazol', '40 mg', true, false, null, null),
-('cityfarma', 9, '714908100228', 'EQ-SAN025', 'Revenox melatonina 3 mg', 'REVENDX 3MG C60 TABS', 1, 70.43, 89, 'marca', 'Suplementos', null, 'Tableta', 'Revenox', 'Salud Natural', 'Frasco con 60 tabletas', 'Melatonina', '3 mg', false, false, null, null),
+('cityfarma', 9, '714908100228', 'EQ-SAN025', 'Revenox melatonina 3 mg', 'REVENOX 3MG C60 TABS', 1, 70.43, 89, 'marca', 'Suplementos', null, 'Tableta', 'Revenox', 'Salud Natural', 'Frasco con 60 tabletas', 'Melatonina', '3 mg', false, false, null, null),
 ('cityfarma', 10, '7501349029729', 'FC-49029729', 'Telmisartán / hidroclorotiazida 80/12.5 mg', 'TELMISARTAN HIDROCLO', 2, 42.74, 69, 'generico', 'Medicamentos', 'Cardiovascular', 'Tableta', 'AMSA', 'AMSA', 'Caja con 14 tabletas', 'Telmisartán / hidroclorotiazida', '80/12.5 mg', true, true, null, null),
 ('bodega', 1, '7501026462078', 'FC-26462078', 'Ternura chupón flor-balón con miel', 'TERNURA FLOR-BALON 18 PZS CHUPON CON MIEL', 1, 61.02, 77, 'marca', 'Cuidado personal', 'Infantil', 'Chupón', 'Ternura', 'Ternura', 'Exhibidor 18 piezas', null, null, false, false, 'https://www.farmacapital.mx/catalogo-propia/ternura-chupon-flor-balon-miel-18-7501026462078.jpg', null),
 ('bodega', 2, '7501056342227', 'FC-56342227', 'Sedal Rizos Obedientes', 'CRA SEDAL RIZOS OBEDIENTES 135ML', 2, 17.96, 23, 'marca', 'Cuidado personal', 'Cuidado capilar', 'Crema para peinar', 'Sedal', 'Unilever', 'Tubo 135 ml', null, null, false, false, null, null),
@@ -240,7 +240,7 @@ select
   '2026-11-07',
   1884.14,
   'borrador',
-  'Ticket Cityfarma S338883 · 07-nov-2026 14:58 · cliente Luis Angel · prioridad ALTA · surtido sin certificar · $1,884.14 · cola Recibir; stock al confirmar pistola + MMAA'
+  'Ticket Cityfarma S338883 · 07-nov-2026 15:07 · cliente Luis Angel · vendedor Eduardo · $1,884.14 · cola Recibir; stock al confirmar pistola + MMAA'
 where not exists (
   select 1 from public.recepciones
   where folio = 'S338883'
@@ -252,7 +252,7 @@ set
   total_ticket = 1884.14,
   fecha = '2026-11-07',
   proveedor = 'Cityfarma Iztapalapa',
-  notas = 'Ticket Cityfarma S338883 · 07-nov-2026 14:58 · cliente Luis Angel · prioridad ALTA · surtido sin certificar · $1,884.14 · cola Recibir; stock al confirmar pistola + MMAA',
+  notas = 'Ticket Cityfarma S338883 · 07-nov-2026 15:07 · cliente Luis Angel · vendedor Eduardo · $1,884.14 · cola Recibir; stock al confirmar pistola + MMAA',
   updated_at = now()
 where folio = 'S338883'
   and coalesce(proveedor, '') ilike '%cityfarma%'

@@ -298,7 +298,7 @@ CF = [
         ticket="cityfarma",
         ean="7501064560163",
         sku="FC-64560163",
-        snap="IQDEX CRISTAL 24",
+        snap="IODEX CRISTAL 24",
         nombre="Iodex Cristal",
         qty=1,
         pu=72.77,
@@ -375,7 +375,7 @@ CF = [
         ticket="cityfarma",
         ean="714908100228",
         sku="EQ-SAN025",
-        snap="REVENDX 3MG C60 TABS",
+        snap="REVENOX 3MG C60 TABS",
         nombre="Revenox melatonina 3 mg",
         qty=1,
         pu=70.43,
@@ -601,8 +601,8 @@ TICKETS_META = {
         "fecha": "2026-11-07",
         "total": 1884.14,
         "notas": (
-            "Ticket Cityfarma S338883 · 07-nov-2026 14:58 · cliente Luis Angel · "
-            "prioridad ALTA · surtido sin certificar · $1,884.14 · cola Recibir; "
+            "Ticket Cityfarma S338883 · 07-nov-2026 15:07 · cliente Luis Angel · "
+            "vendedor Eduardo · $1,884.14 · cola Recibir; "
             "stock al confirmar pistola + MMAA"
         ),
         "rows": CF,
