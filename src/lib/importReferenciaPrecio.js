@@ -23,6 +23,7 @@ export const FUENTES_IMPORT = [
   { id: "ewafra", label: "Ewafra / DIS (insumos)", tipo: "compra", adapter: "generico" },
   { id: "promexsa", label: "Promexsa (techo web, no mayoreo)", tipo: "compra", adapter: "generico" },
   { id: "mepiel", label: "Mepiel (mayoreo dermo)", tipo: "compra", adapter: "generico" },
+  { id: "suplementosmayoreo", label: "Suplementos Mayoreo", tipo: "compra", adapter: "generico" },
 ];
 
 function norm(s) {
