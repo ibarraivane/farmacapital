@@ -1,10 +1,15 @@
 import {
   agruparLotesPorProducto,
+  ejecutarConReintentoTimeout,
+  esTimeoutPostgres,
   filasJson,
   loteObjetivoProveedor,
+  mensajeErrorGuardadoInventario,
+  paginaLotesDesdeRpc,
   patchProductoSinColumnaProveedor,
   productoIdDeLote,
   proveedorDesdeLotes,
+  rpcPostgresNoExiste,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
 } from "./inventarioHubData";
@@ -56,4 +61,55 @@ test("el patch de ficha no manda productos.proveedor", () => {
     nombre: "Alcohol",
   });
   expect(patchProductoSinColumnaProveedor({ precio: 20 })).toEqual({ precio: 20 });
+});
+
+test("el timeout de postgres no se muestra en crudo al guardar", () => {
+  expect(esTimeoutPostgres("canceling statement due to statement timeout")).toBe(true);
+  expect(esTimeoutPostgres("canceling statement due to lock timeout")).toBe(true);
+  expect(esTimeoutPostgres("Producto 9 no encontrado")).toBe(false);
+  expect(mensajeErrorGuardadoInventario({
+    message: "canceling statement due to statement timeout",
+  })).toMatch(/ocupada/);
+  expect(mensajeErrorGuardadoInventario({
+    message: "canceling statement due to statement timeout",
+  })).not.toMatch(/canceling statement/);
+  expect(mensajeErrorGuardadoInventario({ message: "Producto 9 no encontrado" })).toMatch(/no encontrado/);
+});
+
+test("la página de lotes distingue si hay más y el RPC que todavía no existe", () => {
+  expect(paginaLotesDesdeRpc({ filas: [{ id: 1 }], hay_mas: true })).toEqual({
+    filas: [{ id: 1 }],
+    hayMas: true,
+  });
+  expect(paginaLotesDesdeRpc({ filas: [{ id: 2 }], hay_mas: false }).hayMas).toBe(false);
+  expect(paginaLotesDesdeRpc([{ id: 3 }])).toEqual({ filas: [{ id: 3 }], hayMas: false });
+  expect(paginaLotesDesdeRpc(null)).toEqual({ filas: [], hayMas: false });
+  expect(rpcPostgresNoExiste({
+    code: "PGRST202",
+    message: "Could not find the function public.empleado_listar_lotes_inventario_pagina",
+  })).toBe(true);
+  expect(rpcPostgresNoExiste({ message: "canceling statement due to statement timeout" })).toBe(false);
+});
+
+test("reintenta una vez si postgres cancela por tiempo", async () => {
+  let n = 0;
+  const sleeps = [];
+  const out = await ejecutarConReintentoTimeout(async () => {
+    n += 1;
+    if (n === 1) return { error: { message: "canceling statement due to statement timeout" } };
+    return { data: { success: true }, error: null };
+  }, { esperaMs: 5, dormir: async (ms) => { sleeps.push(ms); } });
+  expect(n).toBe(2);
+  expect(out.data.success).toBe(true);
+  expect(sleeps).toEqual([5]);
+});
+
+test("un error de datos no se reintenta", async () => {
+  let n = 0;
+  const out = await ejecutarConReintentoTimeout(async () => {
+    n += 1;
+    return { error: { message: "Precio inválido" } };
+  }, { dormir: async () => { throw new Error("no debía esperar"); } });
+  expect(n).toBe(1);
+  expect(out.error.message).toMatch(/Precio/);
 });
