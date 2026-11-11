@@ -4,11 +4,13 @@
   Bodega F-42 / Citymark · folio 383312 (CODE128 del pie; encabezado Caja 4 doblado)
   IFC F8 Tienda · folio 132888
   Farmaceuticos Tenorio · 3854927 · 3857153
+  Cityfarma Iztapalapa · S339688 (10-nov, misma tanda de fotos)
 
 Nombres de mostrador (no código de ticket). Caducidad null (MMAA de la caja).
 Bodega: P.U. ya con IVA (suma renglones = total).
 IFC: menudeo por pieza; Aceite Romero EAN 3311000001537; Mertodol EAN 759684313257.
 Tenorio: costo = importe / cantidad (IVA de renglón aparte; Systane lleva IVA 16%).
+Cityfarma: costo = P.U. (IVA 0 en ticket; pendiente de pago anotado).
 SIN producto_imagenes en el mismo txn. SIN bloques dollar-quote.
 """
 from __future__ import annotations
@@ -329,6 +331,21 @@ CAT: dict[str, dict] = {
         presentacion="Frasco gotero",
         ya=False,
     ),
+    "7501058714305": P(
+        "7501058714305",
+        nombre="Tempra jarabe infantil",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Analgésico",
+        forma="Jarabe",
+        marca="Tempra",
+        laboratorio="RB Health",
+        presentacion="Frasco 120 ml",
+        principio="Paracetamol",
+        concentracion="3.2 g / 120 ml",
+        ya=True,
+        sku="FC-50724298",
+    ),
 }
 
 
@@ -449,6 +466,27 @@ TICKETS = [
         "rows": [
             row("7506331302002", "RELOZIBIN 1GR SOLUC INY C/1 AUR", 4, 499.95),
             row("300651429312", "SYSTANE 4/3/1 GTS OFT CADP 12-2027", 2, 244.67),
+        ],
+    },
+    {
+        "key": "cityfarma_s339688",
+        "tmp": "_fc_cf_s339688",
+        "folio": "S339688",
+        "proveedor": "Cityfarma Iztapalapa",
+        "proveedor_ilike": "cityfarma",
+        "fecha": "2026-11-10",
+        "total": 178.21,
+        "notas": (
+            "Cityfarma Iztapalapa · orden S339688 · 10-nov-2026 16:58 · Jonathan Moreno · "
+            "cliente Luis Angel Palillero · Tempra jarabe infantil · pendiente de pago $178.21 · "
+            "IVA 0 · cola Recibir"
+        ),
+        "header": (
+            "Cityfarma Iztapalapa · folio S339688 · 2026-11-10 16:58 · total $178.21 · 1 renglón\n"
+            "-- Pendiente de pago en el papel. Costo = P.U. EAN 7501058714305."
+        ),
+        "rows": [
+            row("7501058714305", "TEMPRA JBE INF 3 2 1", 1, 178.21),
         ],
     },
 ]
@@ -745,10 +783,11 @@ def main() -> None:
         "--   2) IFC F8 Tienda 132888 · $118.00 · 2 renglones",
         "--   3) Tenorio 3854927 · $1,334.26 · 9 renglones",
         "--   4) Tenorio 3857153 · $2,567.43 · 2 renglones",
+        "--   5) Cityfarma S339688 · $178.21 · 1 renglón (10-nov)",
         "-- Merge a GitHub NO los crea. Sin bloques dollar-quote. Sin producto_imagenes.",
         "-- Caducidad null: MMAA de la caja. No inventar 0000.",
         "-- Cada ticket es begin/commit independiente.",
-        "-- Al final: VERIFICACION FINAL con los 4 folios en borrador.",
+        "-- Al final: VERIFICACION FINAL con los 5 folios en borrador.",
         "-- Luego: tablet Recibir → recargar → aparecen las tarjetas.",
         "-- =============================================================================",
         "",
@@ -787,9 +826,10 @@ order by r.folio;
         for t in TICKETS
     )
     OUT_MD.write_text(
-        f"""# Tickets 09-nov-2026 → Recibir
+        f"""# Tickets 09–10-nov-2026 → Recibir
 
 Pegar **todo** el SQL abajo en el chat / `sql/patch_recibir_tickets_0911_SOLO_pegar_esto.sql` en Supabase → SQL Editor → Run.
+
 
 ## Tickets
 
@@ -803,13 +843,14 @@ Pegar **todo** el SQL abajo en el chat / `sql/patch_recibir_tickets_0911_SOLO_pe
 2. **IFC 132888:** menudeo · Aceite romero → EAN `3311000001537` (SKU `FC-38CAFE6B`) · Mertodol Jaloma → EAN `759684313257` (mismo frasco que en Bodega).
 3. **Tenorio 3854927:** costo = importe/cantidad · IVA $0 · Laur EAN canónico `7502001166981` · Precazit `7506494600465`.
 4. **Tenorio 3857153:** Relozibin EAN `7506331302002` · Systane UPC `300651429312` · IVA $78.29 solo en Systane (costo = importe sin IVA).
-5. **Stock:** 0 hasta pistola + MMAA. No poner `0000`.
-6. **Fotos:** GUM + enhebrador / Aktyzar / Bacat C/30 ya en `catalogo-propia/`; el resto pendiente (no bloquea Recibir).
+5. **Cityfarma S339688:** Tempra jarabe infantil EAN `7501058714305` · **pendiente de pago** $178.21 en el papel.
+6. **Stock:** 0 hasta pistola + MMAA. No poner `0000`.
+7. **Fotos:** GUM + enhebrador / Aktyzar / Bacat C/30 ya en `catalogo-propia/`; el resto pendiente (no bloquea Recibir).
 
 ## Después del SQL
 
 1. Recargar Recibir en la tablet.
-2. Deben aparecer **4 botones** nuevos.
+2. Deben aparecer **5 botones** nuevos.
 3. Escanear → MMAA → Guardar renglón.
 """,
         encoding="utf-8",
