@@ -3,10 +3,12 @@
 
   Bodega F-42 / Citymark · folio 383312 (CODE128 del pie; encabezado Caja 4 doblado)
   IFC F8 Tienda · folio 132888
+  Farmaceuticos Tenorio · 3854927 · 3857153
 
 Nombres de mostrador (no código de ticket). Caducidad null (MMAA de la caja).
 Bodega: P.U. ya con IVA (suma renglones = total).
 IFC: menudeo por pieza; Aceite Romero EAN 3311000001537; Mertodol EAN 759684313257.
+Tenorio: costo = importe / cantidad (IVA de renglón aparte; Systane lleva IVA 16%).
 SIN producto_imagenes en el mismo txn. SIN bloques dollar-quote.
 """
 from __future__ import annotations
@@ -161,6 +163,172 @@ CAT: dict[str, dict] = {
         ya=True,
         sku="FC-38CAFE6B",
     ),
+    # Tenorio
+    "7502001166981": P(
+        "7502001166981",
+        nombre="Laur Adulto",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Antibiótico",
+        forma="Solución inyectable",
+        marca="Laur",
+        laboratorio="Son's",
+        presentacion="Caja con 3 frascos ámpula",
+        principio="Ampicilina / Metamizol / Guaifenesina / Lidocaína / Clorfenamina",
+        concentracion="500/500/100/30/4 mg",
+        receta=True,
+        ya=True,
+        sku="EQ-SON264",
+    ),
+    "650240007408": P(
+        "650240007408",
+        nombre="Silka Medic",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Dermatología",
+        forma="Gel",
+        marca="Silka Medic",
+        laboratorio="Genomma Lab",
+        presentacion="Tubo 15 g",
+        principio="Terbinafina",
+        concentracion="1%",
+        ya=True,
+        sku="FC-00740024",
+    ),
+    "650240005398": P(
+        "650240005398",
+        nombre="Silka Medic",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Dermatología",
+        forma="Gel",
+        marca="Silka Medic",
+        laboratorio="Genomma Lab",
+        presentacion="Tubo 30 g",
+        principio="Terbinafina",
+        concentracion="1%",
+        ya=False,
+    ),
+    "7501482200016": P(
+        "7501482200016",
+        nombre="Aktyzar omeprazol 20 mg",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Gastro",
+        forma="Cápsulas",
+        marca="Aktyzar",
+        laboratorio="Solfran",
+        presentacion="Frasco con 120 cápsulas",
+        principio="Omeprazol",
+        concentracion="20 mg",
+        receta=True,
+        ya=True,
+        sku="FC-82200016",
+        foto_file="aktyzar-omeprazol-20mg-120cap.jpg",
+    ),
+    "7506494600465": P(
+        "7506494600465",
+        nombre="Precazit 1 mg",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Gastro",
+        forma="Comprimidos",
+        marca="Precazit",
+        laboratorio="Schoen",
+        presentacion="Caja con 30 comprimidos",
+        principio="Prucaloprida",
+        concentracion="1 mg",
+        receta=True,
+        ya=False,
+    ),
+    "7502247378100": P(
+        "7502247378100",
+        nombre="Xilostran 450/50 mg",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Circulación",
+        forma="Tabletas",
+        marca="Xilostran",
+        laboratorio="Landsteiner",
+        presentacion="Caja con 20 tabletas",
+        principio="Diosmina / Hesperidina",
+        concentracion="450 mg / 50 mg",
+        ya=False,
+    ),
+    "7502247373495": P(
+        "7502247373495",
+        nombre="Bacat atorvastatina 20 mg",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Lípidos",
+        forma="Tabletas",
+        marca="Bacat",
+        laboratorio="Landsteiner",
+        presentacion="Caja con 30 tabletas",
+        principio="Atorvastatina",
+        concentracion="20 mg",
+        receta=True,
+        ya=True,
+        sku="EQ-LAN057",
+        foto_file="bacat-atorvastatina-20mg-c30-7502247373495.jpg",
+    ),
+    "7502247378179": P(
+        "7502247378179",
+        nombre="Bacat atorvastatina 20 mg",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Lípidos",
+        forma="Tabletas",
+        marca="Bacat",
+        laboratorio="Landsteiner",
+        presentacion="Caja con 60 tabletas",
+        principio="Atorvastatina",
+        concentracion="20 mg",
+        receta=True,
+        ya=False,
+    ),
+    "7502247373228": P(
+        "7502247373228",
+        nombre="Bacat atorvastatina 20 mg",
+        tipo="generico",
+        categoria="Medicamentos",
+        subcategoria="Lípidos",
+        forma="Tabletas",
+        marca="Bacat",
+        laboratorio="Landsteiner",
+        presentacion="Caja con 10 tabletas",
+        principio="Atorvastatina",
+        concentracion="20 mg",
+        receta=True,
+        ya=False,
+    ),
+    "7506331302002": P(
+        "7506331302002",
+        nombre="Relozibin ertapenem 1 g",
+        tipo="marca",
+        categoria="Medicamentos",
+        subcategoria="Antibiótico",
+        forma="Solución inyectable",
+        marca="Relozibin",
+        laboratorio="Aurovida",
+        presentacion="Caja con 1 frasco ámpula",
+        principio="Ertapenem",
+        concentracion="1 g",
+        receta=True,
+        ya=False,
+    ),
+    "300651429312": P(
+        "300651429312",
+        nombre="Systane Ultra",
+        tipo="marca",
+        categoria="Cuidado personal",
+        subcategoria="Oftálmico",
+        forma="Gotas",
+        marca="Systane",
+        laboratorio="Alcon",
+        presentacion="Frasco gotero",
+        ya=False,
+    ),
 }
 
 
@@ -225,6 +393,62 @@ TICKETS = [
         "rows": [
             row("3311000001537", "MERCURIO ACEITE ROMERO C/25 1910923 83187", 10, 8.50),
             row("759684313257", "JALOMA MERTIOLATE BLANCO 40ML C/25 0179039 83217", 2, 16.50),
+        ],
+    },
+    {
+        "key": "tenorio_3854927",
+        "tmp": "_fc_tn_3854927",
+        "folio": "3854927",
+        "proveedor": "Farmaceuticos Tenorio",
+        "proveedor_ilike": "tenorio",
+        "fecha": "2026-11-09",
+        "total": 1334.26,
+        "notas": (
+            "Factura Farmaceuticos Tenorio folio 3854927 · 09-nov-2026 08:24 · "
+            "cliente 20077 Palillero Ventura · ref 2159588 · ruta Puebla · 1 caja · "
+            "IVA $0 · costo = importe/cantidad · cola Recibir"
+        ),
+        "header": (
+            "Farmaceuticos Tenorio · folio 3854927 · 2026-11-09 08:24 · total $1,334.26\n"
+            "-- Cliente 20077 · ref 2159588 · IVA 0. Costo = importe/cantidad.\n"
+            "-- Laur EAN canónico 7502001166981 (ticket OCR ilegible). Precazit EAN 7506494600465."
+        ),
+        "rows": [
+            row("7502001166981", "LAUR ADT 500/500/100/30/4MG SOL INY", 2, 63.88),
+            row("650240007408", "SILKA MEDIC 1% GEL 15GR GNL", 3, 55.04),
+            row("650240005398", "SILKA MEDIC 1% GEL 30GR GNL", 2, 71.97),
+            row("7501482200016", "AKTYZAR 20MG CAP C/120 SFR", 5, 43.97),
+            row("7506494600465", "PRECAZIT 1MG COMP C/30 SHO", 2, 94.98),
+            row("7502247378100", "XILOSTRAN 450/50MG TAB C/20 LAN", 3, 46.90),
+            row("7502247373495", "BACAT 20MG TAB C/30 LAN", 5, 35.28),
+            row("7502247378179", "BACAT 20MG TAB C/60 LAN", 2, 67.25),
+            row("7502247373228", "BACAT 20MG TAB C/10 LAN", 3, 12.01),
+        ],
+    },
+    {
+        "key": "tenorio_3857153",
+        "tmp": "_fc_tn_3857153",
+        "folio": "3857153",
+        "proveedor": "Farmaceuticos Tenorio",
+        "proveedor_ilike": "tenorio",
+        "fecha": "2026-11-09",
+        "total": 2567.43,
+        # Suma de importes (sin IVA de Systane); total_ticket sí incluye IVA.
+        "sum_check": 2489.14,
+        "notas": (
+            "Factura Farmaceuticos Tenorio folio 3857153 · 09-nov-2026 20:59 · "
+            "cliente 20077 Palillero Ventura · ref 2160359 · ruta Puebla · 1 caja · "
+            "subtotal $2,489.14 + IVA $78.29 (Systane) · Relozibin EAN 7506331302002 · "
+            "costo = importe/cantidad · cola Recibir"
+        ),
+        "header": (
+            "Farmaceuticos Tenorio · folio 3857153 · 2026-11-09 20:59 · total $2,567.43\n"
+            "-- Relozibin 4 pzas · Systane 2 pzas. Costo = importe/cantidad (IVA aparte en Systane).\n"
+            "-- Relozibin EAN canónico 7506331302002 (ticket OCR 750303…)."
+        ),
+        "rows": [
+            row("7506331302002", "RELOZIBIN 1GR SOLUC INY C/1 AUR", 4, 499.95),
+            row("300651429312", "SYSTANE 4/3/1 GTS OFT CADP 12-2027", 2, 244.67),
         ],
     },
 ]
@@ -507,9 +731,10 @@ commit;
 def main() -> None:
     for t in TICKETS:
         s = round(sum(r["sub"] for r in t["rows"]), 2)
-        diff = abs(s - t["total"])
+        target = t.get("sum_check", t["total"])
+        diff = abs(s - target)
         if diff > 0.05:
-            raise SystemExit(f"{t['folio']}: sum {s} != total {t['total']} (diff {diff})")
+            raise SystemExit(f"{t['folio']}: sum {s} != check {target} (diff {diff})")
         print(f"{t['folio']}: {len(t['rows'])} rows · sum {s} · total {t['total']} · Δ{diff:.2f}")
 
     parts = [
@@ -518,10 +743,12 @@ def main() -> None:
         "-- Tickets 09-nov-2026 → cola Recibir (borrador).",
         "--   1) Bodega F-42 383312 · $611.15 · 7 renglones",
         "--   2) IFC F8 Tienda 132888 · $118.00 · 2 renglones",
+        "--   3) Tenorio 3854927 · $1,334.26 · 9 renglones",
+        "--   4) Tenorio 3857153 · $2,567.43 · 2 renglones",
         "-- Merge a GitHub NO los crea. Sin bloques dollar-quote. Sin producto_imagenes.",
         "-- Caducidad null: MMAA de la caja. No inventar 0000.",
         "-- Cada ticket es begin/commit independiente.",
-        "-- Al final: VERIFICACION FINAL con los 2 folios en borrador.",
+        "-- Al final: VERIFICACION FINAL con los 4 folios en borrador.",
         "-- Luego: tablet Recibir → recargar → aparecen las tarjetas.",
         "-- =============================================================================",
         "",
@@ -574,13 +801,15 @@ Pegar **todo** el SQL abajo en el chat / `sql/patch_recibir_tickets_0911_SOLO_pe
 
 1. **Bodega F-42 383312:** Caja 4 · P.U. ya con IVA. Folio leído del **CODE128** del pie (el encabezado `Caja 4/…` venía doblado). Si el papel muestra otro número, avisa y lo renombramos.
 2. **IFC 132888:** menudeo · Aceite romero → EAN `3311000001537` (SKU `FC-38CAFE6B`) · Mertodol Jaloma → EAN `759684313257` (mismo frasco que en Bodega).
-3. **Stock:** 0 hasta pistola + MMAA. No poner `0000`.
-4. **Fotos:** GUM + enhebrador ya en `catalogo-propia/`; Colgate / Oral-B / Mertodol 40 ml pendientes (no bloquea Recibir).
+3. **Tenorio 3854927:** costo = importe/cantidad · IVA $0 · Laur EAN canónico `7502001166981` · Precazit `7506494600465`.
+4. **Tenorio 3857153:** Relozibin EAN `7506331302002` · Systane UPC `300651429312` · IVA $78.29 solo en Systane (costo = importe sin IVA).
+5. **Stock:** 0 hasta pistola + MMAA. No poner `0000`.
+6. **Fotos:** GUM + enhebrador / Aktyzar / Bacat C/30 ya en `catalogo-propia/`; el resto pendiente (no bloquea Recibir).
 
 ## Después del SQL
 
 1. Recargar Recibir en la tablet.
-2. Deben aparecer **2 botones** nuevos.
+2. Deben aparecer **4 botones** nuevos.
 3. Escanear → MMAA → Guardar renglón.
 """,
         encoding="utf-8",
