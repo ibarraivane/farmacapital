@@ -81,6 +81,28 @@ describe("parseTicketCsv", () => {
     expect((sql.match(/^\s*\(\d+,/gm) || []).length).toBe(50);
   });
 
+  test("Nadro 6090936556 generado", () => {
+    const csv = readFileSync(join(__dirname, "../../sql/generated/ticket_nadro_6090936556.csv"), "utf8");
+    const { renglones, folio, proveedor, total } = parseTicketCsv(csv);
+    expect(folio).toBe("6090936556");
+    expect(proveedor).toBe("Nadro");
+    expect(total).toBe(778.42);
+    expect(renglones).toHaveLength(7);
+    expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(25);
+    expect(renglones.every((r) => r.codigo && r.codigo.length >= 8)).toBe(true);
+    expect(renglones.every((r) => !r.numero_lote)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7503001007281" && r.cantidad === 5 && r.costo === 15.48)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7501349021570" && r.sku === "FC-49021570")).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7502247375543" && r.cantidad === 1 && r.costo === 224.99)).toBe(true);
+
+    const sql = readFileSync(join(__dirname, "../../sql/patch_carga_nadro_6090936556.sql"), "utf8");
+    expect(sql).toMatch(/SIN bloques dollar-quote/);
+    expect(sql).not.toMatch(/\ndo\s*\$\$/);
+    expect(sql).not.toMatch(/\nend\s*\$\$/);
+    expect(sql).toMatch(/folio = '6090936556'/);
+    expect((sql.match(/^\s*\(\d+,/gm) || []).length).toBe(7);
+  });
+
   test("Nadro 20260901 generado", () => {
     const csv = readFileSync(join(__dirname, "../../sql/generated/ticket_nadro_20260901.csv"), "utf8");
     const { renglones, folio, proveedor, total } = parseTicketCsv(csv);
