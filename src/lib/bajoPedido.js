@@ -2,9 +2,11 @@
  * BAJO PEDIDO — reglas únicas para tienda, carrito, checkout y admin.
  *
  * Un producto bajo pedido (`productos.bajo_pedido = true`) no está en anaquel:
- * se exhibe con stock 0, sin «Agotado», y se consigue con mayorista.
- * El dueño aún no revisa los precios de la vitrina. Por eso NO se publica cifra
- * y el CTA es «Ordenar» → formulario de /conseguir (no carrito, no reserva).
+ * stock 0, sin «Agotado», no se vende como existencia. Se consigue en 24-48 hrs.
+ *
+ * - Sin precio publicado (`precio` ≤ 0.01): CTA «Ordenar» → cotizar (formulario).
+ * - Con precio publicado (`precio` > 0.01): se muestra la cifra y CTA «Ordenar»
+ *   → carrito de encargo con reserva (no compra de anaquel).
  * Rubros: categoria/subcategoria (no hay categoría nueva).
  */
 import { categoriaCanon } from "../constants/categoriasProducto";
@@ -25,12 +27,12 @@ export const RUBROS_BAJO_PEDIDO = Object.freeze([
   { id: "dispositivos", label: "Dispositivos médicos" },
 ]);
 
-/** Botón de la vitrina. No decir «Encargar»: el dueño no ha cerrado precios. */
+/** Botón de la vitrina / ficha (con o sin precio publicado). */
 export const ETIQUETA_CTA_ORDENAR = "Ordenar";
 
 /**
- * Terracota de marca, distinto del navy de «Ver detalle». Reservado por si
- * más adelante se vuelve a cobrar en línea. Hoy la vitrina no lo usa.
+ * Terracota de marca para el CTA con precio publicado (carrito de encargo).
+ * Distinto del navy de «Ver detalle».
  */
 export const COLOR_CTA_ENCARGAR = TOKENS.accent;
 export const COLOR_CTA_ENCARGADO = TOKENS.jade;
@@ -71,13 +73,19 @@ export function precioAncla(p) {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** ¿El dueño ya cerró un precio público para encargar? */
+export function tienePrecioPublicadoBajoPedido(p) {
+  return precioAncla(p) > 0.01;
+}
+
 /**
- * "ordenar" en toda la vitrina (sin precio publicado), null si no es bajo pedido.
- * No devolver "encargar": el dueño todavía no revisó las cifras.
+ * "encargar" = hay PVP → carrito con reserva.
+ * "ordenar" = sin PVP → formulario de cotización.
+ * null si no es bajo pedido.
  */
 export function ctaBajoPedido(p) {
   if (!esBajoPedido(p)) return null;
-  return "ordenar";
+  return tienePrecioPublicadoBajoPedido(p) ? "encargar" : "ordenar";
 }
 
 export function rubroDeProducto(p) {
@@ -102,11 +110,11 @@ export function estiloRecuadroConseguir({ hover = false } = {}) {
 /**
  * Producto como lo ve la TIENDA WEB: ancla → precio con MP.
  * Idempotente: si ya trae `precio_ancla`, no vuelve a inflar.
- * Bajo pedido: sin cifra (el dueño no ha cerrado precios).
+ * Bajo pedido sin PVP: cifra en 0 (cotizar). Con PVP: publica ancla + MP.
  */
 export function prepararProductoTienda(p) {
   if (!p) return p;
-  if (esBajoPedido(p)) {
+  if (esBajoPedido(p) && !tienePrecioPublicadoBajoPedido(p)) {
     return {
       ...p,
       precio_ancla: 0,
@@ -125,7 +133,8 @@ export function prepararProductoTienda(p) {
     precio_ancla: ancla,
     precio: web,
     precio_marca: marcaWeb ?? p.precio_marca,
-    descuento_pct: p.descuento_pct ?? 0,
+    // Encargo: sin promos de anaquel; el PVP de lista es el que se ordena.
+    descuento_pct: esBajoPedido(p) ? 0 : (p.descuento_pct ?? 0),
   };
 }
 

@@ -10,19 +10,26 @@ import {
   slugSeccion,
 } from "./vitrinaTienda";
 
-const bioderma = {
+const svr = {
   activo: true,
-  nombre: "Sensibio",
-  marca: "Bioderma",
+  nombre: "Sebiaclear Sérum",
+  marca: "SVR",
   vitrina_seccion: "Dermocosmética",
   vitrina_subseccion: null,
 };
 const solar = {
   activo: true,
-  nombre: "Fusion Water",
-  marca: "Isdin",
+  nombre: "Sun Secure Blur SPF50+",
+  marca: "SVR",
   vitrina_seccion: "Dermocosmética",
   vitrina_subseccion: "Solar",
+};
+const scrapeViejo = {
+  activo: true,
+  nombre: "Sensibio",
+  marca: "Bioderma",
+  vitrina_seccion: "Dermocosmética",
+  vitrina_subseccion: null,
 };
 const suelto = { activo: true, nombre: "Ovisen", categoria: "Otro", vitrina_seccion: null };
 
@@ -51,15 +58,17 @@ describe("vitrina de la tienda", () => {
     expect(productoEnVitrina(fluox, { seccion: "Medicamentos" })).toBe(true);
   });
 
-  test("chips de dermocosmética: Solar y marcas", () => {
-    expect(chipsDeSeccion("Dermocosmética", [bioderma, solar])).toEqual(["Todos", "Solar", "Bioderma", "Isdin"]);
+  test("chips de dermocosmética: solo laboratorio; scrapes viejos van a higiene", () => {
+    expect(seccionDe(scrapeViejo)).toBe("Higiene y cuidado personal");
+    expect(productoEnVitrina(scrapeViejo, { seccion: "Dermocosmética" })).toBe(false);
+    expect(productoEnVitrina(scrapeViejo, { seccion: "Higiene y cuidado personal" })).toBe(true);
+    expect(chipsDeSeccion("Dermocosmética", [svr, solar, scrapeViejo])).toEqual(["Todos", "Solar", "SVR"]);
     expect(productoEnVitrina(solar, { seccion: "Dermocosmética", chip: "Solar" })).toBe(true);
-    expect(productoEnVitrina(bioderma, { seccion: "Dermocosmética", chip: "Solar" })).toBe(false);
-    expect(productoEnVitrina(solar, { seccion: "Dermocosmética", chip: "Isdin" })).toBe(true);
-    expect(conteosDeSeccion("Dermocosmética", [bioderma, solar])).toEqual({
+    expect(productoEnVitrina(svr, { seccion: "Dermocosmética", chip: "Solar" })).toBe(false);
+    expect(productoEnVitrina(solar, { seccion: "Dermocosmética", chip: "SVR" })).toBe(true);
+    expect(conteosDeSeccion("Dermocosmética", [svr, solar, scrapeViejo])).toEqual({
       Solar: 1,
-      Bioderma: 1,
-      Isdin: 1,
+      SVR: 2,
     });
     expect(etiquetasFiltroSeccion("Dermocosmética")).toEqual({
       etiquetaMas: "Más marcas",

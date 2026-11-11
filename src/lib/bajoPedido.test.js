@@ -29,13 +29,16 @@ const omron = { id: 6, nombre: "Omron Monitor de Presión Automático", precio: 
 const nebucor = { id: 8, nombre: "Nebucor nebulizador P-103", precio: 890, stock: 0, activo: true, bajo_pedido: true, categoria: "Dispositivo médico", subcategoria: "Respiratorio" };
 const gasa = { id: 7, nombre: "Gasa estéril 10x10 Dibar", precio: 122, stock: 0, activo: true, bajo_pedido: true, categoria: "Botiquín", subcategoria: "Material de curación" };
 
-test("vitrina no publica precio: Ordenar, aunque el inventario traiga cifra", () => {
+test("con PVP se publica precio web; sin PVP queda en 0 para cotizar", () => {
   const web = prepararProductoTienda(anthelios);
-  expect(web.precio).toBe(0);
-  expect(web.precio_ancla).toBe(0);
+  expect(web.precio_ancla).toBe(459);
+  expect(web.precio).toBe(479); // ancla + cargo tarjeta MP
   expect(web.descuento_pct).toBe(0);
-  expect(web.precio_marca).toBeNull();
-  expect(prepararProductoTienda(web).precio).toBe(0);
+  expect(prepararProductoTienda(web).precio).toBe(479);
+  const sinPrecio = prepararProductoTienda(whey);
+  expect(sinPrecio.precio).toBe(0);
+  expect(sinPrecio.precio_ancla).toBe(0);
+  expect(ctaBajoPedido(whey)).toBe("ordenar");
   const anaquel = prepararProductoTienda(paracetamol);
   expect(anaquel.precio).toBe(27);
   expect(anaquel.precio_ancla).toBe(25);
@@ -45,14 +48,14 @@ test("vitrina no publica precio: Ordenar, aunque el inventario traiga cifra", ()
   expect(skittles.precio_ancla).toBe(10);
 });
 
-test("Ordenar en toda la vitrina, nunca Encargar", () => {
+test("CTA: encargar con PVP, ordenar sin PVP; etiqueta sigue Ordenar", () => {
   expect(ETIQUETA_CTA_ORDENAR).toBe("Ordenar");
-  expect(ctaBajoPedido(anthelios)).toBe("ordenar");
-  expect(ctaBajoPedido(prepararProductoTienda(anthelios))).toBe("ordenar");
+  expect(ctaBajoPedido(anthelios)).toBe("encargar");
+  expect(ctaBajoPedido(prepararProductoTienda(anthelios))).toBe("encargar");
   expect(ctaBajoPedido(whey)).toBe("ordenar");
   expect(ctaBajoPedido(prepararProductoTienda(whey))).toBe("ordenar");
-  expect(ctaBajoPedido(omron)).toBe("ordenar");
-  expect(ctaBajoPedido(vitC)).toBe("ordenar");
+  expect(ctaBajoPedido(omron)).toBe("encargar");
+  expect(ctaBajoPedido(vitC)).toBe("encargar");
   expect(ctaBajoPedido(paracetamol)).toBeNull();
 });
 

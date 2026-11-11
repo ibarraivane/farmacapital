@@ -33,11 +33,12 @@ it("manda a cotizar lo que no está en la lista, sin formulario en esta página"
   expect(screen.queryByText(/formulario de abajo/i)).not.toBeInTheDocument();
 });
 
-it("explica que se ordena sin publicar precio", () => {
+it("explica encargo sin stock: ordenar con precio o cotizar", () => {
   renderVitrina();
-  expect(screen.getByText(/Ordenar/)).toBeInTheDocument();
+  expect(screen.getByText(/sin existencias en anaquel/i)).toBeInTheDocument();
+  expect(screen.getByText(/ordenarlo/i)).toBeInTheDocument();
   expect(screen.queryByText(/Encargar/)).not.toBeInTheDocument();
-  expect(screen.getByText(/todavía no publicamos el precio/i)).toBeInTheDocument();
+  expect(screen.getByText(/si no, cotizamos/i)).toBeInTheDocument();
 });
 
 it("tiene bandas propias de Vitaminas y Dispositivos médicos, no las tira a Otros encargos", () => {

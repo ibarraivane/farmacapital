@@ -1,8 +1,13 @@
 /**
- * Misma clasificación que sql/patch_vitrina_seccion_20260924.sql.
+ * Clasificación de vitrina pública.
+ * Base: sql/patch_vitrina_seccion_20260924.sql.
+ * Dermocosmética (lab): sql/alta_laboratorio_dermo_20261025/04_vitrina_solo_laboratorio.sql
+ *   — solo SVR / Alastin / Medik8; el resto de «Cuidado personal» va a Higiene.
  * No escribe requiere_receta ni productos.categoria.
  * Un producto sin sección no entra al menú.
  */
+
+import { esMarcaLaboratorioDermo } from "../constants/marcasLaboratorioDermo";
 
 const CATEGORIAS_MEDICAMENTO = [
   "Medicamentos",
@@ -139,8 +144,16 @@ export function clasificarVitrina(p) {
   }
 
   if (cat === "Cuidado personal" || cat === "Dermocosmético") {
-    const solar = match(nombre, /solar|fps|spf|fotoprotec|sunscreen|heliocare/i);
-    return { vitrina_seccion: "Dermocosmética", vitrina_subseccion: solar ? "Solar" : null };
+    if (esMarcaLaboratorioDermo(marca)) {
+      const solar = match(nombre, /solar|fps|spf|fotoprotec|sunscreen|heliocare/i);
+      return { vitrina_seccion: "Dermocosmética", vitrina_subseccion: solar ? "Solar" : null };
+    }
+    // Antes todo «Cuidado personal» caía en Dermocosmética (Eucerin, CeraVe,
+    // Palmolive…). Ahora esa sección es solo laboratorio; el resto a Higiene.
+    return {
+      vitrina_seccion: "Higiene y cuidado personal",
+      vitrina_subseccion: subseccionHigiene(nombre),
+    };
   }
 
   if (cat === "Suplemento" || cat === "Suplementos") {

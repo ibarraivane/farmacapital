@@ -71,6 +71,7 @@ import "./components/tienda/v2/tiendaV2.css";
 import ReservaTarjetaMP from "./components/ReservaTarjetaMP";
 import {
   CANTIDAD_MAX_BAJO_PEDIDO,
+  COLOR_CTA_ENCARGAR,
   CONSEGUIR_UI,
   cantidadMaximaLinea,
   ctaBajoPedido,
@@ -1959,7 +1960,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
   const promosProd = usePromosProducto(prod?.id);
   const oferta = ofertaDeProducto(prod, promosProd);
   const agotado = productoAgotadoTienda(prod);
-  const cta = ctaBajoPedido(prod); // "ordenar" | null
+  const cta = ctaBajoPedido(prod); // "ordenar" | "encargar" | null
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const urlsFotoDe = useUrlsImagenesProducto();
@@ -2067,7 +2068,7 @@ function ProductCardClasica({prod,addToCart,onClick}){
         <EstrellasDeProducto prod={prod} />
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{subtituloPublicoTienda(prod)}</div>
         <div style={{marginBottom:10}}>
-          {cta
+          {cta === "ordenar"
             ? null
             : <PrecioOferta prod={prod} promos={promosProd} size="sm" />}
           {!oferta.hayOferta && prod.precio_marca ? (
@@ -2077,11 +2078,13 @@ function ProductCardClasica({prod,addToCart,onClick}){
           ) : null}
           {!oferta.hayOferta && prod.tipo==="generico"&&prod.precio_marca&&<div style={{color:BRAND.accent,fontSize:11,fontWeight:600}}>Ahorras {$peso(prod.precio_marca-prod.precio)} vs marca</div>}
         </div>
-        <div style={{color:C.dim,fontSize:10,marginBottom:10}}>{cta ? "\u00a0" : `+${labelPts(ptsGana(oferta.oferta))}`}</div>
+        <div style={{color:C.dim,fontSize:10,marginBottom:10}}>{cta === "ordenar" ? "\u00a0" : (cta === "encargar" ? "Precio al ordenar · 24-48 hrs" : `+${labelPts(ptsGana(oferta.oferta))}`)}</div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={handleDetailClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
-          {cta ? (
+          {cta === "ordenar" ? (
             <Btn onClick={handleAddClick} col={BRAND.primary} sm style={{flex:1}}>{ETIQUETA_CTA_ORDENAR}</Btn>
+          ) : cta === "encargar" ? (
+            <Btn onClick={handleAddClick} col={added ? BRAND.secondary : COLOR_CTA_ENCARGAR} sm style={{flex:1}}>{added ? "✓ Listo" : ETIQUETA_CTA_ORDENAR}</Btn>
           ) : (
           <Btn onClick={handleAddClick} col={agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#9A9184":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{agotado?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
           )}
@@ -2161,7 +2164,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     );
   }
   const agotado = productoAgotadoTienda(prod);
-  const cta = ctaBajoPedido(prod); // bajo pedido: "ordenar"
+  const cta = ctaBajoPedido(prod); // "ordenar" | "encargar" | null
   const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
   const irACotizar = () => {
     const nombre = String(prod.nombre || "");
@@ -2192,11 +2195,12 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
         prod={{ ...prod, nombre: nombrePublicoTienda({ nombre: tituloPublicoProducto(prod) }) || prod.nombre }}
         imagen={imgSrc}
         categoriaLabel={categoriaVitrina(prod) || "Catálogo"}
-        precioSlot={cta ? null : <PrecioOferta prod={prod} promos={promosProd} size="lg" />}
+        precioSlot={cta === "ordenar" ? null : <PrecioOferta prod={prod} promos={promosProd} size="lg" />}
         estadoCompra={{
           agotado,
           permitidoWeb,
           esEncargo: Boolean(cta),
+          encargoConPrecio: cta === "encargar",
           textoBloqueo: productoEsCategoriaMinisuperTienda(prod) ? "Solo minisuper" : "Solo en mostrador",
         }}
         requiereReceta={politica.requiereReceta}
@@ -2205,11 +2209,13 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
         onAgregar={() => {
           if (agotado) return;
           if (!permitidoWeb) { alert(razonBloqueoProductoTiendaFarmacia(prod)); return; }
-          addToCart(prod); setAdded(true); setTimeout(() => setAdded(false), 1500);
+          if (addToCart(prod) === false) return;
+          setAdded(true); setTimeout(() => setAdded(false), 1500);
         }}
         onComprar={() => {
           if (agotado || !permitidoWeb) return;
-          addToCart(prod); setPage("carrito");
+          if (addToCart(prod) === false) return;
+          setPage("carrito");
         }}
         onCotizar={irACotizar}
         ficha={fichaPub ? { ...fichaPub, estado: "publicado" } : null}
@@ -2289,7 +2295,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           <ListaResenasPublicas prod={prod} />
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
           <div style={{marginBottom:20}}>
-            {cta
+            {cta === "ordenar"
               ? null
               : <PrecioOferta prod={prod} promos={promosProd} size="lg" />}
             {!oferta.hayOferta && prod.precio_marca ? (
@@ -2310,7 +2316,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             <div style={{background:CONSEGUIR_UI.cream,border:`2px solid ${CONSEGUIR_UI.border}`,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
               <div style={{color:CONSEGUIR_UI.text,fontWeight:800,fontSize:14,marginBottom:4}}>Bajo pedido · 24-48 hrs</div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.55}}>
-                Disponible bajo pedido en 24-48 hrs. Toca Ordenar y te cotizamos el precio por WhatsApp o correo.
+                {cta === "encargar"
+                  ? "Sin existencias en anaquel. Puedes ordenarlo al precio indicado; apartamos con reserva y te lo conseguimos en 24-48 hrs."
+                  : "Disponible bajo pedido en 24-48 hrs. Toca Ordenar y te cotizamos el precio por WhatsApp o correo."}
               </div>
             </div>
           )}
@@ -2332,9 +2340,25 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               <div style={{color:C.red,fontWeight:700,fontSize:13}}>Producto agotado por el momento. Puedes ver la ficha; cuando haya stock podrás agregarlo al carrito.</div>
             </div>
           )}
-          {cta ? (
+          {cta === "ordenar" ? (
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
             <Btn onClick={irACotizar} col={BRAND.primary} style={{flex:"1 1 min(100%,240px)",minWidth:0}}>{ETIQUETA_CTA_ORDENAR}</Btn>
+          </div>
+          ) : cta === "encargar" ? (
+          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+            <Btn onClick={()=>{
+              if(!permitidoWeb){
+                alert(razonBloqueoProductoTiendaFarmacia(prod));
+                return;
+              }
+              if(addToCart(prod)===false) return;
+              setAdded(true);setTimeout(()=>setAdded(false),1500);
+            }} disabled={!permitidoWeb} col={!permitidoWeb?"#9A9184":added?BRAND.secondary:COLOR_CTA_ENCARGAR} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{!permitidoWeb?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Agregado":ETIQUETA_CTA_ORDENAR}</Btn>
+            <Btn onClick={()=>{
+              if(!permitidoWeb) return;
+              if(addToCart(prod)===false) return;
+              setPage("carrito");
+            }} disabled={!permitidoWeb} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Ir al carrito</Btn>
           </div>
           ) : (
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
