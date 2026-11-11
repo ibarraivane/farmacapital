@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,nombre_mostrador,cantidad,precio_unitario,subtotal,lote,sku_farmacapital,total_ticket,match
+1,132647,2026-11-07,IFC F8 Tienda,3311000001292,MERCURIO ACEITE RICINO C/25 1120627 84529,Aceite de ricino Mercurio,8,9.50,76.00,,FC-00001292,215.50,ya
+2,132647,2026-11-07,IFC F8 Tienda,7501048640829,PROTEC VENDA YESO 20CM C/12 14036300025 84129,Venda de yeso Protec 20 cm,3,46.50,139.50,,FC-46640629,215.50,ya
