@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,14702,2026-10-17,Farmalive,7501080911178,STERIMAR SPRAY COBRE 100 ML | CHURCH & DWIGHTND,2,199.92,399.84,,,FC-08091178,723.44,alta
+2,14702,2026-10-17,Farmalive,7501065008473,THERAFLE VERDE SOB C/10 | HALEON,2,161.80,323.60,,,FC-5008473,723.44,ya
