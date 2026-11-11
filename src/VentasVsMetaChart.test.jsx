@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import VentasVsMetaChart from "./VentasVsMetaChart";
+import { METAS_COLONIA_DEF } from "./utils/turnosMetas";
 
 const CFG = {
   meta_matutino_lv: "1500",
@@ -39,5 +40,34 @@ describe("VentasVsMetaChart", () => {
     expect(document.querySelectorAll(".fc-ventas-meta-tick").length).toBeGreaterThan(0);
     expect(document.querySelectorAll(".fc-ventas-meta-col").length).toBeGreaterThan(3);
     expect(document.querySelectorAll(".fc-ventas-meta-track").length).toBeGreaterThan(3);
+    expect(document.querySelector(".fc-ventas-meta-pair")).toBeNull();
+  });
+
+  test("dibuja la barra de ganancia bruta al lado de la venta", () => {
+    render(
+      <VentasVsMetaChart
+        porDia={porDia}
+        gananciaPorDia={{ "2026-08-23": 4 }}
+        cfg={CFG}
+        hoyYmd="2026-08-23"
+      />,
+    );
+    expect(screen.getByText("Ganancia")).toBeInTheDocument();
+    expect(document.querySelectorAll(".fc-ventas-meta-pair").length).toBeGreaterThan(3);
+    expect(document.querySelectorAll(".fc-ventas-meta-fill.is-ganancia").length).toBeGreaterThan(3);
+    expect(screen.getAllByText(/Ganancia \$4/).length).toBeGreaterThan(0);
+  });
+
+  test("el 4 de octubre explica por qué la semana se ve más alta que el mes", () => {
+    render(
+      <VentasVsMetaChart
+        porDia={{ "2026-09-30": 5000, "2026-10-04": 1100 }}
+        cfg={METAS_COLONIA_DEF}
+        hoyYmd="2026-10-04"
+      />,
+    );
+    expect(screen.getByText(/no la meta/)).toBeInTheDocument();
+    expect(screen.getAllByText(/\$110\.0k/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/ritmo de \$14\.2k/)).toBeInTheDocument();
   });
 });

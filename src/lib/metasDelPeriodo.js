@@ -65,5 +65,13 @@ export function metasDelPeriodo(fecha, cfg) {
   const fracMes = fraccionMesTranscurrida(d);
   const mes = Math.round(metaMesFull * fracMes);
 
-  return { dia, semana, mes, fracSemana, fracMes };
+  return {
+    dia,
+    semana,
+    mes,
+    fracSemana,
+    fracMes,
+    semanaCompleta: metaSemanaFull,
+    mesCompleto: metaMesFull,
+  };
 }

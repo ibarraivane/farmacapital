@@ -141,6 +141,9 @@ export function serieVentasDesdeRpc(raw) {
   const tickets = {};
   const brutas = {};
   const devoluciones = {};
+  const costo = {};
+  const ganancia = {};
+  const tieneGanancia = rows.some((r) => r && (r.ganancia != null || r.costo != null));
   for (const r of rows) {
     const dia = String(r?.dia || r?.fecha || "").slice(0, 10);
     if (!dia) continue;
@@ -150,6 +153,13 @@ export function serieVentasDesdeRpc(raw) {
     devoluciones[dia] = (devoluciones[dia] || 0) + dev;
     porDia[dia] = (porDia[dia] || 0) + bruto - dev;
     tickets[dia] = (tickets[dia] || 0) + (parseInt(r.tickets, 10) || 0);
+    if (!tieneGanancia) continue;
+    const c = parseFloat(r.costo);
+    const costoDia = Number.isFinite(c) ? c : 0;
+    costo[dia] = (costo[dia] || 0) + costoDia;
+    const gExplicita = r.ganancia != null ? parseFloat(r.ganancia) : bruto - dev - costoDia;
+    const g = Number.isFinite(gExplicita) ? gExplicita : bruto - dev - costoDia;
+    ganancia[dia] = (ganancia[dia] || 0) + g;
   }
-  return { porDia, tickets, brutas, devoluciones };
+  return { porDia, tickets, brutas, devoluciones, costo, ganancia, tieneGanancia };
 }
