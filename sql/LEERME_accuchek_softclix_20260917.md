@@ -1,5 +1,8 @@
 # Tienda Accu-Chek · lancetas Softclix · 17-sep-2026
 
+> **Cancelado 08-nov-2026.** El pedido no llegó. Para sacarlo de Recibir pegar
+> `sql/patch_quitar_accuchek_softclix_cancelado_SOLO_pegar_esto.sql`.
+
 Compra en [tienda.accu-chek.com.mx](https://tienda.accu-chek.com.mx): 4 cajas de 25 + 2 cajas de 100. Envío a Chinampac de Juárez. Total **$626.40**.
 
 | Piezas | EAN | SKU | Nombre mostrador | Costo | PVP | Recargo | Margen |
