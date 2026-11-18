@@ -1,6 +1,7 @@
 import { cobroLinea } from "../utils/pesoPublico";
 import {
   importeCajasFefo,
+  ordenarLotesFefo,
   precioLineaCajaPos,
   precioUnitarioCaja,
   resumenFefoMostrador,
@@ -136,4 +137,22 @@ test("resumen FEFO: sin MMAA se vende primero", () => {
   expect(r.loteId).toBe(1);
   expect(r.nivel).toBe("sin_fecha");
   expect(r.titulo).toContain("sin MMAA");
+});
+
+test("FEFO: año OCR inválido (0027) no se trata como vencido — caso Tukol-D", () => {
+  const ordered = ordenarLotesFefo(
+    [{ id: 7, cantidad_actual: 1, fecha_caducidad: "0027-10-01", activo: true }],
+    HOY
+  );
+  expect(ordered).toHaveLength(1);
+  expect(ordered[0].id).toBe(7);
+
+  const r = resumenFefoMostrador(
+    { lotes: [{ id: 7, cantidad_actual: 1, fecha_caducidad: "0027-10-01", activo: true }] },
+    {},
+    HOY
+  );
+  expect(r.ok).toBe(true);
+  expect(r.nivel).toBe("sin_fecha");
+  expect(r.cantidad).toBe(1);
 });
