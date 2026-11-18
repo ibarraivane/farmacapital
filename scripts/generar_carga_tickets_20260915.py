@@ -377,7 +377,7 @@ def write_carga_sql(ticket: dict) -> Path:
             "{tipo}, {cat}, {subcat}, {forma}, {marca}, {lab}, {pres}, {pa}, {conc}, "
             "{receta}, {ya}, {foto}, {foto_file}, {lote})".format(
                 linea=i,
-                ean=sql_str(r["ean"]),
+                ean=sql_str(r["ean"] or None),
                 sku=sql_str(r["sku"]),
                 nombre=sql_str(r["nombre"]),
                 snap=sql_str(r["snap"]),
@@ -413,7 +413,7 @@ begin;
 
 create temp table {tmp} (
   linea integer primary key,
-  ean text not null,
+  ean text,
   sku text not null,
   nombre text not null,
   snap text not null,
@@ -453,7 +453,7 @@ insert into public.productos (
 select
   t.nombre,
   case
-    when exists (
+    when t.ean is not null and exists (
       select 1 from public.productos p
       where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
     ) then 'FC-ND-' || right(t.ean, 8)
@@ -479,11 +479,11 @@ select
   t.imagen,
   t.imagen
 from (
-  select distinct on (ean) *
+  select distinct on (coalesce(ean, sku)) *
   from {tmp}
-  order by ean, linea
+  order by coalesce(ean, sku), linea
 ) t
-where public.fc_buscar_producto_escaneo(t.ean) is null
+where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
   and public.fc_buscar_producto_escaneo(t.sku) is null;
 
 -- Ya existían: costo. PVP solo si estaba en 0.
@@ -495,12 +495,12 @@ set
     else p.precio
   end
 from (
-  select distinct on (ean) *
+  select distinct on (coalesce(ean, sku)) *
   from {tmp}
-  order by ean, linea
+  order by coalesce(ean, sku), linea
 ) t
 where p.id = coalesce(
-  public.fc_buscar_producto_escaneo(t.ean),
+  case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
   public.fc_buscar_producto_escaneo(t.sku)
 )
   and (
@@ -526,12 +526,12 @@ set
   imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
   codigo_barras = coalesce(nullif(trim(p.codigo_barras), ''), t.ean)
 from (
-  select distinct on (ean) *
+  select distinct on (coalesce(ean, sku)) *
   from {tmp}
-  order by ean, linea
+  order by coalesce(ean, sku), linea
 ) t
 where p.id = coalesce(
-  public.fc_buscar_producto_escaneo(t.ean),
+  case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
   public.fc_buscar_producto_escaneo(t.sku)
 );
 
@@ -600,7 +600,7 @@ join public.recepciones r
  and r.estado = 'borrador'
 left join lateral (
   select coalesce(
-    public.fc_buscar_producto_escaneo(t.ean),
+    case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
     public.fc_buscar_producto_escaneo(t.sku)
   ) as pid
 ) v on true
@@ -623,7 +623,7 @@ select
   'propia'
 from {tmp} t
 join public.productos p on p.id = coalesce(
-  public.fc_buscar_producto_escaneo(t.ean),
+  case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
   public.fc_buscar_producto_escaneo(t.sku)
 )
 where t.imagen is not null
@@ -654,7 +654,13 @@ select
   t.nombre,
   t.qty,
   t.costo,
-  case when public.fc_buscar_producto_escaneo(t.ean) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
+  case
+    when coalesce(
+      case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
+      public.fc_buscar_producto_escaneo(t.sku)
+    ) is null then 'PENDIENTE_ALTA'
+    else 'OK'
+  end as match,
   t.ya as marcado_ya
 from {tmp} t
 order by t.linea;
