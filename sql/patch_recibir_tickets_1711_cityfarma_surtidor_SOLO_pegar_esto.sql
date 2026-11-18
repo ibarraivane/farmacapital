@@ -2,7 +2,7 @@
 -- PEGAR TODO ESTE ARCHIVO en Supabase → SQL Editor → Run
 -- Reintento: Cityfarma 15341570 + El Surtidor 161448 (17-nov-2026)
 -- Si el editor quedó abortado por el intento anterior, la primera línea limpia la sesión.
--- Sin $$ / sin producto_imagenes. Caducidad null → MMAA de la caja.
+-- Sin dollar-quote / sin producto_imagenes. Caducidad null → MMAA de la caja.
 -- =============================================================================
 
 rollback;
