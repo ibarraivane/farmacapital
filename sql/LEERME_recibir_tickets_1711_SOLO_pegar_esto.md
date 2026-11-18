@@ -22,10 +22,10 @@ El merge a GitHub **no** crea la cola. Pegar **todo** el SQL en Supabase → SQL
 
 ## Notas
 
-1. **Surtidor 161443:** Electrolit con desc. mayoreo ($19 c/u) + Naturella.
+1. **Surtidor 161443:** Electrolit c/desc. mayoreo + Naturella regulares sin alas EAN caja `7506195158739` (no el con alas `7501001157296`).
 2. **Equilibrio 451922:** claves → EAN de ficha. Lote sí; caducidad NO. ALP0607 sin EAN en portal (match por SKU).
 3. **IFC 134202:** Miyako férulas; EAN solo en recta grande (`0750187760234`).
 4. **Farma Mayoreo V01000004500:** subtotal $1,566.76 + IVA $59.15 = $1,625.91.
-5. **Cityfarma 15341570:** Enterogermina 2 bill `3664798074680`. Arluy / Enterogermina 4: solo dígito de control GS1 (`7841141004068`, `7501165010628`).
+5. **Cityfarma 15341570:** Enterogermina 2 `3664798074680`. EANs de caja: Enterogermina 4 `7501165010826`, Arluy Duo `7841141004051`.
 6. **Surtidor 161448:** Kola Loka brocha + gota.
 7. **Stock:** 0 hasta pistola + MMAA. No poner `0000`.

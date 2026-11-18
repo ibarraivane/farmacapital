@@ -11,7 +11,7 @@
 
 -- ========== El Surtidor de su Farmacia 161443 ==========
 -- El Surtidor · folio 161443 · 2026-11-17 · total $216.00 · 5 renglones · costo = importe neto
--- 0 alta(s) stock 0. 5 ya estaban: solo costo / ficha vacia, no PVP.
+-- 1 alta(s) stock 0. 4 ya estaban: solo costo / ficha vacia, no PVP.
 -- Nombres de ficha, no del ticket. SIN dollar-quote. Idempotente en borrador.
 -- Caducidad null: MMAA de la caja. No inventar 0000.
 
@@ -49,7 +49,7 @@ insert into _fc_sur_161443 (
   (1, '7501125149221', 'FC-25149221', 'Electrolit Fresa-Kiwi 625 ml', 'ELECTROLIT LIQ 625ML FRESA-KIWI', 2, 19.00, 24, 'marca', 'Suero oral', null, null, 'Electrolit', 'Pisa', 'Botella 625 ml', null, null, false, true, null, null),
   (2, '7501125104688', 'FC-25104688', 'Electrolit Naranja-Mandarina 625 ml', 'ELECTROLIT LIQ 625ML NARANJA-MANDARINA', 2, 19.00, 24, 'marca', 'Suero oral', null, null, 'Electrolit', 'Pisa', 'Botella 625 ml', null, null, false, true, 'https://www.farmacapital.mx/catalogo-propia/electrolit-naranja-mandarina-625ml-7501125104688.jpg', null),
   (3, '7501125144851', 'FC-25144851', 'Electrolit Uva 625 ml', 'ELECTROLIT LIQ 625ML UVA', 2, 19.00, 24, 'marca', 'Suero oral', null, null, 'Electrolit', 'Pisa', 'Botella 625 ml', null, null, false, true, 'https://www.farmacapital.mx/catalogo-propia/electrolit-uva-625ml-7501125144851.jpg', null),
-  (4, '7501001157296', 'FC-01157296', 'Naturella flujo moderado', 'NATURELLA FLUJO MOD S/ALAS C/8', 5, 13.00, 17, 'marca', 'Higiene', null, 'Toallas sanitarias', 'Naturella', null, 'Caja con 8 toallas', null, null, false, true, null, null),
+  (4, '7506195158739', 'FC-95158739', 'Naturella regulares sin alas', 'NATURELLA FLUJO MOD S/ALAS C/8', 5, 13.00, 17, 'marca', 'Higiene', null, 'Toallas sanitarias', 'Naturella', null, 'Caja con 8 toallas', null, 'Flujo abundante', false, false, null, null),
   (5, '7501001405335', 'FC-01405335', 'Naturella noche con alas', 'NATURELLA NOCHE CON ALAS C/8', 2, 18.50, 24, 'marca', 'Higiene', null, 'Toallas sanitarias', 'Naturella', null, 'Caja con 8 toallas', null, null, false, true, null, null);
 
 insert into public.productos (
@@ -1329,13 +1329,13 @@ insert into _fc_cf_15341570 (
   concentracion, receta, ya, imagen, lote
 ) values
   (1, '7501070613044', 'FC-70613044', 'Andantol isotipendilo jalea 25 g', 'ANDANTOL 25GR JALEA', 2, 173.80, 218, 'marca', 'Dermatologia', null, 'Jalea', 'Andantol', 'Sanfer', 'Tubo 25 g', 'Isotipendilo', '0.75 g/100 g', false, false, null, null),
-  (2, '7841141004068', 'FC-41104068', 'Arluy Duo 200/300 mg', 'ARLUY DUO 200MG/300MG', 1, 682.02, 853, 'marca', 'Medicamentos', null, 'Tabletas', 'Arluy Duo', null, 'Caja', null, '200 mg / 300 mg', true, false, null, null),
+  (2, '7841141004051', 'FC-41004051', 'Arluy Duo 200/300 mg', 'ARLUY DUO 200MG/300MG', 1, 682.02, 853, 'marca', 'Medicamentos', null, 'Capsulas', 'Arluy Duo', null, 'Caja con 30 capsulas', 'Mebeverina / Simeticona', '200 mg / 300 mg', true, false, null, null),
   (3, '7506331301142', 'FC-31301142', 'Autevazen 500 mg', 'AUTEVAZEN 500MG C60', 1, 83.52, 105, 'marca', 'Medicamentos', null, 'Capsulas', 'Autevazen', null, 'Caja con 60 capsulas', null, '500 mg', true, false, null, null),
   (4, '7501008409572', 'FC-08409572', 'Berocca Cal Mag', 'BEROCCA CAL MAG C 10', 1, 144.05, 181, 'marca', 'Suplementos', null, 'Tabletas efervescentes', 'Berocca', null, 'Caja con 10 tabletas', null, null, false, false, null, null),
   (5, '0714706903359', 'FC-06903359', 'Bronco Rub exhalador C/12', 'BRONCO RUB EXH C12 P', 1, 133.35, 167, 'marca', 'Botiquin', null, 'Pastillas', 'Bronco Rub', null, 'Caja con 12 pastillas', null, null, false, false, null, null),
   (6, '7501065095718', 'FC-65095718', 'Centrum Balance', 'CENTRUM BALANCE C30T', 1, 136.52, 171, 'marca', 'Suplementos', null, 'Tabletas', 'Centrum', null, 'Frasco con 30 tabletas', null, null, false, true, 'https://www.farmacapital.mx/catalogo-propia/centrum-balance-30-tabletas-7501065095718.jpg', null),
   (7, '3664798074680', 'FC-79807468', 'Enterogermina 2 billones', 'ENTEROGERMINA 2 BILL', 3, 200.00, 250, 'marca', 'Gastro', null, 'Ampolletas', 'Enterogermina', null, 'Caja con 10 ampolletas', 'Bacillus clausii', '2 billones UFC', false, true, null, null),
-  (8, '7501165010628', 'FC-15010628', 'Enterogermina 4 billones', 'ENTEROGERMINA 4 BILL', 2, 442.76, 554, 'marca', 'Gastro', null, 'Ampolletas', 'Enterogermina', null, 'Caja con 10 ampolletas', 'Bacillus clausii', '4 billones UFC', false, false, null, null),
+  (8, '7501165010826', 'FC-65010826', 'Enterogermina 4 billones', 'ENTEROGERMINA 4 BILL', 2, 442.76, 554, 'marca', 'Gastro', null, 'Ampolletas', 'Enterogermina', null, 'Caja con 10 ampolletas', 'Bacillus clausii', '4 billones UFC', false, false, null, null),
   (9, '7502009740916', 'FC-50AC2C82', 'Erispan Hypack 8 mg/2 ml', 'ERISPAN HYPACK 8MG/2', 5, 24.80, 31, 'marca', 'Medicamentos', null, 'Solucion inyectable', 'Erispan', 'Maver', 'Frasco ampula 2 ml', 'Betametasona', '8 mg/2 ml', true, true, 'https://www.farmacapital.mx/catalogo-propia/erispan-hypack-8mg-7502009740916.jpg', null),
   (10, '7501159525015', 'FC-9525015', 'Eucaliptine jarabe 140 ml', 'EUCALIPTINE JBE 140', 1, 141.56, 177, 'marca', 'Medicamentos', 'Respiratorio', 'Jarabe', 'Eucaliptine', null, 'Frasco 140 ml', null, null, false, true, null, null),
   (11, '7501300421968', 'FC-00421968', 'Exbufen apixaban', 'EXBUFEN APIXABAN TAB', 2, 166.67, 209, 'marca', 'Medicamentos', null, 'Tabletas', 'Exbufen', null, 'Caja', 'Apixaban', null, true, false, null, null),

@@ -128,16 +128,17 @@ CAT: dict[str, dict] = {
         sku="FC-25144851",
         foto_file="electrolit-uva-625ml-7501125144851.jpg",
     ),
-    "7501001157296": P(
-        "7501001157296",
-        nombre="Naturella flujo moderado",
+    "7506195158739": P(
+        "7506195158739",
+        nombre="Naturella regulares sin alas",
         tipo="marca",
         categoria="Higiene",
         forma="Toallas sanitarias",
         marca="Naturella",
         presentacion="Caja con 8 toallas",
-        ya=True,
-        sku="FC-01157296",
+        concentracion="Flujo abundante",
+        ya=False,
+        sku="FC-95158739",
     ),
     "7501001405335": P(
         "7501001405335",
@@ -507,17 +508,18 @@ CAT: dict[str, dict] = {
         ya=False,
         sku="FC-70613044",
     ),
-    "7841141004068": P(
-        "7841141004068",
+    "7841141004051": P(
+        "7841141004051",
         nombre="Arluy Duo 200/300 mg",
         tipo="marca",
-        forma="Tabletas",
+        forma="Capsulas",
         marca="Arluy Duo",
-        presentacion="Caja",
+        presentacion="Caja con 30 capsulas",
+        principio="Mebeverina / Simeticona",
         concentracion="200 mg / 300 mg",
         receta=True,
         ya=False,
-        sku="FC-41104068",
+        sku="FC-41004051",
     ),
     "7506331301142": P(
         "7506331301142",
@@ -578,8 +580,8 @@ CAT: dict[str, dict] = {
         ya=True,
         sku="FC-79807468",
     ),
-    "7501165010628": P(
-        "7501165010628",
+    "7501165010826": P(
+        "7501165010826",
         nombre="Enterogermina 4 billones",
         tipo="marca",
         categoria="Gastro",
@@ -589,7 +591,7 @@ CAT: dict[str, dict] = {
         principio="Bacillus clausii",
         concentracion="4 billones UFC",
         ya=False,
-        sku="FC-15010628",
+        sku="FC-65010826",
     ),
     "7502009740916": P(
         "7502009740916",
@@ -847,7 +849,7 @@ TICKETS = [
             row("7501125149221", "ELECTROLIT LIQ 625ML FRESA-KIWI", 2, 19.00),
             row("7501125104688", "ELECTROLIT LIQ 625ML NARANJA-MANDARINA", 2, 19.00),
             row("7501125144851", "ELECTROLIT LIQ 625ML UVA", 2, 19.00),
-            row("7501001157296", "NATURELLA FLUJO MOD S/ALAS C/8", 5, 13.00),
+            row("7506195158739", "NATURELLA FLUJO MOD S/ALAS C/8", 5, 13.00),
             row("7501001405335", "NATURELLA NOCHE CON ALAS C/8", 2, 18.50),
         ],
     },
@@ -943,13 +945,13 @@ TICKETS = [
         "header": "Cityfarma · folio 15341570 · 2026-11-17 · total $6,982.85 · 28 renglones",
         "rows": [
             row("7501070613044", "ANDANTOL 25GR JALEA", 2, 173.80),
-            row("7841141004068", "ARLUY DUO 200MG/300MG", 1, 682.02),
+            row("7841141004051", "ARLUY DUO 200MG/300MG", 1, 682.02),
             row("7506331301142", "AUTEVAZEN 500MG C60", 1, 83.52),
             row("7501008409572", "BEROCCA CAL MAG C 10", 1, 144.05),
             row("0714706903359", "BRONCO RUB EXH C12 P", 1, 133.35),
             row("7501065095718", "CENTRUM BALANCE C30T", 1, 136.52),
             row("3664798074680", "ENTEROGERMINA 2 BILL", 3, 200.00),
-            row("7501165010628", "ENTEROGERMINA 4 BILL", 2, 442.76),
+            row("7501165010826", "ENTEROGERMINA 4 BILL", 2, 442.76),
             row("7502009740916", "ERISPAN HYPACK 8MG/2", 5, 24.80),
             row("7501159525015", "EUCALIPTINE JBE 140", 1, 141.56),
             row("7501300421968", "EXBUFEN APIXABAN TAB", 2, 166.67),
@@ -1419,11 +1421,11 @@ El merge a GitHub **no** crea la cola. Pegar **todo** el SQL en Supabase → SQL
 
 ## Notas
 
-1. **Surtidor 161443:** Electrolit con desc. mayoreo ($19 c/u) + Naturella.
+1. **Surtidor 161443:** Electrolit c/desc. mayoreo + Naturella regulares sin alas EAN caja `7506195158739` (no el con alas `7501001157296`).
 2. **Equilibrio 451922:** claves → EAN de ficha. Lote sí; caducidad NO. ALP0607 sin EAN en portal (match por SKU).
 3. **IFC 134202:** Miyako férulas; EAN solo en recta grande (`0750187760234`).
 4. **Farma Mayoreo V01000004500:** subtotal $1,566.76 + IVA $59.15 = $1,625.91.
-5. **Cityfarma 15341570:** Enterogermina 2 bill `3664798074680`. Arluy / Enterogermina 4: solo dígito de control GS1 (`7841141004068`, `7501165010628`).
+5. **Cityfarma 15341570:** Enterogermina 2 `3664798074680`. EANs de caja: Enterogermina 4 `7501165010826`, Arluy Duo `7841141004051`.
 6. **Surtidor 161448:** Kola Loka brocha + gota.
 7. **Stock:** 0 hasta pistola + MMAA. No poner `0000`.
 """,
