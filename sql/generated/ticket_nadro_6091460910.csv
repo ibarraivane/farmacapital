@@ -1,0 +1,4 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,6091460910,2026-10-22,Nadro,7501385491085,DANZEN 10 MG 20 TAB,1,373.31,373.31,,,FC-85491085,1626.29,nadro
+2,6091460910,2026-10-22,Nadro,7501385420061,DANZEN 5 MG 30 TAB,1,290.02,290.02,,,FC-85420061,1626.29,nadro
+3,6091460910,2026-10-22,Nadro,7502214986659,MIFEPRISTONA 200MG CJA 1 TAB,2,481.48,962.96,,,FC-14986659,1626.29,catalogo
