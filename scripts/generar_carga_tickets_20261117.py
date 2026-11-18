@@ -507,17 +507,18 @@ CAT: dict[str, dict] = {
         ya=False,
         sku="FC-70613044",
     ),
-    "7841141004068": P(
-        "7841141004068",
+    "7841141004051": P(
+        "7841141004051",
         nombre="Arluy Duo 200/300 mg",
         tipo="marca",
-        forma="Tabletas",
+        forma="Capsulas",
         marca="Arluy Duo",
-        presentacion="Caja",
+        presentacion="Caja con 30 capsulas",
+        principio="Mebeverina / Simeticona",
         concentracion="200 mg / 300 mg",
         receta=True,
         ya=False,
-        sku="FC-41104068",
+        sku="FC-41004051",
     ),
     "7506331301142": P(
         "7506331301142",
@@ -943,7 +944,7 @@ TICKETS = [
         "header": "Cityfarma · folio 15341570 · 2026-11-17 · total $6,982.85 · 28 renglones",
         "rows": [
             row("7501070613044", "ANDANTOL 25GR JALEA", 2, 173.80),
-            row("7841141004068", "ARLUY DUO 200MG/300MG", 1, 682.02),
+            row("7841141004051", "ARLUY DUO 200MG/300MG", 1, 682.02),
             row("7506331301142", "AUTEVAZEN 500MG C60", 1, 83.52),
             row("7501008409572", "BEROCCA CAL MAG C 10", 1, 144.05),
             row("0714706903359", "BRONCO RUB EXH C12 P", 1, 133.35),
@@ -1423,7 +1424,7 @@ El merge a GitHub **no** crea la cola. Pegar **todo** el SQL en Supabase → SQL
 2. **Equilibrio 451922:** claves → EAN de ficha. Lote sí; caducidad NO. ALP0607 sin EAN en portal (match por SKU).
 3. **IFC 134202:** Miyako férulas; EAN solo en recta grande (`0750187760234`).
 4. **Farma Mayoreo V01000004500:** subtotal $1,566.76 + IVA $59.15 = $1,625.91.
-5. **Cityfarma 15341570:** Enterogermina 2 bill `3664798074680`. Enterogermina 4 billones EAN de caja `7501165010826` (el ticket OCR leía mal).
+5. **Cityfarma 15341570:** Enterogermina 2 `3664798074680`. EANs de caja: Enterogermina 4 `7501165010826`, Arluy Duo `7841141004051`.
 6. **Surtidor 161448:** Kola Loka brocha + gota.
 7. **Stock:** 0 hasta pistola + MMAA. No poner `0000`.
 """,

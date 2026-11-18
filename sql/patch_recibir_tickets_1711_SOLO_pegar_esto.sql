@@ -1329,7 +1329,7 @@ insert into _fc_cf_15341570 (
   concentracion, receta, ya, imagen, lote
 ) values
   (1, '7501070613044', 'FC-70613044', 'Andantol isotipendilo jalea 25 g', 'ANDANTOL 25GR JALEA', 2, 173.80, 218, 'marca', 'Dermatologia', null, 'Jalea', 'Andantol', 'Sanfer', 'Tubo 25 g', 'Isotipendilo', '0.75 g/100 g', false, false, null, null),
-  (2, '7841141004068', 'FC-41104068', 'Arluy Duo 200/300 mg', 'ARLUY DUO 200MG/300MG', 1, 682.02, 853, 'marca', 'Medicamentos', null, 'Tabletas', 'Arluy Duo', null, 'Caja', null, '200 mg / 300 mg', true, false, null, null),
+  (2, '7841141004051', 'FC-41004051', 'Arluy Duo 200/300 mg', 'ARLUY DUO 200MG/300MG', 1, 682.02, 853, 'marca', 'Medicamentos', null, 'Capsulas', 'Arluy Duo', null, 'Caja con 30 capsulas', 'Mebeverina / Simeticona', '200 mg / 300 mg', true, false, null, null),
   (3, '7506331301142', 'FC-31301142', 'Autevazen 500 mg', 'AUTEVAZEN 500MG C60', 1, 83.52, 105, 'marca', 'Medicamentos', null, 'Capsulas', 'Autevazen', null, 'Caja con 60 capsulas', null, '500 mg', true, false, null, null),
   (4, '7501008409572', 'FC-08409572', 'Berocca Cal Mag', 'BEROCCA CAL MAG C 10', 1, 144.05, 181, 'marca', 'Suplementos', null, 'Tabletas efervescentes', 'Berocca', null, 'Caja con 10 tabletas', null, null, false, false, null, null),
   (5, '0714706903359', 'FC-06903359', 'Bronco Rub exhalador C/12', 'BRONCO RUB EXH C12 P', 1, 133.35, 167, 'marca', 'Botiquin', null, 'Pastillas', 'Bronco Rub', null, 'Caja con 12 pastillas', null, null, false, false, null, null),
