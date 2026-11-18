@@ -38,17 +38,24 @@ describe("clasificarVitrina", () => {
     });
   });
 
-  test("dermocosmética por marca, solar por el nombre, higiene masiva aparte", () => {
-    expect(cls({ categoria: "Cuidado personal", marca: "Bioderma", nombre: "Sensibio H2O" })).toEqual({
+  test("dermocosmética solo laboratorio; el resto de cuidado personal a higiene", () => {
+    expect(cls({ categoria: "Cuidado personal", marca: "SVR", nombre: "Sebiaclear Sérum" })).toEqual({
       vitrina_seccion: "Dermocosmética",
       vitrina_subseccion: null,
     });
-    expect(cls({ categoria: "Cuidado personal", marca: "Heliocare", nombre: "360 gel FPS 50" }).vitrina_subseccion).toBe("Solar");
+    expect(cls({ categoria: "Cuidado personal", marca: "SVR", nombre: "Sun Secure Blur SPF50+" }).vitrina_subseccion).toBe("Solar");
+    expect(cls({ categoria: "Cuidado personal", marca: "Alastin", nombre: "Restorative Eye Complex" }).vitrina_seccion).toBe("Dermocosmética");
+    expect(cls({ categoria: "Dermocosmético", marca: "Medik8", nombre: "Crystal Retinal" }).vitrina_seccion).toBe("Dermocosmética");
+    expect(cls({ categoria: "Cuidado personal", marca: "Bioderma", nombre: "Sensibio H2O" })).toEqual({
+      vitrina_seccion: "Higiene y cuidado personal",
+      vitrina_subseccion: "Cuidado diario",
+    });
+    expect(cls({ categoria: "Cuidado personal", marca: "Eucerin", nombre: "pH5 Protector Labial" }).vitrina_seccion).toBe("Higiene y cuidado personal");
     expect(cls({ categoria: "Cuidado personal", marca: "Nivea", nombre: "Crema lata" })).toEqual({
       vitrina_seccion: "Higiene y cuidado personal",
       vitrina_subseccion: "Cuidado diario",
     });
-    expect(cls({ categoria: "Dermocosmético", marca: "Avène", nombre: "Cleanance" }).vitrina_seccion).toBe("Dermocosmética");
+    expect(cls({ categoria: "Dermocosmético", marca: "Avène", nombre: "Cleanance" }).vitrina_seccion).toBe("Higiene y cuidado personal");
   });
 
   test("suplemento deportivo no se parte por el nombre; la clínica sí", () => {
@@ -87,7 +94,7 @@ describe("clasificarVitrina", () => {
     const filas = [
       { categoria: "Analgésico", nombre: "Ibuprofeno" },
       { categoria: "Suplemento", marca: "Mutant", nombre: "Mass" },
-      { categoria: "Cuidado personal", marca: "Isdin", nombre: "Fusion" },
+      { categoria: "Cuidado personal", marca: "SVR", nombre: "Sebiaclear" },
       { categoria: "Otro", nombre: "Sin ficha" },
       { categoria: "Higiene", nombre: "Desodorante roll on" },
     ].map((p) => cls(p));

@@ -3,6 +3,8 @@
  * Un producto sin vitrina_seccion no entra aquí.
  */
 
+import { esMarcaLaboratorioDermo } from "./marcasLaboratorioDermo";
+
 export const SECCIONES_VITRINA = Object.freeze([
   { id: "nutricion-deportiva", nombre: "Nutrición deportiva", filtro: "marca" },
   { id: "dermocosmetica", nombre: "Dermocosmética", filtro: "marca" },
@@ -83,10 +85,18 @@ export function seccionPorSlug(raw) {
   return hit?.nombre || "";
 }
 
-/** Sección pública guardada en el producto. Vacío si no está clasificado. */
+/**
+ * Sección pública. Dermocosmética solo admite marcas de laboratorio
+ * (SVR / Alastin / Medik8); si el row aún dice Dermocosmética por un
+ * scrape viejo, se muestra en Higiene hasta que corra el SQL 04.
+ */
 export function seccionDe(prod) {
   const s = String(prod?.vitrina_seccion || "").trim();
-  return SECCIONES_VITRINA.some((x) => x.nombre === s) ? s : "";
+  if (!SECCIONES_VITRINA.some((x) => x.nombre === s)) return "";
+  if (s === "Dermocosmética" && !esMarcaLaboratorioDermo(prod?.marca)) {
+    return "Higiene y cuidado personal";
+  }
+  return s;
 }
 
 export function productoVisibleEnSeccion(prod, seccion) {
@@ -142,7 +152,7 @@ function sumar(conteos, clave) {
 /**
  * Cuántos productos caen en cada chip de la sección.
  * En Dermocosmética y Nutrición deportiva, «Solar» (u otra subsección fija)
- * y la marca se cuentan por separado: un fotoprotector Isdin suma en los dos.
+ * y la marca se cuentan por separado: un fotoprotector SVR suma en los dos.
  */
 export function conteosDeSeccion(seccion, productos) {
   const nombre = seccionPorSlug(seccion) || seccion;

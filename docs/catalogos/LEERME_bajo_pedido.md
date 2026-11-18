@@ -1,17 +1,41 @@
-# Catálogos bajo pedido (septiembre 2026)
+# Catálogos bajo pedido / laboratorio (octubre 2026)
 
-Listas de mayoreo para la vitrina `/conseguir`. **No** se venden con PVP de Promexsa ni de otra farmacia.
+Listas de mayoreo y **precio directo de laboratorio** para la vitrina `/conseguir`
+y el anaquel. **No** se venden con PVP de Promexsa ni de otra farmacia.
+
+## Prioridad 2026: laboratorio directo
+
+Para dermo pedible al laboratorio:
+- **`costo`** = precio al médico / especialista
+- **`precio`** = precio al público de la lista
+- **SVR**: solo PVP del catálogo FarmaCapital + costo de factura
+- **MePiel / Dermaexpress**: se retiran del inventario (sin stock) con
+  `sql/alta_laboratorio_dermo_20261025/00_retirar_mepiel_dermaexpress.sql`
+
+Ver `sql/alta_laboratorio_dermo_20261025/LEERME.md`.
 
 | Archivo | Proveedor | Rol |
 |---|---|---|
-| `catalogo_dermaexpress.csv` | Dermaexpress | Costo mayoreo dermo + foto Shopify |
+| `laboratorio_svr_stock_20261025.csv` | SVR | Stock real + costo factura + PVP FarmaCapital |
+| `laboratorio_alastin_2026.csv` | Alastin | Costo lab c/IVA + PVP sugerido (bajo pedido) |
+| `laboratorio_medik8_especialistas_2025.csv` | Medik8 / Dermatotec | Costo especialistas + RRP |
 | `catalogo_birdman.csv` | Birdman | Costo base (escalón chico). Sin playeras |
 | `ewafra_dis_agosto_2026.csv` | Ewafra (lista DIS ago-2026) | Costo lista 6 −20% de insumos |
 | `catalogo_promexsa.csv` | Promexsa | **Techo / nombre / foto.** No es mayoreo |
+| `catalogo_dermaexpress.csv` | Dermaexpress | Legado (fotos / cruce). No mandar costo si hay lab |
 | `fotos_bajo_pedido.csv` | — | URLs a espejar |
-| `manifiesto_bajo_pedido_20260917.json` | — | SKUs generados |
+| `manifiesto_bajo_pedido_20260917.json` | — | SKUs generados (Dermaexpress/Birdman/Ewafra) |
 
-## Cómo regenerar
+## Regenerar laboratorio dermo
+
+```bash
+python3 scripts/generar_alta_laboratorio_dermo.py
+```
+
+Orden SQL: `sql/patch_fuentes_laboratorio_dermo_20261025.sql` →
+`sql/alta_laboratorio_dermo_20261025/` (ver LEERME ahí).
+
+## Regenerar vitrina mayoristas (Birdman / Ewafra / legado)
 
 ```bash
 python3 scripts/parse_ewafra_dis_pdf.py lista_dis_agosto_2026.pdf docs/catalogos/ewafra_dis_agosto_2026.csv
@@ -29,4 +53,4 @@ Las fotos de terceros (Shopify / Tienda Nube) quedan en `imagen_url` para que la
 
 Espejo 17-sep-2026: **2,231** packshots bajaron a `catalogo-imagenes/bajo-pedido/` (3 rechazadas en `fotos_pendientes_bajo_pedido.csv`). **1,086** SKUs siguen sin foto de origen (`sin_imagen_bajo_pedido.csv`), casi todos Ewafra sin match Promexsa: el alta existe, la foto no está cerrada.
 
-Mepiel: cuando llegue la lista, cruzar por EAN contra Dermaexpress y cargar fuente `mepiel`.
+**MePiel:** la PR draft `cursor/alta-catalogo-mepiel-2026-83df` queda sustituida por las listas de laboratorio. Si ya se aplicó MePiel en Postgres, usar `sql/alta_laboratorio_dermo_20261025/09_retirar_mepiel_sin_stock.sql` (opcional, revisar conteo antes).
