@@ -9,7 +9,7 @@ alter table public.empleados
   add column if not exists salario_semanal numeric(12,2) not null default 0;
 
 comment on column public.empleados.salario_semanal is
-  'Pago de una semana completa martes–viernes (se deposita el viernes). Diario = este monto / 4.';
+  'Pago de una semana completa sábado–viernes (se deposita el viernes). Diario = este monto / 7. No define horario ni permiso de caja.';
 
 
 drop function if exists public.admin_actualizar_empleado(uuid, bigint, text, text, text, text, numeric);
