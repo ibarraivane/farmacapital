@@ -139,6 +139,35 @@ describe("catalog search dimensions", () => {
     expect(inventarioProductMatchesBusqueda(tensolastic7, "7501048690909")).toBe(true);
   });
 
+  test("el codigo del archivo de mayoreo se encuentra aunque sea corto", () => {
+    const acuts = {
+      id: 9001,
+      activo: true,
+      nombre: "A-Cuts Artic Orange",
+      marca: "Allmax",
+      sku: "FC-08135297",
+      notas: "Lista SKU origen: 6474",
+      descripcion: "Bajo pedido · suplementosmayoreo · 6474",
+    };
+    const otro = {
+      id: 9002,
+      activo: true,
+      nombre: "Amino Core",
+      marca: "Allmax",
+      sku: "FC-53228600",
+      notas: "Lista SKU origen: 7341",
+    };
+    expect(inventarioProductMatchesBusqueda(acuts, "6474")).toBe(true);
+    expect(inventarioProductMatchesBusqueda(acuts, "647")).toBe(false);
+    expect(inventarioProductMatchesBusqueda(otro, "6474")).toBe(false);
+    expect(inventarioProductMatchesBusqueda({
+      id: 9003,
+      nombre: "A-Cuts Blue Raspberry",
+      sku: "FC-53226590",
+      descripcion: "Bajo pedido · suplementosmayoreo · 8921",
+    }, "8921")).toBe(true);
+  });
+
   test("pañal no matchea lubricante íntimo por marca piel con piel", () => {
     const lubricante = {
       id: 99,
