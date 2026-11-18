@@ -1,0 +1,6 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,S332343,2026-10-16,Cityfarma Iztapalapa,7501298206455,DABEX XR 500MG T30,1,270.88,270.88,,,FC-98206455,1167.37,alta
+2,S332343,2026-10-16,Cityfarma Iztapalapa,7501008498866,FLANAX 550MG C6 TABS,3,99.54,298.62,,,FC-08498866,1167.37,ya
+3,S332343,2026-10-16,Cityfarma Iztapalapa,7502227425008,GROOBE 50MG C24 TABS,5,27.53,137.65,,,FC-27425008,1167.37,ya
+4,S332343,2026-10-16,Cityfarma Iztapalapa,7502224228060,KITOSCELL 3.5GR GEL,3,103.33,309.99,,,FC-24228060,1167.37,alta
+5,S332343,2026-10-16,Cityfarma Iztapalapa,7501101614026,MALIVAL 25 MG C 30CA,1,150.22,150.22,,,FC-01614026,1167.37,alta
