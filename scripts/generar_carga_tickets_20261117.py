@@ -128,16 +128,17 @@ CAT: dict[str, dict] = {
         sku="FC-25144851",
         foto_file="electrolit-uva-625ml-7501125144851.jpg",
     ),
-    "7501001157296": P(
-        "7501001157296",
-        nombre="Naturella flujo moderado",
+    "7506195158739": P(
+        "7506195158739",
+        nombre="Naturella regulares sin alas",
         tipo="marca",
         categoria="Higiene",
         forma="Toallas sanitarias",
         marca="Naturella",
         presentacion="Caja con 8 toallas",
-        ya=True,
-        sku="FC-01157296",
+        concentracion="Flujo abundante",
+        ya=False,
+        sku="FC-95158739",
     ),
     "7501001405335": P(
         "7501001405335",
@@ -848,7 +849,7 @@ TICKETS = [
             row("7501125149221", "ELECTROLIT LIQ 625ML FRESA-KIWI", 2, 19.00),
             row("7501125104688", "ELECTROLIT LIQ 625ML NARANJA-MANDARINA", 2, 19.00),
             row("7501125144851", "ELECTROLIT LIQ 625ML UVA", 2, 19.00),
-            row("7501001157296", "NATURELLA FLUJO MOD S/ALAS C/8", 5, 13.00),
+            row("7506195158739", "NATURELLA FLUJO MOD S/ALAS C/8", 5, 13.00),
             row("7501001405335", "NATURELLA NOCHE CON ALAS C/8", 2, 18.50),
         ],
     },
@@ -1420,7 +1421,7 @@ El merge a GitHub **no** crea la cola. Pegar **todo** el SQL en Supabase → SQL
 
 ## Notas
 
-1. **Surtidor 161443:** Electrolit con desc. mayoreo ($19 c/u) + Naturella.
+1. **Surtidor 161443:** Electrolit c/desc. mayoreo + Naturella regulares sin alas EAN caja `7506195158739` (no el con alas `7501001157296`).
 2. **Equilibrio 451922:** claves → EAN de ficha. Lote sí; caducidad NO. ALP0607 sin EAN en portal (match por SKU).
 3. **IFC 134202:** Miyako férulas; EAN solo en recta grande (`0750187760234`).
 4. **Farma Mayoreo V01000004500:** subtotal $1,566.76 + IVA $59.15 = $1,625.91.

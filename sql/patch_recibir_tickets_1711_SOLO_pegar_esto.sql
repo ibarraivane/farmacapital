@@ -11,7 +11,7 @@
 
 -- ========== El Surtidor de su Farmacia 161443 ==========
 -- El Surtidor · folio 161443 · 2026-11-17 · total $216.00 · 5 renglones · costo = importe neto
--- 0 alta(s) stock 0. 5 ya estaban: solo costo / ficha vacia, no PVP.
+-- 1 alta(s) stock 0. 4 ya estaban: solo costo / ficha vacia, no PVP.
 -- Nombres de ficha, no del ticket. SIN dollar-quote. Idempotente en borrador.
 -- Caducidad null: MMAA de la caja. No inventar 0000.
 
@@ -49,7 +49,7 @@ insert into _fc_sur_161443 (
   (1, '7501125149221', 'FC-25149221', 'Electrolit Fresa-Kiwi 625 ml', 'ELECTROLIT LIQ 625ML FRESA-KIWI', 2, 19.00, 24, 'marca', 'Suero oral', null, null, 'Electrolit', 'Pisa', 'Botella 625 ml', null, null, false, true, null, null),
   (2, '7501125104688', 'FC-25104688', 'Electrolit Naranja-Mandarina 625 ml', 'ELECTROLIT LIQ 625ML NARANJA-MANDARINA', 2, 19.00, 24, 'marca', 'Suero oral', null, null, 'Electrolit', 'Pisa', 'Botella 625 ml', null, null, false, true, 'https://www.farmacapital.mx/catalogo-propia/electrolit-naranja-mandarina-625ml-7501125104688.jpg', null),
   (3, '7501125144851', 'FC-25144851', 'Electrolit Uva 625 ml', 'ELECTROLIT LIQ 625ML UVA', 2, 19.00, 24, 'marca', 'Suero oral', null, null, 'Electrolit', 'Pisa', 'Botella 625 ml', null, null, false, true, 'https://www.farmacapital.mx/catalogo-propia/electrolit-uva-625ml-7501125144851.jpg', null),
-  (4, '7501001157296', 'FC-01157296', 'Naturella flujo moderado', 'NATURELLA FLUJO MOD S/ALAS C/8', 5, 13.00, 17, 'marca', 'Higiene', null, 'Toallas sanitarias', 'Naturella', null, 'Caja con 8 toallas', null, null, false, true, null, null),
+  (4, '7506195158739', 'FC-95158739', 'Naturella regulares sin alas', 'NATURELLA FLUJO MOD S/ALAS C/8', 5, 13.00, 17, 'marca', 'Higiene', null, 'Toallas sanitarias', 'Naturella', null, 'Caja con 8 toallas', null, 'Flujo abundante', false, false, null, null),
   (5, '7501001405335', 'FC-01405335', 'Naturella noche con alas', 'NATURELLA NOCHE CON ALAS C/8', 2, 18.50, 24, 'marca', 'Higiene', null, 'Toallas sanitarias', 'Naturella', null, 'Caja con 8 toallas', null, null, false, true, null, null);
 
 insert into public.productos (

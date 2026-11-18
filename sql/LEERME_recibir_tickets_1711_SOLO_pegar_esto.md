@@ -22,7 +22,7 @@ El merge a GitHub **no** crea la cola. Pegar **todo** el SQL en Supabase → SQL
 
 ## Notas
 
-1. **Surtidor 161443:** Electrolit con desc. mayoreo ($19 c/u) + Naturella.
+1. **Surtidor 161443:** Electrolit c/desc. mayoreo + Naturella regulares sin alas EAN caja `7506195158739` (no el con alas `7501001157296`).
 2. **Equilibrio 451922:** claves → EAN de ficha. Lote sí; caducidad NO. ALP0607 sin EAN en portal (match por SKU).
 3. **IFC 134202:** Miyako férulas; EAN solo en recta grande (`0750187760234`).
 4. **Farma Mayoreo V01000004500:** subtotal $1,566.76 + IVA $59.15 = $1,625.91.
