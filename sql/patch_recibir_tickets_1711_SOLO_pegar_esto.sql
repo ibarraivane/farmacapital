@@ -61,11 +61,16 @@ insert into public.productos (
 select
   t.nombre,
   case
-    when t.ean is not null and exists (
+    when not exists (
+      select 1 from public.productos p where p.sku = t.sku
+    ) then t.sku
+    when t.ean is not null and not exists (
       select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+      where p.sku = ('FC-ND-' || right(t.ean, 8))
     ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
+    when t.ean is not null then
+      'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+    else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
   end,
   t.ean,
   t.categoria,
@@ -91,8 +96,36 @@ from (
   from _fc_sur_161443
   order by coalesce(ean, sku), linea
 ) t
-where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+where (t.ean is null or not exists (
+    select 1 from public.productos p
+    where nullif(btrim(p.codigo_barras), '') = t.ean
+  ))
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = t.sku
+      and (
+        t.ean is null
+        or nullif(btrim(p.codigo_barras), '') is null
+        or nullif(btrim(p.codigo_barras), '') = t.ean
+      )
+  )
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = (
+      case
+        when not exists (
+          select 1 from public.productos x where x.sku = t.sku
+        ) then t.sku
+        when t.ean is not null and not exists (
+          select 1 from public.productos x
+          where x.sku = ('FC-ND-' || right(t.ean, 8))
+        ) then 'FC-ND-' || right(t.ean, 8)
+        when t.ean is not null then
+          'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+        else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
+      end
+    )
+  );
 
 update public.productos p
 set
@@ -108,7 +141,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 )
   and (
     p.costo is distinct from t.costo
@@ -138,7 +184,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 );
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
@@ -190,15 +249,7 @@ select
   (v.pid is null),
   'pdf',
   false,
-  (
-    v.pid is not null and exists (
-      select 1 from public.lotes l
-      where l.producto_id = v.pid
-        and coalesce(l.activo, true)
-        and coalesce(l.cantidad_actual, 0) > 0
-        and (t.lote is null or l.numero_lote is distinct from t.lote)
-    )
-  ),
+  false,
   null
 from _fc_sur_161443 t
 join public.recepciones r
@@ -210,7 +261,20 @@ left join lateral (
     case when nullif(btrim(t.ean), '') is not null
       then public.fc_buscar_producto_escaneo(nullif(btrim(t.ean), ''))
       else null end,
-    public.fc_buscar_producto_escaneo(t.sku)
+    public.fc_buscar_producto_escaneo(t.sku),
+    (
+      select p2.id from public.productos p2
+      where nullif(btrim(t.ean), '') is not null
+        and nullif(btrim(p2.codigo_barras), '') = nullif(btrim(t.ean), '')
+      order by p2.id
+      limit 1
+    ),
+    (
+      select p2.id from public.productos p2
+      where p2.sku = t.sku
+      order by p2.id
+      limit 1
+    )
   ) as pid
 ) v on true
 order by t.linea;
@@ -241,7 +305,20 @@ select
   case
     when coalesce(
       case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-      public.fc_buscar_producto_escaneo(t.sku)
+      public.fc_buscar_producto_escaneo(t.sku),
+      (
+        select p2.id from public.productos p2
+        where t.ean is not null
+          and nullif(btrim(p2.codigo_barras), '') = t.ean
+        order by p2.id
+        limit 1
+      ),
+      (
+        select p2.id from public.productos p2
+        where p2.sku = t.sku
+        order by p2.id
+        limit 1
+      )
     ) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
   t.ya as marcado_ya
 from _fc_sur_161443 t
@@ -310,11 +387,16 @@ insert into public.productos (
 select
   t.nombre,
   case
-    when t.ean is not null and exists (
+    when not exists (
+      select 1 from public.productos p where p.sku = t.sku
+    ) then t.sku
+    when t.ean is not null and not exists (
       select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+      where p.sku = ('FC-ND-' || right(t.ean, 8))
     ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
+    when t.ean is not null then
+      'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+    else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
   end,
   t.ean,
   t.categoria,
@@ -340,8 +422,36 @@ from (
   from _fc_eq_451922
   order by coalesce(ean, sku), linea
 ) t
-where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+where (t.ean is null or not exists (
+    select 1 from public.productos p
+    where nullif(btrim(p.codigo_barras), '') = t.ean
+  ))
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = t.sku
+      and (
+        t.ean is null
+        or nullif(btrim(p.codigo_barras), '') is null
+        or nullif(btrim(p.codigo_barras), '') = t.ean
+      )
+  )
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = (
+      case
+        when not exists (
+          select 1 from public.productos x where x.sku = t.sku
+        ) then t.sku
+        when t.ean is not null and not exists (
+          select 1 from public.productos x
+          where x.sku = ('FC-ND-' || right(t.ean, 8))
+        ) then 'FC-ND-' || right(t.ean, 8)
+        when t.ean is not null then
+          'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+        else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
+      end
+    )
+  );
 
 update public.productos p
 set
@@ -357,7 +467,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 )
   and (
     p.costo is distinct from t.costo
@@ -387,7 +510,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 );
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
@@ -439,15 +575,7 @@ select
   (v.pid is null),
   'pdf',
   false,
-  (
-    v.pid is not null and exists (
-      select 1 from public.lotes l
-      where l.producto_id = v.pid
-        and coalesce(l.activo, true)
-        and coalesce(l.cantidad_actual, 0) > 0
-        and (t.lote is null or l.numero_lote is distinct from t.lote)
-    )
-  ),
+  false,
   null
 from _fc_eq_451922 t
 join public.recepciones r
@@ -459,7 +587,20 @@ left join lateral (
     case when nullif(btrim(t.ean), '') is not null
       then public.fc_buscar_producto_escaneo(nullif(btrim(t.ean), ''))
       else null end,
-    public.fc_buscar_producto_escaneo(t.sku)
+    public.fc_buscar_producto_escaneo(t.sku),
+    (
+      select p2.id from public.productos p2
+      where nullif(btrim(t.ean), '') is not null
+        and nullif(btrim(p2.codigo_barras), '') = nullif(btrim(t.ean), '')
+      order by p2.id
+      limit 1
+    ),
+    (
+      select p2.id from public.productos p2
+      where p2.sku = t.sku
+      order by p2.id
+      limit 1
+    )
   ) as pid
 ) v on true
 order by t.linea;
@@ -490,7 +631,20 @@ select
   case
     when coalesce(
       case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-      public.fc_buscar_producto_escaneo(t.sku)
+      public.fc_buscar_producto_escaneo(t.sku),
+      (
+        select p2.id from public.productos p2
+        where t.ean is not null
+          and nullif(btrim(p2.codigo_barras), '') = t.ean
+        order by p2.id
+        limit 1
+      ),
+      (
+        select p2.id from public.productos p2
+        where p2.sku = t.sku
+        order by p2.id
+        limit 1
+      )
     ) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
   t.ya as marcado_ya
 from _fc_eq_451922 t
@@ -550,11 +704,16 @@ insert into public.productos (
 select
   t.nombre,
   case
-    when t.ean is not null and exists (
+    when not exists (
+      select 1 from public.productos p where p.sku = t.sku
+    ) then t.sku
+    when t.ean is not null and not exists (
       select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+      where p.sku = ('FC-ND-' || right(t.ean, 8))
     ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
+    when t.ean is not null then
+      'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+    else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
   end,
   t.ean,
   t.categoria,
@@ -580,8 +739,36 @@ from (
   from _fc_ifc_134202
   order by coalesce(ean, sku), linea
 ) t
-where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+where (t.ean is null or not exists (
+    select 1 from public.productos p
+    where nullif(btrim(p.codigo_barras), '') = t.ean
+  ))
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = t.sku
+      and (
+        t.ean is null
+        or nullif(btrim(p.codigo_barras), '') is null
+        or nullif(btrim(p.codigo_barras), '') = t.ean
+      )
+  )
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = (
+      case
+        when not exists (
+          select 1 from public.productos x where x.sku = t.sku
+        ) then t.sku
+        when t.ean is not null and not exists (
+          select 1 from public.productos x
+          where x.sku = ('FC-ND-' || right(t.ean, 8))
+        ) then 'FC-ND-' || right(t.ean, 8)
+        when t.ean is not null then
+          'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+        else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
+      end
+    )
+  );
 
 update public.productos p
 set
@@ -597,7 +784,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 )
   and (
     p.costo is distinct from t.costo
@@ -627,7 +827,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 );
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
@@ -679,15 +892,7 @@ select
   (v.pid is null),
   'pdf',
   false,
-  (
-    v.pid is not null and exists (
-      select 1 from public.lotes l
-      where l.producto_id = v.pid
-        and coalesce(l.activo, true)
-        and coalesce(l.cantidad_actual, 0) > 0
-        and (t.lote is null or l.numero_lote is distinct from t.lote)
-    )
-  ),
+  false,
   null
 from _fc_ifc_134202 t
 join public.recepciones r
@@ -699,7 +904,20 @@ left join lateral (
     case when nullif(btrim(t.ean), '') is not null
       then public.fc_buscar_producto_escaneo(nullif(btrim(t.ean), ''))
       else null end,
-    public.fc_buscar_producto_escaneo(t.sku)
+    public.fc_buscar_producto_escaneo(t.sku),
+    (
+      select p2.id from public.productos p2
+      where nullif(btrim(t.ean), '') is not null
+        and nullif(btrim(p2.codigo_barras), '') = nullif(btrim(t.ean), '')
+      order by p2.id
+      limit 1
+    ),
+    (
+      select p2.id from public.productos p2
+      where p2.sku = t.sku
+      order by p2.id
+      limit 1
+    )
   ) as pid
 ) v on true
 order by t.linea;
@@ -730,7 +948,20 @@ select
   case
     when coalesce(
       case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-      public.fc_buscar_producto_escaneo(t.sku)
+      public.fc_buscar_producto_escaneo(t.sku),
+      (
+        select p2.id from public.productos p2
+        where t.ean is not null
+          and nullif(btrim(p2.codigo_barras), '') = t.ean
+        order by p2.id
+        limit 1
+      ),
+      (
+        select p2.id from public.productos p2
+        where p2.sku = t.sku
+        order by p2.id
+        limit 1
+      )
     ) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
   t.ya as marcado_ya
 from _fc_ifc_134202 t
@@ -794,11 +1025,16 @@ insert into public.productos (
 select
   t.nombre,
   case
-    when t.ean is not null and exists (
+    when not exists (
+      select 1 from public.productos p where p.sku = t.sku
+    ) then t.sku
+    when t.ean is not null and not exists (
       select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+      where p.sku = ('FC-ND-' || right(t.ean, 8))
     ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
+    when t.ean is not null then
+      'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+    else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
   end,
   t.ean,
   t.categoria,
@@ -824,8 +1060,36 @@ from (
   from _fc_fm_4500
   order by coalesce(ean, sku), linea
 ) t
-where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+where (t.ean is null or not exists (
+    select 1 from public.productos p
+    where nullif(btrim(p.codigo_barras), '') = t.ean
+  ))
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = t.sku
+      and (
+        t.ean is null
+        or nullif(btrim(p.codigo_barras), '') is null
+        or nullif(btrim(p.codigo_barras), '') = t.ean
+      )
+  )
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = (
+      case
+        when not exists (
+          select 1 from public.productos x where x.sku = t.sku
+        ) then t.sku
+        when t.ean is not null and not exists (
+          select 1 from public.productos x
+          where x.sku = ('FC-ND-' || right(t.ean, 8))
+        ) then 'FC-ND-' || right(t.ean, 8)
+        when t.ean is not null then
+          'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+        else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
+      end
+    )
+  );
 
 update public.productos p
 set
@@ -841,7 +1105,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 )
   and (
     p.costo is distinct from t.costo
@@ -871,7 +1148,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 );
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
@@ -923,15 +1213,7 @@ select
   (v.pid is null),
   'pdf',
   false,
-  (
-    v.pid is not null and exists (
-      select 1 from public.lotes l
-      where l.producto_id = v.pid
-        and coalesce(l.activo, true)
-        and coalesce(l.cantidad_actual, 0) > 0
-        and (t.lote is null or l.numero_lote is distinct from t.lote)
-    )
-  ),
+  false,
   null
 from _fc_fm_4500 t
 join public.recepciones r
@@ -943,7 +1225,20 @@ left join lateral (
     case when nullif(btrim(t.ean), '') is not null
       then public.fc_buscar_producto_escaneo(nullif(btrim(t.ean), ''))
       else null end,
-    public.fc_buscar_producto_escaneo(t.sku)
+    public.fc_buscar_producto_escaneo(t.sku),
+    (
+      select p2.id from public.productos p2
+      where nullif(btrim(t.ean), '') is not null
+        and nullif(btrim(p2.codigo_barras), '') = nullif(btrim(t.ean), '')
+      order by p2.id
+      limit 1
+    ),
+    (
+      select p2.id from public.productos p2
+      where p2.sku = t.sku
+      order by p2.id
+      limit 1
+    )
   ) as pid
 ) v on true
 order by t.linea;
@@ -974,7 +1269,20 @@ select
   case
     when coalesce(
       case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-      public.fc_buscar_producto_escaneo(t.sku)
+      public.fc_buscar_producto_escaneo(t.sku),
+      (
+        select p2.id from public.productos p2
+        where t.ean is not null
+          and nullif(btrim(p2.codigo_barras), '') = t.ean
+        order by p2.id
+        limit 1
+      ),
+      (
+        select p2.id from public.productos p2
+        where p2.sku = t.sku
+        order by p2.id
+        limit 1
+      )
     ) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
   t.ya as marcado_ya
 from _fc_fm_4500 t
@@ -1058,11 +1366,16 @@ insert into public.productos (
 select
   t.nombre,
   case
-    when t.ean is not null and exists (
+    when not exists (
+      select 1 from public.productos p where p.sku = t.sku
+    ) then t.sku
+    when t.ean is not null and not exists (
       select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+      where p.sku = ('FC-ND-' || right(t.ean, 8))
     ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
+    when t.ean is not null then
+      'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+    else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
   end,
   t.ean,
   t.categoria,
@@ -1088,8 +1401,36 @@ from (
   from _fc_cf_15341570
   order by coalesce(ean, sku), linea
 ) t
-where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+where (t.ean is null or not exists (
+    select 1 from public.productos p
+    where nullif(btrim(p.codigo_barras), '') = t.ean
+  ))
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = t.sku
+      and (
+        t.ean is null
+        or nullif(btrim(p.codigo_barras), '') is null
+        or nullif(btrim(p.codigo_barras), '') = t.ean
+      )
+  )
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = (
+      case
+        when not exists (
+          select 1 from public.productos x where x.sku = t.sku
+        ) then t.sku
+        when t.ean is not null and not exists (
+          select 1 from public.productos x
+          where x.sku = ('FC-ND-' || right(t.ean, 8))
+        ) then 'FC-ND-' || right(t.ean, 8)
+        when t.ean is not null then
+          'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+        else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
+      end
+    )
+  );
 
 update public.productos p
 set
@@ -1105,7 +1446,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 )
   and (
     p.costo is distinct from t.costo
@@ -1135,7 +1489,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 );
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
@@ -1187,15 +1554,7 @@ select
   (v.pid is null),
   'pdf',
   false,
-  (
-    v.pid is not null and exists (
-      select 1 from public.lotes l
-      where l.producto_id = v.pid
-        and coalesce(l.activo, true)
-        and coalesce(l.cantidad_actual, 0) > 0
-        and (t.lote is null or l.numero_lote is distinct from t.lote)
-    )
-  ),
+  false,
   null
 from _fc_cf_15341570 t
 join public.recepciones r
@@ -1207,7 +1566,20 @@ left join lateral (
     case when nullif(btrim(t.ean), '') is not null
       then public.fc_buscar_producto_escaneo(nullif(btrim(t.ean), ''))
       else null end,
-    public.fc_buscar_producto_escaneo(t.sku)
+    public.fc_buscar_producto_escaneo(t.sku),
+    (
+      select p2.id from public.productos p2
+      where nullif(btrim(t.ean), '') is not null
+        and nullif(btrim(p2.codigo_barras), '') = nullif(btrim(t.ean), '')
+      order by p2.id
+      limit 1
+    ),
+    (
+      select p2.id from public.productos p2
+      where p2.sku = t.sku
+      order by p2.id
+      limit 1
+    )
   ) as pid
 ) v on true
 order by t.linea;
@@ -1238,7 +1610,20 @@ select
   case
     when coalesce(
       case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-      public.fc_buscar_producto_escaneo(t.sku)
+      public.fc_buscar_producto_escaneo(t.sku),
+      (
+        select p2.id from public.productos p2
+        where t.ean is not null
+          and nullif(btrim(p2.codigo_barras), '') = t.ean
+        order by p2.id
+        limit 1
+      ),
+      (
+        select p2.id from public.productos p2
+        where p2.sku = t.sku
+        order by p2.id
+        limit 1
+      )
     ) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
   t.ya as marcado_ya
 from _fc_cf_15341570 t
@@ -1296,11 +1681,16 @@ insert into public.productos (
 select
   t.nombre,
   case
-    when t.ean is not null and exists (
+    when not exists (
+      select 1 from public.productos p where p.sku = t.sku
+    ) then t.sku
+    when t.ean is not null and not exists (
       select 1 from public.productos p
-      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+      where p.sku = ('FC-ND-' || right(t.ean, 8))
     ) then 'FC-ND-' || right(t.ean, 8)
-    else t.sku
+    when t.ean is not null then
+      'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+    else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
   end,
   t.ean,
   t.categoria,
@@ -1326,8 +1716,36 @@ from (
   from _fc_sur_161448
   order by coalesce(ean, sku), linea
 ) t
-where (t.ean is null or public.fc_buscar_producto_escaneo(t.ean) is null)
-  and public.fc_buscar_producto_escaneo(t.sku) is null;
+where (t.ean is null or not exists (
+    select 1 from public.productos p
+    where nullif(btrim(p.codigo_barras), '') = t.ean
+  ))
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = t.sku
+      and (
+        t.ean is null
+        or nullif(btrim(p.codigo_barras), '') is null
+        or nullif(btrim(p.codigo_barras), '') = t.ean
+      )
+  )
+  and not exists (
+    select 1 from public.productos p
+    where p.sku = (
+      case
+        when not exists (
+          select 1 from public.productos x where x.sku = t.sku
+        ) then t.sku
+        when t.ean is not null and not exists (
+          select 1 from public.productos x
+          where x.sku = ('FC-ND-' || right(t.ean, 8))
+        ) then 'FC-ND-' || right(t.ean, 8)
+        when t.ean is not null then
+          'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.ean, 8)
+        else 'FC-T' || lpad(t.linea::text, 2, '0') || '-' || right(t.sku, 8)
+      end
+    )
+  );
 
 update public.productos p
 set
@@ -1343,7 +1761,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 )
   and (
     p.costo is distinct from t.costo
@@ -1373,7 +1804,20 @@ from (
 ) t
 where p.id = coalesce(
   case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-  public.fc_buscar_producto_escaneo(t.sku)
+  public.fc_buscar_producto_escaneo(t.sku),
+  (
+    select p2.id from public.productos p2
+    where t.ean is not null
+      and nullif(btrim(p2.codigo_barras), '') = t.ean
+    order by p2.id
+    limit 1
+  ),
+  (
+    select p2.id from public.productos p2
+    where p2.sku = t.sku
+    order by p2.id
+    limit 1
+  )
 );
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
@@ -1425,15 +1869,7 @@ select
   (v.pid is null),
   'pdf',
   false,
-  (
-    v.pid is not null and exists (
-      select 1 from public.lotes l
-      where l.producto_id = v.pid
-        and coalesce(l.activo, true)
-        and coalesce(l.cantidad_actual, 0) > 0
-        and (t.lote is null or l.numero_lote is distinct from t.lote)
-    )
-  ),
+  false,
   null
 from _fc_sur_161448 t
 join public.recepciones r
@@ -1445,7 +1881,20 @@ left join lateral (
     case when nullif(btrim(t.ean), '') is not null
       then public.fc_buscar_producto_escaneo(nullif(btrim(t.ean), ''))
       else null end,
-    public.fc_buscar_producto_escaneo(t.sku)
+    public.fc_buscar_producto_escaneo(t.sku),
+    (
+      select p2.id from public.productos p2
+      where nullif(btrim(t.ean), '') is not null
+        and nullif(btrim(p2.codigo_barras), '') = nullif(btrim(t.ean), '')
+      order by p2.id
+      limit 1
+    ),
+    (
+      select p2.id from public.productos p2
+      where p2.sku = t.sku
+      order by p2.id
+      limit 1
+    )
   ) as pid
 ) v on true
 order by t.linea;
@@ -1476,7 +1925,20 @@ select
   case
     when coalesce(
       case when t.ean is not null then public.fc_buscar_producto_escaneo(t.ean) end,
-      public.fc_buscar_producto_escaneo(t.sku)
+      public.fc_buscar_producto_escaneo(t.sku),
+      (
+        select p2.id from public.productos p2
+        where t.ean is not null
+          and nullif(btrim(p2.codigo_barras), '') = t.ean
+        order by p2.id
+        limit 1
+      ),
+      (
+        select p2.id from public.productos p2
+        where p2.sku = t.sku
+        order by p2.id
+        limit 1
+      )
     ) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
   t.ya as marcado_ya
 from _fc_sur_161448 t
