@@ -1,0 +1,22 @@
+{
+  "generado": "2026-09-22",
+  "conteos": {
+    "filas_lista": 2271,
+    "unicos": 2213,
+    "sin_codigo": 1,
+    "con_foto": 1676,
+    "foto_dermaexpress": 1585,
+    "foto_extra": 91,
+    "sin_foto": 537,
+    "costo_mediano": 491.84
+  },
+  "sin_codigo": [
+    {
+      "fila": 2018,
+      "codigo": "#VALUE!",
+      "descripcion": "S-MEDIDERMA CREMA ESPUMOSA 200ML",
+      "cliente_con": 333.0012,
+      "linea": "LIMPIADORES"
+    }
+  ]
+}
