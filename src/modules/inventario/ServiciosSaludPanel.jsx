@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { C_LIGHT } from "../../constants";
+import { repartoAtencion } from "../../lib/servicioSalud";
 import { Inp } from "../../ui";
+import { $ } from "../../utils";
 
 /**
  * Ficha corta de atención en mostrador. Solo nombre, precio y activo.
@@ -32,6 +34,8 @@ function FilaServicio({ servicio, onGuardar, onToggleActivo }) {
     onGuardar(servicio, "precio", next);
   };
 
+  const partes = repartoAtencion(precio);
+
   return (
     <div
       data-testid={`servicio-salud-${servicio.sku || servicio.id}`}
@@ -60,6 +64,11 @@ function FilaServicio({ servicio, onGuardar, onToggleActivo }) {
           onBlur={guardarPrecio}
           inputMode="decimal"
         />
+        {partes.total > 0 ? (
+          <span style={{ fontSize: 11, color: C.textMid, fontWeight: 700 }}>
+            Quien aplica {$(partes.aplica)} · Farmacia {$(partes.farmacia)}
+          </span>
+        ) : null}
       </label>
       <button
         type="button"
@@ -89,7 +98,7 @@ export default function ServiciosSaludPanel({ servicios, onGuardar, onToggleActi
       <h2 style={{ margin: "0 0 4px", fontSize: 16, color: C.text }}>Servicios de salud</h2>
       <p style={{ margin: "0 0 12px", fontSize: 12, color: C.textMid, lineHeight: 1.45 }}>
         Atención en mostrador. Aquí solo se cambia el nombre, el precio y si está activo.
-        No llevan stock, lote ni costo de compra.
+        No llevan stock, lote ni costo de compra. El precio se parte a la mitad: quien aplica y la farmacia.
       </p>
       {lista.length === 0 ? (
         <p style={{ margin: 0, fontSize: 13, color: C.textDim }}>

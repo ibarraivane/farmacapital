@@ -23,6 +23,8 @@ test("solo ofrece nombre, precio y activo", () => {
     />
   );
   expect(screen.getByText(/No llevan stock, lote ni costo/)).toBeInTheDocument();
+  expect(screen.getAllByText(/Quien aplica/).length).toBeGreaterThan(0);
+  expect(screen.getByText(/Quien aplica \$10\.00 · Farmacia \$10\.00/)).toBeInTheDocument();
   expect(screen.queryByLabelText(/stock/i)).not.toBeInTheDocument();
   expect(screen.queryByLabelText(/lote/i)).not.toBeInTheDocument();
   expect(screen.queryByLabelText(/costo/i)).not.toBeInTheDocument();
