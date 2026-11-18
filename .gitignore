@@ -35,6 +35,7 @@ backups/
 *.xlsx
 ~$*.xlsx
 !public/catalogo-propia/ProductosActualizacion-es.xlsx
+!pricing/reportes/yamin_*/FarmaCapital_vs_Yamin_decision.xlsx
 
 # Catálogo masivo regenerado localmente (ver scripts/import-farmac-os-xlsx.js)
 sql/generated/*.sql
