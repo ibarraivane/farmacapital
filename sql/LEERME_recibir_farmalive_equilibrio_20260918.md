@@ -20,7 +20,7 @@ El ticket físico es **12790** (32 renglones, $3,534.11). Los parches del 16-sep
 | Teatrical rosa lanolina 19 g | 6502400079009 | 650240079009 · 6502400070009 |
 | Teatrical azul 19 g | 6502400078996 | 650240078996 |
 | Gotinal adulto spray 15 ml | 7501088509926 | — |
-| Ensure líquido chocolate 237 ml | 7501033954061 | ya estaba FC-33950100 |
+| Ensure líquido chocolate 237 ml | 7501033954061 | FC-33954061 · no es el 236 ml FC-33950100 |
 | Aspirina C/40 3-pack | 7501008499429 | OCR viejo 7501008849949 |
 | Aspirina GO C/10 sobres | 7501008499245 | — |
 
