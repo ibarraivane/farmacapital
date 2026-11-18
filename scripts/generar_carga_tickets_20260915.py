@@ -606,6 +606,8 @@ left join lateral (
 ) v on true
 order by t.linea;
 
+-- Una foto por (producto, url): tickets con 2 renglones del mismo EAN
+-- (promo 2+1) no deben insertar dos veces la misma URL.
 insert into public.producto_imagenes
   (producto_id, url, storage_path, posicion, es_principal, origen)
 select
@@ -621,17 +623,21 @@ select
     where i.producto_id = p.id and coalesce(i.es_principal, false)
   ),
   'propia'
-from {tmp} t
+from (
+  select distinct on (ean, imagen) *
+  from {tmp}
+  where imagen is not null
+  order by ean, imagen, linea
+) t
 join public.productos p on p.id = coalesce(
   public.fc_buscar_producto_escaneo(t.ean),
   public.fc_buscar_producto_escaneo(t.sku)
 )
-where t.imagen is not null
-  and not exists (
-    select 1 from public.producto_imagenes i
-    where i.producto_id = p.id
-      and (i.url = t.imagen or i.storage_path = t.foto_file)
-  );
+where not exists (
+  select 1 from public.producto_imagenes i
+  where i.producto_id = p.id
+    and (i.url = t.imagen or i.storage_path = t.foto_file)
+);
 
 -- Diagnóstico
 select

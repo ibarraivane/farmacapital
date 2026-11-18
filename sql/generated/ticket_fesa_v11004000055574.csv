@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,V11004000055574,2026-10-20,Farmacias Especializadas,7506429601086,ULMEXTRAL 50MG SOL INY FAM C/1,2,208.02,416.04,,,FC-42960108,416.04,alta
+2,V11004000055574,2026-10-20,Farmacias Especializadas,7506429601086,ULMEXTRAL 50MG SOL INY FAM C/1,1,0.00,0.00,,,FC-42960108,416.04,alta
