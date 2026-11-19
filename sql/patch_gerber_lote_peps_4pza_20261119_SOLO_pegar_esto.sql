@@ -1,16 +1,16 @@
 -- =============================================================================
 -- PEGAR TODO en Supabase → SQL Editor → Run
--- Gerber / pouch sin lote PEPS → crea lote con caducidad 2027-05-01.
--- No suma unidades ni cambia precio. Idempotente. Sin $$ / sin producto_imagenes.
+-- Gerber pouch 4 pza. sin lote PEPS → lote caducidad 2027-05-01.
 --
--- Si filas_insertadas_candidatas sale 0 otra vez: mira el Result del DIAGNOSTICO
--- (primera tabla) y copia sku / stock / marca / presentacion.
+-- Si productos.stock ya es > 0 → el lote usa ese stock (no suma).
+-- Si el pouch conocido tiene stock 0 pero sin lote → crea lote de 4 pza.
+--   (caso: se vio "4" en la ficha sin haber guardado el stock).
+-- Idempotente. Sin $$ / sin producto_imagenes.
 -- =============================================================================
 
 begin;
 
--- 1) DIAGNOSTICO amplio: stock > 0 sin lote con piezas (todo el catálogo chico)
---    + cualquier Gerber/pouch/papilla aunque stock=0
+-- 1) DIAGNOSTICO (mira ESTE result primero)
 select
   p.id,
   p.sku,
@@ -23,8 +23,7 @@ select
   (
     select coalesce(sum(l.cantidad_actual), 0)
     from public.lotes l
-    where l.producto_id = p.id
-      and coalesce(l.activo, true) = true
+    where l.producto_id = p.id and coalesce(l.activo, true) = true
   ) as sum_lotes,
   (
     select count(*)
@@ -36,40 +35,55 @@ select
 from public.productos p
 where coalesce(p.activo, true) = true
   and (
-    coalesce(p.stock, 0) > 0
-    or lower(coalesce(p.marca, '') || ' ' || coalesce(p.nombre, '') || ' ' || coalesce(p.presentacion, ''))
-         like '%gerber%'
+    lower(coalesce(p.marca, '') || ' ' || coalesce(p.nombre, '')) like '%gerber%'
     or lower(coalesce(p.presentacion, '') || ' ' || coalesce(p.nombre, '')) like '%pouch%'
     or lower(coalesce(p.forma_farmaceutica, '')) like '%papilla%'
     or p.codigo_barras in ('7501058651129', '7506475114073')
     or p.sku in ('FC-58651129', 'FC-75114073', 'FC-ND-75114073')
+    or (
+      coalesce(p.stock, 0) > 0
+      and not exists (
+        select 1 from public.lotes l
+        where l.producto_id = p.id
+          and coalesce(l.activo, true) = true
+          and coalesce(l.cantidad_actual, 0) > 0
+      )
+    )
   )
 order by
-  case when coalesce(p.stock, 0) > 0
-            and not exists (
-              select 1 from public.lotes l
-              where l.producto_id = p.id
-                and coalesce(l.activo, true) = true
-                and coalesce(l.cantidad_actual, 0) > 0
-            ) then 0 else 1 end,
+  case
+    when coalesce(p.stock, 0) > 0
+     and not exists (
+       select 1 from public.lotes l
+       where l.producto_id = p.id
+         and coalesce(l.activo, true) = true
+         and coalesce(l.cantidad_actual, 0) > 0
+     ) then 0
+    else 1
+  end,
   p.stock desc nulls last,
   p.sku
-limit 80;
+limit 100;
 
--- 2) Candidatos: stock > 0, sin lote con piezas, y parece Gerber/pouch/papilla
---    (marca O nombre O presentacion O forma O EAN/SKU conocidos)
+-- 2) Candidatos
 create temp table tmp_gerber_peps as
 select
   p.id as producto_id,
   p.sku,
   p.codigo_barras,
   p.nombre,
-  coalesce(p.stock, 0) as stock,
+  case
+    when coalesce(p.stock, 0) > 0 then coalesce(p.stock, 0)
+    else 4
+  end as stock,
   coalesce(p.costo, 0) as costo,
-  'INV-' || coalesce(nullif(btrim(p.sku), ''), p.id::text) || '-20270501' as numero_lote
+  'INV-' || coalesce(nullif(btrim(p.sku), ''), p.id::text) || '-20270501' as numero_lote,
+  case
+    when coalesce(p.stock, 0) > 0 then 'stock_existente'
+    else 'alta_4_pza_ficha'
+  end as origen
 from public.productos p
 where coalesce(p.activo, true) = true
-  and coalesce(p.stock, 0) > 0
   and not exists (
     select 1
     from public.lotes l
@@ -78,17 +92,32 @@ where coalesce(p.activo, true) = true
       and coalesce(l.cantidad_actual, 0) > 0
   )
   and (
-    p.codigo_barras in ('7501058651129', '7506475114073')
-    or p.sku in ('FC-58651129', 'FC-75114073', 'FC-ND-75114073')
-    or lower(coalesce(p.marca, '')) like '%gerber%'
-    or lower(coalesce(p.nombre, '')) like '%gerber%'
-    or lower(coalesce(p.presentacion, '')) like '%pouch%'
-    or lower(coalesce(p.forma_farmaceutica, '')) like '%papilla%'
-    or (
-      coalesce(p.stock, 0) = 4
+    -- A) Ya tiene stock huérfano y parece Gerber/pouch/papilla
+    (
+      coalesce(p.stock, 0) > 0
       and (
-        lower(coalesce(p.nombre, '') || ' ' || coalesce(p.marca, '') || ' ' || coalesce(p.presentacion, ''))
-          ~ '(gerber|pouch|papilla|junior)'
+        p.codigo_barras in ('7501058651129', '7506475114073')
+        or p.sku in ('FC-58651129', 'FC-75114073', 'FC-ND-75114073')
+        or lower(coalesce(p.marca, '')) like '%gerber%'
+        or lower(coalesce(p.nombre, '')) like '%gerber%'
+        or lower(coalesce(p.presentacion, '')) like '%pouch%'
+        or lower(coalesce(p.forma_farmaceutica, '')) like '%papilla%'
+      )
+    )
+    -- B) Pouch Gerber conocido con stock 0: las 4 pzas de la ficha
+    or (
+      coalesce(p.stock, 0) = 0
+      and (
+        p.codigo_barras in ('7501058651129', '7506475114073')
+        or p.sku in ('FC-58651129', 'FC-75114073', 'FC-ND-75114073')
+        or (
+          lower(coalesce(p.nombre, '')) like '%gerber%'
+          and (
+            lower(coalesce(p.presentacion, '')) like '%pouch%'
+            or lower(coalesce(p.nombre, '')) like '%pouch%'
+            or lower(coalesce(p.forma_farmaceutica, '')) like '%papilla%'
+          )
+        )
       )
     )
   );
@@ -124,7 +153,8 @@ select
   t.sku,
   t.codigo_barras,
   left(t.nombre, 60) as nombre,
-  t.stock as stock_antes,
+  t.origen,
+  t.stock as qty_lote,
   l.id as lote_id,
   l.numero_lote,
   l.cantidad_actual,
