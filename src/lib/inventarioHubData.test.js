@@ -1,7 +1,11 @@
 import {
   agruparLotesPorProducto,
+  ejecutarConReintentoTimeout,
+  esTimeoutPostgres,
   filasJson,
   loteObjetivoProveedor,
+  mensajeErrorGuardadoInventario,
+  paginaLotesDesdeRpc,
   patchProductoSinColumnaProveedor,
   productoIdDeLote,
   proveedorDesdeLotes,
@@ -56,4 +60,39 @@ test("el patch de ficha no manda productos.proveedor", () => {
     nombre: "Alcohol",
   });
   expect(patchProductoSinColumnaProveedor({ precio: 20 })).toEqual({ precio: 20 });
+});
+
+test("detecta statement timeout de Postgres", () => {
+  expect(esTimeoutPostgres("canceling statement due to statement timeout")).toBe(true);
+  expect(esTimeoutPostgres("lock timeout")).toBe(true);
+  expect(esTimeoutPostgres("producto no encontrado")).toBe(false);
+  expect(mensajeErrorGuardadoInventario({ message: "canceling statement due to statement timeout" }))
+    .toMatch(/base estaba ocupada/i);
+});
+
+test("paginaLotesDesdeRpc lee filas/hay_mas", () => {
+  expect(paginaLotesDesdeRpc({ filas: [{ id: 1 }], hay_mas: true })).toEqual({
+    filas: [{ id: 1 }],
+    hayMas: true,
+  });
+  expect(paginaLotesDesdeRpc([{ id: 2 }])).toEqual({ filas: [{ id: 2 }], hayMas: false });
+});
+
+test("ejecutarConReintentoTimeout solo reintenta timeouts", async () => {
+  let n = 0;
+  const ok = await ejecutarConReintentoTimeout(async () => {
+    n += 1;
+    if (n === 1) return { error: { message: "canceling statement due to statement timeout" } };
+    return { data: { ok: true }, error: null };
+  }, { esperaMs: 1, dormir: async () => {} });
+  expect(n).toBe(2);
+  expect(ok.data).toEqual({ ok: true });
+
+  let m = 0;
+  const fail = await ejecutarConReintentoTimeout(async () => {
+    m += 1;
+    return { error: { message: "producto no encontrado" } };
+  }, { esperaMs: 1, dormir: async () => {} });
+  expect(m).toBe(1);
+  expect(fail.error.message).toMatch(/producto/);
 });

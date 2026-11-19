@@ -46,8 +46,11 @@ import {
   PRODUCTOS_POR_PAGINA,
   agruparLotesPorProducto,
   diasParaCaducar,
+  ejecutarConReintentoTimeout,
   enriquecerProductoConLotes,
+  esTimeoutPostgres,
   fetchLotesInventario,
+  mensajeErrorGuardadoInventario,
   patchProductoSinColumnaProveedor,
   stockObjetivoAjusteInline,
   stockVisibleInventario,
@@ -1057,9 +1060,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     setCadSaving(true);
     try {
       const loteId = loteCadRef?.id ?? resolverLoteCaducidadProducto(initial)?.id ?? null;
-      const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, initial.id, next, loteId);
+      const { data: resp, error } = await ejecutarConReintentoTimeout(() =>
+        rpcGuardarCaducidadProducto(tok, initial.id, next, loteId)
+      );
       if (error) {
-        showToast(error.message, "error");
+        showToast(mensajeErrorGuardadoInventario(error), "error");
         setCaducidadLote(loteCadRef?.fecha_caducidad || "");
         return;
       }
@@ -1166,6 +1171,24 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
 
       let err;
       const urlNow = (form.imagen_url || "").trim();
+      // Si eligieron caducidad en la ficha (p. ej. stock sin lote PEPS) y Guardar
+      // se tocó antes del blur del date picker (común en iPhone), créalo aquí.
+      const cadPendiente = (caducidadLote || "").trim() || null;
+      const cadActual = loteCadRef?.fecha_caducidad || null;
+      if (form.id && cadPendiente && cadPendiente !== cadActual) {
+        const loteId = loteCadRef?.id ?? resolverLoteCaducidadProducto(initial)?.id ?? null;
+        const { data: cadResp, error: cadErr } = await ejecutarConReintentoTimeout(() =>
+          rpcGuardarCaducidadProducto(tok, form.id, cadPendiente, loteId)
+        );
+        if (cadErr) {
+          showToast("Error al guardar: " + mensajeErrorGuardadoInventario(cadErr), "error");
+          return;
+        }
+        if (!cadResp?.success) {
+          showToast("Error al guardar: no se pudo crear el lote con caducidad.", "error");
+          return;
+        }
+      }
       if (form.id) {
         const patch = patchProductoSinColumnaProveedor({
           ...productoFields,
@@ -1173,32 +1196,40 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           imagen_url: urlNow || null,
           imagen_mobile_url: urlNow || null,
         });
-        const { error: editErr } = await supabase.rpc("admin_editar_producto", {
-          p_session_token: tok,
-          p_producto_id: form.id,
-          p_patch: patch,
-        });
+        const { error: editErr } = await ejecutarConReintentoTimeout(() =>
+          supabase.rpc("admin_editar_producto", {
+            p_session_token: tok,
+            p_producto_id: form.id,
+            p_patch: patch,
+          })
+        );
         err = editErr;
         if (!err) {
-          const { error: provErr } = await rpcGuardarProveedorProducto(tok, form.id, proveedorTxt);
+          const { error: provErr } = await ejecutarConReintentoTimeout(() =>
+            rpcGuardarProveedorProducto(tok, form.id, proveedorTxt)
+          );
           if (provErr) err = provErr;
         }
         // Solo si tocaron la casilla: la lista puede no traer la columna y no hay que apagarla.
         if (!err && form._bajoPedidoTocado) {
-          const { error: bpErr } = await supabase.rpc("admin_set_bajo_pedido_producto", {
-            p_session_token: tok,
-            p_producto_id: form.id,
-            p_bajo_pedido: Boolean(form.bajo_pedido),
-          });
+          const { error: bpErr } = await ejecutarConReintentoTimeout(() =>
+            supabase.rpc("admin_set_bajo_pedido_producto", {
+              p_session_token: tok,
+              p_producto_id: form.id,
+              p_bajo_pedido: Boolean(form.bajo_pedido),
+            })
+          );
           if (bpErr) err = bpErr;
         }
         if (!err && stockInt !== stockVisibleInventario(initial)) {
-          const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
-            p_session_token: tok,
-            p_producto_id: form.id,
-            p_nuevo_stock: stockObjetivoAjusteInline(initial, stockInt),
-            p_motivo: "Edición manual desde Inventario",
-          });
+          const { error: adjErr } = await ejecutarConReintentoTimeout(() =>
+            supabase.rpc("adjust_stock_secure", {
+              p_session_token: tok,
+              p_producto_id: form.id,
+              p_nuevo_stock: stockObjetivoAjusteInline(initial, stockInt),
+              p_motivo: "Edición manual desde Inventario",
+            })
+          );
           if (adjErr) err = adjErr;
         }
       } else {
@@ -1207,36 +1238,45 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           costo: costoNum,
           ...(urlNow ? { imagen_url: urlNow, imagen_mobile_url: urlNow } : {}),
         };
-        const { data: created, error: rpcErr } = await supabase.rpc("create_producto_secure", {
-          p_session_token: tok,
-          p_producto_data: pdata,
-          p_cantidad_inicial: stockInt,
-          p_numero_lote: (form.lote ?? "").trim() || null,
-          p_fecha_caducidad: form.fecha_caducidad || null,
-          p_costo_unitario: costoNum || null,
-        });
+        const { data: created, error: rpcErr } = await ejecutarConReintentoTimeout(() =>
+          supabase.rpc("create_producto_secure", {
+            p_session_token: tok,
+            p_producto_data: pdata,
+            p_cantidad_inicial: stockInt,
+            p_numero_lote: (form.lote ?? "").trim() || null,
+            p_fecha_caducidad: form.fecha_caducidad || null,
+            p_costo_unitario: costoNum || null,
+          })
+        );
         err = rpcErr;
         if (!err && proveedorTxt) {
           const newId = productoIdDesdeCreateRpc(created);
           if (newId != null) {
-            const { error: provErr } = await rpcGuardarProveedorProducto(tok, newId, proveedorTxt);
+            const { error: provErr } = await ejecutarConReintentoTimeout(() =>
+              rpcGuardarProveedorProducto(tok, newId, proveedorTxt)
+            );
             if (provErr) err = provErr;
           }
         }
         if (!err && form._bajoPedidoTocado && form.bajo_pedido) {
           const newId = productoIdDesdeCreateRpc(created);
           if (newId != null) {
-            const { error: bpErr } = await supabase.rpc("admin_set_bajo_pedido_producto", {
-              p_session_token: tok,
-              p_producto_id: newId,
-              p_bajo_pedido: true,
-            });
+            const { error: bpErr } = await ejecutarConReintentoTimeout(() =>
+              supabase.rpc("admin_set_bajo_pedido_producto", {
+                p_session_token: tok,
+                p_producto_id: newId,
+                p_bajo_pedido: true,
+              })
+            );
             if (bpErr) err = bpErr;
           }
         }
       }
       if (err) {
-        showToast("Error al guardar: " + mensajeErrorProveedor(err), "error");
+        const detalle = esTimeoutPostgres(err.message)
+          ? mensajeErrorGuardadoInventario(err)
+          : mensajeErrorProveedor(err);
+        showToast("Error al guardar: " + detalle, "error");
         return;
       }
       if (form.id && !urlNow) {
@@ -3615,6 +3655,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   // pantalla que acaba de grabar no espera esa descarga: pinta el renglón y
   // ignora el eco unos segundos. Las otras terminales sí se refrescan.
   const silencioCatalogoRef = useRef(0);
+  const edicionInlineAbiertaRef = useRef(false);
   const callarCatalogoLocal = useCallback(() => {
     silencioCatalogoRef.current = Date.now() + 8000;
   }, []);
@@ -3626,6 +3667,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   }, []);
   useCatalogoVivo(() => {
     if (Date.now() < silencioCatalogoRef.current) return;
+    // Mientras la celda está abierta, no bajar todos los lotes: esa lectura
+    // se queda con la sesión y el guardado muere por timeout.
+    if (edicionInlineAbiertaRef.current) return;
     fetchProductos({ silencioso: true });
   });
 
@@ -3746,6 +3790,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
   const [inlineEdit, setInlineEdit] = useState(null);
   const [inlineSaving, setInlineSaving] = useState(false);
+  useEffect(() => {
+    edicionInlineAbiertaRef.current = Boolean(inlineEdit) || inlineSaving;
+  }, [inlineEdit, inlineSaving]);
 
   const cancelInlineEdit = useCallback(() => {
     setInlineEdit(null);
@@ -3778,9 +3825,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       if (!fecha) {
         if (!prev) return true;
         if (!quitar && !window.confirm("¿Quitar la fecha de caducidad de este lote?")) return false;
-        const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, product.id, null, loteId);
+        const { data: resp, error } = await ejecutarConReintentoTimeout(() =>
+          rpcGuardarCaducidadProducto(tok, product.id, null, loteId)
+        );
         if (error) {
-          showToast(error.message, "error");
+          showToast(mensajeErrorGuardadoInventario(error), "error");
           return false;
         }
         if (!resp?.success) {
@@ -3799,9 +3848,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         return true;
       }
       if (prev === fecha) return true;
-      const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, product.id, fecha, loteId);
+      const { data: resp, error } = await ejecutarConReintentoTimeout(() =>
+        rpcGuardarCaducidadProducto(tok, product.id, fecha, loteId)
+      );
       if (error) {
-        showToast(error.message, "error");
+        showToast(mensajeErrorGuardadoInventario(error), "error");
         return false;
       }
       if (!resp?.success) {
@@ -3831,9 +3882,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       const next = draft || null;
       const prev = (product.proveedor || "").trim() || null;
       if ((next || "") === (prev || "")) return true;
-      const { data: resp, error } = await rpcGuardarProveedorProducto(tok, product.id, next);
+      const { data: resp, error } = await ejecutarConReintentoTimeout(() =>
+        rpcGuardarProveedorProducto(tok, product.id, next)
+      );
       if (error) {
-        showToast(mensajeErrorProveedor(error), "error");
+        showToast(
+          esTimeoutPostgres(error.message) ? mensajeErrorGuardadoInventario(error) : mensajeErrorProveedor(error),
+          "error"
+        );
         return false;
       }
       if (resp && resp.success === false) {
@@ -3854,14 +3910,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         return false;
       }
       if (n === stockVisibleInventario(product)) return true;
-      const { error } = await supabase.rpc("adjust_stock_secure", {
+      const { error } = await ejecutarConReintentoTimeout(() => supabase.rpc("adjust_stock_secure", {
         p_session_token: tok,
         p_producto_id: product.id,
         p_nuevo_stock: stockObjetivoAjusteInline(product, n),
         p_motivo: "Edición inline inventario",
-      });
+      }));
       if (error) {
-        showToast(error.message, "error");
+        showToast(mensajeErrorGuardadoInventario(error), "error");
         return false;
       }
       callarCatalogoLocal();
@@ -3882,13 +3938,13 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         return false;
       }
       if (modoConsulta) {
-        const { data, error } = await supabase.rpc("empleado_guardar_codigo_barras", {
+        const { data, error } = await ejecutarConReintentoTimeout(() => supabase.rpc("empleado_guardar_codigo_barras", {
           p_session_token: tok,
           p_producto_id: product.id,
           p_codigo_barras: patchValue,
-        });
+        }));
         if (error) {
-          showToast(error.message, "error");
+          showToast(mensajeErrorGuardadoInventario(error), "error");
           return false;
         }
         if (!data?.success) {
@@ -3950,13 +4006,13 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           : String(currentRaw);
     if (currentNorm === patchValue || (patchValue == null && !currentNorm)) return true;
 
-    const { error } = await supabase.rpc("admin_editar_producto", {
+    const { error } = await ejecutarConReintentoTimeout(() => supabase.rpc("admin_editar_producto", {
       p_session_token: tok,
       p_producto_id: product.id,
       p_patch: { [patchKey]: patchValue },
-    });
+    }));
     if (error) {
-      showToast(error.message, "error");
+      showToast(mensajeErrorGuardadoInventario(error), "error");
       return false;
     }
     callarCatalogoLocal();
@@ -3968,6 +4024,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
   const commitInlineEdit = useCallback(async (draftOverride) => {
     if (!inlineEdit || inlineSaving) return;
+    edicionInlineAbiertaRef.current = true;
+    callarCatalogoLocal();
     const product = productos.find((x) => x.id === inlineEdit.productId);
     if (!product) {
       cancelInlineEdit();
@@ -3987,13 +4045,15 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     } finally {
       setInlineSaving(false);
     }
-  }, [inlineEdit, inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
+  }, [inlineEdit, inlineSaving, productos, guardarCampoInline, cancelInlineEdit, callarCatalogoLocal]);
 
   const quitarCaducidadInline = useCallback(async (productId, meta = null) => {
     if (inlineSaving) return;
     const product = productos.find((x) => x.id === productId);
     if (!product) return;
     if (!window.confirm("¿Quitar la fecha de caducidad de este lote?")) return;
+    edicionInlineAbiertaRef.current = true;
+    callarCatalogoLocal();
     setInlineSaving(true);
     try {
       const ok = await guardarCampoInline(product, "cad", "", { ...(meta || {}), quitar: true });
@@ -4001,9 +4061,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     } finally {
       setInlineSaving(false);
     }
-  }, [inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
+  }, [inlineSaving, productos, guardarCampoInline, cancelInlineEdit, callarCatalogoLocal]);
 
   const startInlineEdit = useCallback((productId, field, rawValue, meta = null) => {
+    edicionInlineAbiertaRef.current = true;
     setInlineEdit({
       productId,
       field,
