@@ -1291,15 +1291,15 @@ order by t.linea;
 commit;
 
 
--- ========== Cityfarma Iztapalapa 15341570 ==========
--- Cityfarma · folio 15341570 · 2026-11-17 · total $6,982.85 · 28 renglones
+-- ========== Farmaceuticos Tenorio 15341570 ==========
+-- Tenorio · folio 15341570 · 2026-11-17 · total $6,982.85 · 28 renglones
 -- 16 alta(s) stock 0. 12 ya estaban: solo costo / ficha vacia, no PVP.
 -- Nombres de ficha, no del ticket. SIN dollar-quote. Idempotente en borrador.
 -- Caducidad null: MMAA de la caja. No inventar 0000.
 
 begin;
 
-create temp table _fc_cf_15341570 (
+create temp table _fc_tn_15341570 (
   linea integer primary key,
   ean text,
   sku text not null,
@@ -1323,7 +1323,7 @@ create temp table _fc_cf_15341570 (
   lote text
 ) on commit drop;
 
-insert into _fc_cf_15341570 (
+insert into _fc_tn_15341570 (
   linea, ean, sku, nombre, snap, qty, costo, precio, tipo, categoria,
   subcategoria, forma, marca, laboratorio, presentacion, principio_activo,
   concentracion, receta, ya, imagen, lote
@@ -1381,7 +1381,7 @@ select
   t.categoria,
   t.subcategoria,
   t.tipo,
-  'Alta Cityfarma Iztapalapa 15341570 · 2026-11-17 · listo para pistola',
+  'Alta Farmaceuticos Tenorio 15341570 · 2026-11-17 · listo para pistola',
   t.costo,
   t.precio,
   0,
@@ -1398,7 +1398,7 @@ select
   t.imagen
 from (
   select distinct on (coalesce(ean, sku)) *
-  from _fc_cf_15341570
+  from _fc_tn_15341570
   order by coalesce(ean, sku), linea
 ) t
 where (t.ean is null or not exists (
@@ -1441,7 +1441,7 @@ set
   end
 from (
   select distinct on (coalesce(ean, sku)) *
-  from _fc_cf_15341570
+  from _fc_tn_15341570
   order by coalesce(ean, sku), linea
 ) t
 where p.id = coalesce(
@@ -1484,7 +1484,7 @@ set
   codigo_barras = coalesce(nullif(p.codigo_barras, ''), t.ean)
 from (
   select distinct on (coalesce(ean, sku)) *
-  from _fc_cf_15341570
+  from _fc_tn_15341570
   order by coalesce(ean, sku), linea
 ) t
 where p.id = coalesce(
@@ -1507,34 +1507,34 @@ where p.id = coalesce(
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
-  'Cityfarma Iztapalapa',
+  'Farmaceuticos Tenorio',
   '15341570',
   '2026-11-17',
   6982.85,
   'borrador',
-  'Cityfarma Iztapalapa · orden 15341570 · 17-nov-2026 10:37 · Eduardo Alcantara · cliente Luis Angel Palillero · 28 renglones · EANs validados por digito de control · Enterogermina 2 bill EAN canonico 3664798074680 · total = suma P.U. · cola Recibir'
+  'Farmaceuticos Tenorio · folio 15341570 · 17-nov-2026 10:37 · 28 renglones · EANs validados por digito de control · Enterogermina 2 bill EAN canonico 3664798074680 · total = suma P.U. · cola Recibir'
 where not exists (
   select 1 from public.recepciones
   where folio = '15341570'
-    and coalesce(proveedor, '') ilike '%cityfarma%'
+    and coalesce(proveedor, '') ilike '%tenorio%'
 );
 
 update public.recepciones
 set
   total_ticket = 6982.85,
   fecha = '2026-11-17',
-  proveedor = 'Cityfarma Iztapalapa',
-  notas = 'Cityfarma Iztapalapa · orden 15341570 · 17-nov-2026 10:37 · Eduardo Alcantara · cliente Luis Angel Palillero · 28 renglones · EANs validados por digito de control · Enterogermina 2 bill EAN canonico 3664798074680 · total = suma P.U. · cola Recibir',
+  proveedor = 'Farmaceuticos Tenorio',
+  notas = 'Farmaceuticos Tenorio · folio 15341570 · 17-nov-2026 10:37 · 28 renglones · EANs validados por digito de control · Enterogermina 2 bill EAN canonico 3664798074680 · total = suma P.U. · cola Recibir',
   updated_at = now()
 where folio = '15341570'
-  and coalesce(proveedor, '') ilike '%cityfarma%'
+  and coalesce(proveedor, '') ilike '%tenorio%'
   and estado = 'borrador';
 
 delete from public.recepcion_items i
 using public.recepciones r
 where i.recepcion_id = r.id
   and r.folio = '15341570'
-  and coalesce(r.proveedor, '') ilike '%cityfarma%'
+  and coalesce(r.proveedor, '') ilike '%tenorio%'
   and r.estado = 'borrador';
 
 insert into public.recepcion_items (
@@ -1556,10 +1556,10 @@ select
   false,
   false,
   null
-from _fc_cf_15341570 t
+from _fc_tn_15341570 t
 join public.recepciones r
   on r.folio = '15341570'
- and coalesce(r.proveedor, '') ilike '%cityfarma%'
+ and coalesce(r.proveedor, '') ilike '%tenorio%'
  and r.estado = 'borrador'
 left join lateral (
   select coalesce(
@@ -1596,7 +1596,7 @@ select
 from public.recepciones r
 left join public.recepcion_items i on i.recepcion_id = r.id
 where r.folio = '15341570'
-  and coalesce(r.proveedor, '') ilike '%cityfarma%'
+  and coalesce(r.proveedor, '') ilike '%tenorio%'
 group by r.id, r.folio, r.proveedor, r.estado, r.total_ticket;
 
 select
@@ -1626,7 +1626,7 @@ select
       )
     ) is null then 'PENDIENTE_ALTA' else 'OK' end as match,
   t.ya as marcado_ya
-from _fc_cf_15341570 t
+from _fc_tn_15341570 t
 order by t.linea;
 
 commit;
@@ -1963,7 +1963,7 @@ where (
  or (r.folio = '451922' and coalesce(r.proveedor, '') ilike '%equilibrio%')
  or (r.folio = '134202' and coalesce(r.proveedor, '') ilike '%ifc%')
  or (r.folio = 'V01000004500' and coalesce(r.proveedor, '') ilike '%farma mayoreo%')
- or (r.folio = '15341570' and coalesce(r.proveedor, '') ilike '%cityfarma%')
+ or (r.folio = '15341570' and coalesce(r.proveedor, '') ilike '%tenorio%')
  or (r.folio = '161448' and coalesce(r.proveedor, '') ilike '%surtidor%')
 )
 group by r.id, r.folio, r.proveedor, r.estado, r.total_ticket
