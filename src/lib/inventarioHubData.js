@@ -110,6 +110,87 @@ export function filasJson(data) {
   return [];
 }
 
+/** Postgres cortó la consulta (statement_timeout / lock_timeout). */
+export function esTimeoutPostgres(msg) {
+  return /statement timeout|lock timeout|canceling statement/i.test(String(msg || ""));
+}
+
+export function mensajeErrorGuardadoInventario(error) {
+  const msg = error?.message || (typeof error === "string" ? error : "");
+  if (esTimeoutPostgres(msg)) {
+    return "No se pudo guardar: la base estaba ocupada. Vuelve a intentar.";
+  }
+  return msg || "No se pudo guardar.";
+}
+
+export function rpcPostgresNoExiste(error) {
+  const msg = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`;
+  const code = String(error?.code || "");
+  return code === "PGRST202" || /could not find the function|schema cache|does not exist/i.test(msg);
+}
+
+/** Respuesta de empleado_listar_lotes_inventario_pagina. */
+export function paginaLotesDesdeRpc(data) {
+  let raw = data;
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); } catch { return { filas: [], hayMas: false }; }
+  }
+  if (Array.isArray(raw)) return { filas: raw, hayMas: false };
+  if (!raw || typeof raw !== "object") return { filas: [], hayMas: false };
+  const filas = Array.isArray(raw.filas) ? raw.filas : [];
+  return { filas, hayMas: raw.hay_mas === true };
+}
+
+const LOTES_POR_PAGINA = 500;
+const LOTES_PAGINAS_MAX = 40;
+
+async function fetchLotesInventarioEntero(sessionToken) {
+  const { data, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
+    p_session_token: sessionToken,
+  });
+  if (error) return { data: [], error };
+  return { data: filasJson(data), error: null };
+}
+
+/**
+ * Una página por llamada. El RPC que devolvía todos los lotes en un JSON
+ * se pasaba de los 8 s y cancelaba el guardado del precio en la misma sesión.
+ */
+export async function fetchLotesInventario(sessionToken) {
+  if (!sessionToken) return { data: [], error: null };
+  const filas = [];
+  for (let pagina = 0; pagina < LOTES_PAGINAS_MAX; pagina += 1) {
+    const offset = pagina * LOTES_POR_PAGINA;
+    const { data, error } = await supabase.rpc("empleado_listar_lotes_inventario_pagina", {
+      p_session_token: sessionToken,
+      p_offset: offset,
+      p_limite: LOTES_POR_PAGINA,
+    });
+    if (error) {
+      if (pagina === 0 && rpcPostgresNoExiste(error)) return fetchLotesInventarioEntero(sessionToken);
+      return { data: filas, error };
+    }
+    const page = paginaLotesDesdeRpc(data);
+    filas.push(...page.filas);
+    if (!page.hayMas || page.filas.length === 0) break;
+  }
+  return { data: filas, error: null };
+}
+
+/** Reintenta solo si Postgres canceló por tiempo. Un error de datos no se repite. */
+export async function ejecutarConReintentoTimeout(run, { intentos = 2, esperaMs = 600, dormir } = {}) {
+  const pausa = dormir || ((ms) => new Promise((resolve) => { setTimeout(resolve, ms); }));
+  let last = { error: null };
+  const veces = Math.max(1, intentos);
+  for (let i = 0; i < veces; i += 1) {
+    last = await run();
+    const msg = last?.error?.message || "";
+    if (!last?.error || !esTimeoutPostgres(msg) || i === veces - 1) return last;
+    await pausa(esperaMs);
+  }
+  return last;
+}
+
 export function productoIdDeLote(l) {
   const raw = l?.producto_id ?? l?.productos?.id;
   const n = typeof raw === "number" ? raw : parseInt(String(raw || ""), 10);
@@ -148,15 +229,6 @@ export async function fetchProductosPaginados({
     if ((data || []).length < PRODUCTOS_POR_PAGINA) break;
   }
   return { data: filas, error: null };
-}
-
-export async function fetchLotesInventario(sessionToken) {
-  if (!sessionToken) return { data: [], error: null };
-  const { data, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
-    p_session_token: sessionToken,
-  });
-  if (error) return { data: [], error };
-  return { data: filasJson(data), error: null };
 }
 
 export function enriquecerProductoConLotes(p, lotes) {
