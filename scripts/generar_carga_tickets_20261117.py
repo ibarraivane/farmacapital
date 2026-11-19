@@ -3,7 +3,7 @@
 
 6 pedidos:
   Surtidor 161443 · Equilibrio 451922 · IFC 134202
-  Farma Mayoreo V01000004500 · Cityfarma 15341570 · Surtidor 161448
+  Farma Mayoreo V01000004500 · Tenorio 15341570 · Surtidor 161448
 
 Nombres de mostrador (no código de ticket). Caducidad null (MMAA de la caja).
 Equilibrio/Farma Mayoreo: lote de fábrica sí; caducidad del papel NO.
@@ -928,19 +928,19 @@ TICKETS = [
         ],
     },
     {
-        "key": "cityfarma_15341570",
-        "tmp": "_fc_cf_15341570",
+        "key": "tenorio_15341570",
+        "tmp": "_fc_tn_15341570",
         "folio": "15341570",
-        "proveedor": "Cityfarma Iztapalapa",
-        "proveedor_ilike": "cityfarma",
+        "proveedor": "Farmaceuticos Tenorio",
+        "proveedor_ilike": "tenorio",
         "fecha": "2026-11-17",
         "total": 6982.85,
         "notas": (
-            "Cityfarma Iztapalapa · orden 15341570 · 17-nov-2026 10:37 · Eduardo Alcantara · "
-            "cliente Luis Angel Palillero · 28 renglones · EANs validados por digito de control · "
-            "Enterogermina 2 bill EAN canonico 3664798074680 · total = suma P.U. · cola Recibir"
+            "Farmaceuticos Tenorio · folio 15341570 · 17-nov-2026 10:37 · 28 renglones · "
+            "EANs validados por digito de control · Enterogermina 2 bill EAN canonico 3664798074680 · "
+            "total = suma P.U. · cola Recibir"
         ),
-        "header": "Cityfarma · folio 15341570 · 2026-11-17 · total $6,982.85 · 28 renglones",
+        "header": "Tenorio · folio 15341570 · 2026-11-17 · total $6,982.85 · 28 renglones",
         "rows": [
             row("7501070613044", "ANDANTOL 25GR JALEA", 2, 173.80),
             row("7841141004068", "ARLUY DUO 200MG/300MG", 1, 682.02),
@@ -1423,7 +1423,7 @@ El merge a GitHub **no** crea la cola. Pegar **todo** el SQL en Supabase → SQL
 2. **Equilibrio 451922:** claves → EAN de ficha. Lote sí; caducidad NO. ALP0607 sin EAN en portal (match por SKU).
 3. **IFC 134202:** Miyako férulas; EAN solo en recta grande (`0750187760234`).
 4. **Farma Mayoreo V01000004500:** subtotal $1,566.76 + IVA $59.15 = $1,625.91.
-5. **Cityfarma 15341570:** Enterogermina 2 bill `3664798074680`. Arluy / Enterogermina 4: solo dígito de control GS1 (`7841141004068`, `7501165010628`).
+5. **Tenorio 15341570:** (antes mal como Cityfarma/Farma City). Enterogermina 2 `3664798074680`.
 6. **Surtidor 161448:** Kola Loka brocha + gota.
 7. **Stock:** 0 hasta pistola + MMAA. No poner `0000`.
 """,

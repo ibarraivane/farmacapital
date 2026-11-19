@@ -1,10 +1,10 @@
-# Reintento Cityfarma + Surtidor 161448
+# Reintento Tenorio + Surtidor 161448
 
 Los primeros 4 tickets del lote 17-nov pueden haber quedado bien. Este SQL solo reintenta:
 
 | Proveedor | Folio | Total |
 |---|---|---|
-| Cityfarma Iztapalapa | **15341570** | $6,982.85 |
+| Farmaceuticos Tenorio | **15341570** | $6,982.85 |
 | El Surtidor | **161448** | $334.00 |
 
 1. Pegar **todo** `sql/patch_recibir_tickets_1711_cityfarma_surtidor_SOLO_pegar_esto.sql`
