@@ -25,6 +25,7 @@ import {
   piezasSueltasDisponibles,
   precioMostradorPos,
   productoCajaEsFalsa,
+  productoConPvpMostrador,
   productoIdEnErrorStock,
   stockMostradorPos,
 } from "../../../utils/productoCajaFalsa";
@@ -304,7 +305,13 @@ async function fetchEspecialesCaducidadPos(sessionToken) {
 }
 
 function precioCajaDesdeProducto(producto, qty, propuestasByLote) {
-  return precioLineaCajaPos(producto, qty, propuestasByLote, fechaLocalMexico());
+  // Caja falsa (chupón, pote Jaloma): ficha y carrito cobran el mismo precio de pieza.
+  return precioLineaCajaPos(
+    productoConPvpMostrador(producto),
+    qty,
+    propuestasByLote,
+    fechaLocalMexico(),
+  );
 }
 
 const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v2";
