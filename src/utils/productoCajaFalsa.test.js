@@ -6,9 +6,11 @@ import {
   piezasSueltasDisponibles,
   precioMostradorPos,
   productoCajaEsFalsa,
+  productoConPvpMostrador,
   puedeAbrirCajaParaPiezas,
   stockMostradorPos,
 } from "./productoCajaFalsa";
+import { precioLineaCajaPos } from "../lib/precioVentaExclusivo";
 
 test("Jaloma pomada: el pote de 60 no es una caja", () => {
   expect(
@@ -173,4 +175,35 @@ test("stock y precio de mostrador usan la pieza", () => {
   };
   expect(stockMostradorPos(jaloma, 1)).toBe(60);
   expect(precioMostradorPos(jaloma)).toBe(6);
+});
+
+test("chupón Ternura: escaneo/Agregar cobra $6, no el $8 de caja", () => {
+  const chupon = {
+    venta_unidad: true,
+    unidades_por_caja: 18,
+    precio: 8,
+    precio_unidad: 6,
+    stock_unidades: 0,
+    nombre: "Ternura 18 Pzs Chupon Ortodontico",
+    presentacion: "18 Pzs",
+    sku: "FC-20482092",
+  };
+  expect(productoCajaEsFalsa(chupon)).toBe(true);
+  expect(precioMostradorPos(chupon)).toBe(6);
+  const paraCobro = productoConPvpMostrador(chupon);
+  expect(paraCobro.precio).toBe(6);
+  const linea = precioLineaCajaPos(paraCobro, 1, {}, "2026-11-22");
+  expect(linea.precio).toBe(6);
+  expect(precioLineaCajaPos(chupon, 1, {}, "2026-11-22").precio).toBe(8);
+});
+
+test("caja real no cambia el PVP al cobrar", () => {
+  const alka = {
+    venta_unidad: true,
+    unidades_por_caja: 100,
+    precio: 347,
+    precio_unidad: 8,
+    nombre: "Alka-Seltzer",
+  };
+  expect(productoConPvpMostrador(alka)).toBe(alka);
 });

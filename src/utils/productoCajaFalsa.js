@@ -96,6 +96,17 @@ export function precioMostradorPos(p) {
 }
 
 /**
+ * Mismo PVP que ve el mostrador, listo para cobro de “caja” (escaneo / Agregar).
+ * Sin esto, la ficha muestra $6 (pieza) y el carrito cobra $8 (precio de caja).
+ */
+export function productoConPvpMostrador(p) {
+  if (!p || !productoCajaEsFalsa(p)) return p;
+  const precio = precioMostradorPos(p);
+  if (precio <= 0 || precio === num(p.precio)) return p;
+  return { ...p, precio };
+}
+
+/**
  * Caja cerrada de verdad (Amox C/12), no pote ni “caja” que en mostrador es una pieza.
  * Misma regla que sql/patch_venta_pieza_abre_caja_20260926.sql.
  */
