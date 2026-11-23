@@ -63,6 +63,9 @@ if (/flex:\s*["']1 1 140px["']/.test(rec)) {
 if (!/auto-fill/.test(rec)) {
   fail("Recibir: la lista de tickets vivos debe ser grid auto-fill para que todas midan igual.");
 }
+if (!/formatoFechaRecepcionTicket/.test(rec)) {
+  fail("Recibir: las tarjetas deben mostrar la fecha del ticket debajo de cajas.");
+}
 if (/Dalos de alta en[\s\S]{0,80}Inventario → Catálogo →/.test(rec)) {
   fail("Recibir: el recuadro rojo no debe mandar a Inventario → Catálogo. El alta se arma desde Recibir.");
 }
@@ -137,6 +140,7 @@ async function assertScanLogic() {
     itemMatchScan,
     eanPistolaListo,
     pedidoEsperaEntrada,
+    formatoFechaRecepcionTicket,
     recepcionEsTicket,
     matchScanEnTicket,
     extractGs1Gtin,
@@ -170,6 +174,10 @@ async function assertScanLogic() {
   }
   if (pedidoEsperaEntrada({ renglones: 184, sin_confirmar: 0, estado: "borrador" })) {
     fail("Historial ya recibido (todo verde) no debe volver a Recibir.");
+  }
+  const fechaTarjeta = formatoFechaRecepcionTicket("2026-11-23");
+  if (!fechaTarjeta || !/23/.test(fechaTarjeta) || !/2026/.test(fechaTarjeta)) {
+    fail("formatoFechaRecepcionTicket debe formatear la fecha del ticket para la tarjeta.");
   }
   if (parseCaducidadMMAA("0000") != null) {
     fail("0000 no es caducidad: parseCaducidadMMAA debe devolver null.");

@@ -6,6 +6,7 @@ import {
   recepcionItemVerdeSinStock,
   recepcionItemsVerdeSinStock,
   pedidoEsperaEntrada,
+  formatoFechaRecepcionTicket,
   extractGs1Gtin,
   extractGs1Lot,
   eanPistolaListo,
@@ -218,6 +219,23 @@ describe("pedidoEsperaEntrada", () => {
       sin_caducidad_anaquel: 3,
       estado: "borrador",
     })).toBe(true);
+  });
+});
+
+describe("formatoFechaRecepcionTicket", () => {
+  test("YYYY-MM-DD → fecha corta es-MX", () => {
+    expect(formatoFechaRecepcionTicket("2026-11-23")).toMatch(/23/);
+    expect(formatoFechaRecepcionTicket("2026-11-23")).toMatch(/2026/);
+  });
+
+  test("ISO con hora no se va a otro día", () => {
+    expect(formatoFechaRecepcionTicket("2026-11-23T06:00:00.000Z")).toMatch(/23/);
+  });
+
+  test("vacío o basura → cadena vacía", () => {
+    expect(formatoFechaRecepcionTicket(null)).toBe("");
+    expect(formatoFechaRecepcionTicket("")).toBe("");
+    expect(formatoFechaRecepcionTicket("ayer")).toBe("");
   });
 });
 

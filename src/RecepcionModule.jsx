@@ -31,6 +31,7 @@ import {
   recepcionItemVerdeSinStock,
   recepcionItemsVerdeSinStock,
   pedidoEsperaEntrada,
+  formatoFechaRecepcionTicket,
   eanPistolaListo,
   esSerialTerminalPoint,
 } from "./lib/recepcionScan";
@@ -40,12 +41,6 @@ import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import RecepcionHistorial from "./components/RecepcionHistorial";
-
-const fmtFecha = (f) => {
-  const s = String(f || "").slice(0, 10);
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
-};
 
 function sessionTok() {
   const tok = getSessionToken();
@@ -1144,6 +1139,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 {doc.renglones || 0} renglones · {(doc.items || []).filter((i) => i.confirmado).length} ok
                 {(doc.sin_confirmar > 0) ? ` · ${doc.sin_confirmar} sin caducidad` : ""}
               </div>
+              {formatoFechaRecepcionTicket(doc.fecha) ? (
+                <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
+                  {formatoFechaRecepcionTicket(doc.fecha)}
+                </div>
+              ) : null}
               {ticketNum != null && Number.isFinite(ticketNum) && !ocultarMontos && (
                 <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
                   estimado {fmt(estimado)} de {fmt(ticketNum)} del ticket
@@ -1177,6 +1177,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           {pendientes.map((t) => {
             const activo = doc?.id === t.id;
             const cajas = t.renglones || 0;
+            const fechaTicket = formatoFechaRecepcionTicket(t.fecha);
             return (
               <button
                 key={t.id}
@@ -1200,6 +1201,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
                   {cajas} {cajas === 1 ? "caja" : "cajas"}
                 </div>
+                {fechaTicket ? (
+                  <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
+                    {fechaTicket}
+                  </div>
+                ) : null}
               </button>
             );
           })}
