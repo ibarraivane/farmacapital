@@ -263,6 +263,28 @@ export function pedidoEsperaEntrada(t) {
   return false;
 }
 
+/**
+ * Fecha del ticket (`recepciones.fecha`) para la tarjeta de Recibir.
+ * Acepta `YYYY-MM-DD` o ISO; sin zona fantasma (parse local).
+ */
+export function formatoFechaRecepcionTicket(raw) {
+  if (raw == null || raw === "") return "";
+  const s = String(raw).trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (!m) return "";
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (!y || mo < 1 || mo > 12 || d < 1 || d > 31) return "";
+  const dt = new Date(y, mo - 1, d);
+  if (Number.isNaN(dt.getTime())) return "";
+  return dt.toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function matchScanEnTicket(items, codigo) {
   const lista = Array.isArray(items) ? items : [];
   const code = normalizeBarcodeRaw(codigo) || String(codigo || "").trim();
