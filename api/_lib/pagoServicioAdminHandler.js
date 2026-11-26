@@ -84,8 +84,24 @@ async function recargosGuardados(supabaseUrl, headers) {
   }
 }
 
+function comisionCobroError(categoria, comisionCliente) {
+  if (String(categoria || '').toLowerCase() === 'recarga') return null;
+  if (comisionCliente == null || String(comisionCliente).trim() === '') return null;
+  const typed = roundMoney(comisionCliente);
+  if (!(typed > 0)) return 'La comisión tiene que ser mayor a 0.';
+  if (typed > RECARGO_RECIBO_MAX) return `La comisión no puede pasar de $${RECARGO_RECIBO_MAX}.`;
+  return null;
+}
+
+/** Misma regla que recargoCobroDe: si el vendedor manda la comisión, esa se guarda.
+ *  Si el POS no la manda, sigue el catálogo. */
 function recargoVigente(proveedor, categoria, comisionCliente, cfg) {
   if (String(categoria || '').toLowerCase() === 'recarga') return 0;
+  if (comisionCliente != null && String(comisionCliente).trim() !== '') {
+    const typed = roundMoney(comisionCliente);
+    if (typed > 0 && typed <= RECARGO_RECIBO_MAX) return typed;
+    return 0;
+  }
   const id = recargoIdDeProveedor(proveedor);
   if (id) {
     const n = roundMoney(cfg?.[id] ?? RECARGO_DEFAULT[id]);
@@ -156,6 +172,8 @@ async function pagoServicioAdminHandler(req, res) {
       const categoria = String(body.categoria || '').trim().toLowerCase();
       const metodo = String(body.metodo_pago || '').trim().toLowerCase();
       const monto = roundMoney(body.monto_servicio);
+      const comisionError = comisionCobroError(categoria, body.comision);
+      if (comisionError) return res.status(400).json({ ok: false, error: comisionError });
       const cfgRecargos = await recargosGuardados(supabaseUrl, headers);
       const comision = recargoVigente(proveedor, categoria, body.comision, cfgRecargos);
       if (!proveedor) return res.status(400).json({ ok: false, error: 'Proveedor requerido' });
@@ -326,6 +344,9 @@ async function pagoServicioAdminHandler(req, res) {
     if (body.comision != null && body.comision !== '') {
       const c = roundMoney(body.comision);
       if (c < 0 || !Number.isFinite(c)) return res.status(400).json({ ok: false, error: 'comision_invalida' });
+      if (c > RECARGO_RECIBO_MAX) {
+        return res.status(400).json({ ok: false, error: `La comisión no puede pasar de $${RECARGO_RECIBO_MAX}.` });
+      }
       patch.comision = c;
     }
     if (body.atendido_por != null && body.atendido_por !== '') {
