@@ -49,7 +49,19 @@ test("Izzi suma $10 por default y el admin puede editar los recargos", async () 
   expect(izzi).toHaveValue("10");
 });
 
-test("el piso no edita recargos", async () => {
+test("en un recibo el vendedor cambia la comisión de este cobro", async () => {
+  render(<PagoServiciosPanel isNarrow usuario={{ rol: "vendedor", nombre: "Cynthia" }} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Izzi/ }));
+  const comision = screen.getByLabelText(/Comisión de este cobro/);
+  expect(comision).toHaveValue("10");
+  fireEvent.change(screen.getByPlaceholderText("100"), { target: { value: "100" } });
+  expect(screen.getByText("$110.00")).toBeInTheDocument();
+  fireEvent.change(comision, { target: { value: "15" } });
+  expect(screen.getByText("$115.00")).toBeInTheDocument();
+  expect(screen.queryByText("$110.00")).not.toBeInTheDocument();
+});
+
+test("el piso no edita los recargos sugeridos", async () => {
   render(<PagoServiciosPanel isNarrow usuario={{ rol: "vendedor", nombre: "Cynthia" }} />);
   expect(await screen.findByRole("button", { name: /Efectivo/ })).toBeInTheDocument();
   expect(screen.queryByText(/Recargos de recibos/)).not.toBeInTheDocument();

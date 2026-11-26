@@ -95,7 +95,7 @@ export function claveServicioDe(idOrProveedor) {
   return hit?.id || null;
 }
 
-/** Recargo del catálogo (defaults o el que ya mergeó el admin). El piso no lo teclea. */
+/** Recargo sugerido del catálogo (defaults o el que ya guardó el admin). */
 export function recargoCatalogoDe(idOrProveedor, catalogo = CATALOGO_SERVICIOS) {
   const key = String(idOrProveedor || "").trim().toLowerCase();
   const list = Array.isArray(catalogo) && catalogo.length ? catalogo : CATALOGO_SERVICIOS;
@@ -105,11 +105,39 @@ export function recargoCatalogoDe(idOrProveedor, catalogo = CATALOGO_SERVICIOS) 
   return money2(hit?.comision ?? 0);
 }
 
-/** Recargo que debe quedar guardado. Recibos usan el catálogo/config, no lo que mande un POS viejo. */
+/** Comisión sugerida vigente (catálogo o config del admin). Recargas en 0.
+ *  En el cobro gana lo que tecleó el vendedor: ver recargoCobroDe. */
 export function recargoVigenteDe({ id, proveedor, categoria, overrides } = {}) {
   if (esServicioRecarga(categoria)) return 0;
   const catalogo = catalogoServiciosConRecargos(overrides);
   return recargoCatalogoDe(id || proveedor, catalogo);
+}
+
+function parseComisionTecleada(v) {
+  if (v == null) return NaN;
+  const s = String(v).replace(/,/g, "").trim();
+  if (!s) return NaN;
+  const n = Number(s);
+  if (!Number.isFinite(n)) return NaN;
+  return money2(n);
+}
+
+/** Comisión de este cobro. Recargas siempre 0.
+ *  En recibos vale lo que ponga el vendedor, de más de $0 hasta RECARGO_RECIBO_MAX.
+ *  La misma regla la aplica el API y fn_recargo_catalogo_servicio. */
+export function recargoCobroDe(tecleado, { categoria } = {}) {
+  if (esServicioRecarga(categoria)) return { ok: true, comision: 0 };
+  const n = parseComisionTecleada(tecleado);
+  if (!Number.isFinite(n)) {
+    return { ok: false, comision: 0, error: "Ingresa la comisión de este cobro." };
+  }
+  if (n <= 0) {
+    return { ok: false, comision: n, error: "La comisión tiene que ser mayor a 0." };
+  }
+  if (n > RECARGO_RECIBO_MAX) {
+    return { ok: false, comision: n, error: `La comisión no puede pasar de $${RECARGO_RECIBO_MAX}.` };
+  }
+  return { ok: true, comision: n };
 }
 
 export function recargosReciboParaGuardar(draft, catalogo = CATALOGO_SERVICIOS) {

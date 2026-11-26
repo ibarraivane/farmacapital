@@ -3,7 +3,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
-import { CATALOGO_SERVICIOS, CLAVE_SERVICIOS_RECARGOS, catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, draftRecargosDe, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, partesPagoServicio, recargoEsValido, recargosReciboParaGuardar, resumenPagosServicioDia, serviciosReciboDe, utilidadServicio } from "../../../lib/pagoServicio";
+import { CATALOGO_SERVICIOS, CLAVE_SERVICIOS_RECARGOS, catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, draftRecargosDe, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, partesPagoServicio, recargoCobroDe, recargosReciboParaGuardar, resumenPagosServicioDia, serviciosReciboDe, utilidadServicio } from "../../../lib/pagoServicio";
 import { desgloseMixto, mensajeErrorMixto } from "../../../utils/pagoMixto";
 import { rolEsAdmin } from "../../../utils/permissions";
 import { printServicioTicket } from "../../../utils/servicioTicket";
@@ -95,6 +95,8 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
   const [catalogo, setCatalogo] = useState(CATALOGO_SERVICIOS);
   const [recargoDraft, setRecargoDraft] = useState(() => draftRecargosDe(CATALOGO_SERVICIOS));
   const [salvandoRecargos, setSalvandoRecargos] = useState(false);
+  const [comisionStr, setComisionStr] = useState("0");
+  const [comisionTocada, setComisionTocada] = useState(false);
   const esAdmin = rolEsAdmin(usuario?.rol);
 
   const servicio = useMemo(
@@ -103,8 +105,11 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
   );
 
   const monto = parseMonto(montoStr);
-  const comision = Number(servicio.comision) || 0;
-  const total = Number.isFinite(monto) && Number.isFinite(comision) ? Math.round((monto + comision) * 100) / 100 : 0;
+  const cobroComision = recargoCobroDe(comisionStr, { categoria: servicio.categoria });
+  const comision = cobroComision.comision;
+  const total = Number.isFinite(monto) && monto > 0 && cobroComision.ok
+    ? Math.round((monto + comision) * 100) / 100
+    : 0;
   const compensacionMp = Number.isFinite(monto) ? compensacionMpDe(monto) : 0;
   const utilidad = Number.isFinite(comision) ? utilidadServicio({ comision, compensacionMp }) : 0;
   const mixtoParts = metodoSel === "mixto" && total > 0 ? desgloseMixto(total, mixtoEfectivoStr) : null;
@@ -147,7 +152,14 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
     setLiquidado(false);
     setMetodoSel("efectivo");
     setMixtoEfectivoStr("");
+    setComisionTocada(false);
+    setComisionStr(servicio.categoria === "recarga" ? "0" : String(servicio.comision ?? 0));
   };
+
+  useEffect(() => {
+    if (comisionTocada) return;
+    setComisionStr(servicio.categoria === "recarga" ? "0" : String(servicio.comision ?? 0));
+  }, [servicio.id, servicio.comision, servicio.categoria, comisionTocada]);
 
   useEffect(() => {
     fetchHistorial();
@@ -174,13 +186,8 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
       showToast("Ingresa el monto del servicio o recarga", "error");
       return false;
     }
-    if (!recargoEsValido(comision, servicio.categoria)) {
-      showToast(
-        servicio.categoria === "recarga"
-          ? "Las recargas no llevan recargo. Solo el monto de tiempo aire."
-          : `El recargo de ${servicio.proveedor} va automático ($${servicio.comision}).`,
-        "error",
-      );
+    if (!cobroComision.ok) {
+      showToast(cobroComision.error, "error");
       return false;
     }
     if (!liquidado) {
@@ -432,7 +439,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>Recargos de recibos (solo admin)</div>
           <div style={{ color: C.textDim, fontSize: 11, lineHeight: 1.45, marginBottom: 10 }}>
-            Esto es lo que se le suma al cliente en CFE, Izzi, Sky, etc. Las recargas de tiempo aire siguen sin recargo. El cambio aplica al siguiente cobro; los tickets ya hechos no se tocan.
+            Comisión sugerida de CFE, Izzi, Sky, etc. En cada cobro el vendedor puede poner otra. Las recargas de tiempo aire siguen sin comisión. Los tickets ya hechos no se tocan.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
             {serviciosReciboDe(CATALOGO_SERVICIOS).map((s) => (
@@ -455,13 +462,13 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
           {servicio.categoria === "recarga" ? (
             <><strong>Recargas.</strong> Primero el tiempo aire en la Point. Aquí anotas el monto: <strong>sin recargo</strong>. Cobra en <strong>efectivo</strong>, <strong>tarjeta</strong> o <strong>mixto</strong>: cada parte se cuenta aparte en el corte.</>
           ) : (
-            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto: el recargo ({$(servicio.comision)}) se suma solo. Cobra en <strong>efectivo</strong>, <strong>tarjeta</strong> o <strong>mixto</strong>.</>
+            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto del recibo y la <strong>comisión</strong> (sale en {$(servicio.comision)}; cámbiala si en este cobro es otra). Cobra en <strong>efectivo</strong>, <strong>tarjeta</strong> o <strong>mixto</strong>.</>
           )}
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
           {servicio.categoria === "recarga"
             ? "Efectivo entra al cajón. Tarjeta entra al corte de tarjeta, no al efectivo esperado. En mixto, cada pata va a su cubeta. Mercado Pago te acredita aparte el 1% en su app (Actividad)."
-            : "El recargo va con el método que eligió el cliente. En mixto, efectivo y tarjeta se parten en el corte. Mercado Pago te acredita aparte el 1% en su app (Actividad)."}
+            : "La comisión va con el método que eligió el cliente. En mixto, efectivo y tarjeta se parten en el corte. Mercado Pago te acredita aparte el 1% en su app (Actividad)."}
         </div>
       </div>
 
@@ -493,7 +500,10 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
               <button
                 key={s.id}
                 type="button"
-                onClick={() => setSelId(s.id)}
+                onClick={() => {
+                  setComisionTocada(false);
+                  setSelId(s.id);
+                }}
                 style={{
                   padding: "6px 10px",
                   borderRadius: 8,
@@ -521,20 +531,45 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Monto de la recarga *</div>
-            <Inp value={montoStr} onChange={(e) => setMontoStr(e.target.value)} placeholder="100" style={{ width: "100%", boxSizing: "border-box" }} />
+            <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>
+              {servicio.categoria === "recarga" ? "Monto de la recarga *" : "Monto del recibo *"}
+            </div>
+            <Inp value={montoStr} onChange={(e) => setMontoStr(e.target.value)} placeholder="100" inputMode="decimal" style={{ width: "100%", boxSizing: "border-box" }} />
           </div>
+
+          {servicio.categoria !== "recarga" && (
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block" }}>
+                <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Comisión de este cobro *</div>
+                <Inp
+                  value={comisionStr}
+                  onChange={(e) => {
+                    setComisionTocada(true);
+                    setComisionStr(e.target.value);
+                  }}
+                  placeholder={String(servicio.comision)}
+                  inputMode="decimal"
+                  style={{ width: "100%", boxSizing: "border-box" }}
+                />
+              </label>
+              <div style={{ color: C.textDim, fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
+                Sugerida {$(servicio.comision)}. Pon la que te indiquen; el total se recalcula.
+              </div>
+            </div>
+          )}
 
           <div style={{ background: C.bg, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <span style={{ color: C.textMid, fontSize: 12 }}>Recarga</span>
+              <span style={{ color: C.textMid, fontSize: 12 }}>{servicio.categoria === "recarga" ? "Recarga" : "Recibo"}</span>
               <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{Number.isFinite(monto) && monto > 0 ? $(monto) : "—"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <span style={{ color: C.textMid, fontSize: 12 }}>
-                {servicio.categoria === "recarga" ? "Recargo farmacia" : `Recargo ${servicio.proveedor} (automático)`}
+                Comisión
               </span>
-              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{comision > 0 ? `+${$(comision)}` : "Sin recargo"}</span>
+              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>
+                {servicio.categoria === "recarga" ? "Sin comisión" : cobroComision.ok ? `+${$(comision)}` : "—"}
+              </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: C.textMid, fontSize: 12 }}>Total a cobrar</span>
