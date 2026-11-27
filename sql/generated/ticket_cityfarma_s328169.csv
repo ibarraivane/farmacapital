@@ -1,0 +1,4 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,S328169,2026-10-02,Cityfarma Iztapalapa,7501008498798,BEPANTHEN 30GR MULTI,3,64.37,193.11,,,FC-08498798,839.64,ya
+2,S328169,2026-10-02,Cityfarma Iztapalapa,7501390912988,ITALVIRON KIDS C30 S,1,553.52,553.52,,,FC-90912988,839.64,alta
+3,S328169,2026-10-02,Cityfarma Iztapalapa,650240017100,XL3 VR C 24 TABL,1,93.01,93.01,,,FC-40017100,839.64,ya
