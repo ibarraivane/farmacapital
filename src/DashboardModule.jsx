@@ -540,6 +540,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
     const serieParsed = serieVentasDesdeRpc(parseRpcJsonArray(serieRes?.data));
     let ventasPorDia = serieParsed.porDia;
+    let gananciaPorDia = serieParsed.tieneGanancia ? serieParsed.ganancia : null;
     let ticketsPorDia = serieParsed.tickets;
     if (!Object.keys(ventasPorDia).length) {
       if (serieRes?.error) console.warn("[Dashboard] ventas serie:", serieRes.error.message);
@@ -765,7 +766,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const metasChartCfg = mezclarCfgMetas(metasTurnoCfg, cfgRows);
 
     setData({
-      ventasPorDia, metasTurnoCfg: metasChartCfg,
+      ventasPorDia, gananciaPorDia, metasTurnoCfg: metasChartCfg,
       ventasHoy, ventasAyer, ventasSemana, ventasSemanaAnt, ventasMes, ventasMesAnt, crecimiento, ticketProm, consultasHoy, consultasAyer, onlinePend,
       recuperado, gananciaMes,
       dashboardLoadWarning,
@@ -893,7 +894,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends,dashboardLoadWarning,ventasPorDia,metasTurnoCfg} = data;
+  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends,dashboardLoadWarning,ventasPorDia,gananciaPorDia,metasTurnoCfg} = data;
   const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
   const restante = inversionTotal - recuperado;
   const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
@@ -1294,6 +1295,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
       <VentasVsMetaChart
         porDia={ventasPorDia}
+        gananciaPorDia={gananciaPorDia}
         cfg={metasTurnoCfg}
         hoyYmd={ymdMexico()}
         onEditarMetas={() => goToPage("config_cons")}

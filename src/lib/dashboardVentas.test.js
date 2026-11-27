@@ -152,6 +152,32 @@ describe("resolverVentasAcumuladas", () => {
   });
 });
 
+describe("serieVentasDesdeRpc ganancia", () => {
+  test("sin costo el mapa de ganancia no existe", () => {
+    const s = serieVentasDesdeRpc([{ dia: "2026-10-04", total: "100", devoluciones: "10" }]);
+    expect(s.porDia["2026-10-04"]).toBe(90);
+    expect(s.tieneGanancia).toBe(false);
+  });
+
+  test("ganancia bruta es venta neta menos costo", () => {
+    const s = serieVentasDesdeRpc([{
+      dia: "2026-10-04",
+      total: "1000",
+      devoluciones: "100",
+      costo: "400",
+      ganancia: "500",
+    }]);
+    expect(s.tieneGanancia).toBe(true);
+    expect(s.ganancia["2026-10-04"]).toBe(500);
+    expect(s.costo["2026-10-04"]).toBe(400);
+  });
+
+  test("si el RPC manda costo y no ganancia, la resta", () => {
+    const s = serieVentasDesdeRpc([{ dia: "2026-10-04", total: "1000", devoluciones: "100", costo: "400" }]);
+    expect(s.ganancia["2026-10-04"]).toBe(500);
+  });
+});
+
 describe("gananciaNetaEstMes", () => {
   test("55% de ventas del mes (misma fórmula del KPI Proyecto)", () => {
     expect(gananciaNetaEstMes(1000)).toBe(550);
