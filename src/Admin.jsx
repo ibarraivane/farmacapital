@@ -19,7 +19,8 @@ import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathn
 import { TIENDA_BANNER_DESTINOS, resolveTiendaPage } from "./shared/tiendaRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
-import { CLAVES_SALDO_MP, fechaLocalMexico, parseSaldoConfig } from "./lib/pagoServicio";
+import { fechaLocalMexico, parseSaldoConfig } from "./lib/pagoServicio";
+import { leerConfigServicios } from "./lib/configServiciosApi";
 import ImageUploader from "./components/ImageUploader";
 import FichasRevisionAdmin from "./components/admin/FichasRevisionAdmin";
 import ResenasModeracion from "./components/admin/ResenasModeracion";
@@ -2215,7 +2216,7 @@ export default function FarmaCapitalAdmin(){
     if (!usuario || !rolEsAdmin(usuario.rol)) return;
     let cancelled = false;
     const checkSaldo = async () => {
-      const { data } = await supabase.from("configuracion").select("clave,valor").in("clave", CLAVES_SALDO_MP);
+      const data = await leerConfigServicios().catch(() => []);
       if (cancelled) return;
       const st = parseSaldoConfig(data);
       if (!st.bajo) return;

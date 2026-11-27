@@ -55,20 +55,34 @@ test("el piso no edita recargos", async () => {
   expect(screen.queryByText(/Recargos de recibos/)).not.toBeInTheDocument();
 });
 
-test("guardar recargos manda el nuevo monto y confirma en pantalla", async () => {
+test("los recargos se leen por el API (RLS) y el cambio se refleja en los botones", async () => {
   sessionStorage.setItem("farmacapital_session_token", "tok");
   const fetchOriginal = global.fetch;
-  global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true }) }));
+  let guardado = { cfe: 8, telmex: 8, totalplay: 8, izzi: 10, sky: 10, agua: 8, gas: 8, otro: 10 };
+  global.fetch = jest.fn(async (_url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.action === "set_recargos") {
+      guardado = body.recargos;
+      return { ok: true, status: 200, json: async () => ({ ok: true }) };
+    }
+    if (body.action === "config") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, rows: [{ clave: "servicios_recargos", valor: JSON.stringify(guardado) }] }),
+      };
+    }
+    return { ok: true, status: 200, json: async () => ({ ok: true, rows: [] }) };
+  });
   try {
     render(<PagoServiciosPanel isNarrow usuario={{ rol: "admin", nombre: "Dueño" }} />);
     const telmex = await screen.findByLabelText(/Telmex/);
     fireEvent.change(telmex, { target: { value: "10" } });
     fireEvent.click(screen.getByRole("button", { name: /Guardar recargos/ }));
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
-    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
-    expect(body.action).toBe("set_recargos");
-    expect(body.recargos.telmex).toBe(10);
-    expect(await screen.findByRole("status")).toHaveTextContent(/sigue con otro monto/);
+    expect(await screen.findByRole("status")).toHaveTextContent(/guardados/);
+    const setCall = global.fetch.mock.calls.find((c) => JSON.parse(c[1].body).action === "set_recargos");
+    expect(JSON.parse(setCall[1].body).recargos.telmex).toBe(10);
+    expect(screen.getByRole("button", { name: /Telmex/ }).textContent).toMatch(/\+\$10\.00/);
     expect(screen.getByLabelText(/Telmex/)).toHaveValue("10");
   } finally {
     global.fetch = fetchOriginal;
