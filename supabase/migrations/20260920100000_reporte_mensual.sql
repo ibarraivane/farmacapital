@@ -677,7 +677,17 @@ begin
       'desde', v_desde, 'hasta', v_corte,
       'parcial', v_parcial,
       'generado_at', v_hoy,
-      'generado_por', (select nombre from usuarios where id = auth.uid()),
+      -- usuarios.id es integer. auth.uid() es uuid y truena
+      -- "operator does not exist: integer = uuid". La sesión es el token.
+      'generado_por', (
+        select u.nombre
+        from public.usuarios u
+        join public.sesiones s on s.usuario_id = u.id
+        where s.token = nullif(current_setting('farmacapital.session_token', true), '')::uuid
+          and s.revoked_at is null
+          and s.expires_at > now()
+        limit 1
+      ),
       'zona', 'America/Mexico_City'),
     'resumen',      fn_rep_resumen(v_desde, v_corte),
     'previo',       fn_rep_resumen(v_pdesde, v_phasta),
