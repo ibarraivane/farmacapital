@@ -6,7 +6,21 @@
 export const DIAS_CADUCIDAD_CRITICO = 30;
 export const DIAS_CADUCIDAD_ALERTA = 90;
 
+/** Año fuera de este rango = basura OCR (p. ej. 0027-10-01 en vez de 2027-10-01). */
+export const CADUCIDAD_ANIO_MIN = 1990;
+export const CADUCIDAD_ANIO_MAX = 2045;
+
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/**
+ * Caducidad ilegible / año imposible. El POS no debe tratarla como “vencida”
+ * (eso marcaba Sin lotes con piezas en anaquel, caso Tukol-D 0027-10-01).
+ */
+export function fechaCaducidadInvalida(fecha) {
+  if (!fecha) return false;
+  const y = parseInt(String(fecha).slice(0, 4), 10);
+  return !Number.isFinite(y) || y < CADUCIDAD_ANIO_MIN || y > CADUCIDAD_ANIO_MAX;
+}
 
 /** "0629" | "06/29" | "062029" → "2029-06-30". Inválido → null. */
 export function parseCaducidadMMAA(raw) {
