@@ -1,4 +1,8 @@
--- RH: nómina semanal martes–viernes. Sin IMSS/ISR por defecto.
+-- RH: nómina semanal. Sin IMSS/ISR por defecto.
+-- OJO (2026-09-26): la semana de pago ya es sábado–viernes.
+-- Si esta base ya corrió este archivo, no lo vuelvas a ejecutar:
+-- el create or replace de abajo deja otra vez martes–viernes.
+-- Corre en su lugar sql/patch_rh_semana_sabado_viernes_20260926.sql.
 -- Erika esta semana: $1,133.32 (SPEI folio 6349011488).
 -- Ejecutar TODO el archivo en Supabase → SQL Editor → Run. Idempotente.
 
