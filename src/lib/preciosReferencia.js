@@ -11,7 +11,7 @@ export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "far
 /** Entran a «Comprar en» / mejor precio, sin columna propia. */
 export const FUENTES_COMPRA_EXTRA = [
   "scorpion", "abarrotero", "mayoreototal", "otros_compra",
-  "dermaexpress", "birdman", "ewafra", "promexsa", "mepiel",
+  "dermaexpress", "birdman", "ewafra", "promexsa", "mepiel", "suplementosmayoreo",
 ];
 export const FUENTES_COMPRA = [...FUENTES_COMPRA_TABLA, ...FUENTES_COMPRA_EXTRA];
 export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
@@ -178,6 +178,12 @@ export const FUENTE_META = {
     tipo: "compra",
     listaDistribuidor: true,
     hint: "Mayoreo dermo / médico. Reservada hasta cargar la lista.",
+  },
+  suplementosmayoreo: {
+    label: "Suplementos Mayoreo",
+    tipo: "compra",
+    listaDistribuidor: true,
+    hint: "Mayoreo de suplementos (suplementosmayoreo.com). El precio del CSV es costo; no es PVP.",
   },
   similares: {
     label: "Similares",
