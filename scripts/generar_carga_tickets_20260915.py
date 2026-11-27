@@ -560,12 +560,14 @@ where folio = {sql_str(folio)}
   and coalesce(proveedor, '') ilike {sql_str("%" + ticket["proveedor_ilike"] + "%")}
   and estado = 'borrador';
 
-delete from public.recepcion_items i
-using public.recepciones r
-where i.recepcion_id = r.id
-  and r.folio = {sql_str(folio)}
-  and coalesce(r.proveedor, '') ilike {sql_str("%" + ticket["proveedor_ilike"] + "%")}
-  and r.estado = 'borrador';
+delete from public.recepcion_items
+where recepcion_id in (
+  select id
+  from public.recepciones
+  where folio = {sql_str(folio)}
+    and coalesce(proveedor, '') ilike {sql_str("%" + ticket["proveedor_ilike"] + "%")}
+    and estado = 'borrador'
+);
 
 insert into public.recepcion_items (
   recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,
@@ -595,9 +597,14 @@ select
   null
 from {tmp} t
 join public.recepciones r
-  on r.folio = {sql_str(folio)}
- and coalesce(r.proveedor, '') ilike {sql_str("%" + ticket["proveedor_ilike"] + "%")}
- and r.estado = 'borrador'
+  on r.id = (
+    select id
+    from public.recepciones
+    where folio = {sql_str(folio)}
+      and coalesce(proveedor, '') ilike {sql_str("%" + ticket["proveedor_ilike"] + "%")}
+      and estado = 'borrador'
+    limit 1
+  )
 left join lateral (
   select coalesce(
     public.fc_buscar_producto_escaneo(t.ean),
