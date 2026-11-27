@@ -15,7 +15,7 @@ Fotos Central de Abastos (Palillero). Pegar **cada** SQL en Supabase → SQL Edi
 
 - Postday 0.75 mg C/2 (`7501249605634`)
 - Algodón plisado Quirmex 50 g (`7503003406327`)
-- Doxiciclina Alpharma 100 mg C/10 (`7502226291857`)
+- Vivradoxil 100 mg (`7502226291857`) · unificar con `sql/patch_vivradoxil_unificar_20261004.sql`
 - Erbitrax-T C/28 (`7502211783787`) · Cityfarma
 - Lactacyd Pro-Bio 200 mL (`7501165009486`) · Cityfarma
 - Vessel Due-F C/50 (`8020030091252`) · Cityfarma
