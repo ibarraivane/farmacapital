@@ -3,7 +3,8 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
-import { CATALOGO_SERVICIOS, CLAVE_SERVICIOS_RECARGOS, catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, draftRecargosDe, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, partesPagoServicio, recargoEsValido, recargosReciboParaGuardar, resumenPagosServicioDia, serviciosReciboDe, utilidadServicio } from "../../../lib/pagoServicio";
+import { CATALOGO_SERVICIOS, CLAVE_SERVICIOS_RECARGOS, catalogoServiciosConRecargos, compensacionMpDe, compensacionMpDeFila, draftRecargosDe, esMismoDiaMexico, labelMetodoServicio, parseSaldoConfig, partesPagoServicio, recargoEsValido, recargosReciboParaGuardar, resumenPagosServicioDia, serviciosReciboDe, utilidadServicio } from "../../../lib/pagoServicio";
+import { leerConfigServicios } from "../../../lib/configServiciosApi";
 import { desgloseMixto, mensajeErrorMixto } from "../../../utils/pagoMixto";
 import { rolEsAdmin } from "../../../utils/permissions";
 import { printServicioTicket } from "../../../utils/servicioTicket";
@@ -112,8 +113,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
 
   const fetchSaldoMp = useCallback(async () => {
     try {
-      const { data, error } = await supabase.from("configuracion").select("clave,valor").in("clave", [...CLAVES_SALDO_MP, CLAVE_SERVICIOS_RECARGOS]);
-      if (error) throw error;
+      const data = await leerConfigServicios();
       const st = parseSaldoConfig(data);
       setSaldoMp(st);
       setSaldoStr(st.configurado ? String(st.saldo) : "");
