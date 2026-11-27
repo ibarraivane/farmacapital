@@ -5,11 +5,13 @@ import {
   cantidadSugerida,
   clasificarAlertas,
   filasReporte,
+  hayCajaAbiertaInventario,
   idFuenteSurtidor,
   itemsParaPedir,
   filasAlertaStockAnaquel,
   nivelStockUrgencia,
   opcionesPedidoProducto,
+  stockDe,
 } from "./reporteReabasto";
 
 const prod = (over = {}) => ({
@@ -46,12 +48,16 @@ describe("urgencia de stock", () => {
     expect(filasAlertaStockAnaquel([presion, prod({ id: 2 })]).map((p) => p.id)).toEqual([2]);
   });
 
-  test("caja abierta con piezas no cuenta como agotado", () => {
-    expect(nivelStockUrgencia(prod({ stock: 0, stock_unidades: 40, stock_minimo: 5 }))).not.toBe("AGOTADO");
-    expect(nivelStockUrgencia(prod({ stock: 0, stock_blisters: 2, stock_minimo: 5 }))).not.toBe("AGOTADO");
+  test("caja abierta que se vende por pieza ya no cuenta como caja", () => {
+    const abierta = prod({ stock: 0, stock_unidades: 40, stock_minimo: 5 });
+    expect(hayCajaAbiertaInventario(abierta)).toBe(true);
+    expect(stockDe(abierta)).toBe(0);
+    expect(nivelStockUrgencia(abierta)).toBe("AGOTADO");
+    expect(stockDe(prod({ stock: 2, stock_unidades: 40 }))).toBe(2);
+    expect(stockDe(prod({ stock: 0, stock_blisters: 2 }))).toBe(0);
     expect(
-      clasificarAlertas([prod({ id: 9, stock: 0, stock_unidades: 12 })]).agotados,
-    ).toEqual([]);
+      clasificarAlertas([prod({ id: 9, stock: 0, stock_unidades: 12 })]).agotados.map((p) => p.id),
+    ).toEqual([9]);
   });
 
   test("otra presentación con el mismo nombre sigue en agotados", () => {
