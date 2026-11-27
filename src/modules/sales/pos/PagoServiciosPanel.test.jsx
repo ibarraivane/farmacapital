@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import PagoServiciosPanel from "./PagoServiciosPanel";
 
 jest.mock("../../../supabase", () => ({
@@ -53,4 +53,38 @@ test("el piso no edita recargos", async () => {
   render(<PagoServiciosPanel isNarrow usuario={{ rol: "vendedor", nombre: "Cynthia" }} />);
   expect(await screen.findByRole("button", { name: /Efectivo/ })).toBeInTheDocument();
   expect(screen.queryByText(/Recargos de recibos/)).not.toBeInTheDocument();
+});
+
+test("guardar recargos manda el nuevo monto y confirma en pantalla", async () => {
+  sessionStorage.setItem("farmacapital_session_token", "tok");
+  const fetchOriginal = global.fetch;
+  global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true }) }));
+  try {
+    render(<PagoServiciosPanel isNarrow usuario={{ rol: "admin", nombre: "Dueño" }} />);
+    const telmex = await screen.findByLabelText(/Telmex/);
+    fireEvent.change(telmex, { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /Guardar recargos/ }));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(body.action).toBe("set_recargos");
+    expect(body.recargos.telmex).toBe(10);
+    expect(await screen.findByRole("status")).toHaveTextContent(/sigue con otro monto/);
+    expect(screen.getByLabelText(/Telmex/)).toHaveValue("10");
+  } finally {
+    global.fetch = fetchOriginal;
+  }
+});
+
+test("si ningún camino guarda, el admin ve por qué", async () => {
+  sessionStorage.setItem("farmacapital_session_token", "tok");
+  const fetchOriginal = global.fetch;
+  global.fetch = jest.fn(async () => ({ ok: false, status: 403, json: async () => ({ ok: false, error: "requiere_admin" }) }));
+  try {
+    render(<PagoServiciosPanel isNarrow usuario={{ rol: "admin", nombre: "Dueño" }} />);
+    fireEvent.change(await screen.findByLabelText(/Telmex/), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /Guardar recargos/ }));
+    expect(await screen.findByRole("status")).toHaveTextContent(/No se guardó.*requiere_admin/);
+  } finally {
+    global.fetch = fetchOriginal;
+  }
 });

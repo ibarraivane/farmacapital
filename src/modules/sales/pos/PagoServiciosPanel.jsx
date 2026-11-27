@@ -95,6 +95,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
   const [catalogo, setCatalogo] = useState(CATALOGO_SERVICIOS);
   const [recargoDraft, setRecargoDraft] = useState(() => draftRecargosDe(CATALOGO_SERVICIOS));
   const [salvandoRecargos, setSalvandoRecargos] = useState(false);
+  const [recargosMsg, setRecargosMsg] = useState(null);
   const esAdmin = rolEsAdmin(usuario?.rol);
 
   const servicio = useMemo(
@@ -120,8 +121,10 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
       const next = catalogoServiciosConRecargos(data);
       setCatalogo(next);
       setRecargoDraft(draftRecargosDe(next));
+      return next;
     } catch (e) {
       console.error(e);
+      return null;
     }
   }, []);
 
@@ -316,15 +319,19 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
   };
 
   const guardarRecargosAdmin = async () => {
+    setRecargosMsg(null);
     const parsed = recargosReciboParaGuardar(recargoDraft, CATALOGO_SERVICIOS);
     if (!parsed.ok) {
+      setRecargosMsg({ tipo: "error", texto: parsed.error });
       showToast(parsed.error, "error");
       return;
     }
     setSalvandoRecargos(true);
+    const fallos = [];
+    let guardado = false;
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      if (!tok) throw new Error("Sesión expirada");
+      if (!tok) throw new Error("Sesión expirada. Cierra sesión y vuelve a entrar.");
 
       try {
         const resp = await fetch("/api/inventarioProcesarPdf?type=pago-servicio", {
@@ -338,40 +345,70 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
         });
         const data = await resp.json().catch(() => ({}));
         if (resp.ok && data?.ok) {
-          showToast("Recargos de recibos guardados. El siguiente cobro ya los usa.", "success");
-          fetchSaldoMp();
-          setSalvandoRecargos(false);
-          return;
-        }
-        if (data?.error && data.error !== "requiere_admin" && data.error !== "nada_que_guardar") {
-          throw new Error(data.error);
+          guardado = true;
+        } else {
+          fallos.push(`servidor: ${data?.error || `HTTP ${resp.status}`}`);
         }
       } catch (e) {
-        if (e?.message && e.message !== "Failed to fetch") throw e;
+        fallos.push(`servidor: ${e?.message || "sin conexión"}`);
       }
 
-      const rpcAdmin = await supabase.rpc("admin_set_servicios_recargos", {
-        p_session_token: tok,
-        p_recargos: parsed.recargos,
-      });
-      if (!rpcAdmin.error && rpcAdmin.data?.success) {
-        showToast("Recargos de recibos guardados. El siguiente cobro ya los usa.", "success");
-        fetchSaldoMp();
-        setSalvandoRecargos(false);
-        return;
+      if (!guardado) {
+        try {
+          const rpcAdmin = await supabase.rpc("admin_set_servicios_recargos", {
+            p_session_token: tok,
+            p_recargos: parsed.recargos,
+          });
+          if (!rpcAdmin.error && rpcAdmin.data?.success) {
+            guardado = true;
+          } else {
+            fallos.push(`rpc admin: ${rpcAdmin.error?.message || rpcAdmin.data?.error || "sin respuesta"}`);
+          }
+        } catch (e) {
+          fallos.push(`rpc admin: ${e?.message || "error"}`);
+        }
       }
 
-      const { data, error } = await supabase.rpc("empleado_upsert_configuracion", {
-        p_session_token: tok,
-        p_clave: CLAVE_SERVICIOS_RECARGOS,
-        p_valor: parsed.json,
-      });
-      if (error) throw error;
-      if (data?.success === false) throw new Error(data?.error || "No se pudo guardar");
-      showToast("Recargos de recibos guardados. El siguiente cobro ya los usa.", "success");
-      fetchSaldoMp();
+      if (!guardado) {
+        const { data, error } = await supabase.rpc("empleado_upsert_configuracion", {
+          p_session_token: tok,
+          p_clave: CLAVE_SERVICIOS_RECARGOS,
+          p_valor: parsed.json,
+        });
+        if (error) {
+          fallos.push(`rpc empleado: ${error.message}`);
+        } else if (data?.success !== true) {
+          fallos.push(`rpc empleado: ${data?.error || "no se pudo guardar"}`);
+        } else {
+          guardado = true;
+        }
+      }
+
+      if (!guardado) {
+        throw new Error(`No se guardó (${fallos.join(" · ")})`);
+      }
+
+      const leido = await fetchSaldoMp();
+      const distinto = leido
+        ? serviciosReciboDe(leido).filter((s) => Math.abs(Number(s.comision) - parsed.recargos[s.id]) > 0.001)
+        : [];
+      if (!leido || distinto.length) {
+        setCatalogo((prev) => prev.map((s) => (parsed.recargos[s.id] != null ? { ...s, comision: parsed.recargos[s.id] } : s)));
+        setRecargoDraft(Object.fromEntries(Object.entries(parsed.recargos).map(([id, n]) => [id, String(n)])));
+        const texto = leido
+          ? `El servidor dijo que guardó, pero al releer sigue con otro monto (${distinto.map((s) => s.proveedor).join(", ")}). Avisa a soporte.`
+          : "Se guardó, pero no pude releer la configuración para confirmarlo. Recarga la página y revisa.";
+        setRecargosMsg({ tipo: "warning", texto });
+        showToast(texto, "warning");
+      } else {
+        const texto = "Recargos de recibos guardados. El siguiente cobro ya los usa.";
+        setRecargosMsg({ tipo: "success", texto });
+        showToast(texto, "success");
+      }
     } catch (e) {
-      showToast(e?.message || "No se pudieron guardar los recargos", "error");
+      const texto = e?.message || "No se pudieron guardar los recargos";
+      setRecargosMsg({ tipo: "error", texto });
+      showToast(texto, "error");
     }
     setSalvandoRecargos(false);
   };
@@ -447,7 +484,22 @@ export default function PagoServiciosPanel({ onCobrarPoint, onCobrarBbva, isNarr
               </label>
             ))}
           </div>
-          <Btn col={BRAND.secondary} onClick={guardarRecargosAdmin} dis={salvandoRecargos}>Guardar recargos</Btn>
+          <Btn col={BRAND.secondary} onClick={guardarRecargosAdmin} dis={salvandoRecargos}>{salvandoRecargos ? "Guardando…" : "Guardar recargos"}</Btn>
+          {recargosMsg && (
+            <div
+              role="status"
+              style={{
+                marginTop: 10,
+                fontSize: 12,
+                fontWeight: 700,
+                lineHeight: 1.45,
+                color: recargosMsg.tipo === "success" ? (C.green || "#15803d") : recargosMsg.tipo === "warning" ? (C.amber || "#b45309") : (C.red || "#dc2626"),
+              }}
+            >
+              {recargosMsg.tipo === "success" ? "✅ " : recargosMsg.tipo === "warning" ? "⚠️ " : "❌ "}
+              {recargosMsg.texto}
+            </div>
+          )}
         </div>
       )}
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
