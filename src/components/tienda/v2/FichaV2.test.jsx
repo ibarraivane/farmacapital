@@ -52,7 +52,7 @@ test("agotado no deja comprar", () => {
   expect(screen.getByText("Agotado por ahora")).toBeInTheDocument();
 });
 
-test("por encargo ofrece pedir, no agregar", () => {
+test("por encargo sin PVP ofrece pedir, no agregar", () => {
   const onCotizar = jest.fn();
   render(
     <FichaV2
@@ -65,6 +65,25 @@ test("por encargo ofrece pedir, no agregar", () => {
   expect(screen.queryByRole("button", { name: /Agregar al carrito/i })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Pedir por encargo/i }));
   expect(onCotizar).toHaveBeenCalled();
+});
+
+test("por encargo con PVP ordena al precio (reserva), no compra de anaquel", () => {
+  const onAgregar = jest.fn();
+  render(
+    <FichaV2
+      prod={{ ...PROD, stock: 0, bajo_pedido: true, precio: 1006.88 }}
+      precioSlot={<span>$1,006.88</span>}
+      estadoCompra={{ agotado: false, permitidoWeb: true, esEncargo: true, encargoConPrecio: true }}
+      onAgregar={onAgregar}
+      onComprar={() => {}}
+      setPage={() => {}}
+    />
+  );
+  expect(screen.getByText("$1,006.88")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Comprar ahora/i })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Ordenar al precio/i }));
+  expect(onAgregar).toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: /Ir al carrito/i })).toBeInTheDocument();
 });
 
 test("con receta muestra el aviso", () => {

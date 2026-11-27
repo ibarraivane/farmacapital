@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { $peso } from "../../../utils";
 import { tiendaCardImageUrl } from "../../../utils/tiendaCardImage";
 import { presentacionPublicaTienda } from "../../../utils/tiendaFarmaciaCatalogo";
-import { esBajoPedido } from "../../../lib/bajoPedido";
+import { ctaBajoPedido, esBajoPedido } from "../../../lib/bajoPedido";
 import { politicaProducto } from "../../../config/politicaMedicamentos";
 import { useUrlsImagenesProducto, siguienteIndiceFotoTarjeta, productoTieneFotoInventario, fotoGuardadaMandaEnTienda, resolverFotoTienda } from "../../../hooks/useProductoImagenes";
 import { useZoomPackshot } from "../../../hooks/useZoomPackshot";
@@ -17,11 +17,13 @@ function precioPublicado(prod) {
 }
 
 export function sePuedeAgregarEnTarjeta(prod) {
-  if (!prod || prod.activo === false || esBajoPedido(prod)) return false;
+  if (!prod || prod.activo === false) return false;
   if (precioPublicado(prod) == null) return false;
-  if (Number(prod.stock) <= 0) return false;
   const pol = politicaProducto(prod);
-  return Boolean(pol.ventaEnLinea);
+  if (!pol.ventaEnLinea) return false;
+  // Encargo con PVP: se ordena (reserva), no se compra de anaquel.
+  if (esBajoPedido(prod)) return ctaBajoPedido(prod) === "encargar";
+  return Number(prod.stock) > 0;
 }
 
 export default function TarjetaProducto({ prod, onClick, onAgregar }) {
@@ -95,11 +97,11 @@ export default function TarjetaProducto({ prod, onClick, onAgregar }) {
         <strong className="fc-price">{precio != null ? $peso(precio) : "Consultar"}</strong>
         {puedeAgregar ? (
           <button type="button" className="fc-add fc-add--cart" onClick={agregar}>
-            {added ? "✓ Agregado" : "+ Agregar"}
+            {added ? "✓ Agregado" : (encargo ? "Ordenar" : "+ Agregar")}
           </button>
         ) : (
           <EnlaceTienda className="fc-add" href={href} onNavigate={abrir}>
-            {encargo ? "Consultar →" : "Ver producto →"}
+            {encargo ? (precio != null ? "Ver →" : "Consultar →") : "Ver producto →"}
           </EnlaceTienda>
         )}
       </div>
