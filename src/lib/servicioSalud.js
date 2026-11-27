@@ -1,6 +1,12 @@
+import { pesoPublico } from "../utils/pesoPublico";
+
 /**
  * Atención en mostrador (inyección, presión, oximetría, glucosa).
  * Es un producto tipo `servicio`: se cobra en el POS y no tiene stock ni lotes.
+ *
+ * El precio público se parte a la mitad: quien aplica y la farmacia.
+ * Inyección $30 → $15 y $15. Presión y oxigenación $20 → $10 y $10.
+ * No es costo de compra: el catálogo sigue con costo 0.
  */
 
 export function esServicio(p) {
@@ -40,6 +46,19 @@ export function serviciosAtencionActivos(productos) {
 
 export function catalogoSinServicios(productos) {
   return (productos || []).filter((p) => !esServicio(p));
+}
+
+/**
+ * Mitad para quien aplica, mitad para la farmacia.
+ * El peso impar se queda con quien aplica.
+ */
+export function repartoAtencion(precio, qty = 1) {
+  const unit = pesoPublico(precio);
+  const n = Math.max(0, parseInt(qty, 10) || 0);
+  const total = unit * n;
+  const aplica = Math.round(total / 2);
+  const farmacia = total - aplica;
+  return { total, aplica, farmacia };
 }
 
 /**

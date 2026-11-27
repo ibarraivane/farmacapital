@@ -4,11 +4,12 @@ import {
   esServicio,
   etiquetaCortaAtencion,
   lineaFaltaStock,
+  repartoAtencion,
   serviciosAtencionActivos,
 } from "./servicioSalud";
 
 const presion = { id: 1, sku: "SERV-PRESION", nombre: "Toma de presión arterial", tipo: "servicio", precio: 20, activo: true };
-const inyeccion = { id: 2, sku: "SERV-INY-IM", nombre: "Aplicación de inyección intramuscular", tipo: "servicio", precio: 40, activo: true };
+const inyeccion = { id: 2, sku: "SERV-INY-IM", nombre: "Aplicación de inyección intramuscular", tipo: "servicio", precio: 30, activo: true };
 const oxi = { id: 3, sku: "SERV-OXIMETRIA", nombre: "Medición de oxigenación (oximetría)", tipo: "servicio", precio: 20, activo: true };
 const glucosa = { id: 4, sku: "SERV-GLUCOSA", nombre: "Medición de glucosa capilar", tipo: "servicio", precio: 40, activo: false };
 const omeprazol = { id: 9, sku: "FC-1", nombre: "Omeprazol 20 mg", tipo: "generico", stock: 0, activo: true };
@@ -44,6 +45,13 @@ describe("servicio de salud", () => {
     expect(lineaFaltaStock({ qty: 2 }, omeprazol, 1)).toBe(true);
     expect(lineaFaltaStock({ qty: 1 }, omeprazol, 1)).toBe(false);
     expect(lineaFaltaStock({ qty: 1 }, null, 0)).toBe(false);
+  });
+
+  test("el cobro se parte a la mitad entre quien aplica y la farmacia", () => {
+    expect(repartoAtencion(30)).toEqual({ total: 30, aplica: 15, farmacia: 15 });
+    expect(repartoAtencion(20)).toEqual({ total: 20, aplica: 10, farmacia: 10 });
+    expect(repartoAtencion(30, 2)).toEqual({ total: 60, aplica: 30, farmacia: 30 });
+    expect(repartoAtencion(0)).toEqual({ total: 0, aplica: 0, farmacia: 0 });
   });
 
   test("inventario, lotes y recepción pueden quitar servicios de la lista", () => {
