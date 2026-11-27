@@ -177,7 +177,7 @@ export const FUENTE_META = {
     label: "Mepiel",
     tipo: "compra",
     listaDistribuidor: true,
-    hint: "Mayoreo dermo / médico. Reservada hasta cargar la lista.",
+    hint: "Mayoreo dermo. Lista 2026: precio cliente c/IVA. El PVP de la lista es techo, no costo.",
   },
   similares: {
     label: "Similares",
