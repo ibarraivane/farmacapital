@@ -8,6 +8,7 @@
  * Rubros: categoria/subcategoria (no hay categoría nueva).
  */
 import { categoriaCanon } from "../constants/categoriasProducto";
+import { esDermocosmeticoTopico, esProductoTomado } from "../constants/inferirCategoriaCatalogo";
 import { TOKENS } from "../theme/tokens";
 import { precioOnlineMp } from "./precioOnlineMp";
 
@@ -84,7 +85,14 @@ export function rubroDeProducto(p) {
   if (!p) return "";
   const cat = categoriaCanon(p.categoria);
   const sub = norm(p.subcategoria);
-  if (cat === "Cuidado personal" && (sub.startsWith("dermatolog") || !sub)) return "dermatologia";
+  // El parche de categorías del 21-sep puso «Vitaminas» a todo nombre con
+  // vitamina C/E. El sérum sigue siendo dermatología. Lo que se toma, no.
+  const cuboPiel = cat === "Cuidado personal" || cat === "Vitaminas" || cat === "Otro" || cat === "";
+  if (cuboPiel && esDermocosmeticoTopico(p)) return "dermatologia";
+  if (sub.startsWith("dermatolog") && cuboPiel && !(cat === "Vitaminas" && esProductoTomado(p))) {
+    return "dermatologia";
+  }
+  if (cat === "Cuidado personal" && !sub) return "dermatologia";
   if (cat === "Vitaminas") return "vitaminas";
   if (cat === "Suplemento") return sub.startsWith("protein") || sub.startsWith("nutricion deport") ? "proteina" : "suplementos";
   if (cat === "Dispositivo médico" || cat === "Botiquín") return "dispositivos";

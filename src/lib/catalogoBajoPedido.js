@@ -23,6 +23,43 @@ function skuAltaRecepcion(codigo) {
   return null;
 }
 
+/** Dígito verificador GTIN (EAN-8/12/13/14). Vacío si no cierra. */
+function gtinValido(raw) {
+  const d = String(raw || "").replace(/\D/g, "");
+  if (![8, 12, 13, 14].includes(d.length)) return "";
+  const body = d.slice(0, -1);
+  const check = Number(d.slice(-1));
+  let sum = 0;
+  for (let i = 0; i < body.length; i += 1) {
+    const digit = Number(body[body.length - 1 - i]);
+    sum += digit * (i % 2 === 0 ? 3 : 1);
+  }
+  const calc = (10 - (sum % 10)) % 10;
+  return calc === check ? d : "";
+}
+
+/** Packshot de la ficha Shopify (.js). Solo cdn.shopify.com, https. */
+function elegirPackshotShopify(product) {
+  const media = Array.isArray(product?.media) ? product.media : [];
+  const imagen = media.find((m) => m && m.media_type === "image" && Number(m.width) >= 800 && m.src)
+    || media.find((m) => m && m.media_type === "image" && m.src)
+    || null;
+  let src = imagen?.src || "";
+  if (!src && Array.isArray(product?.images) && product.images.length) {
+    src = typeof product.images[0] === "string" ? product.images[0] : (product.images[0]?.src || "");
+  }
+  if (src.startsWith("//")) src = `https:${src}`;
+  if (!src.startsWith("https://")) return "";
+  try {
+    const host = new URL(src).hostname;
+    if (!/(^|\.)cdn\.shopify\.com$/i.test(host)) return "";
+    if (/(^|\.)fahorro\.com$/i.test(host)) return "";
+  } catch {
+    return "";
+  }
+  return src;
+}
+
 function urlImagenPublicaTienda(rawUrl) {
   const url = String(rawUrl || "").trim();
   if (!url) return "";
@@ -257,10 +294,12 @@ function filaBirdman(row) {
   const techo = Number(row.pvp_sugerido_marca || row.precio_publico_sugerido);
   const cats = mapCategoriaBirdman(row);
   const costoOk = Number.isFinite(costo) && costo > 0;
-  const ean = String(row.ean || row.codigo_barras || "").replace(/\D/g, "");
+  const ean = gtinValido(row.ean || row.codigo_barras);
   return {
-    ean: ean.length >= 8 ? ean : "",
-    sku: skuCatalogoBajoPedido(ean, { proveedor: FUENTE_BIRDMAN, codigoProveedor: row.sku }),
+    ean,
+    // El SKU de mayoreo (PRSH20, FCHC1800) es la identidad. El EAN llega después
+    // y no puede cambiar el FC-*: si no, un regen duplica el producto.
+    sku: skuCatalogoBajoPedido("", { proveedor: FUENTE_BIRDMAN, codigoProveedor: row.sku }),
     nombre: String(row.nombre || "").trim(),
     marca: String(row.marca || "Birdman").trim(),
     presentacion: String(row.variante || row.linea || "").trim(),
@@ -343,7 +382,10 @@ module.exports = {
   scoreMatchNombre,
   matchPromexsa,
   imagenCatalogoSegura,
+  urlImagenPublicaTienda,
   filaDermaexpress,
+  gtinValido,
+  elegirPackshotShopify,
   filaBirdman,
   filaEwafra,
   sqlEscape,

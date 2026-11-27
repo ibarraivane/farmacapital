@@ -117,6 +117,25 @@ test("Birdman merch fuera; proteína entra", () => {
   expect(fit.costo).toBe(399);
 });
 
+test("Birdman conserva el SKU de mayoreo cuando llega el EAN", () => {
+  const sin = filaBirdman({
+    sku: "FCHC1800",
+    nombre: "Falcon Protein 1.8 kg",
+    costo_base_25: 800,
+    disponible_proveedor: 1,
+  });
+  const con = filaBirdman({
+    sku: "FCHC1800",
+    nombre: "Falcon Protein 1.8 kg",
+    costo_base_25: 800,
+    disponible_proveedor: 1,
+    ean: "7503057040393",
+  });
+  expect(con.sku).toBe(sin.sku);
+  expect(con.ean).toBe("7503057040393");
+  expect(con.sku).not.toBe("FC-57040393");
+});
+
 test("Ewafra toma nombre/foto Promexsa si el match es fuerte", () => {
   const promexsa = [{
     sku: "DIS-GAS-010",

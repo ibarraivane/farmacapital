@@ -137,7 +137,22 @@ function main() {
   }
 
   const derma = parseCsv(dermaPath).map(filaDermaexpress).filter((f) => f && f.nombre && f.sku);
-  const bird = parseCsv(birdPath).map(filaBirdman).filter((f) => f && f.nombre && f.sku);
+  const birdRows = parseCsv(birdPath);
+  const eanSidecar = path.join(DOCS, "birdman_ean_imagen.csv");
+  if (fs.existsSync(eanSidecar)) {
+    const porSku = new Map();
+    for (const extra of parseCsv(eanSidecar)) {
+      const clave = String(extra.sku_birdman || "").trim().toUpperCase();
+      if (clave) porSku.set(clave, extra);
+    }
+    for (const row of birdRows) {
+      const extra = porSku.get(String(row.sku || "").trim().toUpperCase());
+      if (!extra) continue;
+      if (!String(row.ean || row.codigo_barras || "").trim() && extra.ean) row.ean = extra.ean;
+      if (!String(row.imagen_url || "").trim() && extra.imagen_url) row.imagen_url = extra.imagen_url;
+    }
+  }
+  const bird = birdRows.map(filaBirdman).filter((f) => f && f.nombre && f.sku);
   const pmx = parseCsv(pmxPath);
   const disRaw = parseCsv(disCsv);
 
@@ -307,7 +322,16 @@ update public.productos p
        precio = 0,
        marca = coalesce(nullif(trim(p.marca), ''), t.marca),
        presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
-       imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url)
+       imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen_url),
+       codigo_barras = case
+         when coalesce(nullif(trim(p.codigo_barras), ''), '') <> '' then p.codigo_barras
+         when nullif(t.ean, '') is null then p.codigo_barras
+         when exists (
+           select 1 from public.productos o
+           where o.codigo_barras = t.ean and o.id <> p.id
+         ) then p.codigo_barras
+         else t.ean
+       end
   from public._fc_cat_bp_stg t
  where coalesce(p.stock, 0) = 0
    and (
