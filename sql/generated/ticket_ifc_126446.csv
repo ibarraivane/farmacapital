@@ -1,0 +1,13 @@
+linea,folio,ean,sku,snap,nombre,qty,pu,sub,lote,match
+1,126446,6932119800025,FC-19800025,CORTAUNAS TRY MEDIANO C/12,Cortaúñas Try mediano C/12,1,75.00,75.00,,alta
+2,126446,6976824588236,FC-24588236,CORTAUNAS BOBO (Z608) MEDIANO S/CADENA C/12 PZS,Cortaúñas Bobo mediano sin cadena C/12,1,65.50,65.50,,alta
+3,126446,7501370204577,FC-70204577,PINZA DEPILAR LADY GRANDE,Curtis Lady pinza tijera cejas,5,8.00,40.00,,ya
+4,126446,7501370202023,FC-70202023,YOLI ENCHINADOR,Yoli enchinador de pestañas,4,16.00,64.00,,alta
+5,126446,7501877602203,FC-77602203,MIYAKO MUNEQUERA T/GUANT IZQUI NEOP MEDI,Miyako muñequera tipo guante izquierda neopreno mediana,1,77.50,77.50,,alta
+6,126446,,FC-IFC-MYK-IZQ-CH,MIYAKO MUNEQUERA T/GUANTE IZQUI NEOP CHI,Miyako muñequera tipo guante izquierda neopreno chica,1,77.50,77.50,,sin_ean
+7,126446,,FC-IFC-MYK-IZQ-GD,MIYAKO MUNEQUERA T/GUANT IZQUI NEOP GRAN,Miyako muñequera tipo guante izquierda neopreno grande,1,77.50,77.50,,sin_ean
+8,126446,,FC-IFC-MYK-DER-MD,MIYAKO MUNEQUERA T/GUAN DERECH NEOP MEDI,Miyako muñequera tipo guante derecha neopreno mediana,1,77.50,77.50,,sin_ean
+9,126446,,FC-IFC-MYK-DER-CH,MIYAKO MUNEQUERA T/GUAN DERECH NEOP CHIC,Miyako muñequera tipo guante derecha neopreno chica,1,77.50,77.50,,sin_ean
+10,126446,6855265655229,FC-65655229,ALICATA ECONOMICA MANGO COLORES GDE,Alicata / set manicure económico mango colores,2,30.00,60.00,,alta
+11,126446,3311000001292,FC-00001292,MERCURIO ACEITE RICINO C/25,Mercurio aceite de ricino 50 ml,10,9.00,90.00,,ya
+12,126446,,FC-D4AC123B,MERCURIO ACEITE ALMENDRAS C/25,Mercurio aceite de almendras,10,8.50,85.00,,ya
