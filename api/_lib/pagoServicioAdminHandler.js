@@ -45,6 +45,7 @@ function recargoCategoriaValido(comision, categoria) {
 
 const RECIBO_IDS = ['cfe', 'telmex', 'totalplay', 'izzi', 'sky', 'agua', 'gas', 'otro'];
 const RECARGO_RECIBO_MAX = 200;
+const CLAVES_CONFIG_SERVICIOS = ['servicios_recargos', 'saldo_mp_recargas', 'saldo_mp_recargas_minimo'];
 const RECARGO_DEFAULT = { cfe: 8, telmex: 8, totalplay: 8, izzi: 10, sky: 10, agua: 8, gas: 8, otro: 10 };
 
 function recargoIdDeProveedor(proveedor) {
@@ -259,6 +260,21 @@ async function pagoServicioAdminHandler(req, res) {
           atendido_por_nombre: r.atendido_por != null ? (byId[String(r.atendido_por)] || '') : '',
         })),
       });
+    }
+
+    if (action === 'config') {
+      const isEmp = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
+      if (!isEmp) return res.status(403).json({ ok: false, error: 'requiere_empleado' });
+      const claves = CLAVES_CONFIG_SERVICIOS.join(',');
+      const resp = await fetch(
+        `${supabaseUrl}/rest/v1/configuracion?clave=in.(${claves})&select=clave,valor`,
+        { headers }
+      );
+      const rows = await resp.json().catch(() => []);
+      if (!resp.ok || !Array.isArray(rows)) {
+        return res.status(502).json({ ok: false, error: 'no_se_pudo_leer_config' });
+      }
+      return res.status(200).json({ ok: true, rows });
     }
 
     const isAdmin = await validateAdminSession(supabaseUrl, serviceKey, sessionToken);
